@@ -1,0 +1,16 @@
+{
+  "name": "knowledge-hub",
+  "version": "1.0.0",
+  "description": "KnowledgeHub — Team Wiki (multi-user)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.17.0"
+  },
+  "devDependencies": {
+    "localtunnel": "^2.0.2"
+  }
+}

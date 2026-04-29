@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>KnowledgeHub — Team Wiki</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0f0f13;
+    --surface: #17171e;
+    --surface2: #1e1e28;
+    --border: #2a2a38;
+    --accent: #e8c97a;
+    --accent2: #7a9ee8;
+    --accent3: #e87a9e;
+    --text: #e8e8f0;
+    --muted: #7a7a96;
+    --success: #7ae8b4;
+    --danger: #e87a7a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    overflow-x: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 260px;
+    min-height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+    transition: transform 0.3s ease;
+  }
+
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+  .sidebar-logo span {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .sidebar-search { padding: 16px 16px 8px; }
+  .sidebar-search input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .sidebar-search input:focus { border-color: var(--accent); }
+  .sidebar-search input::placeholder { color: var(--muted); }
+
+  .sidebar-section { padding: 16px 16px 4px; }
+  .sidebar-section-label {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .category-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--muted);
+    transition: all 0.18s;
+    margin-bottom: 2px;
+  }
+  .category-item:hover { background: var(--surface2); color: var(--text); }
+  .category-item.active { background: rgba(232,201,122,0.12); color: var(--accent); }
+  .category-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .count-badge {
+    margin-left: auto;
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .new-article-btn {
+    margin: 16px;
+    background: var(--accent);
+    color: #0f0f13;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: opacity 0.2s, transform 0.15s;
+  }
+  .new-article-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent2), var(--accent3));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: white; flex-shrink: 0;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .avatar:hover { opacity: 0.8; }
+
+  /* ── Online badge ── */
+  .online-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--success);
+    display: inline-block;
+    margin-right: 4px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── Main ── */
+  .main {
+    margin-left: 260px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .topbar {
+    padding: 20px 36px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .topbar-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .topbar-meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .topbar-actions { display: flex; gap: 10px; }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .btn-danger:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* ── Content ── */
+  .content { padding: 32px 36px; }
+
+  .stats-row { display: flex; gap: 16px; margin-bottom: 32px; }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    flex: 1;
+    animation: fadeUp 0.5s ease both;
+  }
+  .stat-card:nth-child(1) { animation-delay: 0.05s; }
+  .stat-card:nth-child(2) { animation-delay: 0.1s; }
+  .stat-card:nth-child(3) { animation-delay: 0.15s; }
+  .stat-card:nth-child(4) { animation-delay: 0.2s; }
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-title { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 600; }
+
+  .articles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .article-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+    cursor: pointer;
+    transition: all 0.22s;
+    animation: fadeUp 0.5s ease both;
+    position: relative;
+    overflow: hidden;
+  }
+  .article-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .article-card:hover { border-color: rgba(232,201,122,0.3); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+  .article-card:hover::before { opacity: 1; }
+
+  .card-cat {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .card-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; line-height: 1.4; }
+  .card-excerpt {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .card-author { display: flex; align-items: center; gap: 7px; }
+  .card-avatar {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: white;
+  }
+  .tag {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2px 9px;
+    font-size: 11px;
+    color: var(--muted);
+    margin-right: 5px;
+    margin-top: 10px;
+  }
+
+  /* ── Modals ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    width: 720px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 32px;
+    animation: slideUp 0.25s ease;
+  }
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .modal-title { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; }
+  .modal-close {
+    background: var(--surface2);
+    border: none;
+    color: var(--muted);
+    border-radius: 8px;
+    width: 32px; height: 32px;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    transition: color 0.2s; flex-shrink: 0;
+  }
+  .modal-close:hover { color: var(--text); }
+
+  .form-group { margin-bottom: 20px; }
+  .form-label {
+    display: block;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+  .form-select option { background: var(--surface2); }
+  .form-textarea { min-height: 180px; resize: vertical; line-height: 1.6; }
+
+  .toolbar { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+  .toolbar-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    transition: all 0.15s;
+  }
+  .toolbar-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  .modal-footer {
+    display: flex; gap: 10px; justify-content: flex-end;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #0f0f13;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 22px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+  }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* ── View modal content ── */
+  .view-meta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .view-cat-badge {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .view-author { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .view-date { font-size: 12px; color: var(--muted); margin-left: auto; font-family: 'DM Mono', monospace; }
+  .view-content {
+    font-size: 14.5px;
+    line-height: 1.8;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .view-tags { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .view-footer-actions {
+    display: flex; gap: 10px; justify-content: space-between; align-items: center;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 28px; right: 28px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 13px;
+    display: none;
+    animation: fadeIn 0.2s ease;
+    z-index: 999;
+  }
+  .toast.success { background: var(--success); color: #0f0f13; }
+  .toast.info    { background: var(--accent2); color: #0f0f13; }
+  .toast.error   { background: var(--danger);  color: #fff; }
+
+  /* ── Identity modal ── */
+  .identity-modal {
+    width: 420px;
+  }
+
+  /* ── Spinner ── */
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 60px auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Animations ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Sidebar ──────────────────────────────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h1>KnowledgeHub</h1>
+    <span>Team Wiki · 100 members</span>
+  </div>
+  <div class="sidebar-search">
+    <input type="text" placeholder="🔍  Search articles…" id="searchInput" oninput="applyFilters()" />
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Categories</div>
+    <div class="category-item active" onclick="filterCategory('All', this)">
+      <span class="category-dot" style="background:#e8c97a"></span> All Articles
+      <span class="count-badge" id="allCount">—</span>
+    </div>
+    <div class="category-item" onclick="filterCategory('Engineering', this)">
+      <span class="category-dot" style="background:#7a9ee8"></span> Engineering
+      <span class="count-badge" id="cat-count-Engineering">—</span>
+    </div>
+    <div class="category-item" onclick="filterCategory('Finance', this)">
+      <span class="category-dot" style="background:#7ae8b4"></span> Finance &amp; Accounts
+      <span class="count-badge" id="cat-count-Finance">—</span>
+    </div>
+    <div class="category-item" onclick="filterCategory('HR', this)">
+      <span class="category-dot" style="background:#e87a9e"></span> HR &amp; Policies
+      <span class="count-badge" id="cat-count-HR">—</span>
+    </div>
+    <div class="category-item" onclick="filterCategory('Product', this)">
+      <span class="category-dot" style="background:#c97ae8"></span> Product
+      <span class="count-badge" id="cat-count-Product">—</span>
+    </div>
+    <div class="category-item" onclick="filterCategory('Support', this)">
+      <span class="category-dot" style="background:#e8a87a"></span> Customer Support
+      <span class="count-badge" id="cat-count-Support">—</span>
+    </div>
+  </div>
+  <button class="new-article-btn" onclick="openModal()">✦ New Article</button>
+  <div class="sidebar-footer">
+    <div class="avatar" id="userAvatar" title="Change name" onclick="openIdentityModal()">?</div>
+    <div>
+      <div style="font-size:13px;color:var(--text);font-weight:500" id="userName">Loading…</div>
+      <div><span class="online-dot"></span><span id="onlineStatus">connecting…</span></div>
+    </div>
+  </div>
+</aside>
+
+<!-- ── Main ─────────────────────────────────────────────────────────────────── -->
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="pageTitle">All Articles</div>
+      <div class="topbar-meta" id="pageMeta">Browse and manage your team's knowledge base</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn-ghost" onclick="exportArticles()">↑ Export</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num" id="totalCount">—</div>
+        <div class="stat-label">Total Articles</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">6</div>
+        <div class="stat-label">Categories</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">100</div>
+        <div class="stat-label">Team Members</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="todayCount">—</div>
+        <div class="stat-label">Added Today</div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title" id="sectionTitle">Recent Articles</div>
+    </div>
+
+    <div class="articles-grid" id="articlesGrid">
+      <div style="grid-column:1/-1;text-align:center;padding:60px 0">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ── New Article Modal ─────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Write New Article</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Article Title *</label>
+      <input class="form-input" type="text" id="newTitle" placeholder="e.g. How to set up two-factor authentication" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category *</label>
+      <select class="form-select" id="newCategory">
+        <option value="">Select a category…</option>
+        <option value="Engineering">Engineering</option>
+        <option value="Finance">Finance &amp; Accounts</option>
+        <option value="HR">HR &amp; Policies</option>
+        <option value="Product">Product</option>
+        <option value="Support">Customer Support</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tags (comma separated)</label>
+      <input class="form-input" type="text" id="newTags" placeholder="e.g. security, onboarding, guide" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Content *</label>
+      <div class="toolbar">
+        <button class="toolbar-btn" onclick="insertMarkdown('**','**')">B</button>
+        <button class="toolbar-btn" onclick="insertMarkdown('*','*')"><i>I</i></button>
+        <button class="toolbar-btn" onclick="insertMarkdown('# ','')">H1</button>
+        <button class="toolbar-btn" onclick="insertMarkdown('## ','')">H2</button>
+        <button class="toolbar-btn" onclick="insertMarkdown('- ','')">• List</button>
+        <button class="toolbar-btn" onclick="insertMarkdown('1. ','')">1. List</button>
+        <button class="toolbar-btn" onclick="insertMarkdown('```\n','\n```')">```</button>
+        <button class="toolbar-btn" onclick="insertMarkdown('[text](','url)')">Link</button>
+      </div>
+      <textarea class="form-textarea" id="newContent" placeholder="Write your article here…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" id="publishBtn" onclick="publishArticle()">Publish Article</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── View Article Modal ────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="viewModalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="viewTitle" style="line-height:1.3;padding-right:16px"></div>
+      <button class="modal-close" onclick="closeViewModal()">✕</button>
+    </div>
+    <div class="view-meta">
+      <span class="view-cat-badge" id="viewCatBadge"></span>
+      <div class="view-author">
+        <div class="card-avatar" id="viewAuthorAvatar" style="width:26px;height:26px;font-size:11px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff"></div>
+        <span id="viewAuthor"></span>
+      </div>
+      <div class="view-date" id="viewDate"></div>
+    </div>
+    <div class="view-content" id="viewContent"></div>
+    <div class="view-tags" id="viewTagsArea"></div>
+    <div class="view-footer-actions">
+      <button class="btn-danger" id="deleteBtn" onclick="deleteArticle()">Delete Article</button>
+      <button class="btn-ghost" onclick="closeViewModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Identity Modal ────────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="identityModalOverlay">
+  <div class="modal identity-modal">
+    <div class="modal-header">
+      <div class="modal-title">Who are you?</div>
+    </div>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:24px;line-height:1.6">
+      Enter your name so your articles are attributed correctly. This is saved in your browser.
+    </p>
+    <div class="form-group">
+      <label class="form-label">Your Full Name</label>
+      <input class="form-input" type="text" id="identityName" placeholder="e.g. Priya Nair" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="saveIdentity()">Save &amp; Continue</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Constants ─────────────────────────────────────────────────────────────────
+const categories = {
+  Engineering: { color: "#7a9ee8", bg: "rgba(122,158,232,0.15)" },
+  Finance:     { color: "#7ae8b4", bg: "rgba(122,232,180,0.15)" },
+  HR:          { color: "#e87a9e", bg: "rgba(232,122,158,0.15)" },
+  Product:     { color: "#c97ae8", bg: "rgba(201,122,232,0.15)" },
+  Support:     { color: "#e8a87a", bg: "rgba(232,168,122,0.15)" },
+};
+const avatarColors = ["#7a9ee8","#e87a9e","#7ae8b4","#c97ae8","#e8a87a","#e8c97a"];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let allArticles   = [];
+let activeCategory = "All";
+let viewingId      = null;
+
+// ── User identity ─────────────────────────────────────────────────────────────
+function getUser() {
+  const stored = localStorage.getItem('kb_user');
+  return stored ? JSON.parse(stored) : null;
+}
+function initials(name) {
+  return name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2) || '??';
+}
+function openIdentityModal() {
+  const u = getUser();
+  document.getElementById('identityName').value = u ? u.name : '';
+  document.getElementById('identityModalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('identityName').focus(), 100);
+}
+function saveIdentity() {
+  const name = document.getElementById('identityName').value.trim();
+  if (!name) return;
+  const user = { name, initials: initials(name) };
+  localStorage.setItem('kb_user', JSON.stringify(user));
+  document.getElementById('identityModalOverlay').classList.remove('open');
+  renderUserInfo();
+}
+function renderUserInfo() {
+  const u = getUser();
+  document.getElementById('userName').textContent   = u ? u.name : 'Anonymous';
+  document.getElementById('userAvatar').textContent = u ? u.initials : '?';
+}
+
+// ── Date helper ───────────────────────────────────────────────────────────────
+function relativeDate(isoStr) {
+  const date = new Date(isoStr);
+  const now  = new Date();
+  const mins = Math.round((now - date) / 60000);
+  if (mins < 1)    return 'Just now';
+  if (mins < 60)   return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24)    return 'Today';
+  const days = Math.round(hrs / 24);
+  if (days === 1)  return 'Yesterday';
+  if (days < 7)    return `${days} days ago`;
+  if (days < 14)   return '1 week ago';
+  return `${Math.floor(days/7)} weeks ago`;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderArticles(list) {
+  const grid = document.getElementById('articlesGrid');
+  if (!list.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:60px 0;font-size:15px">No articles found.</div>`;
+    return;
+  }
+  grid.innerHTML = list.map((a, i) => {
+    const c     = categories[a.category] || { color: '#e8c97a', bg: 'rgba(232,201,122,0.15)' };
+    const aClr  = avatarColors[i % avatarColors.length];
+    const delay = (i * 0.04).toFixed(2);
+    return `
+      <div class="article-card" style="animation-delay:${delay}s" onclick="viewArticle(${a.id})">
+        <style>.article-card:nth-child(${i+1})::before{background:linear-gradient(90deg,${c.color},transparent)}</style>
+        <div class="card-cat" style="color:${c.color}">
+          <span class="card-dot" style="background:${c.color}"></span>${a.category}
+        </div>
+        <div class="card-title">${escHtml(a.title)}</div>
+        <div class="card-excerpt">${escHtml(a.excerpt)}</div>
+        <div>${a.tags.map(t => `<span class="tag">${escHtml(t)}</span>`).join('')}</div>
+        <div class="card-footer">
+          <div class="card-author">
+            <div class="card-avatar" style="background:${aClr}">${escHtml(a.initials)}</div>
+            ${escHtml(a.author)}
+          </div>
+          <div>${relativeDate(a.created_at)}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function updateCounts() {
+  document.getElementById('totalCount').textContent = allArticles.length;
+  document.getElementById('allCount').textContent   = allArticles.length;
+
+  const catNames = ['Engineering','Finance','HR','Product','Support'];
+  catNames.forEach(cat => {
+    const el = document.getElementById(`cat-count-${cat}`);
+    if (el) el.textContent = allArticles.filter(a => a.category === cat).length;
+  });
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  document.getElementById('todayCount').textContent =
+    allArticles.filter(a => new Date(a.created_at) >= today).length;
+}
+
+// ── Filters ───────────────────────────────────────────────────────────────────
+function filterCategory(cat, el) {
+  activeCategory = cat;
+  document.querySelectorAll('.category-item').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('pageTitle').textContent  = cat === 'All' ? 'All Articles' : cat;
+  document.getElementById('pageMeta').textContent   = cat === 'All' ? "Browse and manage your team's knowledge base" : `Articles in ${cat}`;
+  document.getElementById('sectionTitle').textContent = cat === 'All' ? 'Recent Articles' : `${cat} Articles`;
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  let list = allArticles;
+  if (activeCategory !== 'All') list = list.filter(a => a.category === activeCategory);
+  if (q) list = list.filter(a =>
+    a.title.toLowerCase().includes(q) ||
+    a.excerpt.toLowerCase().includes(q) ||
+    a.tags.some(t => t.toLowerCase().includes(q))
+  );
+  renderArticles(list);
+}
+
+// ── API calls ─────────────────────────────────────────────────────────────────
+async function loadArticles() {
+  try {
+    const res  = await fetch('/api/articles');
+    allArticles = await res.json();
+    updateCounts();
+    applyFilters();
+  } catch(e) {
+    showToast('Failed to load articles', 'error');
+  }
+}
+
+// ── New article modal ─────────────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('newTitle').focus(), 100);
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  ['newTitle','newTags','newContent'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('newCategory').value = '';
+}
+
+function insertMarkdown(before, after) {
+  const ta  = document.getElementById('newContent');
+  const s   = ta.selectionStart;
+  const e   = ta.selectionEnd;
+  const sel = ta.value.slice(s, e);
+  ta.value  = ta.value.slice(0, s) + before + sel + after + ta.value.slice(e);
+  ta.setSelectionRange(s + before.length, s + before.length + sel.length);
+  ta.focus();
+}
+
+async function publishArticle() {
+  const title    = document.getElementById('newTitle').value.trim();
+  const category = document.getElementById('newCategory').value;
+  const tags     = document.getElementById('newTags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  const content  = document.getElementById('newContent').value.trim();
+
+  if (!title || !category || !content) {
+    showToast('Please fill in Title, Category, and Content.', 'error');
+    return;
+  }
+
+  const user = getUser() || { name: 'Anonymous', initials: 'AN' };
+  const btn  = document.getElementById('publishBtn');
+  btn.disabled = true;
+  btn.textContent = 'Publishing…';
+
+  try {
+    const res = await fetch('/api/articles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, category, author: user.name, initials: user.initials, content, tags })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    closeModal();
+    showToast('✓ Article published successfully!', 'success');
+  } catch(e) {
+    showToast('Failed to publish. Please try again.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Publish Article';
+  }
+}
+
+// ── View article modal ────────────────────────────────────────────────────────
+async function viewArticle(id) {
+  viewingId = id;
+  try {
+    const a = await (await fetch(`/api/articles/${id}`)).json();
+    const c = categories[a.category] || { color: '#e8c97a', bg: 'rgba(232,201,122,0.15)' };
+
+    document.getElementById('viewTitle').textContent = a.title;
+
+    const badge = document.getElementById('viewCatBadge');
+    badge.textContent = a.category;
+    badge.style.background = c.bg;
+    badge.style.color = c.color;
+
+    const av = document.getElementById('viewAuthorAvatar');
+    av.textContent = a.initials;
+    av.style.background = avatarColors[id % avatarColors.length];
+
+    document.getElementById('viewAuthor').textContent = a.author;
+    document.getElementById('viewDate').textContent   = relativeDate(a.created_at);
+    document.getElementById('viewContent').textContent = a.content;
+    document.getElementById('viewTagsArea').innerHTML  = a.tags.map(t=>`<span class="tag">${escHtml(t)}</span>`).join('');
+
+    const user = getUser();
+    const del  = document.getElementById('deleteBtn');
+    del.style.display = (user && user.name === a.author) ? 'block' : 'none';
+
+    document.getElementById('viewModalOverlay').classList.add('open');
+  } catch(e) {
+    showToast('Could not load article.', 'error');
+  }
+}
+function closeViewModal() {
+  document.getElementById('viewModalOverlay').classList.remove('open');
+  viewingId = null;
+}
+
+async function deleteArticle() {
+  if (!viewingId) return;
+  if (!confirm('Delete this article? This cannot be undone.')) return;
+  try {
+    await fetch(`/api/articles/${viewingId}`, { method: 'DELETE' });
+    closeViewModal();
+    showToast('Article deleted.', 'info');
+  } catch(e) {
+    showToast('Failed to delete.', 'error');
+  }
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+function exportArticles() {
+  const data = JSON.stringify(allArticles, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'knowledge-hub-export.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent  = msg;
+  t.className    = `toast ${type}`;
+  t.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.style.display = 'none'; }, 3500);
+}
+
+// ── WebSocket ─────────────────────────────────────────────────────────────────
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws    = new WebSocket(`${proto}//${location.host}`);
+
+  ws.onopen = () => {
+    document.getElementById('onlineStatus').textContent = 'live · synced';
+  };
+  ws.onclose = () => {
+    document.getElementById('onlineStatus').textContent = 'reconnecting…';
+    setTimeout(connectWS, 3000);
+  };
+  ws.onmessage = (evt) => {
+    const msg = JSON.parse(evt.data);
+    if (msg.type === 'article_created') {
+      if (!allArticles.find(a => a.id === msg.article.id)) {
+        allArticles.unshift(msg.article);
+        updateCounts();
+        applyFilters();
+        showToast(`New article: "${msg.article.title}"`, 'info');
+      }
+    } else if (msg.type === 'article_deleted') {
+      allArticles = allArticles.filter(a => a.id !== msg.id);
+      updateCounts();
+      applyFilters();
+    }
+  };
+}
+
+// ── Escape helper ─────────────────────────────────────────────────────────────
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Keyboard shortcuts ────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeModal();
+    closeViewModal();
+    document.getElementById('identityModalOverlay').classList.remove('open');
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+  }
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(function init() {
+  const user = getUser();
+  if (!user) {
+    document.getElementById('identityModalOverlay').classList.add('open');
+    setTimeout(() => document.getElementById('identityName').focus(), 100);
+  } else {
+    renderUserInfo();
+  }
+  loadArticles();
+  connectWS();
+})();
+</script>
+</body>
+</html>
