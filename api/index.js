@@ -1,4 +1,4 @@
-// Vercel serverless API handler — clean version without multer/WebSocket
+// Vercel serverless API handler — clean version without multer/WebSocket — v2
 const express = require('express');
 const path    = require('path');
 const fs      = require('fs');
