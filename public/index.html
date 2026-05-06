@@ -946,7 +946,7 @@ function renderArticles(list) {
       <div class="card-title">${escHtml(a.title)}</div>
       <div class="card-excerpt">${escHtml(a.excerpt)}</div>
       ${media}
-      <div>${a.tags.map(t=>`<span class="tag">${escHtml(t)}</span>`).join('')}</div>
+      <div>${(a.tags||[]).map(t=>`<span class="tag">${escHtml(t)}</span>`).join('')}</div>
       <div class="card-footer">
         <div class="card-author"><div class="card-avatar" style="background:${aClr}">${escHtml(a.initials)}</div>${escHtml(a.author)}</div>
         <div>${relDate(a.created_at)}</div>
@@ -962,7 +962,7 @@ function applyFilters() {
   const q = topbarSearchQuery.toLowerCase();
   let list = allArticles;
   if (activeCategory!=='All') list = list.filter(a=>a.category===activeCategory);
-  if (q) list = list.filter(a=>a.title.toLowerCase().includes(q)||a.excerpt.toLowerCase().includes(q)||a.tags.some(t=>t.toLowerCase().includes(q)));
+  if (q) list = list.filter(a=>a.title.toLowerCase().includes(q)||a.excerpt.toLowerCase().includes(q)||(a.tags||[]).some(t=>t.toLowerCase().includes(q)));
   renderArticles(list);
 }
 
@@ -1029,7 +1029,7 @@ async function openEditModal() {
   document.getElementById('publishBtn').onclick = saveEditedArticle;
   // Pre-fill fields
   document.getElementById('newTitle').value    = a.title;
-  document.getElementById('newTags').value     = a.tags.join(', ');
+  document.getElementById('newTags').value     = (a.tags||[]).join(', ');
   document.getElementById('newContent').value  = a.content;
   renderCategorySelect();
   document.getElementById('newCategory').value = a.category;
@@ -1192,7 +1192,7 @@ async function viewArticle(id) {
     document.getElementById('viewAuthor').textContent = a.author;
     document.getElementById('viewDate').textContent   = relDate(a.created_at);
     document.getElementById('viewContent').innerHTML  = renderContent(a.content);
-    document.getElementById('viewTagsArea').innerHTML = a.tags.map(t=>`<span class="tag">${escHtml(t)}</span>`).join('');
+    document.getElementById('viewTagsArea').innerHTML = (a.tags||[]).map(t=>`<span class="tag">${escHtml(t)}</span>`).join('');
     const u=getUser(), isAdm=!!getAdminPwd();
     const del=document.getElementById('deleteBtn');
     del.style.display = (isAdm||u?.name===a.author) ? 'block' : 'none';
