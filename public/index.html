@@ -787,8 +787,15 @@ function renderSidebar() {
   document.getElementById('allCount').textContent  = allArticles.length;
   document.getElementById('catCount').textContent  = allCategories.length;
   document.getElementById('totalCount').textContent = allArticles.length;
-  const today = new Date(); today.setHours(0,0,0,0);
-  document.getElementById('todayCount').textContent = allArticles.filter(a=>new Date(a.created_at)>=today).length;
+  const todayLocal = new Date();
+  const todayY = todayLocal.getFullYear();
+  const todayM = todayLocal.getMonth();
+  const todayD = todayLocal.getDate();
+  document.getElementById('todayCount').textContent = allArticles.filter(a => {
+    if (!a.created_at) return false;
+    const d = new Date(a.created_at);
+    return d.getFullYear() === todayY && d.getMonth() === todayM && d.getDate() === todayD;
+  }).length;
 }
 
 function renderCategorySelect() {
