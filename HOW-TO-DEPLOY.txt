@@ -1,0 +1,135 @@
+================================================================
+  BLUECOPA KNOWLEDGE HUB — DEPLOYMENT GUIDE
+  Keep this file. Use it when you're ready to move platforms.
+================================================================
+
+
+BEFORE YOU START — BACK UP YOUR DATA
+──────────────────────────────────────
+1. Run:  node export-data.js
+2. This creates a backup-YYYY-MM-DD.json file
+3. Save that file somewhere safe (email it to yourself)
+
+
+================================================================
+OPTION 1 — RAILWAY (Easiest — Recommended)
+Runs 24/7, free tier, no code changes needed
+================================================================
+
+Step 1 — Push code to GitHub
+  a. Go to github.com → sign up (free)
+  b. Create a new PRIVATE repository called "knowledge-hub"
+  c. Download GitHub Desktop from desktop.github.com
+  d. Open GitHub Desktop → File → Add Local Repository
+  e. Browse to: C:\Users\azhar\OneDrive\Desktop\knowledge-hub
+  f. Click "Publish repository" → make it Private → Publish
+
+Step 2 — Deploy on Railway
+  a. Go to railway.app → Sign up with GitHub
+  b. Click "New Project" → "Deploy from GitHub repo"
+  c. Select your "knowledge-hub" repo
+  d. Railway auto-detects Node.js and deploys it
+  e. Click "Settings" → "Generate Domain" → you get a free URL
+
+Step 3 — Set your admin password
+  a. In Railway → your project → "Variables"
+  b. Add: ADMIN_PASSWORD = your_password_here
+  c. Click Deploy → done!
+
+✅ Your site is now live 24/7 at your Railway URL
+   PC can be off. Data is safe on Railway's servers.
+
+
+================================================================
+OPTION 2 — RENDER (Also Free, Similar to Railway)
+================================================================
+
+Step 1 — Push to GitHub (same as Railway Step 1 above)
+
+Step 2 — Deploy on Render
+  a. Go to render.com → Sign up with GitHub
+  b. Click "New" → "Web Service"
+  c. Connect your "knowledge-hub" GitHub repo
+  d. Settings:
+       Name:          bluecopa-knowledge-hub
+       Runtime:       Node
+       Build Command: npm install
+       Start Command: node server.js
+       Plan:          Free
+  e. Click "Create Web Service"
+  f. Wait 2 minutes → you get a live URL
+
+⚠️  Render free tier sleeps after 15 min of inactivity
+    (first visitor each day waits ~30 seconds to wake it up)
+    Paid plan ($7/mo) removes this limitation.
+
+
+================================================================
+OPTION 3 — VPS / DEDICATED SERVER (Most Control)
+e.g. DigitalOcean, Linode, AWS EC2
+================================================================
+
+Step 1 — Get a server ($5-6/month on DigitalOcean)
+  a. Create a Ubuntu 22.04 droplet
+  b. SSH into your server
+
+Step 2 — Install and run
+  a. Install Node.js:  curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+                       sudo apt-get install -y nodejs
+  b. Upload your project files (use FileZilla or scp)
+  c. cd knowledge-hub && npm install
+  d. Install PM2:  npm install -g pm2
+  e. pm2 start server.js --name knowledge-hub
+  f. pm2 save && pm2 startup
+
+Step 3 — Point a domain
+  a. Buy a domain on Namecheap/GoDaddy (~₹1000/year)
+  b. Point it to your server IP
+  c. Install SSL:  sudo apt install certbot
+
+
+================================================================
+YOUR ENVIRONMENT VARIABLES (needed on any platform)
+================================================================
+
+  PORT            = (set automatically by the platform)
+  NODE_ENV        = production
+  ADMIN_PASSWORD  = (your chosen admin password)
+
+
+================================================================
+YOUR FILES EXPLAINED (what each file does)
+================================================================
+
+  server.js          → The main backend — handles all API calls
+  public/index.html  → The entire frontend website (one file)
+  data.json          → All your articles and settings
+  package.json       → Node.js dependencies list
+  railway.json       → Ready-made Railway config (auto-detected)
+  render.yaml        → Ready-made Render config (auto-detected)
+  export-data.js     → Run this to back up your data anytime
+
+
+================================================================
+MOVING YOUR DATA TO THE NEW PLATFORM
+================================================================
+
+After deploying to any platform:
+
+1. Your new site starts with empty/default data
+2. Run the admin panel → re-enter your articles
+   OR
+3. Copy your data.json file to the new server directly
+   (works for Railway/Render/VPS — not Vercel)
+
+
+================================================================
+NEED HELP?
+================================================================
+
+All the config files are already created and ready.
+When you decide which platform to use, the config files
+(railway.json, render.yaml) are already in your project
+and will be auto-detected — you just connect your GitHub repo.
+
+================================================================

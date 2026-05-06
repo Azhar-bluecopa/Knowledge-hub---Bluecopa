@@ -1,4 +1,18 @@
-﻿node_modules/
-data.json
-*.db
+node_modules/
 .env
+public/uploads/
+
+# Logs
+*.log
+
+# Local backups
+backup-*.json
+
+# Local-only scripts & launchers
+*.bat
+*.vbs
+add-article.js
+add-fpa-article.js
+update-article.js
+reset-password.js
+make-ppt.js
