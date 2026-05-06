@@ -1,7 +1,8 @@
-// Vercel serverless API handler — clean version without multer/WebSocket — v2
-const express = require('express');
-const path    = require('path');
-const fs      = require('fs');
+// Vercel serverless API handler — clean version without multer/WebSocket — v4
+const express    = require('express');
+const path       = require('path');
+const fs         = require('fs');
+const nodemailer = require('nodemailer');
 
 const app = express();
 app.use(express.json());
@@ -160,6 +161,63 @@ app.get('/api/analytics', (req, res) => {
 // ── Upload (disabled on Vercel) ───────────────────────────────────────────────
 app.post('/api/upload', (req, res) => {
   res.status(503).json({ error: 'File uploads are not supported on the Vercel deployment.' });
+});
+
+// ── Article Requests ──────────────────────────────────────────────────────────
+app.post('/api/article-requests', async (req, res) => {
+  const { topic, description, requesterName, requesterEmail } = req.body;
+  if (!topic?.trim()) return res.status(400).json({ error: 'Topic is required.' });
+
+  const request = {
+    topic:          topic.trim(),
+    description:    (description || '').trim(),
+    requesterName:  (requesterName || 'Anonymous').trim(),
+    requesterEmail: (requesterEmail || '').trim(),
+    created_at:     new Date().toISOString(),
+  };
+
+  const notifyEmail = process.env.NOTIFY_EMAIL || 'azhar.m@bluecopa.com';
+  try {
+    const transporter = nodemailer.createTransport({
+      host:   process.env.SMTP_HOST || 'smtp.gmail.com',
+      port:   parseInt(process.env.SMTP_PORT || '587'),
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from:    `"Bluecopa Knowledge Hub" <${process.env.SMTP_USER}>`,
+      to:      notifyEmail,
+      subject: `📚 New Article Request: ${request.topic}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#f9fafb;border-radius:10px;overflow:hidden;border:1px solid #e5e7eb;">
+          <div style="background:#111827;padding:24px 28px;">
+            <h2 style="color:#3B82F6;margin:0;font-size:18px;">📚 New Article Request</h2>
+            <p style="color:#9CA3AF;margin:4px 0 0;font-size:13px;">Bluecopa Knowledge Hub</p>
+          </div>
+          <div style="padding:24px 28px;background:#fff;">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+              <tr><td style="padding:8px 0;color:#6B7280;width:140px;">📌 Topic</td><td style="padding:8px 0;font-weight:600;color:#111827;">${request.topic}</td></tr>
+              <tr><td style="padding:8px 0;color:#6B7280;">📝 Description</td><td style="padding:8px 0;color:#374151;">${request.description || '<em style="color:#9CA3AF">Not provided</em>'}</td></tr>
+              <tr><td style="padding:8px 0;color:#6B7280;">👤 Requested by</td><td style="padding:8px 0;color:#374151;">${request.requesterName}</td></tr>
+              <tr><td style="padding:8px 0;color:#6B7280;">✉️ Their email</td><td style="padding:8px 0;color:#374151;">${request.requesterEmail || '<em style="color:#9CA3AF">Not provided</em>'}</td></tr>
+              <tr><td style="padding:8px 0;color:#6B7280;">🕒 Submitted</td><td style="padding:8px 0;color:#374151;">${new Date(request.created_at).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'})}</td></tr>
+            </table>
+          </div>
+          <div style="padding:16px 28px;background:#f9fafb;border-top:1px solid #e5e7eb;">
+            <p style="margin:0;font-size:12px;color:#9CA3AF;">Submitted via Bluecopa Knowledge Hub.</p>
+          </div>
+        </div>
+      `,
+    });
+  } catch (emailErr) {
+    console.error('[article-request] Email failed:', emailErr.message);
+  }
+
+  res.status(201).json({ success: true });
 });
 
 module.exports = app;

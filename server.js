@@ -1,8 +1,10 @@
-const express = require('express');
-const http    = require('http');
-const path    = require('path');
-const fs      = require('fs');
-const multer  = require('multer');
+const express    = require('express');
+const http       = require('http');
+const path       = require('path');
+const fs         = require('fs');
+const multer     = require('multer');
+const nodemailer = require('nodemailer');
+require('dotenv').config();
 
 // ── Vercel compatibility ──────────────────────────────────────────────────────
 const IS_VERCEL = !!process.env.VERCEL;
@@ -315,6 +317,77 @@ app.post('/api/admin/login', (req, res) => {
   const { password } = req.body;
   if (password === db.settings.adminPassword) res.json({ success: true });
   else res.status(401).json({ error: 'Invalid password' });
+});
+
+// ── Article Requests ──────────────────────────────────────────────────────────
+app.post('/api/article-requests', async (req, res) => {
+  const { topic, description, requesterName, requesterEmail } = req.body;
+  if (!topic?.trim()) return res.status(400).json({ error: 'Topic is required.' });
+
+  // Save request in DB
+  if (!db.articleRequests) db.articleRequests = [];
+  const request = {
+    id:             (db.articleRequests.length + 1),
+    topic:          topic.trim(),
+    description:    (description || '').trim(),
+    requesterName:  (requesterName || 'Anonymous').trim(),
+    requesterEmail: (requesterEmail || '').trim(),
+    status:         'pending',
+    created_at:     new Date().toISOString(),
+  };
+  db.articleRequests.push(request);
+  saveDB(db);
+
+  // Send email notification
+  const notifyEmail = process.env.NOTIFY_EMAIL || 'azhar.m@bluecopa.com';
+  try {
+    const transporter = nodemailer.createTransport({
+      host:   process.env.SMTP_HOST || 'smtp.gmail.com',
+      port:   parseInt(process.env.SMTP_PORT || '587'),
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from:    `"Bluecopa Knowledge Hub" <${process.env.SMTP_USER}>`,
+      to:      notifyEmail,
+      subject: `📚 New Article Request: ${request.topic}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#f9fafb;border-radius:10px;overflow:hidden;border:1px solid #e5e7eb;">
+          <div style="background:#111827;padding:24px 28px;">
+            <h2 style="color:#3B82F6;margin:0;font-size:18px;">📚 New Article Request</h2>
+            <p style="color:#9CA3AF;margin:4px 0 0;font-size:13px;">Bluecopa Knowledge Hub</p>
+          </div>
+          <div style="padding:24px 28px;background:#fff;">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+              <tr><td style="padding:8px 0;color:#6B7280;width:140px;">📌 Topic</td><td style="padding:8px 0;font-weight:600;color:#111827;">${request.topic}</td></tr>
+              <tr><td style="padding:8px 0;color:#6B7280;">📝 Description</td><td style="padding:8px 0;color:#374151;">${request.description || '<em style="color:#9CA3AF">Not provided</em>'}</td></tr>
+              <tr><td style="padding:8px 0;color:#6B7280;">👤 Requested by</td><td style="padding:8px 0;color:#374151;">${request.requesterName}</td></tr>
+              <tr><td style="padding:8px 0;color:#6B7280;">✉️ Their email</td><td style="padding:8px 0;color:#374151;">${request.requesterEmail || '<em style="color:#9CA3AF">Not provided</em>'}</td></tr>
+              <tr><td style="padding:8px 0;color:#6B7280;">🕒 Submitted</td><td style="padding:8px 0;color:#374151;">${new Date(request.created_at).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'})}</td></tr>
+            </table>
+          </div>
+          <div style="padding:16px 28px;background:#f9fafb;border-top:1px solid #e5e7eb;">
+            <p style="margin:0;font-size:12px;color:#9CA3AF;">This request was submitted via the Bluecopa Knowledge Hub. Log in as admin to manage requests.</p>
+          </div>
+        </div>
+      `,
+    });
+    console.log(`[article-request] Email sent to ${notifyEmail} for: "${request.topic}"`);
+  } catch (emailErr) {
+    console.error('[article-request] Email failed:', emailErr.message);
+    // Still return success — request is saved even if email fails
+  }
+
+  res.status(201).json({ success: true, id: request.id });
+});
+
+app.get('/api/article-requests', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  res.json(db.articleRequests || []);
 });
 
 // ── File upload ───────────────────────────────────────────────────────────────

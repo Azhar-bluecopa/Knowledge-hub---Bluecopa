@@ -49,6 +49,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .new-article-btn{margin:16px;background:var(--accent);color:#0f0f13;border:none;border-radius:10px;padding:11px 16px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .2s,transform .15s;}
 .new-article-btn:hover{opacity:.9;transform:translateY(-1px);}
 .new-article-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.request-article-btn{margin:-4px 16px 16px;background:transparent;color:var(--muted);border:1px dashed var(--border);border-radius:10px;padding:9px 16px;font-family:'DM Sans',sans-serif;font-weight:500;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .2s;}
+.request-article-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(232,201,122,0.06);}
 .sidebar-footer{margin-top:auto;padding:12px 16px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);display:flex;align-items:center;gap:10px;}
 .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent3));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;cursor:pointer;transition:opacity .2s;}
 .avatar:hover{opacity:.8;}
@@ -333,6 +335,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
   <div class="read-only-banner" id="readOnlyBanner">🔒 Read-only mode — posting disabled</div>
   <button class="new-article-btn" id="newArticleBtn" onclick="openModal()">✦ New Article</button>
+  <button class="request-article-btn" onclick="openRequestModal()">📩 Request an Article</button>
   <div class="sidebar-footer">
     <div class="avatar" id="userAvatar" title="Change name" onclick="openIdentityModal()">?</div>
     <div style="flex:1;min-width:0">
@@ -636,6 +639,43 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="modal-footer">
       <button class="btn-ghost" onclick="closeAdminLogin()">Cancel</button>
       <button class="btn-primary" onclick="submitAdminLogin()">Unlock Admin</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Request Article Modal ── -->
+<div class="modal-overlay" id="requestModalOverlay" onclick="if(event.target===this)closeRequestModal()">
+  <div class="modal modal-sm" style="width:480px">
+    <div class="modal-header">
+      <div class="modal-title">📩 Request an Article</div>
+      <button class="modal-close" onclick="closeRequestModal()">✕</button>
+    </div>
+    <p style="color:var(--muted);font-size:13.5px;margin-bottom:24px;line-height:1.6">Can't find what you're looking for? Tell us what you need and we'll get it written for you.</p>
+    <div class="form-group">
+      <label class="form-label">Article Topic <span style="color:var(--danger)">*</span></label>
+      <input class="form-input" type="text" id="reqTopic" placeholder="e.g. How to use the Accounts Payable module" maxlength="120"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">More details <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+      <textarea class="form-textarea" id="reqDescription" placeholder="Describe what you want covered, why you need it, or any specific questions…" style="min-height:100px"></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Your Name <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+        <input class="form-input" type="text" id="reqName" placeholder="Your name"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Your Email <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+        <input class="form-input" type="email" id="reqEmail" placeholder="your@email.com"/>
+      </div>
+    </div>
+    <div id="reqError" style="color:var(--danger);font-size:13px;margin-top:14px;display:none"></div>
+    <div id="reqSuccess" style="display:none;margin-top:16px;padding:14px 16px;background:rgba(122,232,180,0.1);border:1px solid rgba(122,232,180,0.3);border-radius:10px;font-size:14px;color:var(--success);line-height:1.6">
+      ✅ <strong>Request sent!</strong> We've received your request and will get back to you soon.
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeRequestModal()">Cancel</button>
+      <button class="btn-primary" id="reqSubmitBtn" onclick="submitArticleRequest()">Send Request</button>
     </div>
   </div>
 </div>
@@ -1491,6 +1531,53 @@ async function openAdminPanel() {
 
 function closeAdminLogin(){ document.getElementById('adminLoginOverlay').classList.remove('open'); }
 
+// ── Article Request ───────────────────────────────────────────────────────────
+function openRequestModal(){
+  document.getElementById('reqTopic').value='';
+  document.getElementById('reqDescription').value='';
+  document.getElementById('reqName').value='';
+  document.getElementById('reqEmail').value=localStorage.getItem('kh_email')||'';
+  document.getElementById('reqError').style.display='none';
+  document.getElementById('reqSuccess').style.display='none';
+  document.getElementById('reqSubmitBtn').style.display='';
+  document.querySelector('#requestModalOverlay .modal-footer .btn-ghost').textContent='Cancel';
+  // Pre-fill name from stored identity
+  const storedName=localStorage.getItem('kh_author');
+  if(storedName && storedName!=='Anonymous') document.getElementById('reqName').value=storedName;
+  document.getElementById('requestModalOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('reqTopic').focus(),100);
+}
+function closeRequestModal(){ document.getElementById('requestModalOverlay').classList.remove('open'); }
+
+async function submitArticleRequest(){
+  const topic=document.getElementById('reqTopic').value.trim();
+  const errEl=document.getElementById('reqError');
+  errEl.style.display='none';
+  if(!topic){ errEl.textContent='Please enter a topic.'; errEl.style.display='block'; return; }
+  const btn=document.getElementById('reqSubmitBtn');
+  btn.disabled=true; btn.textContent='Sending…';
+  try {
+    const r=await fetch('/api/article-requests',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        topic,
+        description:document.getElementById('reqDescription').value.trim(),
+        requesterName:document.getElementById('reqName').value.trim(),
+        requesterEmail:document.getElementById('reqEmail').value.trim(),
+      })
+    });
+    if(!r.ok){ const d=await r.json(); throw new Error(d.error||'Failed'); }
+    document.getElementById('reqSuccess').style.display='block';
+    btn.style.display='none';
+    document.querySelector('#requestModalOverlay .modal-footer .btn-ghost').textContent='Close';
+  } catch(e){
+    errEl.textContent='Could not send request: '+e.message;
+    errEl.style.display='block';
+    btn.disabled=false; btn.textContent='Send Request';
+  }
+}
+
 async function submitAdminLogin() {
   const pwd = document.getElementById('adminPasswordInput').value;
   try {
@@ -1668,7 +1755,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     const overlay = document.getElementById('viewModalOverlay');
     if(overlay.classList.contains('view-fullscreen')){ toggleViewFullscreen(); return; }
-    closeAbout();closeModal();closeViewModal();closeAdminLogin();closeAdminPanel();document.getElementById('identityModalOverlay').classList.remove('open');
+    closeAbout();closeModal();closeViewModal();closeAdminLogin();closeAdminPanel();closeRequestModal();document.getElementById('identityModalOverlay').classList.remove('open');
   }
   if((e.ctrlKey||e.metaKey)&&e.key==='k'){ e.preventDefault(); toggleTopbarSearch(); }
 });
