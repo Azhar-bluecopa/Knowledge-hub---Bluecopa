@@ -149,7 +149,7 @@
   "nextCategoryId": 6,
   "settings": {
     "adminPassword": "admin123456789",
-    "siteTitle": "KnowledgeHub",
+    "siteTitle": "Bluecopa Knowledge Hub",
     "restrictions": {
       "whoCanPost": "admins_only"
     },
