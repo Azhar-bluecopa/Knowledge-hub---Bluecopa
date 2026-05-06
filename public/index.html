@@ -203,6 +203,34 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .view-tags{margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
 .view-footer-actions{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:24px;padding-top:20px;border-top:1px solid var(--border);}
 
+/* ── Comments ── */
+.comments-section{margin-top:28px;padding-top:24px;border-top:1px solid var(--border);}
+.comments-header{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.comments-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:var(--text);}
+.comments-count{font-size:12px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:2px 9px;font-family:'DM Mono',monospace;}
+.comment-input-row{display:flex;gap:12px;align-items:flex-start;margin-bottom:24px;}
+.comment-input-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent3));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px;}
+.comment-input-wrap{flex:1;display:flex;flex-direction:column;gap:8px;}
+.comment-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;resize:none;transition:border-color .2s;line-height:1.5;min-height:44px;max-height:160px;overflow-y:auto;}
+.comment-input:focus{border-color:var(--accent);}
+.comment-input::placeholder{color:var(--muted);}
+.comment-input-actions{display:flex;align-items:center;justify-content:space-between;}
+.comment-post-btn{background:var(--accent);color:#0f0f13;border:none;border-radius:8px;padding:7px 18px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:opacity .18s;}
+.comment-post-btn:hover{opacity:.88;}
+.comment-item{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);animation:fadeUp .25s ease both;}
+.comment-item:last-child{border-bottom:none;}
+.comment-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;}
+.comment-body{flex:1;min-width:0;}
+.comment-meta{display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap;}
+.comment-author{font-size:13.5px;font-weight:600;color:var(--text);}
+.comment-time{font-size:11.5px;color:var(--muted);}
+.comment-text{font-size:13.5px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;}
+.comment-del-btn{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 6px;border-radius:5px;transition:all .15s;opacity:0;margin-left:auto;flex-shrink:0;}
+.comment-item:hover .comment-del-btn{opacity:1;}
+.comment-del-btn:hover{color:var(--danger);background:rgba(232,122,122,0.1);}
+.comments-empty{text-align:center;padding:28px 16px;color:var(--muted);font-size:13.5px;}
+.comments-loading{text-align:center;padding:20px;color:var(--muted);font-size:13px;}
+
 /* ── About modal ── */
 .about-modal{width:660px;}
 .about-hero{text-align:center;padding:10px 0 24px;border-bottom:1px solid var(--border);margin-bottom:24px;}
@@ -543,6 +571,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
     <div class="article-body" id="viewContent"></div>
     <div class="view-tags" id="viewTagsArea"></div>
+
+    <!-- ── Comments ── -->
+    <div class="comments-section" id="commentsSection">
+      <div class="comments-header">
+        <span class="comments-title">💬 Comments</span>
+        <span class="comments-count" id="commentsCount"></span>
+      </div>
+      <!-- Post a comment -->
+      <div class="comment-input-row">
+        <div class="comment-input-avatar" id="commentInputAvatar">?</div>
+        <div class="comment-input-wrap">
+          <textarea class="comment-input" id="commentTextInput" placeholder="Suggest a change, ask a question, or leave feedback…" rows="1" oninput="autoResizeComment(this)" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter')postComment()"></textarea>
+          <div class="comment-input-actions" id="commentInputActions" style="display:none">
+            <span style="font-size:11px;color:var(--muted)">Ctrl+Enter to post</span>
+            <button class="comment-post-btn" onclick="postComment()">Post</button>
+          </div>
+        </div>
+      </div>
+      <!-- Comments list -->
+      <div id="commentsList"></div>
+    </div>
+
     <div class="view-footer-actions">
       <button class="btn-danger-soft" id="deleteBtn" onclick="deleteArticle()" style="display:none">🗑 Delete</button>
       <button class="btn-primary" id="editBtn" onclick="openEditModal()" style="display:none">✏️ Edit Article</button>
@@ -1147,9 +1197,103 @@ async function viewArticle(id) {
     const del=document.getElementById('deleteBtn');
     del.style.display = (isAdm||u?.name===a.author) ? 'block' : 'none';
     document.getElementById('editBtn').style.display = isAdm ? 'block' : 'none';
+    // Set up comment input avatar
+    const cia = document.getElementById('commentInputAvatar');
+    if (u) { cia.textContent=u.initials; cia.style.background=avatarColors[u.name.length%avatarColors.length]; }
+    else   { cia.textContent='?'; }
+    document.getElementById('commentTextInput').value='';
+    document.getElementById('commentInputActions').style.display='none';
+    document.getElementById('commentsList').innerHTML='';
+    document.getElementById('commentsCount').textContent='';
     document.getElementById('viewModalOverlay').classList.add('open');
+    loadComments(id);
   } catch(e) { showToast('Could not load article.','error'); }
 }
+// ── Comments ─────────────────────────────────────────────────────────────────
+let currentArticleId = null;
+
+async function loadComments(articleId) {
+  currentArticleId = articleId;
+  const list = document.getElementById('commentsList');
+  list.innerHTML = '<div class="comments-loading">Loading…</div>';
+  try {
+    const r = await fetch(`/api/articles/${articleId}/comments`);
+    const comments = await r.json();
+    renderComments(comments);
+  } catch { list.innerHTML = '<div class="comments-empty">Could not load comments.</div>'; }
+}
+
+function renderComments(comments) {
+  const list = document.getElementById('commentsList');
+  const count = document.getElementById('commentsCount');
+  const isAdm = !!getAdminPwd();
+  count.textContent = comments.length ? `${comments.length}` : '';
+  if (!comments.length) {
+    list.innerHTML = '<div class="comments-empty">No comments yet. Be the first to leave feedback!</div>';
+    return;
+  }
+  list.innerHTML = comments.map((c, i) => {
+    const col = avatarColors[c.id % avatarColors.length] || avatarColors[0];
+    return `<div class="comment-item" id="comment-${c.id}" style="animation-delay:${i*0.04}s">
+      <div class="comment-avatar" style="background:${col}">${escHtml(c.initials)}</div>
+      <div class="comment-body">
+        <div class="comment-meta">
+          <span class="comment-author">${escHtml(c.author)}</span>
+          <span class="comment-time">${relDate(c.created_at)}</span>
+          ${isAdm ? `<button class="comment-del-btn" onclick="deleteComment(${c.id})" title="Delete comment">🗑</button>` : ''}
+        </div>
+        <div class="comment-text">${escHtml(c.text)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function postComment() {
+  const input = document.getElementById('commentTextInput');
+  const text = input.value.trim();
+  if (!text) return;
+  const u = getUser();
+  if (!u) { showToast('Please set your name first.', 'error'); return; }
+  const btn = document.querySelector('.comment-post-btn');
+  btn.disabled = true; btn.textContent = 'Posting…';
+  try {
+    const r = await fetch(`/api/articles/${currentArticleId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, author: u.name, initials: u.initials }),
+    });
+    if (!r.ok) throw new Error((await r.json()).error || 'Failed');
+    input.value = '';
+    input.style.height = '';
+    document.getElementById('commentInputActions').style.display = 'none';
+    await loadComments(currentArticleId);
+    showToast('Comment posted!', 'success');
+  } catch(e) { showToast('Could not post comment: ' + e.message, 'error'); }
+  finally { btn.disabled = false; btn.textContent = 'Post'; }
+}
+
+async function deleteComment(commentId) {
+  if (!confirm('Delete this comment?')) return;
+  try {
+    const r = await fetch(`/api/articles/${currentArticleId}/comments/${commentId}`, {
+      method: 'DELETE',
+      headers: { 'x-admin-password': getAdminPwd() },
+    });
+    if (!r.ok) throw new Error('Failed');
+    document.getElementById(`comment-${commentId}`)?.remove();
+    const remaining = document.querySelectorAll('.comment-item').length;
+    document.getElementById('commentsCount').textContent = remaining || '';
+    if (!remaining) document.getElementById('commentsList').innerHTML = '<div class="comments-empty">No comments yet. Be the first to leave feedback!</div>';
+    showToast('Comment deleted.', 'success');
+  } catch { showToast('Could not delete comment.', 'error'); }
+}
+
+function autoResizeComment(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+  document.getElementById('commentInputActions').style.display = el.value.trim() ? 'flex' : 'none';
+}
+
 function openAbout(){
   // Show edit button only for admins
   const editBtn = document.getElementById('aboutEditBtn');
@@ -1850,6 +1994,10 @@ function connectWS() {
     } else if (m.type==='new_article_request') {
       refreshRequestBadge();
       if (getAdminPwd()) showToast('📩 New article request received!', 'info');
+    } else if (m.type==='new_comment') {
+      if (m.comment.articleId === currentArticleId) loadComments(currentArticleId);
+    } else if (m.type==='comment_deleted') {
+      if (currentArticleId !== null) loadComments(currentArticleId);
     }
   };
 }

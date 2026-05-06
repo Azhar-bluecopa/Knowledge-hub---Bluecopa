@@ -162,6 +162,41 @@ app.post('/api/upload', (req, res) => {
   res.status(503).json({ error: 'File uploads are not supported on the Vercel deployment.' });
 });
 
+// ── Comments ──────────────────────────────────────────────────────────────────
+app.get('/api/articles/:id/comments', (req, res) => {
+  const articleId = parseInt(req.params.id);
+  const comments = (db.comments || []).filter(c => c.articleId === articleId);
+  res.json(comments);
+});
+
+app.post('/api/articles/:id/comments', (req, res) => {
+  const articleId = parseInt(req.params.id);
+  const { text, author, initials } = req.body;
+  if (!text?.trim()) return res.status(400).json({ error: 'Comment text is required.' });
+  if (!author?.trim()) return res.status(400).json({ error: 'Author name is required.' });
+  if (!db.comments) db.comments = [];
+  const comment = {
+    id:         Date.now(),
+    articleId,
+    text:       text.trim(),
+    author:     author.trim(),
+    initials:   (initials || author.trim().slice(0,2)).toUpperCase().slice(0,2),
+    created_at: new Date().toISOString(),
+  };
+  db.comments.unshift(comment);
+  res.status(201).json(comment);
+});
+
+app.delete('/api/articles/:id/comments/:commentId', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  if (!db.comments) return res.status(404).json({ error: 'Not found' });
+  const commentId = parseInt(req.params.commentId);
+  const idx = db.comments.findIndex(c => c.id === commentId);
+  if (idx === -1) return res.status(404).json({ error: 'Comment not found' });
+  db.comments.splice(idx, 1);
+  res.json({ success: true });
+});
+
 // ── Article Requests ──────────────────────────────────────────────────────────
 app.post('/api/article-requests', (req, res) => {
   const { topic, description, requesterName, requesterEmail } = req.body;

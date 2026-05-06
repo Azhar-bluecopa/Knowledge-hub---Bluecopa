@@ -317,6 +317,47 @@ app.post('/api/admin/login', (req, res) => {
   else res.status(401).json({ error: 'Invalid password' });
 });
 
+// ── Comments ──────────────────────────────────────────────────────────────────
+app.get('/api/articles/:id/comments', (req, res) => {
+  const articleId = parseInt(req.params.id);
+  const comments = (db.comments || []).filter(c => c.articleId === articleId);
+  res.json(comments);
+});
+
+app.post('/api/articles/:id/comments', (req, res) => {
+  const articleId = parseInt(req.params.id);
+  const article = db.articles.find(a => a.id === articleId);
+  if (!article) return res.status(404).json({ error: 'Article not found' });
+  const { text, author, initials } = req.body;
+  if (!text?.trim()) return res.status(400).json({ error: 'Comment text is required.' });
+  if (!author?.trim()) return res.status(400).json({ error: 'Author name is required.' });
+  if (!db.comments) db.comments = [];
+  const comment = {
+    id:         Date.now(),
+    articleId,
+    text:       text.trim(),
+    author:     author.trim(),
+    initials:   (initials || author.trim().slice(0,2)).toUpperCase().slice(0,2),
+    created_at: new Date().toISOString(),
+  };
+  db.comments.push(comment);
+  saveDB(db);
+  broadcast({ type: 'new_comment', comment });
+  res.status(201).json(comment);
+});
+
+app.delete('/api/articles/:id/comments/:commentId', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  if (!db.comments) return res.status(404).json({ error: 'Not found' });
+  const commentId = parseInt(req.params.commentId);
+  const idx = db.comments.findIndex(c => c.id === commentId);
+  if (idx === -1) return res.status(404).json({ error: 'Comment not found' });
+  db.comments.splice(idx, 1);
+  saveDB(db);
+  broadcast({ type: 'comment_deleted', commentId });
+  res.json({ success: true });
+});
+
 // ── Article Requests ──────────────────────────────────────────────────────────
 app.post('/api/article-requests', (req, res) => {
   const { topic, description, requesterName, requesterEmail } = req.body;
