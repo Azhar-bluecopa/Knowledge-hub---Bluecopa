@@ -18,17 +18,28 @@ if (!IS_VERCEL) {
 }
 
 // ── JSON store ────────────────────────────────────────────────────────────────
-const DB_FILE = path.join(__dirname, 'data.json');
+// Try __dirname first, then process.cwd() as fallback (Vercel serverless)
+const DB_FILE = (() => {
+  const p1 = path.join(__dirname, 'data.json');
+  if (fs.existsSync(p1)) return p1;
+  return path.join(process.cwd(), 'data.json');
+})();
 const UPLOADS = path.join(__dirname, 'public', 'uploads');
 if (!IS_VERCEL && !fs.existsSync(UPLOADS)) fs.mkdirSync(UPLOADS, { recursive: true });
 
 function loadDB() {
-  if (!fs.existsSync(DB_FILE)) return { articles: [], nextId: 1 };
-  try { return JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); }
-  catch { return { articles: [], nextId: 1 }; }
+  try {
+    const p1 = path.join(__dirname, 'data.json');
+    const p2 = path.join(process.cwd(), 'data.json');
+    const file = fs.existsSync(p1) ? p1 : p2;
+    if (!fs.existsSync(file)) return { articles: [], nextId: 1 };
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch { return { articles: [], nextId: 1 }; }
 }
 function saveDB(db) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
+  if (IS_VERCEL) return; // Vercel filesystem is read-only — writes are no-ops
+  try { fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8'); }
+  catch (e) { console.error('[saveDB] write failed:', e.message); }
 }
 
 let db = loadDB();
