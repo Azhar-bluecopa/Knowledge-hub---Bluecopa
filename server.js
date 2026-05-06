@@ -1,18 +1,26 @@
 const express = require('express');
-const { WebSocketServer } = require('ws');
 const http    = require('http');
 const path    = require('path');
 const fs      = require('fs');
 const multer  = require('multer');
 
+// ── Vercel compatibility ──────────────────────────────────────────────────────
+const IS_VERCEL = !!process.env.VERCEL;
+
 const app    = express();
-const server = http.createServer(app);
-const wss    = new WebSocketServer({ server });
+const server = IS_VERCEL ? null : http.createServer(app);
+
+// WebSocket only in local mode (Vercel serverless doesn't support persistent connections)
+let wss = null;
+if (!IS_VERCEL) {
+  const { WebSocketServer } = require('ws');
+  wss = new WebSocketServer({ server });
+}
 
 // ── JSON store ────────────────────────────────────────────────────────────────
 const DB_FILE = path.join(__dirname, 'data.json');
 const UPLOADS = path.join(__dirname, 'public', 'uploads');
-if (!fs.existsSync(UPLOADS)) fs.mkdirSync(UPLOADS, { recursive: true });
+if (!IS_VERCEL && !fs.existsSync(UPLOADS)) fs.mkdirSync(UPLOADS, { recursive: true });
 
 function loadDB() {
   if (!fs.existsSync(DB_FILE)) return { articles: [], nextId: 1 };
@@ -92,11 +100,11 @@ const upload = multer({
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.use(express.json());
-app.use((req, res, next) => { res.setHeader('ngrok-skip-browser-warning', 'true'); next(); });
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function broadcast(data) {
+  if (!wss) return; // no-op on Vercel
   const msg = JSON.stringify(data);
   wss.clients.forEach(c => { if (c.readyState === 1) c.send(msg); });
 }
@@ -305,14 +313,21 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 });
 
 // ── WebSocket ─────────────────────────────────────────────────────────────────
-wss.on('connection', (ws, req) => {
-  console.log(`[WS] +client  total=${wss.clients.size}`);
-  ws.on('close', () => console.log(`[WS] -client  total=${wss.clients.size}`));
-});
+if (wss) {
+  wss.on('connection', (ws) => {
+    console.log(`[WS] +client  total=${wss.clients.size}`);
+    ws.on('close', () => console.log(`[WS] -client  total=${wss.clients.size}`));
+  });
+}
 
-// ── Start ─────────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`\n  KnowledgeHub → http://localhost:${PORT}`);
-  console.log(`  Default admin password: ${db.settings.adminPassword}\n`);
-});
+// ── Start (local only) ────────────────────────────────────────────────────────
+if (!IS_VERCEL) {
+  const PORT = process.env.PORT || 3000;
+  server.listen(PORT, () => {
+    console.log(`\n  KnowledgeHub → http://localhost:${PORT}`);
+    console.log(`  Default admin password: ${db.settings.adminPassword}\n`);
+  });
+}
+
+// ── Export for Vercel serverless ──────────────────────────────────────────────
+module.exports = app;
