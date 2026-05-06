@@ -243,6 +243,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .admin-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
 .admin-tab-panel{display:none;}
 .admin-tab-panel.active{display:block;}
+.tab-badge{display:inline-flex;align-items:center;justify-content:center;background:var(--danger);color:#fff;font-size:10px;font-weight:700;border-radius:20px;padding:1px 6px;margin-left:6px;line-height:1.4;animation:pulse 2s infinite;}
+.admin-btn-wrap{position:relative;margin-left:auto;}
+.admin-btn-dot{position:absolute;top:-3px;right:-3px;width:9px;height:9px;background:var(--danger);border-radius:50%;border:2px solid var(--surface);display:none;animation:pulse 2s infinite;}
+
+/* Request cards */
+.req-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;}
+.req-card.resolved{opacity:.5;}
+.req-topic{font-size:14px;font-weight:600;color:var(--text);}
+.req-desc{font-size:13px;color:var(--muted);line-height:1.55;}
+.req-meta{display:flex;align-items:center;gap:12px;font-size:11.5px;color:var(--muted);flex-wrap:wrap;}
+.req-meta span{display:flex;align-items:center;gap:4px;}
+.req-status{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-family:'DM Mono',monospace;padding:2px 9px;border-radius:20px;font-weight:600;}
+.req-status.pending{background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);}
+.req-status.resolved{background:rgba(52,211,153,0.15);color:var(--success);border:1px solid rgba(52,211,153,0.3);}
+.req-actions{display:flex;gap:8px;margin-top:4px;}
+.req-resolve-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:5px 12px;font-size:12px;cursor:pointer;transition:all .18s;font-family:'DM Sans',sans-serif;}
+.req-resolve-btn:hover{border-color:var(--success);color:var(--success);}
+.req-empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;}
 
 /* Category list in admin */
 .cat-list{display:flex;flex-direction:column;gap:8px;margin-bottom:24px;}
@@ -345,7 +363,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
       <div style="margin-top:2px"><span class="online-dot"></span><span id="onlineStatus">connecting…</span></div>
     </div>
-    <button class="admin-btn" onclick="openAdminPanel()" title="Admin Panel">⚙ Admin</button>
+    <div class="admin-btn-wrap">
+      <button class="admin-btn" onclick="openAdminPanel()" title="Admin Panel">⚙ Admin</button>
+      <span class="admin-btn-dot" id="adminBtnDot"></span>
+    </div>
   </div>
 </aside>
 
@@ -689,6 +710,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
     <div class="admin-tabs">
       <button class="admin-tab active" onclick="switchAdminTab('categories',this)">🏷 Categories</button>
+      <button class="admin-tab" onclick="switchAdminTab('requests',this)" id="requestsTab">📩 Requests</button>
       <button class="admin-tab" onclick="switchAdminTab('settings',this)">⚙ Site Settings</button>
       <button class="admin-tab" onclick="switchAdminTab('password',this)">🔑 Password</button>
     </div>
@@ -707,6 +729,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <div class="color-palette" id="colorPalette"></div>
         </div>
       </div>
+    </div>
+
+    <!-- Tab: Requests -->
+    <div class="admin-tab-panel" id="tab-requests">
+      <div id="requestsList"></div>
     </div>
 
     <!-- Tab: Settings -->
@@ -1601,6 +1628,7 @@ async function handleAdminRequired() {
 
 function showAdminPanel() {
   loadAdminPanel();
+  refreshRequestBadge();
   document.getElementById('adminPanelOverlay').classList.add('open');
 }
 function closeAdminPanel(){ document.getElementById('adminPanelOverlay').classList.remove('open'); }
@@ -1610,6 +1638,81 @@ function switchAdminTab(tab, el) {
   document.querySelectorAll('.admin-tab-panel').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById(`tab-${tab}`).classList.add('active');
+  if (tab === 'requests') loadRequestsTab();
+}
+
+// ── Article Requests (admin) ──────────────────────────────────────────────────
+async function loadRequestsTab() {
+  const el = document.getElementById('requestsList');
+  el.innerHTML = '<div class="req-empty" style="color:var(--muted)">Loading…</div>';
+  try {
+    const r = await fetch('/api/article-requests', { headers: { 'x-admin-password': getAdminPwd() } });
+    if (!r.ok) { el.innerHTML = '<div class="req-empty">Could not load requests.</div>'; return; }
+    const requests = await r.json();
+    updateRequestBadge(requests);
+    if (!requests.length) {
+      el.innerHTML = '<div class="req-empty">📭 No article requests yet.</div>';
+      return;
+    }
+    el.innerHTML = requests.map(req => `
+      <div class="req-card${req.status==='resolved'?' resolved':''}" id="reqcard-${req.id}">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+          <div class="req-topic">${escHtml(req.topic)}</div>
+          <span class="req-status ${req.status==='resolved'?'resolved':'pending'}">${req.status==='resolved'?'✓ Done':'● Pending'}</span>
+        </div>
+        ${req.description ? `<div class="req-desc">${escHtml(req.description)}</div>` : ''}
+        <div class="req-meta">
+          <span>👤 ${escHtml(req.requesterName)}</span>
+          ${req.requesterEmail ? `<span>✉️ ${escHtml(req.requesterEmail)}</span>` : ''}
+          <span>🕒 ${new Date(req.created_at).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
+        </div>
+        ${req.status!=='resolved' ? `
+        <div class="req-actions">
+          <button class="req-resolve-btn" onclick="resolveRequest(${req.id})">✓ Mark as Done</button>
+        </div>` : ''}
+      </div>
+    `).join('');
+  } catch(e) {
+    el.innerHTML = '<div class="req-empty">Error loading requests.</div>';
+  }
+}
+
+async function resolveRequest(id) {
+  try {
+    const r = await fetch(`/api/article-requests/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': getAdminPwd() },
+      body: JSON.stringify({ status: 'resolved' })
+    });
+    if (!r.ok) throw new Error('Failed');
+    loadRequestsTab();
+    showToast('Marked as done', 'success');
+  } catch { showToast('Could not update request', 'error'); }
+}
+
+function updateRequestBadge(requests) {
+  const pending = (requests || []).filter(r => r.status === 'pending').length;
+  const tab = document.getElementById('requestsTab');
+  const dot = document.getElementById('adminBtnDot');
+  // update tab badge
+  const existing = tab.querySelector('.tab-badge');
+  if (existing) existing.remove();
+  if (pending > 0) {
+    tab.insertAdjacentHTML('beforeend', `<span class="tab-badge">${pending}</span>`);
+    if (dot) dot.style.display = 'block';
+  } else {
+    if (dot) dot.style.display = 'none';
+  }
+}
+
+async function refreshRequestBadge() {
+  const pwd = getAdminPwd();
+  if (!pwd) return;
+  try {
+    const r = await fetch('/api/article-requests', { headers: { 'x-admin-password': pwd } });
+    if (!r.ok) return;
+    updateRequestBadge(await r.json());
+  } catch {}
 }
 
 function loadAdminPanel() {
@@ -1737,6 +1840,9 @@ function connectWS() {
       loadAdminPanel();
     } else if (m.type==='articles_refresh') {
       loadAll();
+    } else if (m.type==='new_article_request') {
+      refreshRequestBadge();
+      if (getAdminPwd()) showToast('📩 New article request received!', 'info');
     }
   };
 }
@@ -1778,6 +1884,9 @@ document.addEventListener('keydown',e=>{
   else renderUserInfo();
   loadAll();
   connectWS();
+  // Poll for new requests every 60s when admin is logged in
+  setInterval(refreshRequestBadge, 60000);
+  refreshRequestBadge();
 })();
 </script>
 </body>
