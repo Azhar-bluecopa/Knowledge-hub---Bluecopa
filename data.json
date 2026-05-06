@@ -302,46 +302,6 @@
       "name": "Finance & FP&A",
       "color": "#48c78e",
       "bg": "rgba(72,199,142,0.12)"
-    },
-    {
-      "id": 1,
-      "name": "Engineering",
-      "color": "#7a9ee8",
-      "bg": "rgba(122,158,232,0.15)"
-    },
-    {
-      "id": 2,
-      "name": "Finance",
-      "color": "#7ae8b4",
-      "bg": "rgba(122,232,180,0.15)"
-    },
-    {
-      "id": 3,
-      "name": "HR",
-      "color": "#e87a9e",
-      "bg": "rgba(232,122,158,0.15)"
-    },
-    {
-      "id": 4,
-      "name": "Product",
-      "color": "#c97ae8",
-      "bg": "rgba(201,122,232,0.15)"
-    },
-    {
-      "id": 5,
-      "name": "Support",
-      "color": "#e8a87a",
-      "bg": "rgba(232,168,122,0.15)"
-    },
-    {
-      "name": "Onboarding",
-      "color": "#7a9ee8",
-      "bg": "rgba(122,158,232,0.15)"
-    },
-    {
-      "name": "Finance & FP&A",
-      "color": "#48c78e",
-      "bg": "rgba(72,199,142,0.12)"
     }
   ],
   "settings": {
