@@ -375,7 +375,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="stat-card"><div class="stat-num" id="totalCount">—</div><div class="stat-label">Total Articles</div></div>
       <div class="stat-card"><div class="stat-num" id="catCount">—</div><div class="stat-label">Categories</div></div>
       <div class="stat-card"><div class="stat-num" id="viewsCount">—</div><div class="stat-label">Total Views</div></div>
-      <div class="stat-card"><div class="stat-num" id="monthCount">—</div><div class="stat-label">This Month</div></div>
+      <div class="stat-card"><div class="stat-num" id="authorsCount">—</div><div class="stat-label">Authors</div></div>
     </div>
     <div class="section-header">
       <div class="section-header-row">
@@ -789,14 +789,8 @@ function renderSidebar() {
   document.getElementById('totalCount').textContent = allArticles.length;
   const totalViews = allArticles.reduce((sum, a) => sum + (a.views || 0), 0);
   document.getElementById('viewsCount').textContent = totalViews.toLocaleString();
-  const now = new Date();
-  const curY = now.getFullYear();
-  const curM = now.getMonth();
-  document.getElementById('monthCount').textContent = allArticles.filter(a => {
-    if (!a.created_at) return false;
-    const d = new Date(a.created_at);
-    return d.getFullYear() === curY && d.getMonth() === curM;
-  }).length;
+  const uniqueAuthors = new Set(allArticles.map(a => a.author).filter(Boolean)).size;
+  document.getElementById('authorsCount').textContent = uniqueAuthors;
 }
 
 function renderCategorySelect() {
