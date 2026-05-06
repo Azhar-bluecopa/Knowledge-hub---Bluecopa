@@ -166,6 +166,7 @@ app.post('/api/upload', (req, res) => {
 app.post('/api/article-requests', (req, res) => {
   const { topic, description, requesterName, requesterEmail } = req.body;
   if (!topic?.trim())          return res.status(400).json({ error: 'Topic is required.' });
+  if (!description?.trim())    return res.status(400).json({ error: 'More details are required.' });
   if (!requesterName?.trim())  return res.status(400).json({ error: 'Your name is required.' });
   if (!requesterEmail?.trim()) return res.status(400).json({ error: 'Your email is required.' });
   if (!db.articleRequests) db.articleRequests = [];

@@ -677,7 +677,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <input class="form-input" type="text" id="reqTopic" placeholder="e.g. How to use the Accounts Payable module" maxlength="120"/>
     </div>
     <div class="form-group">
-      <label class="form-label">More details <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+      <label class="form-label">More details <span style="color:var(--danger)">*</span></label>
       <textarea class="form-textarea" id="reqDescription" placeholder="Describe what you want covered, why you need it, or any specific questions…" style="min-height:100px"></textarea>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -1582,7 +1582,9 @@ async function submitArticleRequest(){
   const email=document.getElementById('reqEmail').value.trim();
   const errEl=document.getElementById('reqError');
   errEl.style.display='none';
+  const description=document.getElementById('reqDescription').value.trim();
   if(!topic){ errEl.textContent='Please enter a topic.'; errEl.style.display='block'; return; }
+  if(!description){ errEl.textContent='Please provide more details.'; errEl.style.display='block'; document.getElementById('reqDescription').focus(); return; }
   if(!name){ errEl.textContent='Please enter your name.'; errEl.style.display='block'; document.getElementById('reqName').focus(); return; }
   if(!email){ errEl.textContent='Please enter your email.'; errEl.style.display='block'; document.getElementById('reqEmail').focus(); return; }
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ errEl.textContent='Please enter a valid email address.'; errEl.style.display='block'; document.getElementById('reqEmail').focus(); return; }
@@ -1594,9 +1596,9 @@ async function submitArticleRequest(){
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         topic,
-        description:document.getElementById('reqDescription').value.trim(),
-        requesterName:document.getElementById('reqName').value.trim(),
-        requesterEmail:document.getElementById('reqEmail').value.trim(),
+        description,
+        requesterName:name,
+        requesterEmail:email,
       })
     });
     if(!r.ok){ const d=await r.json(); throw new Error(d.error||'Failed'); }
