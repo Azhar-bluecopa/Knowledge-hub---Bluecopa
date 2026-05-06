@@ -320,7 +320,9 @@ app.post('/api/admin/login', (req, res) => {
 // ── Article Requests ──────────────────────────────────────────────────────────
 app.post('/api/article-requests', (req, res) => {
   const { topic, description, requesterName, requesterEmail } = req.body;
-  if (!topic?.trim()) return res.status(400).json({ error: 'Topic is required.' });
+  if (!topic?.trim())          return res.status(400).json({ error: 'Topic is required.' });
+  if (!requesterName?.trim())  return res.status(400).json({ error: 'Your name is required.' });
+  if (!requesterEmail?.trim()) return res.status(400).json({ error: 'Your email is required.' });
   if (!db.articleRequests) db.articleRequests = [];
   const request = {
     id:             Date.now(),
