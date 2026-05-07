@@ -4,8 +4,8 @@
       "id": 19,
       "title": "Technical Foundation — A Bluecopa Platform Primer",
       "category": "Engineering",
-      "author": "Bluecopa Tech Enablement",
-      "initials": "BT",
+      "author": "Azhar",
+      "initials": "AZ",
       "excerpt": "A comprehensive primer on the Bluecopa platform architecture — covering the Data, Pipes, and Flows mental model, integration options, core engines, workflow automation, security posture, and technical glossary for delivery teams and TPMs.",
       "tags": [
         "bluecopa",
