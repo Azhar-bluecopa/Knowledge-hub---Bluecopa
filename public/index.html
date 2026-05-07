@@ -904,14 +904,10 @@ function renderSidebar() {
   document.getElementById('allCount').textContent  = allArticles.length;
   document.getElementById('catCount').textContent  = allCategories.length;
   document.getElementById('totalCount').textContent = allArticles.length;
-  const todayLocal = new Date();
-  const todayY = todayLocal.getFullYear();
-  const todayM = todayLocal.getMonth();
-  const todayD = todayLocal.getDate();
+  const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local timezone
   document.getElementById('todayCount').textContent = allArticles.filter(a => {
     if (!a.created_at) return false;
-    const d = new Date(a.created_at);
-    return d.getFullYear() === todayY && d.getMonth() === todayM && d.getDate() === todayD;
+    return new Date(a.created_at).toLocaleDateString('en-CA') === todayStr;
   }).length;
   const uniqueAuthors = new Set(allArticles.map(a => a.author).filter(Boolean)).size;
   document.getElementById('authorsCount').textContent = uniqueAuthors;
@@ -1976,7 +1972,7 @@ function connectWS() {
     } else if (m.type==='article_updated') {
       const idx=allArticles.findIndex(a=>a.id===m.article.id);
       if (idx!==-1) allArticles[idx]=m.article; else allArticles.unshift(m.article);
-      applyFilters();
+      renderSidebar(); applyFilters();
     } else if (m.type==='article_deleted') {
       allArticles=allArticles.filter(a=>a.id!==m.id);
       renderSidebar(); applyFilters();
@@ -2041,6 +2037,8 @@ document.addEventListener('keydown',e=>{
   connectWS();
   // Poll for new requests every 60s when admin is logged in
   setInterval(refreshRequestBadge, 60000);
+  // Refresh stats every 60s so "Added Today" stays accurate
+  setInterval(() => { if (allArticles.length) renderSidebar(); }, 60000);
   refreshRequestBadge();
 })();
 </script>
