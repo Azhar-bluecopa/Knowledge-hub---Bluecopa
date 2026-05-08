@@ -8,6 +8,8 @@
     "start:dev": "node server.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.1",
+    "adm-zip": "^0.5.17",
     "dotenv": "^17.4.2",
     "express": "^4.19.2",
     "mammoth": "^1.12.0",

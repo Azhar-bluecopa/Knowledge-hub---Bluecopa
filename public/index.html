@@ -351,6 +351,56 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dash-bar{height:8px;border-radius:4px;background:var(--accent2);opacity:.8;transition:width .6s ease;}
 .dash-rank{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);width:24px;}
 .views-badge{background:rgba(122,232,180,0.12);color:var(--success);font-family:'DM Mono',monospace;font-size:11px;padding:2px 8px;border-radius:20px;}
+
+/* ── AI Chat Widget ── */
+.ai-fab{position:fixed;bottom:28px;right:28px;z-index:500;background:linear-gradient(135deg,#3548FF,#6c7fff);border:none;border-radius:50px;padding:13px 22px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:9px;box-shadow:0 8px 30px rgba(53,72,255,.45);transition:transform .2s,box-shadow .2s;letter-spacing:.01em;}
+.ai-fab:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(53,72,255,.6);}
+.ai-fab-icon{font-size:18px;line-height:1;}
+.ai-fab-dot{width:8px;height:8px;background:#22C55E;border-radius:50%;position:absolute;top:8px;right:8px;border:2px solid #3548FF;animation:pulse 2s infinite;}
+.ai-panel{position:fixed;bottom:90px;right:28px;z-index:500;width:420px;max-width:calc(100vw - 32px);background:var(--surface);border:1px solid rgba(53,72,255,.35);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:none;flex-direction:column;animation:slideUp .25s ease;overflow:hidden;}
+.ai-panel.open{display:flex;}
+.ai-panel-header{background:linear-gradient(135deg,#1e2461,#2a3580);padding:16px 18px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.ai-panel-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#3548FF,#6c7fff);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.ai-panel-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:1px;}
+.ai-panel-sub{font-size:11px;color:rgba(255,255,255,.6);font-family:'DM Mono',monospace;}
+.ai-panel-close{margin-left:auto;background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0;}
+.ai-panel-close:hover{background:rgba(255,255,255,.22);}
+.ai-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;max-height:360px;min-height:200px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.ai-messages::-webkit-scrollbar{width:4px;}
+.ai-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+.ai-msg{display:flex;gap:10px;animation:fadeUp .2s ease both;}
+.ai-msg.user{flex-direction:row-reverse;}
+.ai-msg-bubble{max-width:85%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.65;word-break:break-word;}
+.ai-msg.user .ai-msg-bubble{background:linear-gradient(135deg,#3548FF,#4c60ff);color:#fff;border-radius:14px 14px 4px 14px;}
+.ai-msg.assistant .ai-msg-bubble{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:14px 14px 14px 4px;}
+.ai-msg-bubble p{margin:0 0 6px;} .ai-msg-bubble p:last-child{margin:0;}
+.ai-msg-bubble ul,.ai-msg-bubble ol{padding-left:18px;margin:4px 0 6px;}
+.ai-msg-bubble li{margin-bottom:3px;}
+.ai-msg-bubble strong,.ai-msg-bubble b{color:#fff;} .ai-msg.assistant .ai-msg-bubble strong,.ai-msg.assistant .ai-msg-bubble b{color:var(--accent);}
+.ai-msg-bubble code{background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px;}
+.ai-avatar-sm{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.ai-avatar-sm.assistant{background:linear-gradient(135deg,#3548FF,#6c7fff);}
+.ai-avatar-sm.user{background:linear-gradient(135deg,var(--accent2),var(--accent3));}
+.ai-typing{display:flex;align-items:center;gap:5px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:14px 14px 14px 4px;width:fit-content;}
+.ai-typing span{width:6px;height:6px;background:var(--muted);border-radius:50%;animation:aiDot 1.2s ease infinite;}
+.ai-typing span:nth-child(2){animation-delay:.2s;} .ai-typing span:nth-child(3){animation-delay:.4s;}
+@keyframes aiDot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+.ai-welcome{text-align:center;padding:20px 16px 8px;}
+.ai-welcome-icon{font-size:36px;margin-bottom:8px;}
+.ai-welcome-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.ai-welcome-sub{font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:16px;}
+.ai-welcome-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
+.ai-chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .18s;font-family:'DM Sans',sans-serif;}
+.ai-chip:hover{border-color:rgba(53,72,255,.6);color:#6c7fff;background:rgba(53,72,255,.08);}
+.ai-input-bar{padding:12px 14px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;background:var(--surface);}
+.ai-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13.5px;outline:none;resize:none;line-height:1.5;max-height:100px;overflow-y:auto;transition:border-color .2s;}
+.ai-input:focus{border-color:rgba(53,72,255,.6);}
+.ai-input::placeholder{color:var(--muted);}
+.ai-send-btn{background:linear-gradient(135deg,#3548FF,#4c60ff);border:none;border-radius:10px;width:38px;height:38px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;transition:opacity .18s,transform .15s;flex-shrink:0;}
+.ai-send-btn:hover{opacity:.88;transform:translateY(-1px);}
+.ai-send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.ai-clear-btn{background:transparent;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:.04em;transition:all .18s;margin-bottom:12px;display:block;margin-left:auto;margin-right:14px;}
+.ai-clear-btn:hover{border-color:var(--accent);color:var(--accent);}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
@@ -2041,6 +2091,220 @@ document.addEventListener('keydown',e=>{
   setInterval(() => { if (allArticles.length) renderSidebar(); }, 60000);
   refreshRequestBadge();
 })();
+</script>
+
+<!-- ── AI Chat Widget ── -->
+<button class="ai-fab" id="aiFab" onclick="toggleAiPanel()" title="Ask AI">
+  <span class="ai-fab-icon">✦</span>
+  Ask AI
+</button>
+
+<div class="ai-panel" id="aiPanel">
+  <div class="ai-panel-header">
+    <div class="ai-panel-avatar">✦</div>
+    <div>
+      <div class="ai-panel-title">Knowledge Assistant</div>
+      <div class="ai-panel-sub">Powered by Claude · Reads your articles</div>
+    </div>
+    <button class="ai-panel-close" onclick="toggleAiPanel()" title="Close">✕</button>
+  </div>
+  <div class="ai-messages" id="aiMessages">
+    <div class="ai-welcome" id="aiWelcome">
+      <div class="ai-welcome-icon">✦</div>
+      <div class="ai-welcome-title">Hi! I'm your Knowledge Assistant</div>
+      <div class="ai-welcome-sub">Ask me anything — I'll search through your articles and give you a clear, step-by-step answer.</div>
+      <div class="ai-welcome-chips">
+        <button class="ai-chip" onclick="aiAskChip(this)">How do I onboard a new client?</button>
+        <button class="ai-chip" onclick="aiAskChip(this)">What's the leave policy?</button>
+        <button class="ai-chip" onclick="aiAskChip(this)">How do I set up my dev environment?</button>
+        <button class="ai-chip" onclick="aiAskChip(this)">What are the API rate limits?</button>
+      </div>
+    </div>
+  </div>
+  <button class="ai-clear-btn" id="aiClearBtn" onclick="aiClearChat()" style="display:none">↺ Clear chat</button>
+  <div class="ai-input-bar">
+    <textarea class="ai-input" id="aiInput" placeholder="Ask a question about your articles…" rows="1"
+      oninput="aiAutoResize(this)"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiSend();}"></textarea>
+    <button class="ai-send-btn" id="aiSendBtn" onclick="aiSend()" title="Send">➤</button>
+  </div>
+</div>
+
+<script>
+// ── AI Chat ──────────────────────────────────────────────────────────────────
+const aiHistory = []; // [{role:'user',content:''},{role:'assistant',content:''}]
+let aiStreaming = false;
+
+function toggleAiPanel() {
+  const panel = document.getElementById('aiPanel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) {
+    setTimeout(() => document.getElementById('aiInput').focus(), 100);
+  }
+}
+
+function aiAutoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+function aiAskChip(btn) {
+  const q = btn.textContent.trim();
+  document.getElementById('aiInput').value = q;
+  aiSend();
+}
+
+function aiClearChat() {
+  aiHistory.length = 0;
+  const msgs = document.getElementById('aiMessages');
+  msgs.innerHTML = `
+    <div class="ai-welcome" id="aiWelcome">
+      <div class="ai-welcome-icon">✦</div>
+      <div class="ai-welcome-title">Hi! I'm your Knowledge Assistant</div>
+      <div class="ai-welcome-sub">Ask me anything — I'll search through your articles and give you a clear, step-by-step answer.</div>
+      <div class="ai-welcome-chips">
+        <button class="ai-chip" onclick="aiAskChip(this)">How do I onboard a new client?</button>
+        <button class="ai-chip" onclick="aiAskChip(this)">What's the leave policy?</button>
+        <button class="ai-chip" onclick="aiAskChip(this)">How do I set up my dev environment?</button>
+        <button class="ai-chip" onclick="aiAskChip(this)">What are the API rate limits?</button>
+      </div>
+    </div>`;
+  document.getElementById('aiClearBtn').style.display = 'none';
+}
+
+function aiAppendMsg(role, html) {
+  const welcome = document.getElementById('aiWelcome');
+  if (welcome) welcome.remove();
+  document.getElementById('aiClearBtn').style.display = 'block';
+
+  const msgs = document.getElementById('aiMessages');
+  const isUser = role === 'user';
+  const div = document.createElement('div');
+  div.className = `ai-msg ${role}`;
+  div.innerHTML = `
+    <div class="ai-avatar-sm ${role}">${isUser ? '👤' : '✦'}</div>
+    <div class="ai-msg-bubble">${html}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function aiShowTyping() {
+  const welcome = document.getElementById('aiWelcome');
+  if (welcome) welcome.remove();
+  const msgs = document.getElementById('aiMessages');
+  const div = document.createElement('div');
+  div.className = 'ai-msg assistant';
+  div.id = 'aiTyping';
+  div.innerHTML = `<div class="ai-avatar-sm assistant">✦</div><div class="ai-typing"><span></span><span></span><span></span></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function aiRemoveTyping() {
+  const t = document.getElementById('aiTyping');
+  if (t) t.remove();
+}
+
+// Simple markdown → HTML for AI responses
+function aiMd(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^### (.+)$/gm,'<strong style="font-size:13px;color:var(--accent)">$1</strong>')
+    .replace(/^## (.+)$/gm,'<strong style="font-size:14px;color:var(--accent)">$1</strong>')
+    .replace(/^# (.+)$/gm,'<strong style="font-size:15px;color:var(--accent)">$1</strong>')
+    .replace(/^\d+\. (.+)$/gm,'<li style="list-style:decimal">$1</li>')
+    .replace(/^[-*] (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li[^>]*>.*<\/li>\n?)+/g, m => `<ul style="padding-left:18px;margin:4px 0">${m}</ul>`)
+    .replace(/\n{2,}/g,'</p><p>')
+    .replace(/\n/g,'<br>')
+    .replace(/^(.+)$/,'<p>$1</p>');
+}
+
+async function aiSend() {
+  if (aiStreaming) return;
+  const input = document.getElementById('aiInput');
+  const question = input.value.trim();
+  if (!question) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  aiStreaming = true;
+  document.getElementById('aiSendBtn').disabled = true;
+
+  // Add user message
+  aiAppendMsg('user', aiMd(question));
+  aiHistory.push({ role: 'user', content: question });
+  aiShowTyping();
+
+  try {
+    const resp = await fetch('/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, history: aiHistory.slice(0, -1) }) // exclude last user msg (already in question)
+    });
+
+    aiRemoveTyping();
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(()=>({error:'Unknown error'}));
+      aiAppendMsg('assistant', `<span style="color:var(--danger)">⚠ ${err.error || 'Something went wrong.'}</span>`);
+      aiStreaming = false;
+      document.getElementById('aiSendBtn').disabled = false;
+      return;
+    }
+
+    // Stream SSE
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let assistantText = '';
+    let msgDiv = null;
+    let bubbleEl = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        let evt;
+        try { evt = JSON.parse(line.slice(6)); } catch { continue; }
+        if (evt.type === 'text') {
+          assistantText += evt.text;
+          if (!msgDiv) {
+            // Create the assistant bubble on first text
+            const welcome = document.getElementById('aiWelcome');
+            if (welcome) welcome.remove();
+            document.getElementById('aiClearBtn').style.display = 'block';
+            const msgs = document.getElementById('aiMessages');
+            msgDiv = document.createElement('div');
+            msgDiv.className = 'ai-msg assistant';
+            msgDiv.innerHTML = `<div class="ai-avatar-sm assistant">✦</div><div class="ai-msg-bubble"></div>`;
+            msgs.appendChild(msgDiv);
+            bubbleEl = msgDiv.querySelector('.ai-msg-bubble');
+          }
+          bubbleEl.innerHTML = aiMd(assistantText);
+          document.getElementById('aiMessages').scrollTop = document.getElementById('aiMessages').scrollHeight;
+        } else if (evt.type === 'done') {
+          aiHistory.push({ role: 'assistant', content: assistantText });
+        } else if (evt.type === 'error') {
+          if (!msgDiv) aiAppendMsg('assistant', `<span style="color:var(--danger)">⚠ ${evt.message}</span>`);
+        }
+      }
+    }
+  } catch (err) {
+    aiRemoveTyping();
+    aiAppendMsg('assistant', `<span style="color:var(--danger)">⚠ Could not reach the AI assistant. Make sure the server is running.</span>`);
+  }
+
+  aiStreaming = false;
+  document.getElementById('aiSendBtn').disabled = false;
+  setTimeout(() => document.getElementById('aiInput').focus(), 100);
+}
 </script>
 </body>
 </html>

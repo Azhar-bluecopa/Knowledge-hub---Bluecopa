@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const http    = require('http');
 const path    = require('path');
@@ -396,6 +397,90 @@ app.patch('/api/article-requests/:id', (req, res) => {
   if (status) item.status = status;
   saveDB(db);
   res.json(item);
+});
+
+// ── Claude AI Ask ─────────────────────────────────────────────────────────────
+app.post('/api/ask', async (req, res) => {
+  const { question, articleId, history } = req.body;
+  if (!question?.trim()) return res.status(400).json({ error: 'Question is required.' });
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey || apiKey === 'your-anthropic-api-key-here') {
+    return res.status(503).json({ error: 'AI assistant is not configured. Please set ANTHROPIC_API_KEY in your .env file.' });
+  }
+
+  let Anthropic;
+  try { Anthropic = require('@anthropic-ai/sdk'); } catch {
+    return res.status(503).json({ error: 'Anthropic SDK not installed. Run: npm install @anthropic-ai/sdk' });
+  }
+
+  const client = new Anthropic.default({ apiKey });
+
+  // Build article context — use specific article or all articles
+  let articleContext = '';
+  if (articleId) {
+    const a = db.articles.find(x => x.id === parseInt(articleId));
+    if (a) {
+      articleContext = `## Article: ${a.title}\nCategory: ${a.category} | Author: ${a.author}\nTags: ${(a.tags||[]).join(', ')}\n\n${a.content}`;
+    }
+  } else {
+    // Include all articles as searchable knowledge base
+    articleContext = db.articles.map(a =>
+      `## Article ${a.id}: ${a.title}\nCategory: ${a.category} | Author: ${a.author} | Tags: ${(a.tags||[]).join(', ')}\n\n${a.content}`
+    ).join('\n\n---\n\n');
+  }
+
+  const systemPrompt = `You are a helpful AI assistant for a company knowledge hub. Your role is to answer employee questions by drawing from the articles in the knowledge base below.
+
+Guidelines:
+- Answer clearly and concisely, using information from the articles provided.
+- When relevant, structure your answer with numbered steps or bullet points for easy readability.
+- If the answer spans multiple articles, synthesize the information cohesively and mention which articles you're referencing.
+- If the knowledge base doesn't contain information relevant to the question, say so honestly and suggest what type of article might help.
+- Keep answers practical and actionable.
+- Format your response in clean markdown (bold, bullets, numbered lists as appropriate).
+
+--- KNOWLEDGE BASE ---
+${articleContext}
+--- END KNOWLEDGE BASE ---`;
+
+  // Build conversation history for multi-turn chat
+  const messages = [];
+  if (Array.isArray(history) && history.length > 0) {
+    history.forEach(h => {
+      if (h.role && h.content) messages.push({ role: h.role, content: h.content });
+    });
+  }
+  messages.push({ role: 'user', content: question.trim() });
+
+  // Stream the response
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  try {
+    const stream = await client.messages.stream({
+      model: 'claude-opus-4-7',
+      max_tokens: 2048,
+      thinking: { type: 'adaptive' },
+      system: systemPrompt,
+      messages,
+    });
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+        res.write(`data: ${JSON.stringify({ type: 'text', text: event.delta.text })}\n\n`);
+      }
+    }
+
+    res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+    res.end();
+  } catch (err) {
+    console.error('[/api/ask] Claude error:', err.message);
+    res.write(`data: ${JSON.stringify({ type: 'error', message: err.message })}\n\n`);
+    res.end();
+  }
 });
 
 // ── File upload ───────────────────────────────────────────────────────────────
