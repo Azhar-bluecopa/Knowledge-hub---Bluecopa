@@ -2279,10 +2279,10 @@ function aiMd(text) {
       continue;
     }
 
-    // ── Article link line: 📖 [Title](#article-ID) ──
-    if (line.match(/📖.*\(#article-\d+\)/)) {
-      const linkHtml = line.replace(/📖\s*\[([^\]]+)\]\(#article-(\d+)\)/g, (_, title, id) =>
-        `<a class="ai-article-link" href="#" onclick="openArticleById(${id});return false;">📖 ${title}</a>`
+    // ── Article link line: 📖 [Title](#article-ID) or [Title](#article-ID) ──
+    if (line.match(/\(#article-\d+\)/)) {
+      const linkHtml = line.replace(/(📖\s*)?\[([^\]]+)\]\(#article-(\d+)\)/g, (_, icon, title, id) =>
+        `<a class="ai-article-link" href="#" onclick="openArticleById(${parseInt(id)});return false;">📖 ${title}</a>`
       );
       html += `<div class="ai-sources">${linkHtml}</div>`;
       i++; continue;
@@ -2304,15 +2304,25 @@ function inlineMd(text) {
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
     .replace(/\*(.+?)\*/g,'<em>$1</em>')
     .replace(/`([^`]+)`/g,'<code class="ai-code">$1</code>')
+    // Article links: [Title](#article-4) → clickable pill that opens the article
     .replace(/\[([^\]]+)\]\(#article-(\d+)\)/g, (_,title,id)=>
-      `<a class="ai-article-link" href="#" onclick="openArticleById(${id});return false;">${title}</a>`
+      `<a class="ai-article-link" href="#" onclick="openArticleById(${parseInt(id)});return false;">${title}</a>`
     )
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,'<a href="$2" target="_blank" class="ai-link">$1 ↗</a>');
+    // External links
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener" class="ai-link">$1 ↗</a>');
 }
 
 function openArticleById(id) {
-  const a = allArticles.find(x => x.id === id);
-  if (a) openViewModal(a);
+  // id comes in as a number (parseInt already applied at call site)
+  const a = allArticles.find(x => x.id === parseInt(id));
+  if (a) {
+    openViewModal(a);
+  } else {
+    // Article not loaded yet — fetch and open
+    fetch(`/api/articles/${id}`)
+      .then(r => r.json())
+      .then(a => { if (a && a.id) openViewModal(a); });
+  }
 }
 
 async function aiSend() {
