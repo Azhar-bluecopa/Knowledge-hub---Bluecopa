@@ -399,34 +399,38 @@ app.patch('/api/article-requests/:id', (req, res) => {
   res.json(item);
 });
 
-// ── Claude AI Ask ─────────────────────────────────────────────────────────────
+// ── AI Ask (supports Anthropic Claude or Groq) ────────────────────────────────
 app.post('/api/ask', async (req, res) => {
   const { question, articleId, history } = req.body;
   if (!question?.trim()) return res.status(400).json({ error: 'Question is required.' });
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey || apiKey === 'your-anthropic-api-key-here') {
-    return res.status(503).json({ error: 'AI assistant is not configured. Please set ANTHROPIC_API_KEY in your .env file.' });
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  const groqKey      = process.env.GROQ_API_KEY;
+  const useAnthropic = anthropicKey && anthropicKey !== 'your-anthropic-api-key-here';
+  const useGroq      = groqKey      && groqKey      !== 'your-groq-api-key-here';
+
+  if (!useAnthropic && !useGroq) {
+    return res.status(503).json({ error: 'AI assistant is not configured. Add ANTHROPIC_API_KEY or GROQ_API_KEY to your .env file.' });
   }
 
-  let Anthropic;
-  try { Anthropic = require('@anthropic-ai/sdk'); } catch {
-    return res.status(503).json({ error: 'Anthropic SDK not installed. Run: npm install @anthropic-ai/sdk' });
-  }
-
-  const client = new Anthropic.default({ apiKey });
-
-  // Build article context — use specific article or all articles
+  // Build article context — smart retrieval: find top relevant articles by keyword match
   let articleContext = '';
   if (articleId) {
     const a = db.articles.find(x => x.id === parseInt(articleId));
-    if (a) {
-      articleContext = `## Article: ${a.title}\nCategory: ${a.category} | Author: ${a.author}\nTags: ${(a.tags||[]).join(', ')}\n\n${a.content}`;
-    }
+    if (a) articleContext = `## Article: ${a.title}\nCategory: ${a.category} | Author: ${a.author}\nTags: ${(a.tags||[]).join(', ')}\n\n${a.content.slice(0, 6000)}`;
   } else {
-    // Include all articles as searchable knowledge base
-    articleContext = db.articles.map(a =>
-      `## Article ${a.id}: ${a.title}\nCategory: ${a.category} | Author: ${a.author} | Tags: ${(a.tags||[]).join(', ')}\n\n${a.content}`
+    // Score each article by keyword overlap with the question
+    const qWords = question.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w => w.length > 2);
+    const scored = db.articles.map(a => {
+      const hay = (a.title + ' ' + a.excerpt + ' ' + (a.tags||[]).join(' ') + ' ' + a.category + ' ' + a.content.slice(0,1000)).toLowerCase();
+      const score = qWords.reduce((s, w) => s + (hay.includes(w) ? 1 : 0), 0);
+      return { a, score };
+    }).sort((x, y) => y.score - x.score);
+
+    // Take top 4 relevant articles; if none match well, take top 4 by recency
+    const top = scored.slice(0, 4);
+    articleContext = top.map(({ a }) =>
+      `## Article ${a.id}: ${a.title}\nCategory: ${a.category} | Author: ${a.author} | Tags: ${(a.tags||[]).join(', ')}\n\n${a.content.slice(0, 2500)}`
     ).join('\n\n---\n\n');
   }
 
@@ -444,40 +448,80 @@ Guidelines:
 ${articleContext}
 --- END KNOWLEDGE BASE ---`;
 
-  // Build conversation history for multi-turn chat
   const messages = [];
   if (Array.isArray(history) && history.length > 0) {
-    history.forEach(h => {
-      if (h.role && h.content) messages.push({ role: h.role, content: h.content });
-    });
+    history.forEach(h => { if (h.role && h.content) messages.push({ role: h.role, content: h.content }); });
   }
   messages.push({ role: 'user', content: question.trim() });
 
-  // Stream the response
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
 
   try {
-    const stream = await client.messages.stream({
-      model: 'claude-opus-4-7',
-      max_tokens: 2048,
-      thinking: { type: 'adaptive' },
-      system: systemPrompt,
-      messages,
-    });
+    if (useAnthropic) {
+      // ── Anthropic Claude ──
+      const Anthropic = require('@anthropic-ai/sdk');
+      const client = new Anthropic.default({ apiKey: anthropicKey });
+      const stream = await client.messages.stream({
+        model: 'claude-opus-4-7',
+        max_tokens: 2048,
+        thinking: { type: 'adaptive' },
+        system: systemPrompt,
+        messages,
+      });
+      for await (const event of stream) {
+        if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+          res.write(`data: ${JSON.stringify({ type: 'text', text: event.delta.text })}\n\n`);
+        }
+      }
+    } else {
+      // ── Groq (streaming via fetch) ──
+      const fetch = globalThis.fetch || require('node-fetch');
+      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'system', content: systemPrompt }, ...messages],
+          max_tokens: 2048,
+          stream: true,
+        }),
+      });
 
-    for await (const event of stream) {
-      if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
-        res.write(`data: ${JSON.stringify({ type: 'text', text: event.delta.text })}\n\n`);
+      if (!groqRes.ok) {
+        const errText = await groqRes.text();
+        throw new Error(`Groq API error ${groqRes.status}: ${errText}`);
+      }
+
+      const reader = groqRes.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop(); // keep incomplete line
+        for (const line of lines) {
+          const l = line.trim();
+          if (!l || l === 'data: [DONE]') continue;
+          if (l.startsWith('data: ')) {
+            try {
+              const json = JSON.parse(l.slice(6));
+              const text = json.choices?.[0]?.delta?.content;
+              if (text) res.write(`data: ${JSON.stringify({ type: 'text', text })}\n\n`);
+            } catch { /* skip malformed */ }
+          }
+        }
       }
     }
 
     res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
     res.end();
   } catch (err) {
-    console.error('[/api/ask] Claude error:', err.message);
+    console.error('[/api/ask] AI error:', err.message);
     res.write(`data: ${JSON.stringify({ type: 'error', message: err.message })}\n\n`);
     res.end();
   }

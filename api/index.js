@@ -158,32 +158,34 @@ app.get('/api/analytics', (req, res) => {
   });
 });
 
-// ── Claude AI Ask ─────────────────────────────────────────────────────────────
+// ── AI Ask (supports Anthropic Claude or Groq) ────────────────────────────────
 app.post('/api/ask', async (req, res) => {
   const { question, articleId, history } = req.body;
   if (!question?.trim()) return res.status(400).json({ error: 'Question is required.' });
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey || apiKey === 'your-anthropic-api-key-here') {
-    return res.status(503).json({ error: 'AI assistant is not configured. Please set ANTHROPIC_API_KEY.' });
-  }
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  const groqKey      = process.env.GROQ_API_KEY;
+  const useAnthropic = anthropicKey && anthropicKey !== 'your-anthropic-api-key-here';
+  const useGroq      = groqKey      && groqKey      !== 'your-groq-api-key-here';
 
-  let Anthropic;
-  try { Anthropic = require('@anthropic-ai/sdk'); } catch {
-    return res.status(503).json({ error: 'Anthropic SDK not installed.' });
+  if (!useAnthropic && !useGroq) {
+    return res.status(503).json({ error: 'AI assistant is not configured. Add ANTHROPIC_API_KEY or GROQ_API_KEY.' });
   }
-
-  const client = new Anthropic.default({ apiKey });
 
   let articleContext = '';
   if (articleId) {
     const a = (db.articles || []).find(x => x.id === parseInt(articleId));
-    if (a) {
-      articleContext = `## Article: ${a.title}\nCategory: ${a.category} | Author: ${a.author}\nTags: ${(a.tags||[]).join(', ')}\n\n${a.content}`;
-    }
+    if (a) articleContext = `## Article: ${a.title}\nCategory: ${a.category} | Author: ${a.author}\nTags: ${(a.tags||[]).join(', ')}\n\n${a.content.slice(0,6000)}`;
   } else {
-    articleContext = (db.articles || []).map(a =>
-      `## Article ${a.id}: ${a.title}\nCategory: ${a.category} | Author: ${a.author} | Tags: ${(a.tags||[]).join(', ')}\n\n${a.content}`
+    const articles = db.articles || [];
+    const qWords = question.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w => w.length > 2);
+    const scored = articles.map(a => {
+      const hay = (a.title+' '+a.excerpt+' '+(a.tags||[]).join(' ')+' '+a.category+' '+a.content.slice(0,1000)).toLowerCase();
+      const score = qWords.reduce((s,w) => s+(hay.includes(w)?1:0), 0);
+      return { a, score };
+    }).sort((x,y) => y.score - x.score);
+    articleContext = scored.slice(0,4).map(({a}) =>
+      `## Article ${a.id}: ${a.title}\nCategory: ${a.category} | Author: ${a.author} | Tags: ${(a.tags||[]).join(', ')}\n\n${a.content.slice(0,2500)}`
     ).join('\n\n---\n\n');
   }
 
@@ -213,24 +215,54 @@ ${articleContext}
   res.flushHeaders();
 
   try {
-    const stream = await client.messages.stream({
-      model: 'claude-opus-4-7',
-      max_tokens: 2048,
-      thinking: { type: 'adaptive' },
-      system: systemPrompt,
-      messages,
-    });
-
-    for await (const event of stream) {
-      if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
-        res.write(`data: ${JSON.stringify({ type: 'text', text: event.delta.text })}\n\n`);
+    if (useAnthropic) {
+      const Anthropic = require('@anthropic-ai/sdk');
+      const client = new Anthropic.default({ apiKey: anthropicKey });
+      const stream = await client.messages.stream({
+        model: 'claude-opus-4-7', max_tokens: 2048,
+        thinking: { type: 'adaptive' }, system: systemPrompt, messages,
+      });
+      for await (const event of stream) {
+        if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+          res.write(`data: ${JSON.stringify({ type: 'text', text: event.delta.text })}\n\n`);
+        }
+      }
+    } else {
+      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'system', content: systemPrompt }, ...messages],
+          max_tokens: 2048, stream: true,
+        }),
+      });
+      if (!groqRes.ok) throw new Error(`Groq API error ${groqRes.status}`);
+      const reader = groqRes.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n'); buf = lines.pop();
+        for (const line of lines) {
+          const l = line.trim();
+          if (!l || l === 'data: [DONE]') continue;
+          if (l.startsWith('data: ')) {
+            try {
+              const json = JSON.parse(l.slice(6));
+              const text = json.choices?.[0]?.delta?.content;
+              if (text) res.write(`data: ${JSON.stringify({ type: 'text', text })}\n\n`);
+            } catch { /* skip */ }
+          }
+        }
       }
     }
-
     res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
     res.end();
   } catch (err) {
-    console.error('[/api/ask] Claude error:', err.message);
+    console.error('[/api/ask] AI error:', err.message);
     res.write(`data: ${JSON.stringify({ type: 'error', message: err.message })}\n\n`);
     res.end();
   }
