@@ -172,36 +172,45 @@ app.post('/api/ask', async (req, res) => {
     return res.status(503).json({ error: 'AI assistant is not configured. Add ANTHROPIC_API_KEY or GROQ_API_KEY.' });
   }
 
-  let articleContext = '';
+  const articles = db.articles || [];
+  let topArticles = [];
   if (articleId) {
-    const a = (db.articles || []).find(x => x.id === parseInt(articleId));
-    if (a) articleContext = `## Article: ${a.title}\nCategory: ${a.category} | Author: ${a.author}\nTags: ${(a.tags||[]).join(', ')}\n\n${a.content.slice(0,6000)}`;
+    const a = articles.find(x => x.id === parseInt(articleId));
+    if (a) topArticles = [a];
   } else {
-    const articles = db.articles || [];
     const qWords = question.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w => w.length > 2);
     const scored = articles.map(a => {
       const hay = (a.title+' '+a.excerpt+' '+(a.tags||[]).join(' ')+' '+a.category+' '+a.content.slice(0,1000)).toLowerCase();
       const score = qWords.reduce((s,w) => s+(hay.includes(w)?1:0), 0);
       return { a, score };
     }).sort((x,y) => y.score - x.score);
-    articleContext = scored.slice(0,4).map(({a}) =>
-      `## Article ${a.id}: ${a.title}\nCategory: ${a.category} | Author: ${a.author} | Tags: ${(a.tags||[]).join(', ')}\n\n${a.content.slice(0,2500)}`
-    ).join('\n\n---\n\n');
+    topArticles = scored.slice(0,4).map(r => r.a);
   }
 
-  const systemPrompt = `You are a helpful AI assistant for a company knowledge hub. Your role is to answer employee questions by drawing from the articles in the knowledge base below.
+  const articleIndex = articles.map(a => `- [Article #${a.id}] "${a.title}" (${a.category})`).join('\n');
+  const articleContext = topArticles.map(a =>
+    `### [Article #${a.id}] ${a.title}\nCategory: ${a.category} | Tags: ${(a.tags||[]).join(', ')}\n\n${a.content.slice(0,2500)}`
+  ).join('\n\n---\n\n');
 
-Guidelines:
-- Answer clearly and concisely, using information from the articles provided.
-- When relevant, structure your answer with numbered steps or bullet points for easy readability.
-- If the answer spans multiple articles, synthesize the information cohesively and mention which articles you're referencing.
-- If the knowledge base doesn't contain information relevant to the question, say so honestly and suggest what type of article might help.
-- Keep answers practical and actionable.
-- Format your response in clean markdown (bold, bullets, numbered lists as appropriate).
+  const systemPrompt = `You are a smart, concise knowledge assistant for Bluecopa. Answer employee questions using only the articles provided below.
 
---- KNOWLEDGE BASE ---
+RESPONSE RULES — follow these strictly:
+1. **Be brief and scannable.** No long paragraphs. Use structure.
+2. **Use numbered steps** for any process or how-to question.
+3. **Use tables** when comparing options, listing items with attributes, or showing checklists.
+4. **Use bullet points** for lists of 3+ items.
+5. **Bold key terms** so users can scan quickly.
+6. **Always end with article links** using this exact format on its own line: 📖 [Article Title](#article-ID) — e.g. 📖 [Leave Policy](#article-4)
+7. If the question involves something NOT in the knowledge base, say: "I don't have an article on this yet. You may want to check with [relevant team]." — keep it short.
+8. Use relevant emojis as section icons (✅ for steps, ⚠️ for warnings, 💡 for tips, 📋 for checklists).
+9. Maximum response length: 300 words. Cut anything that isn't directly useful.
+
+ALL ARTICLES AVAILABLE (for link references):
+${articleIndex}
+
+--- RELEVANT ARTICLES ---
 ${articleContext}
---- END KNOWLEDGE BASE ---`;
+--- END ---`;
 
   const messages = [];
   if (Array.isArray(history) && history.length > 0) {
