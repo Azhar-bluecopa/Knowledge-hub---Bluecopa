@@ -457,7 +457,8 @@ HOW TO ANSWER (match the question, no more, no less):
 FORMATTING:
 - **Bold** important terms and key values
 - Use numbered lists for steps, bullets for unordered items
-- Use markdown tables only for genuine comparisons
+- For navigation menus or feature lists: use a 2-column table (Name | Description) — never include URL/route/path columns
+- Keep tables to 2 columns maximum — never more than 2 columns in a chat response
 - Keep it under 150 words for simple questions, under 300 for detailed guides
 - No filler phrases like "Great question!" or "Certainly!"
 
