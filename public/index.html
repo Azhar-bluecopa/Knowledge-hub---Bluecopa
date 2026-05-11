@@ -355,14 +355,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* ── AI Chat Widget ── */
 .ai-fab{position:fixed;bottom:28px;right:28px;z-index:500;background:linear-gradient(135deg,#3548FF,#6c7fff);border:none;border-radius:50px;padding:13px 22px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:9px;box-shadow:0 8px 30px rgba(53,72,255,.45);transition:transform .2s,box-shadow .2s;letter-spacing:.01em;}
 .ai-fab:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(53,72,255,.6);}
-.ai-panel{position:fixed;bottom:90px;right:28px;z-index:500;width:480px;max-width:calc(100vw - 32px);background:var(--surface);border:1px solid rgba(53,72,255,.35);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.7);display:none;flex-direction:column;animation:slideUp .25s ease;overflow:hidden;}
+.ai-panel{position:fixed;bottom:90px;right:28px;z-index:500;width:480px;max-width:calc(100vw - 32px);background:var(--surface);border:1px solid rgba(53,72,255,.35);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.7);display:none;flex-direction:column;animation:slideUp .25s ease;overflow:hidden;transition:width .25s ease,height .25s ease,bottom .25s ease,right .25s ease;}
 .ai-panel.open{display:flex;}
+
+/* Minimised — header bar only, anchored to bottom-right */
+.ai-panel.minimised{bottom:28px;border-radius:16px;overflow:hidden;}
+.ai-panel.minimised .ai-messages,
+.ai-panel.minimised .ai-input-bar,
+.ai-panel.minimised .ai-clear-btn{display:none !important;}
+.ai-panel.minimised .ai-panel-header{border-bottom:none;border-radius:16px;cursor:pointer;}
+
+/* Maximised — almost full viewport */
+.ai-panel.maximised{width:min(820px,calc(100vw - 32px));bottom:16px;right:16px;border-radius:20px;}
+.ai-panel.maximised .ai-messages{max-height:calc(100vh - 280px);min-height:300px;}
+
 .ai-panel-header{background:linear-gradient(135deg,#1a1f5e,#2a3580);padding:14px 18px;display:flex;align-items:center;gap:12px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);}
 .ai-panel-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3548FF,#6c7fff);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;box-shadow:0 2px 10px rgba(53,72,255,.4);}
 .ai-panel-title{font-size:14.5px;font-weight:700;color:#fff;margin-bottom:1px;}
 .ai-panel-sub{font-size:10.5px;color:rgba(255,255,255,.5);font-family:'DM Mono',monospace;letter-spacing:.04em;}
-.ai-panel-close{margin-left:auto;background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0;}
-.ai-panel-close:hover{background:rgba(255,255,255,.2);color:#fff;}
+.ai-panel-actions{margin-left:auto;display:flex;align-items:center;gap:5px;}
+.ai-panel-btn{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);border-radius:8px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0;font-size:13px;line-height:1;}
+.ai-panel-btn:hover{background:rgba(255,255,255,.22);color:#fff;}
+.ai-panel-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 .ai-messages{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:14px;max-height:440px;min-height:220px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
 .ai-messages::-webkit-scrollbar{width:4px;}
 .ai-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
@@ -2135,13 +2149,26 @@ document.addEventListener('keydown',e=>{
 </button>
 
 <div class="ai-panel" id="aiPanel">
-  <div class="ai-panel-header">
+  <div class="ai-panel-header" id="aiPanelHeader">
     <div class="ai-panel-avatar">✦</div>
     <div>
       <div class="ai-panel-title">Knowledge Assistant</div>
       <div class="ai-panel-sub">Powered by Claude · Reads your articles</div>
     </div>
-    <button class="ai-panel-close" onclick="toggleAiPanel()" title="Close">✕</button>
+    <div class="ai-panel-actions">
+      <!-- Minimise -->
+      <button class="ai-panel-btn" id="aiMinBtn" onclick="setAiPanelState('minimised')" title="Minimise">
+        <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <!-- Maximise / Restore -->
+      <button class="ai-panel-btn" id="aiMaxBtn" onclick="toggleAiMaximise()" title="Maximise">
+        <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+      </button>
+      <!-- Close -->
+      <button class="ai-panel-btn" onclick="toggleAiPanel()" title="Close">
+        <svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      </button>
+    </div>
   </div>
   <div class="ai-messages" id="aiMessages">
     <div class="ai-welcome" id="aiWelcome">
@@ -2169,12 +2196,63 @@ document.addEventListener('keydown',e=>{
 // ── AI Chat ──────────────────────────────────────────────────────────────────
 const aiHistory = []; // [{role:'user',content:''},{role:'assistant',content:''}]
 let aiStreaming = false;
+let aiPanelState = 'closed'; // 'closed' | 'normal' | 'minimised' | 'maximised'
 
 function toggleAiPanel() {
   const panel = document.getElementById('aiPanel');
-  panel.classList.toggle('open');
-  if (panel.classList.contains('open')) {
+  if (aiPanelState === 'closed') {
+    setAiPanelState('normal');
+  } else {
+    setAiPanelState('closed');
+  }
+}
+
+function setAiPanelState(state) {
+  const panel  = document.getElementById('aiPanel');
+  const maxBtn = document.getElementById('aiMaxBtn');
+  const minBtn = document.getElementById('aiMinBtn');
+
+  // Clear all state classes
+  panel.classList.remove('open','minimised','maximised');
+  aiPanelState = state;
+
+  if (state === 'closed') {
+    // hidden
+  } else if (state === 'minimised') {
+    panel.classList.add('open','minimised');
+    // Clicking the header restores to normal
+    document.getElementById('aiPanelHeader').onclick = () => setAiPanelState('normal');
+    minBtn.style.display = 'none';
+    // Update max button to show restore icon when minimised
+    maxBtn.querySelector('svg').innerHTML = '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>';
+    maxBtn.title = 'Restore';
+    maxBtn.onclick = () => setAiPanelState('normal');
+  } else if (state === 'maximised') {
+    panel.classList.add('open','maximised');
+    document.getElementById('aiPanelHeader').onclick = null;
+    minBtn.style.display = '';
+    // Max button becomes restore
+    maxBtn.querySelector('svg').innerHTML = '<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="21" y2="3"/><line x1="3" y1="21" x2="14" y2="10"/>';
+    maxBtn.title = 'Restore';
+    maxBtn.onclick = () => setAiPanelState('normal');
+    document.getElementById('aiMessages').scrollTop = 9999;
+  } else { // normal
+    panel.classList.add('open');
+    document.getElementById('aiPanelHeader').onclick = null;
+    minBtn.style.display = '';
+    // Restore max button to maximise icon
+    maxBtn.querySelector('svg').innerHTML = '<rect x="4" y="4" width="16" height="16" rx="2"/>';
+    maxBtn.title = 'Maximise';
+    maxBtn.onclick = () => toggleAiMaximise();
     setTimeout(() => document.getElementById('aiInput').focus(), 100);
+  }
+}
+
+function toggleAiMaximise() {
+  if (aiPanelState === 'maximised') {
+    setAiPanelState('normal');
+  } else {
+    setAiPanelState('maximised');
   }
 }
 
