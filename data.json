@@ -172,7 +172,7 @@
     "adminPassword": "admin123456789",
     "siteTitle": "KnowledgeHub",
     "restrictions": {
-      "whoCanPost": "anyone"
+      "whoCanPost": "admins_only"
     },
     "aboutText": "The Knowledge Hub is a centralized repository designed to capture, organize, and share knowledge across the delivery organization. It enables teams to leverage insights from past projects, reuse proven solutions, and handle similar scenarios with greater confidence minimizing dependency on individuals and improving overall efficiency. By making knowledge easily accessible, it empowers delivery teams to deliver faster and more consistently.\n\nServing as a go-to platform for the delivery org, the Knowledge Hub also supports onboarding and continuous learning. New joiners can quickly understand the organization's offerings, products, projects, and tools, while existing team members can upskill and stay prepared for new challenges. Ultimately, it fosters a culture of collaboration, self-sufficiency, and continuous growth across the delivery organization.\n\nThe Hub also features a growing collection of foundational articles on accounting, finance, and the Bluecopa platform written in plain language for every professional, regardless of their background. These guides are designed to help team members build the baseline domain knowledge needed to engage confidently in client conversations and day-to-day delivery work."
   },

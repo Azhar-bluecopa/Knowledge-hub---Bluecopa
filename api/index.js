@@ -9,7 +9,7 @@ app.use(express.json());
 
 // ── Persistent store — MongoDB (primary) with data.json fallback ──────────────
 let mongoCol = null;
-let db = { articles: [], categories: [], settings: { siteTitle: 'KnowledgeHub', restrictions: { whoCanPost: 'anyone' } }, nextId: 1 };
+let db = { articles: [], categories: [], settings: { siteTitle: 'KnowledgeHub', restrictions: { whoCanPost: 'admins_only' } }, nextId: 1 };
 
 function loadFileDB() {
   const candidates = [
