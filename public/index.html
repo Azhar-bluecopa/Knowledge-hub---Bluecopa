@@ -2259,9 +2259,14 @@ function inlineMd(raw) {
     .replace(/\[([^\]]+)\]\(#article-(\d+)\)/g, (_,t,id)=> artLink(t,id))         // standard
     .replace(/\[([^\]]+)\]\(article-(\d+)\)/g, (_,t,id)=> artLink(t,id))          // no #
     .replace(/\[([^\]]+)\]\(#(\d+)\)/g, (_,t,id)=> artLink(t,id))                 // just #N
-    // External URLs
+    // External URLs — markdown format [text](url)
     .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
-      '<a href="$2" target="_blank" rel="noopener" class="ai-link">$1 ↗</a>');
+      '<a href="$2" target="_blank" rel="noopener" class="ai-link">$1 ↗</a>')
+    // Bare URLs — auto-link any raw https://... not already inside an <a href>
+    .replace(/(^|\s)(https?:\/\/[^\s<>"]+)/g, (_, pre, url) => {
+      url = url.replace(/[.,;:!?)>\]"']+$/, ''); // strip trailing punctuation
+      return `${pre}<a href="${url}" target="_blank" rel="noopener" class="ai-link">${url} ↗</a>`;
+    });
 }
 
 function aiMd(text) {
