@@ -18,8 +18,7 @@ if (!IS_VERCEL) {
   wss = new WebSocketServer({ server });
 }
 
-// ── JSON store ────────────────────────────────────────────────────────────────
-// Try __dirname first, then process.cwd() as fallback (Vercel serverless)
+// ── Persistent store — MongoDB (primary) with file fallback ──────────────────
 const DB_FILE = (() => {
   const p1 = path.join(__dirname, 'data.json');
   if (fs.existsSync(p1)) return p1;
@@ -28,7 +27,11 @@ const DB_FILE = (() => {
 const UPLOADS = path.join(__dirname, 'public', 'uploads');
 if (!IS_VERCEL && !fs.existsSync(UPLOADS)) fs.mkdirSync(UPLOADS, { recursive: true });
 
-function loadDB() {
+let mongoCol = null; // MongoDB collection, set after connect
+let db = { articles: [], nextId: 1 }; // In-memory DB, populated in initDB()
+
+// Read from data.json (used as seed / fallback)
+function loadFileDB() {
   try {
     const p1 = path.join(__dirname, 'data.json');
     const p2 = path.join(process.cwd(), 'data.json');
@@ -37,16 +40,56 @@ function loadDB() {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
   } catch { return { articles: [], nextId: 1 }; }
 }
-function saveDB(db) {
-  if (IS_VERCEL) return; // Vercel filesystem is read-only — writes are no-ops
-  try { fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8'); }
-  catch (e) { console.error('[saveDB] write failed:', e.message); }
+
+// Persist — MongoDB when available, otherwise local file
+function saveDB(data) {
+  if (mongoCol) {
+    mongoCol.replaceOne({ _id: 'main' }, { _id: 'main', ...data }, { upsert: true })
+      .catch(e => console.error('[saveDB/mongo]', e.message));
+    return;
+  }
+  if (IS_VERCEL) return; // no file write on Vercel without Mongo
+  try { fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf8'); }
+  catch (e) { console.error('[saveDB/file]', e.message); }
 }
 
-let db = loadDB();
+// Connect to MongoDB Atlas and load data
+async function initDB() {
+  const uri = process.env.MONGODB_URI;
+  if (uri) {
+    try {
+      const { MongoClient } = require('mongodb');
+      const client = new MongoClient(uri, { serverSelectionTimeoutMS: 6000 });
+      await client.connect();
+      const mdb = client.db('knowledgehub');
+      mongoCol = mdb.collection('store');
+      console.log('◆ MongoDB connected');
 
-// ── Migrate / init new DB fields ──────────────────────────────────────────────
-(function migrate() {
+      const doc = await mongoCol.findOne({ _id: 'main' });
+      if (doc) {
+        const { _id, ...data } = doc;
+        db = data;
+        console.log(`◆ Loaded ${db.articles?.length || 0} articles from MongoDB`);
+      } else {
+        // First run — seed MongoDB from data.json
+        const seed = loadFileDB();
+        db = seed;
+        await mongoCol.insertOne({ _id: 'main', ...db });
+        console.log(`◆ Seeded MongoDB with ${db.articles?.length || 0} articles from data.json`);
+      }
+      return;
+    } catch (e) {
+      console.error('✗ MongoDB connection failed, falling back to file:', e.message);
+      mongoCol = null;
+    }
+  }
+  // File fallback (local dev without MONGODB_URI)
+  db = loadFileDB();
+  console.log(`◆ Loaded ${db.articles?.length || 0} articles from file`);
+}
+
+// ── Migrate / init new DB fields (called after initDB) ───────────────────────
+function migrate() {
   let dirty = false;
   if (!db.categories) {
     db.categories = [
@@ -70,28 +113,6 @@ let db = loadDB();
   // add views to existing articles
   db.articles.forEach(a => { if (a.views === undefined) { a.views = 0; dirty = true; } });
   if (dirty) saveDB(db);
-})();
-
-// ── Seed articles ─────────────────────────────────────────────────────────────
-if (db.articles.length === 0) {
-  const now = Date.now(), day = 86400000;
-  db.articles = [
-    { id:1,  title:'How to Onboard a New Client onto Bluecopa',  category:'Support',     author:'Priya Nair',   initials:'PN', excerpt:'Step-by-step guide covering account creation, data migration, user access setup, and initial configuration for new enterprise clients.', content:'Step-by-step guide covering account creation, data migration, user access setup, and initial configuration for new enterprise clients.\n\n1. Create the client account in the admin panel.\n2. Migrate existing data using the import wizard.\n3. Configure user roles and permissions.\n4. Run the initial setup checklist with the client.', tags:['onboarding','setup'],   created_at:new Date(now - 0*day).toISOString() },
-    { id:2,  title:'Month-End Reconciliation Checklist',          category:'Finance',     author:'Rahul Mehta',  initials:'RM', excerpt:'A comprehensive checklist for the finance team to ensure all ledgers are balanced and accounts are reconciled before month-end close.', content:'A comprehensive checklist for the finance team to ensure all ledgers are balanced and accounts are reconciled before month-end close.\n\n- Verify all bank statements\n- Reconcile accounts payable and receivable\n- Ensure all invoices are processed\n- Review expense reports', tags:['finance','checklist'], created_at:new Date(now - 1*day).toISOString() },
-    { id:3,  title:'Setting Up Local Dev Environment',             category:'Engineering', author:'Arjun Kumar',  initials:'AK', excerpt:'Complete guide to installing Node.js, configuring environment variables, running Docker containers, and connecting to staging databases.', content:'Complete guide to installing Node.js, configuring environment variables, running Docker containers, and connecting to staging databases.\n\n```bash\nnpm install\ncp .env.example .env\ndocker-compose up -d\n```', tags:['dev','setup'],        created_at:new Date(now - 1*day).toISOString() },
-    { id:4,  title:'Leave Policy & Attendance Guidelines',         category:'HR',          author:'Sanya Kapoor', initials:'SK', excerpt:'Detailed overview of leave types, application procedures, carry-forward rules, and attendance tracking expectations for all employees.', content:'Detailed overview of leave types, application procedures, carry-forward rules, and attendance tracking expectations for all employees.\n\n**Leave Types:** Casual, Medical, Earned\n**Carry Forward:** Up to 15 days per year\n**Application:** Submit at least 2 days in advance', tags:['HR','policy'],         created_at:new Date(now - 2*day).toISOString() },
-    { id:5,  title:'API Rate Limits & Error Codes Reference',      category:'Engineering', author:'Dev Sharma',   initials:'DS', excerpt:'A reference document for all public and internal API endpoints, their rate limits, expected error codes, and retry strategies.', content:'A reference document for all public and internal API endpoints, their rate limits, expected error codes, and retry strategies.\n\n| Endpoint | Rate Limit | Retry |\n|---|---|---|\n| /api/v1/* | 1000/min | Exponential backoff |\n| /api/internal/* | 5000/min | Immediate |', tags:['API','reference'],    created_at:new Date(now - 3*day).toISOString() },
-    { id:6,  title:'Q4 Financial Reporting Template',              category:'Finance',     author:'Rahul Mehta',  initials:'RM', excerpt:'Standardized template for quarterly financial reports including revenue breakdowns, cost analysis, and stakeholder-ready summary slides.', content:'Standardized template for quarterly financial reports including revenue breakdowns, cost analysis, and stakeholder-ready summary slides.\n\nSections:\n1. Executive Summary\n2. Revenue Breakdown\n3. Cost Analysis\n4. Forecast', tags:['finance','reporting'], created_at:new Date(now - 4*day).toISOString() },
-    { id:7,  title:'Product Roadmap — H2 2025',                    category:'Product',     author:'Meena Iyer',   initials:'MI', excerpt:'Overview of planned features, prioritization framework, and key milestones for the second half of 2025 across all product lines.', content:'Overview of planned features, prioritization framework, and key milestones for the second half of 2025 across all product lines.\n\nQ3: Analytics dashboard v2, SSO integration\nQ4: Mobile app launch, Bulk exports, API v3', tags:['roadmap','strategy'],  created_at:new Date(now - 5*day).toISOString() },
-    { id:8,  title:'Debugging Payment Integration Issues',         category:'Engineering', author:'Arjun Kumar',  initials:'AK', excerpt:'Common failure scenarios in payment gateway integrations, how to read webhook logs, and resolution steps for the most frequent errors.', content:'Common failure scenarios in payment gateway integrations, how to read webhook logs, and resolution steps for the most frequent errors.\n\nCheck webhook signatures first. Enable verbose logging with `DEBUG=payments*`. Common codes: 402 (card declined), 422 (validation error).', tags:['payments','debug'],    created_at:new Date(now - 6*day).toISOString() },
-    { id:9,  title:'Performance Review Process — 2025',            category:'HR',          author:'Sanya Kapoor', initials:'SK', excerpt:'Timeline, evaluation criteria, self-assessment templates, and manager guidelines for the annual performance review cycle.', content:'Timeline, evaluation criteria, self-assessment templates, and manager guidelines for the annual performance review cycle.\n\nTimeline: Jan self-assessment → Feb manager review → Mar calibration → Apr letters', tags:['HR','reviews'],        created_at:new Date(now - 7*day).toISOString() },
-    { id:10, title:'GST & TDS Compliance Checklist',               category:'Finance',     author:'Anjali Verma', initials:'AV', excerpt:'Monthly and quarterly compliance tasks for GST filing, TDS deduction, and statutory payment deadlines for the accounts team.', content:'Monthly and quarterly compliance tasks for GST filing, TDS deduction, and statutory payment deadlines for the accounts team.\n\nMonthly: GSTR-1 by 11th, GSTR-3B by 20th\nQuarterly: TDS return by 31st of month following quarter', tags:['tax','compliance'],    created_at:new Date(now - 7*day).toISOString() },
-    { id:11, title:'Feature Flag Management Guide',                 category:'Product',     author:'Meena Iyer',   initials:'MI', excerpt:'How to create, enable, disable, and audit feature flags across environments using our internal feature management dashboard.', content:'How to create, enable, disable, and audit feature flags across environments using our internal feature management dashboard.\n\nAccess: Settings → Feature Flags. Always test in staging before enabling in production. Flags auto-expire after 90 days.', tags:['flags','deployment'],  created_at:new Date(now - 8*day).toISOString() },
-    { id:12, title:'CI/CD Pipeline Overview',                      category:'Engineering', author:'Dev Sharma',   initials:'DS', excerpt:'Architecture documentation for our continuous integration and deployment pipeline including branch strategies, test gates, and rollback procedures.', content:'Architecture documentation for our continuous integration and deployment pipeline including branch strategies, test gates, and rollback procedures.\n\nBranch: feature/* → main (PR required). Gates: lint, unit tests, e2e. Deploy: auto on merge to main. Rollback: `npm run rollback -- --env=prod`', tags:['DevOps','CI/CD'],      created_at:new Date(now - 14*day).toISOString() },
-  ];
-  db.nextId = 13;
-  saveDB(db);
-  console.log('Seeded 12 articles.');
 }
 
 // ── Multer ────────────────────────────────────────────────────────────────────
@@ -631,14 +652,32 @@ if (wss) {
   });
 }
 
-// ── Start (local only) ────────────────────────────────────────────────────────
-if (!IS_VERCEL) {
-  const PORT = process.env.PORT || 3000;
-  server.listen(PORT, () => {
-    console.log(`\n  KnowledgeHub → http://localhost:${PORT}`);
-    console.log(`  Default admin password: ${db.settings.adminPassword}\n`);
-  });
-}
+// ── Boot: init DB then start server ──────────────────────────────────────────
+initDB().then(() => {
+  migrate();
+  // seed default articles only if DB is completely empty
+  if (db.articles.length === 0) {
+    const now = Date.now(), day = 86400000;
+    db.articles = [
+      { id:1,  title:'How to Onboard a New Client onto Bluecopa',  category:'Support',     author:'Priya Nair',   initials:'PN', excerpt:'Step-by-step guide covering account creation, data migration, user access setup, and initial configuration for new enterprise clients.', content:'Step-by-step guide covering account creation, data migration, user access setup, and initial configuration for new enterprise clients.\n\n1. Create the client account in the admin panel.\n2. Migrate existing data using the import wizard.\n3. Configure user roles and permissions.\n4. Run the initial setup checklist with the client.', tags:['onboarding','setup'],   created_at:new Date(now - 0*day).toISOString(), views:0 },
+      { id:2,  title:'Month-End Reconciliation Checklist',          category:'Finance',     author:'Rahul Mehta',  initials:'RM', excerpt:'A comprehensive checklist for the finance team to ensure all ledgers are balanced and accounts are reconciled before month-end close.', content:'A comprehensive checklist for the finance team.', tags:['finance','checklist'], created_at:new Date(now - 1*day).toISOString(), views:0 },
+    ];
+    db.nextId = 3;
+    saveDB(db);
+    console.log('◆ Seeded default articles');
+  }
+
+  if (!IS_VERCEL) {
+    const PORT = process.env.PORT || 3000;
+    server.listen(PORT, () => {
+      console.log(`\n  KnowledgeHub → http://localhost:${PORT}`);
+      console.log(`  Admin password: ${db.settings?.adminPassword || 'admin123'}\n`);
+    });
+  }
+}).catch(e => {
+  console.error('Failed to init DB:', e);
+  process.exit(1);
+});
 
 // ── Export for Vercel serverless ──────────────────────────────────────────────
 module.exports = app;

@@ -1,4 +1,4 @@
-// Vercel serverless API handler — clean version without multer/WebSocket — v7
+// Vercel serverless API handler — MongoDB persistent store — v8
 require('dotenv').config();
 const express = require('express');
 const path    = require('path');
@@ -7,21 +7,65 @@ const fs      = require('fs');
 const app = express();
 app.use(express.json());
 
-// ── Load data (read-only on Vercel) ───────────────────────────────────────────
-function loadDB() {
+// ── Persistent store — MongoDB (primary) with data.json fallback ──────────────
+let mongoCol = null;
+let db = { articles: [], categories: [], settings: { siteTitle: 'KnowledgeHub', restrictions: { whoCanPost: 'anyone' } }, nextId: 1 };
+
+function loadFileDB() {
   const candidates = [
     path.join(__dirname, '..', 'data.json'),
     path.join(process.cwd(), 'data.json'),
   ];
   for (const f of candidates) {
-    try {
-      if (fs.existsSync(f)) return JSON.parse(fs.readFileSync(f, 'utf8'));
-    } catch (_) {}
+    try { if (fs.existsSync(f)) return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (_) {}
   }
-  return { articles: [], categories: [], settings: { siteTitle: 'KnowledgeHub', restrictions: { whoCanPost: 'admins_only' } }, nextId: 1 };
+  return db;
 }
 
-const db = loadDB();
+function saveDB(data) {
+  if (mongoCol) {
+    mongoCol.replaceOne({ _id: 'main' }, { _id: 'main', ...data }, { upsert: true })
+      .catch(e => console.error('[saveDB/mongo]', e.message));
+  }
+  // On Vercel file writes are no-ops, so we don't even try
+}
+
+// Cache connection across warm lambda invocations
+let dbInitPromise = null;
+function getDbInitPromise() {
+  if (dbInitPromise) return dbInitPromise;
+  dbInitPromise = (async () => {
+    const uri = process.env.MONGODB_URI;
+    if (uri) {
+      try {
+        const { MongoClient } = require('mongodb');
+        const client = new MongoClient(uri, { serverSelectionTimeoutMS: 6000 });
+        await client.connect();
+        mongoCol = client.db('knowledgehub').collection('store');
+        const doc = await mongoCol.findOne({ _id: 'main' });
+        if (doc) {
+          const { _id, ...data } = doc;
+          db = data;
+        } else {
+          db = loadFileDB();
+          await mongoCol.insertOne({ _id: 'main', ...db });
+        }
+        return;
+      } catch (e) {
+        console.error('[DB] MongoDB failed, using file:', e.message);
+        mongoCol = null;
+      }
+    }
+    db = loadFileDB();
+  })();
+  return dbInitPromise;
+}
+
+// Wait for DB before handling any request
+app.use(async (req, res, next) => {
+  try { await getDbInitPromise(); } catch (_) {}
+  next();
+});
 
 function isAdmin(req) {
   return req.headers['x-admin-password'] === (db.settings && db.settings.adminPassword);
@@ -49,28 +93,64 @@ app.get('/api/articles/:id', (req, res) => {
   res.json(a);
 });
 
-// View increment — in-memory only (won't persist across cold starts, that's OK)
+// View increment
 app.post('/api/articles/:id/view', (req, res) => {
   const a = (db.articles || []).find(x => x.id === parseInt(req.params.id));
   if (!a) return res.status(404).json({ error: 'Not found' });
   a.views = (a.views || 0) + 1;
+  saveDB(db);
   res.json({ views: a.views });
 });
 
-// Write endpoints — return success but data won't persist on Vercel (read-only deploy)
+// Create article
 app.post('/api/articles', (req, res) => {
   const { whoCanPost } = (db.settings && db.settings.restrictions) || {};
   if (whoCanPost === 'disabled') return res.status(403).json({ error: 'Posting is disabled.' });
   if (whoCanPost === 'admins_only' && !isAdmin(req)) return res.status(403).json({ error: 'Only admins can post.' });
-  res.status(201).json({ error: 'Vercel deployment is read-only. Add articles on the live server.' });
+  const { title, category, author, initials, content, tags } = req.body;
+  if (!title || !category || !content) return res.status(400).json({ error: 'title, category, content required' });
+  if (!db.articles) db.articles = [];
+  if (!db.nextId) db.nextId = (Math.max(0, ...db.articles.map(a => a.id)) + 1);
+  const article = {
+    id: db.nextId++,
+    title, category, author: author || 'Anonymous',
+    initials: initials || (author || 'A').slice(0,2).toUpperCase(),
+    excerpt: content.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,180) + '…',
+    content, tags: Array.isArray(tags) ? tags : (tags||'').split(',').map(t=>t.trim()).filter(Boolean),
+    created_at: new Date().toISOString(), views: 0,
+  };
+  db.articles.push(article);
+  saveDB(db);
+  res.status(201).json(article);
 });
 
+// Edit article
 app.put('/api/articles/:id', (req, res) => {
-  res.status(200).json({ error: 'Vercel deployment is read-only.' });
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  const id  = parseInt(req.params.id);
+  const idx = (db.articles || []).findIndex(x => x.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  const { title, category, author, initials, content, tags } = req.body;
+  const a = db.articles[idx];
+  if (title)    a.title    = title;
+  if (category) a.category = category;
+  if (author)   a.author   = author;
+  if (initials) a.initials = initials;
+  if (content)  { a.content = content; a.excerpt = content.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,180)+'…'; }
+  if (tags !== undefined) a.tags = Array.isArray(tags) ? tags : (tags||'').split(',').map(t=>t.trim()).filter(Boolean);
+  saveDB(db);
+  res.json(a);
 });
 
+// Delete article
 app.delete('/api/articles/:id', (req, res) => {
-  res.status(200).json({ success: true, warning: 'Vercel deployment is read-only.' });
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  const id  = parseInt(req.params.id);
+  const idx = (db.articles || []).findIndex(x => x.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  db.articles.splice(idx, 1);
+  saveDB(db);
+  res.json({ success: true });
 });
 
 // ── Categories ────────────────────────────────────────────────────────────────
@@ -94,7 +174,14 @@ app.get('/api/settings', (req, res) => {
 
 app.put('/api/settings', (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
-  res.json({ warning: 'Vercel deployment is read-only.' });
+  const { restrictions, adminPassword, siteTitle, aboutText } = req.body;
+  if (!db.settings) db.settings = {};
+  if (restrictions)          db.settings.restrictions = { ...db.settings.restrictions, ...restrictions };
+  if (adminPassword?.trim()) db.settings.adminPassword = adminPassword.trim();
+  if (siteTitle?.trim())     db.settings.siteTitle = siteTitle.trim();
+  if (aboutText !== undefined) db.settings.aboutText = aboutText;
+  saveDB(db);
+  res.json(db.settings);
 });
 
 // ── Admin login ───────────────────────────────────────────────────────────────
