@@ -413,16 +413,65 @@ app.post('/api/ask', async (req, res) => {
     return res.status(503).json({ error: 'AI assistant is not configured. Add ANTHROPIC_API_KEY or GROQ_API_KEY to your .env file.' });
   }
 
-  // Smart retrieval — score all articles by keyword overlap, pick top 3 for full content
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+  // Strip HTML tags & decode entities so the AI gets clean readable text
+  function stripHtml(html) {
+    return html
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/?(p|div|li|h[1-6]|tr|td|th|section|article)[^>]*>/gi, '\n')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n[ \t]+/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
+  // Extract the most relevant paragraphs from clean text — not just the first N chars
+  function extractRelevant(rawContent, qWords, maxChars = 6000) {
+    const text = stripHtml(rawContent);
+    if (text.length <= maxChars) return text;
+
+    // Split into paragraphs (double newline or markdown headings)
+    const paras = text.split(/\n{2,}/).map(p => p.trim()).filter(p => p.length > 30);
+
+    // Score each paragraph by keyword overlap (weighted by position — earlier = slight bonus)
+    const scored = paras.map((p, idx) => {
+      const lower = p.toLowerCase();
+      const kw = qWords.reduce((s, w) => s + (lower.includes(w) ? 1 : 0), 0);
+      return { p, score: kw + (idx < 4 ? 0.3 : 0), idx };
+    }).sort((a, b) => b.score - a.score || a.idx - b.idx);
+
+    // Always include the first paragraph (context/title) then best matches
+    const intro = paras.slice(0, 2).join('\n\n');
+    let out = intro + '\n\n';
+    let left = maxChars - intro.length - 2;
+
+    for (const { p, idx } of scored) {
+      if (idx < 2) continue;   // already in intro
+      if (left <= 0) break;
+      out += p + '\n\n';
+      left -= p.length + 2;
+    }
+    return out.slice(0, maxChars);
+  }
+
+  // ── Retrieval ─────────────────────────────────────────────────────────────
   const allArticles = db.articles || [];
   let topArticles = [];
+  const qWords = question.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w => w.length > 2);
+
   if (articleId) {
     const a = allArticles.find(x => x.id === parseInt(articleId));
     if (a) topArticles = [a];
   } else {
-    const qWords = question.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w => w.length > 2);
     const scored = allArticles.map(a => {
-      const hay = (a.title+' '+a.excerpt+' '+(a.tags||[]).join(' ')+' '+a.category+' '+a.content.slice(0,1500)).toLowerCase();
+      // Score against title, tags, excerpt AND full stripped content
+      const cleanText = stripHtml(a.content);
+      const hay = (a.title+' '+a.excerpt+' '+(a.tags||[]).join(' ')+' '+a.category+' '+cleanText).toLowerCase();
       const score = qWords.reduce((s,w) => s + (hay.includes(w) ? 1 : 0), 0);
       return { a, score };
     }).sort((x,y) => y.score - x.score);
@@ -434,9 +483,9 @@ app.post('/api/ask', async (req, res) => {
     `  • ID ${a.id} | "${a.title}" | Category: ${a.category} | Link format: [${a.title}](#article-${a.id})`
   ).join('\n');
 
-  // Full content of top matched articles
+  // Smart extraction — strip HTML, pull most relevant paragraphs (up to 6000 chars each)
   const articleContext = topArticles.map(a =>
-    `=== ARTICLE ID ${a.id}: ${a.title} ===\nCategory: ${a.category} | Author: ${a.author} | Tags: ${(a.tags||[]).join(', ')}\nClickable link: [${a.title}](#article-${a.id})\n\n${a.content.slice(0,2800)}\n`
+    `=== ARTICLE ID ${a.id}: ${a.title} ===\nCategory: ${a.category} | Tags: ${(a.tags||[]).join(', ')}\nLink: [${a.title}](#article-${a.id})\n\n${extractRelevant(a.content, qWords, 6000)}\n`
   ).join('\n---\n\n');
 
   const systemPrompt = `You are the Bluecopa Knowledge Assistant. You answer employee questions using ONLY the articles in the knowledge base below. Never use outside knowledge.
