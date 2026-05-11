@@ -187,9 +187,11 @@ app.post('/api/ask', async (req, res) => {
     topArticles = scored.slice(0,3).map(r => r.a);
   }
 
-  const articleIndex = allArts.map(a => `  • [#${a.id}] "${a.title}" — ${a.category}`).join('\n');
+  const articleIndex = allArts.map(a =>
+    `  • ID ${a.id} | "${a.title}" | Category: ${a.category} | Link format: [${a.title}](#article-${a.id})`
+  ).join('\n');
   const articleContext = topArticles.map(a =>
-    `=== ARTICLE #${a.id}: ${a.title} ===\nCategory: ${a.category} | Tags: ${(a.tags||[]).join(', ')}\n\n${a.content.slice(0,2800)}\n`
+    `=== ARTICLE ID ${a.id}: ${a.title} ===\nCategory: ${a.category} | Tags: ${(a.tags||[]).join(', ')}\nClickable link: [${a.title}](#article-${a.id})\n\n${a.content.slice(0,2800)}\n`
   ).join('\n---\n\n');
 
   const systemPrompt = `You are the Knowledge Assistant for Bluecopa — a smart, helpful AI that answers employee questions using the company knowledge base.
@@ -208,16 +210,36 @@ Structure every response like this:
 - Numbered lists for steps, bullets for unordered lists
 - Markdown tables for comparisons
 - Emojis: ✅ confirmed, ⚠️ warning, 💡 tip, 📋 checklist, 📌 important
-- Under 250 words — be concise and scannable, no long paragraphs
+- Under 300 words — be concise and scannable, no long paragraphs
 
-━━━ ARTICLE LINKS (REQUIRED) ━━━
-End every response with sources in this EXACT format:
-📖 [Article Title](#article-ID)
+━━━ ARTICLE LINKS — CRITICAL INSTRUCTIONS ━━━
+
+You MUST end EVERY response with at least one clickable article link.
+
+THE ONLY VALID FORMAT IS:
+📖 [Exact Article Title Here](#article-NUMBER)
+
+Where NUMBER is the actual numeric ID (1, 2, 3, etc.) from the article list below.
+
+COPY THE EXACT TITLE from the article list — do not paraphrase.
+
+✅ CORRECT examples:
+📖 [How to Onboard a New Client onto Bluecopa](#article-1)
+📖 [Month-End Reconciliation Checklist](#article-2)
+
+❌ NEVER do any of these (all are wrong and will break the link):
+- See article #1            ← plain text, not a link
+- [Title](#1)               ← missing "article-"
+- [Title](article-1)        ← missing "#"
+- [Title](#article-ID)      ← "ID" is not a number — replace with the real number
+- #article-1                ← not a markdown link
+
+Each link must be on its own line starting with 📖
 
 ━━━ IF NOT IN KNOWLEDGE BASE ━━━
 "⚠️ I don't have an article on this yet. Reach out to the [HR/Finance/Engineering] team."
 
-━━━ ALL AVAILABLE ARTICLES ━━━
+━━━ ALL AVAILABLE ARTICLES (use these exact IDs and titles for links) ━━━
 ${articleIndex}
 
 ━━━ RELEVANT ARTICLE CONTENT ━━━
@@ -226,7 +248,9 @@ ${articleContext}
 
   const messages = [];
   if (Array.isArray(history) && history.length > 0) {
-    history.forEach(h => { if (h.role && h.content) messages.push({ role: h.role, content: h.content }); });
+    // Keep only the last 6 messages (3 turns) to stay within token limits
+    const recentHistory = history.slice(-6);
+    recentHistory.forEach(h => { if (h.role && h.content) messages.push({ role: h.role, content: h.content }); });
   }
   messages.push({ role: 'user', content: question.trim() });
 

@@ -2244,13 +2244,22 @@ function aiRemoveTyping() {
 // Rich markdown → HTML renderer for AI responses
 // ── Rich Markdown Renderer for AI responses ───────────────────────────────────
 function inlineMd(raw) {
+  // Helper: build article link HTML
+  const artLink = (title, id) =>
+    `<a class="ai-article-link" href="#" onclick="openArticleById(${parseInt(id)});return false;">📖 ${title}</a>`;
+
   return raw
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
     .replace(/\*(.+?)\*/g,'<em>$1</em>')
     .replace(/`([^`]+)`/g,'<code class="ai-code">$1</code>')
-    .replace(/\[([^\]]+)\]\(#article-(\d+)\)/g, (_,title,id)=>
-      `<a class="ai-article-link" href="#" onclick="openArticleById(${parseInt(id)});return false;">📖 ${title}</a>`)
+    // Article links — permissive, catches all formats the AI might produce:
+    // [Title](#article-4)  [Title](article-4)  [Title](#4)  📖 [Title](#article-4)
+    .replace(/📖\s*\[([^\]]+)\]\(#?article-(\d+)\)/g, (_,t,id)=> artLink(t,id))  // with emoji
+    .replace(/\[([^\]]+)\]\(#article-(\d+)\)/g, (_,t,id)=> artLink(t,id))         // standard
+    .replace(/\[([^\]]+)\]\(article-(\d+)\)/g, (_,t,id)=> artLink(t,id))          // no #
+    .replace(/\[([^\]]+)\]\(#(\d+)\)/g, (_,t,id)=> artLink(t,id))                 // just #N
+    // External URLs
     .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
       '<a href="$2" target="_blank" rel="noopener" class="ai-link">$1 ↗</a>');
 }
@@ -2266,7 +2275,9 @@ function aiMd(text) {
     const trimmed = line.trim();
 
     // ── Collect source lines (📖 links) — render as a block at the end ──
-    if (trimmed.match(/\(#article-\d+\)/)) {
+    // Catch all formats: (#article-N), (article-N), (#N), plus 📖 emoji lines with links
+    if (trimmed.match(/\(#?article-?\d+\)/) ||
+        (trimmed.startsWith('📖') && trimmed.match(/\[.+?\]\(.+?\)/))) {
       sourceLines.push(trimmed);
       i++; continue;
     }
@@ -2341,9 +2352,15 @@ function aiMd(text) {
 
   // ── Render collected sources at the bottom ──
   if (sourceLines.length) {
+    const artLink = (title, id) =>
+      `<a class="ai-article-link" href="#" onclick="openArticleById(${parseInt(id)});return false;">📖 ${title}</a>`;
+
     const links = sourceLines.map(line =>
-      line.replace(/(📖\s*)?\[([^\]]+)\]\(#article-(\d+)\)/g, (_,_icon,title,id)=>
-        `<a class="ai-article-link" href="#" onclick="openArticleById(${parseInt(id)});return false;">📖 ${title}</a>`)
+      line
+        .replace(/📖\s*\[([^\]]+)\]\(#?article-(\d+)\)/g, (_,t,id)=> artLink(t,id))
+        .replace(/\[([^\]]+)\]\(#article-(\d+)\)/g,        (_,t,id)=> artLink(t,id))
+        .replace(/\[([^\]]+)\]\(article-(\d+)\)/g,         (_,t,id)=> artLink(t,id))
+        .replace(/\[([^\]]+)\]\(#(\d+)\)/g,                (_,t,id)=> artLink(t,id))
     ).join(' ');
     html += `<div class="ai-sources"><div class="ai-sources-label">Sources</div>${links}</div>`;
   }

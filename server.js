@@ -429,14 +429,14 @@ app.post('/api/ask', async (req, res) => {
     topArticles = scored.slice(0,3).map(r => r.a);
   }
 
-  // Full index of every article — so AI knows what exists even if content isn't included
+  // Full index of every article — ID + title + clickable link format shown explicitly
   const articleIndex = allArticles.map(a =>
-    `  • [#${a.id}] "${a.title}" — ${a.category} — Tags: ${(a.tags||[]).join(', ')}`
+    `  • ID ${a.id} | "${a.title}" | Category: ${a.category} | Link format: [${a.title}](#article-${a.id})`
   ).join('\n');
 
   // Full content of top matched articles
   const articleContext = topArticles.map(a =>
-    `=== ARTICLE #${a.id}: ${a.title} ===\nCategory: ${a.category} | Author: ${a.author} | Tags: ${(a.tags||[]).join(', ')}\n\n${a.content.slice(0,2800)}\n`
+    `=== ARTICLE ID ${a.id}: ${a.title} ===\nCategory: ${a.category} | Author: ${a.author} | Tags: ${(a.tags||[]).join(', ')}\nClickable link: [${a.title}](#article-${a.id})\n\n${a.content.slice(0,2800)}\n`
   ).join('\n---\n\n');
 
   const systemPrompt = `You are the Knowledge Assistant for Bluecopa — a smart, helpful AI that answers employee questions using the company knowledge base.
@@ -458,24 +458,39 @@ Structure every response like this:
 - Use bullet points (- item) for unordered lists
 - Use markdown tables (| Col | Col |) for comparisons or structured data
 - Use emoji icons: ✅ done/confirmed, ⚠️ warning, 💡 tip, 📋 checklist, 🔗 link, 📌 important
-- Keep each response under 250 words — be concise, not comprehensive
+- Keep each response under 300 words — be concise but complete
 - Never write long paragraphs — break everything into scannable chunks
 
-━━━ ARTICLE LINKS (REQUIRED) ━━━
+━━━ ARTICLE LINKS — CRITICAL INSTRUCTIONS ━━━
 
-Always end your response with sources. Use this EXACT format:
-📖 [Article Title](#article-ID)
+You MUST end EVERY response with at least one clickable article link.
 
-Example:
-📖 [Leave Policy & Attendance Guidelines](#article-4)
+THE ONLY VALID FORMAT IS:
+📖 [Exact Article Title Here](#article-NUMBER)
+
+Where NUMBER is the actual numeric ID (1, 2, 3, etc.) from the article list below.
+
+COPY THE EXACT TITLE from the article list — do not paraphrase.
+
+✅ CORRECT examples:
 📖 [How to Onboard a New Client onto Bluecopa](#article-1)
+📖 [Month-End Reconciliation Checklist](#article-2)
+
+❌ NEVER do any of these (all are wrong and will break the link):
+- See article #1            ← plain text, not a link
+- [Title](#1)               ← missing "article-"
+- [Title](article-1)        ← missing "#"
+- [Title](#article-ID)      ← "ID" is not a number — replace with the real number
+- #article-1                ← not a markdown link
+
+Each link must be on its own line starting with 📖
 
 ━━━ IF NOT IN KNOWLEDGE BASE ━━━
 
 If the question isn't covered, say exactly:
 "⚠️ I don't have an article covering this yet. For [topic], I'd suggest reaching out to the [HR/Finance/Engineering] team."
 
-━━━ ALL AVAILABLE ARTICLES (reference for links) ━━━
+━━━ ALL AVAILABLE ARTICLES (use these exact IDs and titles for links) ━━━
 ${articleIndex}
 
 ━━━ RELEVANT ARTICLE CONTENT ━━━
@@ -484,7 +499,9 @@ ${articleContext}
 
   const messages = [];
   if (Array.isArray(history) && history.length > 0) {
-    history.forEach(h => { if (h.role && h.content) messages.push({ role: h.role, content: h.content }); });
+    // Keep only the last 6 messages (3 turns) to stay within token limits
+    const recentHistory = history.slice(-6);
+    recentHistory.forEach(h => { if (h.role && h.content) messages.push({ role: h.role, content: h.content }); });
   }
   messages.push({ role: 'user', content: question.trim() });
 
