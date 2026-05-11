@@ -355,73 +355,87 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* ── AI Chat Widget ── */
 .ai-fab{position:fixed;bottom:28px;right:28px;z-index:500;background:linear-gradient(135deg,#3548FF,#6c7fff);border:none;border-radius:50px;padding:13px 22px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:9px;box-shadow:0 8px 30px rgba(53,72,255,.45);transition:transform .2s,box-shadow .2s;letter-spacing:.01em;}
 .ai-fab:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(53,72,255,.6);}
-.ai-fab-icon{font-size:18px;line-height:1;}
-.ai-fab-dot{width:8px;height:8px;background:#22C55E;border-radius:50%;position:absolute;top:8px;right:8px;border:2px solid #3548FF;animation:pulse 2s infinite;}
-.ai-panel{position:fixed;bottom:90px;right:28px;z-index:500;width:420px;max-width:calc(100vw - 32px);background:var(--surface);border:1px solid rgba(53,72,255,.35);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:none;flex-direction:column;animation:slideUp .25s ease;overflow:hidden;}
+.ai-panel{position:fixed;bottom:90px;right:28px;z-index:500;width:480px;max-width:calc(100vw - 32px);background:var(--surface);border:1px solid rgba(53,72,255,.35);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.7);display:none;flex-direction:column;animation:slideUp .25s ease;overflow:hidden;}
 .ai-panel.open{display:flex;}
-.ai-panel-header{background:linear-gradient(135deg,#1e2461,#2a3580);padding:16px 18px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
-.ai-panel-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#3548FF,#6c7fff);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
-.ai-panel-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:1px;}
-.ai-panel-sub{font-size:11px;color:rgba(255,255,255,.6);font-family:'DM Mono',monospace;}
-.ai-panel-close{margin-left:auto;background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0;}
-.ai-panel-close:hover{background:rgba(255,255,255,.22);}
-.ai-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;max-height:360px;min-height:200px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.ai-panel-header{background:linear-gradient(135deg,#1a1f5e,#2a3580);padding:14px 18px;display:flex;align-items:center;gap:12px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);}
+.ai-panel-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3548FF,#6c7fff);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;box-shadow:0 2px 10px rgba(53,72,255,.4);}
+.ai-panel-title{font-size:14.5px;font-weight:700;color:#fff;margin-bottom:1px;}
+.ai-panel-sub{font-size:10.5px;color:rgba(255,255,255,.5);font-family:'DM Mono',monospace;letter-spacing:.04em;}
+.ai-panel-close{margin-left:auto;background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0;}
+.ai-panel-close:hover{background:rgba(255,255,255,.2);color:#fff;}
+.ai-messages{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:14px;max-height:440px;min-height:220px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
 .ai-messages::-webkit-scrollbar{width:4px;}
 .ai-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
-.ai-msg{display:flex;gap:10px;animation:fadeUp .2s ease both;}
+.ai-msg{display:flex;gap:9px;animation:fadeUp .2s ease both;}
 .ai-msg.user{flex-direction:row-reverse;}
-.ai-msg-bubble{max-width:85%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.65;word-break:break-word;}
+.ai-msg-bubble{max-width:88%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.65;word-break:break-word;}
 .ai-msg.user .ai-msg-bubble{background:linear-gradient(135deg,#3548FF,#4c60ff);color:#fff;border-radius:14px 14px 4px 14px;}
-.ai-msg.assistant .ai-msg-bubble{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:14px 14px 14px 4px;}
-.ai-msg-bubble p{margin:0 0 6px;} .ai-msg-bubble p:last-child{margin:0;}
-.ai-msg-bubble ul,.ai-msg-bubble ol{padding-left:18px;margin:4px 0 6px;}
-.ai-msg-bubble li{margin-bottom:3px;}
-.ai-msg-bubble strong,.ai-msg-bubble b{color:#fff;} .ai-msg.assistant .ai-msg-bubble strong,.ai-msg.assistant .ai-msg-bubble b{color:var(--accent);}
-.ai-msg-bubble code{background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px;}
-.ai-avatar-sm{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.ai-msg.assistant .ai-msg-bubble{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:4px 14px 14px 14px;padding:12px 14px;}
+.ai-avatar-sm{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;margin-top:2px;}
 .ai-avatar-sm.assistant{background:linear-gradient(135deg,#3548FF,#6c7fff);}
 .ai-avatar-sm.user{background:linear-gradient(135deg,var(--accent2),var(--accent3));}
-.ai-typing{display:flex;align-items:center;gap:5px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:14px 14px 14px 4px;width:fit-content;}
+.ai-typing{display:flex;align-items:center;gap:5px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:4px 14px 14px 14px;width:fit-content;}
 .ai-typing span{width:6px;height:6px;background:var(--muted);border-radius:50%;animation:aiDot 1.2s ease infinite;}
 .ai-typing span:nth-child(2){animation-delay:.2s;} .ai-typing span:nth-child(3){animation-delay:.4s;}
 @keyframes aiDot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
-.ai-welcome{text-align:center;padding:20px 16px 8px;}
-.ai-welcome-icon{font-size:36px;margin-bottom:8px;}
+.ai-welcome{text-align:center;padding:22px 18px 10px;}
+.ai-welcome-icon{font-size:38px;margin-bottom:10px;}
 .ai-welcome-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;}
 .ai-welcome-sub{font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:16px;}
 .ai-welcome-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
-.ai-chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .18s;font-family:'DM Sans',sans-serif;}
-.ai-chip:hover{border-color:rgba(53,72,255,.6);color:#6c7fff;background:rgba(53,72,255,.08);}
-.ai-input-bar{padding:12px 14px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;background:var(--surface);}
-.ai-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13.5px;outline:none;resize:none;line-height:1.5;max-height:100px;overflow-y:auto;transition:border-color .2s;}
+.ai-chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 13px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .18s;font-family:'DM Sans',sans-serif;text-align:left;}
+.ai-chip:hover{border-color:rgba(53,72,255,.6);color:#8ac2ff;background:rgba(53,72,255,.08);}
+.ai-input-bar{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;background:var(--surface);}
+.ai-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:9px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13.5px;outline:none;resize:none;line-height:1.5;max-height:100px;overflow-y:auto;transition:border-color .2s;}
 .ai-input:focus{border-color:rgba(53,72,255,.6);}
 .ai-input::placeholder{color:var(--muted);}
-.ai-send-btn{background:linear-gradient(135deg,#3548FF,#4c60ff);border:none;border-radius:10px;width:38px;height:38px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;transition:opacity .18s,transform .15s;flex-shrink:0;}
+.ai-send-btn{background:linear-gradient(135deg,#3548FF,#4c60ff);border:none;border-radius:10px;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;transition:opacity .18s,transform .15s;flex-shrink:0;}
 .ai-send-btn:hover{opacity:.88;transform:translateY(-1px);}
 .ai-send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
-.ai-clear-btn{background:transparent;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:.04em;transition:all .18s;margin-bottom:12px;display:block;margin-left:auto;margin-right:14px;}
-.ai-clear-btn:hover{border-color:var(--accent);color:var(--accent);}
-/* AI rich content */
-.ai-msg-bubble .ai-h1{font-size:15px;font-weight:700;color:var(--accent);margin:10px 0 4px;line-height:1.3;}
-.ai-msg-bubble .ai-h2{font-size:14px;font-weight:700;color:#8ac2ff;margin:9px 0 4px;line-height:1.3;}
-.ai-msg-bubble .ai-h3{font-size:13px;font-weight:600;color:var(--muted);margin:7px 0 3px;line-height:1.3;text-transform:uppercase;letter-spacing:.05em;}
-.ai-msg-bubble .ai-p{margin:0 0 5px;line-height:1.65;}
-.ai-msg-bubble .ai-spacer{height:5px;}
-.ai-msg-bubble .ai-ol{padding-left:20px;margin:4px 0 6px;counter-reset:ai-ol;}
-.ai-msg-bubble .ai-ol li{margin-bottom:5px;line-height:1.6;list-style:decimal;}
-.ai-msg-bubble .ai-ul{padding-left:18px;margin:4px 0 6px;}
-.ai-msg-bubble .ai-ul li{margin-bottom:4px;line-height:1.6;list-style:disc;}
-.ai-msg-bubble .ai-code{background:rgba(0,0,0,.35);padding:1px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11.5px;color:#a8e6cf;}
-.ai-table-wrap{overflow-x:auto;margin:8px 0;border-radius:8px;border:1px solid rgba(255,255,255,.1);}
-.ai-table{width:100%;border-collapse:collapse;font-size:12px;}
-.ai-table th{background:rgba(53,72,255,.25);color:#8ac2ff;padding:7px 10px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
-.ai-table td{padding:6px 10px;border-top:1px solid rgba(255,255,255,.06);color:var(--text);line-height:1.5;vertical-align:top;}
-.ai-table tr:hover td{background:rgba(255,255,255,.03);}
-.ai-article-link{display:inline-flex;align-items:center;gap:5px;background:rgba(53,72,255,.15);border:1px solid rgba(53,72,255,.35);color:#8ac2ff;border-radius:6px;padding:3px 9px;font-size:12px;font-weight:500;cursor:pointer;text-decoration:none;transition:all .15s;margin:2px 3px 2px 0;}
-.ai-article-link:hover{background:rgba(53,72,255,.3);border-color:#6c7fff;color:#fff;}
-.ai-link{color:#8ac2ff;text-decoration:underline;text-decoration-style:dotted;}
+.ai-clear-btn{background:transparent;border:none;border-radius:8px;padding:4px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:'DM Mono',monospace;transition:color .15s;display:block;margin:0 12px 8px auto;}
+.ai-clear-btn:hover{color:var(--accent);}
+
+/* ── AI Rich Content Styles ── */
+.ai-msg-bubble .ai-h1{font-size:14.5px;font-weight:700;color:var(--accent);margin:10px 0 5px;line-height:1.3;}
+.ai-msg-bubble .ai-h2{font-size:13.5px;font-weight:700;color:#8ac2ff;margin:10px 0 4px;line-height:1.3;display:flex;align-items:center;gap:6px;}
+.ai-msg-bubble .ai-h3{font-size:12px;font-weight:600;color:var(--muted);margin:8px 0 3px;text-transform:uppercase;letter-spacing:.06em;}
+.ai-msg-bubble .ai-p{margin:0 0 6px;line-height:1.7;}
+.ai-msg-bubble .ai-spacer{height:6px;}
+
+/* Numbered steps with circle indicators */
+.ai-msg-bubble .ai-ol{list-style:none;padding:0;margin:6px 0 8px;display:flex;flex-direction:column;gap:6px;}
+.ai-msg-bubble .ai-ol li{display:flex;gap:10px;align-items:flex-start;line-height:1.6;}
+.ai-msg-bubble .ai-ol li::before{content:attr(data-n);min-width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#3548FF,#4c60ff);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+
+/* Bullet list */
+.ai-msg-bubble .ai-ul{list-style:none;padding:0;margin:5px 0 7px;display:flex;flex-direction:column;gap:4px;}
+.ai-msg-bubble .ai-ul li{display:flex;gap:8px;align-items:flex-start;line-height:1.65;}
+.ai-msg-bubble .ai-ul li::before{content:'▸';color:#6c7fff;font-size:12px;flex-shrink:0;margin-top:2px;}
+
+/* Inline code */
+.ai-msg-bubble .ai-code{background:rgba(0,0,0,.4);padding:1px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11.5px;color:#a8e6cf;border:1px solid rgba(255,255,255,.08);}
+
+/* Tables */
+.ai-table-wrap{overflow-x:auto;margin:8px 0;border-radius:10px;border:1px solid rgba(255,255,255,.1);box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.ai-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.ai-table th{background:linear-gradient(135deg,rgba(53,72,255,.3),rgba(53,72,255,.15));color:#8ac2ff;padding:8px 12px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;border-bottom:1px solid rgba(53,72,255,.25);}
+.ai-table td{padding:7px 12px;border-top:1px solid rgba(255,255,255,.05);color:var(--text);line-height:1.55;vertical-align:top;}
+.ai-table tbody tr:nth-child(even) td{background:rgba(255,255,255,.02);}
+.ai-table tbody tr:hover td{background:rgba(53,72,255,.08);}
+
+/* Callout boxes */
+.ai-callout{margin:8px 0;padding:9px 13px;border-radius:8px;font-size:13px;line-height:1.6;display:flex;gap:8px;align-items:flex-start;}
+.ai-callout-tip{background:rgba(122,232,180,.08);border-left:3px solid #7ae8b4;color:#a8f0cc;}
+.ai-callout-warn{background:rgba(232,168,122,.08);border-left:3px solid #e8a87a;color:#f0cca8;}
+.ai-callout-info{background:rgba(53,72,255,.08);border-left:3px solid #6c7fff;color:#b0bfff;}
+
+/* Source links */
+.ai-sources{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-wrap:wrap;gap:5px;}
+.ai-sources-label{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);width:100%;margin-bottom:2px;}
+.ai-article-link{display:inline-flex;align-items:center;gap:5px;background:rgba(53,72,255,.12);border:1px solid rgba(53,72,255,.3);color:#8ac2ff;border-radius:20px;padding:4px 11px;font-size:12px;font-weight:500;cursor:pointer;text-decoration:none;transition:all .18s;white-space:nowrap;}
+.ai-article-link:hover{background:rgba(53,72,255,.28);border-color:#6c7fff;color:#fff;transform:translateY(-1px);}
+.ai-link{color:#8ac2ff;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;}
 .ai-link:hover{color:#fff;}
-.ai-sources{margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-wrap:wrap;gap:4px;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
@@ -2228,21 +2242,42 @@ function aiRemoveTyping() {
 }
 
 // Rich markdown → HTML renderer for AI responses
+// ── Rich Markdown Renderer for AI responses ───────────────────────────────────
+function inlineMd(raw) {
+  return raw
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code class="ai-code">$1</code>')
+    .replace(/\[([^\]]+)\]\(#article-(\d+)\)/g, (_,title,id)=>
+      `<a class="ai-article-link" href="#" onclick="openArticleById(${parseInt(id)});return false;">📖 ${title}</a>`)
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener" class="ai-link">$1 ↗</a>');
+}
+
 function aiMd(text) {
   const lines = text.split('\n');
   let html = '';
   let i = 0;
+  let sourceLines = [];
 
   while (i < lines.length) {
     const line = lines[i];
+    const trimmed = line.trim();
 
-    // ── Table ──
-    if (line.trim().startsWith('|') && lines[i+1] && lines[i+1].trim().match(/^\|[-| :]+\|$/)) {
-      const headers = line.trim().split('|').filter((_,j,a)=>j>0&&j<a.length-1).map(h=>h.trim());
-      i += 2; // skip separator
-      let rows = [];
+    // ── Collect source lines (📖 links) — render as a block at the end ──
+    if (trimmed.match(/\(#article-\d+\)/)) {
+      sourceLines.push(trimmed);
+      i++; continue;
+    }
+
+    // ── Markdown Table ──
+    if (trimmed.startsWith('|') && lines[i+1] && lines[i+1].trim().match(/^\|[\s\-:|]+\|$/)) {
+      const headers = trimmed.split('|').slice(1,-1).map(h=>h.trim());
+      i += 2;
+      const rows = [];
       while (i < lines.length && lines[i].trim().startsWith('|')) {
-        rows.push(lines[i].trim().split('|').filter((_,j,a)=>j>0&&j<a.length-1).map(c=>c.trim()));
+        rows.push(lines[i].trim().split('|').slice(1,-1).map(c=>c.trim()));
         i++;
       }
       html += `<div class="ai-table-wrap"><table class="ai-table">
@@ -2253,15 +2288,15 @@ function aiMd(text) {
     }
 
     // ── Headings ──
-    if (line.startsWith('### ')) { html += `<div class="ai-h3">${inlineMd(line.slice(4))}</div>`; i++; continue; }
-    if (line.startsWith('## '))  { html += `<div class="ai-h2">${inlineMd(line.slice(3))}</div>`; i++; continue; }
-    if (line.startsWith('# '))   { html += `<div class="ai-h1">${inlineMd(line.slice(2))}</div>`; i++; continue; }
+    if (trimmed.startsWith('### ')) { html+=`<div class="ai-h3">${inlineMd(trimmed.slice(4))}</div>`; i++; continue; }
+    if (trimmed.startsWith('## '))  { html+=`<div class="ai-h2">${inlineMd(trimmed.slice(3))}</div>`; i++; continue; }
+    if (trimmed.startsWith('# '))   { html+=`<div class="ai-h1">${inlineMd(trimmed.slice(2))}</div>`; i++; continue; }
 
-    // ── Numbered list ──
-    if (/^\d+\.\s/.test(line)) {
-      let items = [];
-      while (i < lines.length && /^\d+\.\s/.test(lines[i])) {
-        items.push(`<li>${inlineMd(lines[i].replace(/^\d+\.\s/,''))}</li>`);
+    // ── Numbered steps (with circle indicators) ──
+    if (/^\d+\.\s/.test(trimmed)) {
+      let items = [], n = 1;
+      while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
+        items.push(`<li data-n="${n++}">${inlineMd(lines[i].trim().replace(/^\d+\.\s/,''))}</li>`);
         i++;
       }
       html += `<ol class="ai-ol">${items.join('')}</ol>`;
@@ -2269,59 +2304,62 @@ function aiMd(text) {
     }
 
     // ── Bullet list ──
-    if (/^[-*]\s/.test(line)) {
+    if (/^[-*•]\s/.test(trimmed)) {
       let items = [];
-      while (i < lines.length && /^[-*]\s/.test(lines[i])) {
-        items.push(`<li>${inlineMd(lines[i].replace(/^[-*]\s/,''))}</li>`);
+      while (i < lines.length && /^[-*•]\s/.test(lines[i].trim())) {
+        items.push(`<li>${inlineMd(lines[i].trim().replace(/^[-*•]\s/,''))}</li>`);
         i++;
       }
       html += `<ul class="ai-ul">${items.join('')}</ul>`;
       continue;
     }
 
-    // ── Article link line: 📖 [Title](#article-ID) or [Title](#article-ID) ──
-    if (line.match(/\(#article-\d+\)/)) {
-      const linkHtml = line.replace(/(📖\s*)?\[([^\]]+)\]\(#article-(\d+)\)/g, (_, icon, title, id) =>
-        `<a class="ai-article-link" href="#" onclick="openArticleById(${parseInt(id)});return false;">📖 ${title}</a>`
-      );
-      html += `<div class="ai-sources">${linkHtml}</div>`;
+    // ── Tip / warning callout (lines starting with 💡 or ⚠️) ──
+    if (trimmed.startsWith('💡')) {
+      html+=`<div class="ai-callout ai-callout-tip"><span>💡</span><span>${inlineMd(trimmed.slice(2).trim())}</span></div>`;
+      i++; continue;
+    }
+    if (trimmed.startsWith('⚠️')) {
+      html+=`<div class="ai-callout ai-callout-warn"><span>⚠️</span><span>${inlineMd(trimmed.slice(2).trim())}</span></div>`;
+      i++; continue;
+    }
+    if (trimmed.startsWith('ℹ️') || trimmed.startsWith('📌')) {
+      html+=`<div class="ai-callout ai-callout-info"><span>${trimmed[0]}</span><span>${inlineMd(trimmed.slice(2).trim())}</span></div>`;
       i++; continue;
     }
 
+    // ── Horizontal rule ──
+    if (/^[-─━]{3,}$/.test(trimmed)) { html+='<hr style="border:none;border-top:1px solid rgba(255,255,255,.08);margin:8px 0">'; i++; continue; }
+
     // ── Blank line ──
-    if (line.trim() === '') { html += '<div class="ai-spacer"></div>'; i++; continue; }
+    if (trimmed === '') { html+='<div class="ai-spacer"></div>'; i++; continue; }
 
     // ── Regular paragraph ──
-    html += `<p class="ai-p">${inlineMd(line)}</p>`;
+    html += `<p class="ai-p">${inlineMd(trimmed)}</p>`;
     i++;
   }
+
+  // ── Render collected sources at the bottom ──
+  if (sourceLines.length) {
+    const links = sourceLines.map(line =>
+      line.replace(/(📖\s*)?\[([^\]]+)\]\(#article-(\d+)\)/g, (_,_icon,title,id)=>
+        `<a class="ai-article-link" href="#" onclick="openArticleById(${parseInt(id)});return false;">📖 ${title}</a>`)
+    ).join(' ');
+    html += `<div class="ai-sources"><div class="ai-sources-label">Sources</div>${links}</div>`;
+  }
+
   return html;
 }
 
-function inlineMd(text) {
-  return text
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,'<em>$1</em>')
-    .replace(/`([^`]+)`/g,'<code class="ai-code">$1</code>')
-    // Article links: [Title](#article-4) → clickable pill that opens the article
-    .replace(/\[([^\]]+)\]\(#article-(\d+)\)/g, (_,title,id)=>
-      `<a class="ai-article-link" href="#" onclick="openArticleById(${parseInt(id)});return false;">${title}</a>`
-    )
-    // External links
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener" class="ai-link">$1 ↗</a>');
-}
-
 function openArticleById(id) {
-  // id comes in as a number (parseInt already applied at call site)
-  const a = allArticles.find(x => x.id === parseInt(id));
+  const numId = parseInt(id);
+  const a = allArticles.find(x => x.id === numId);
   if (a) {
     openViewModal(a);
   } else {
-    // Article not loaded yet — fetch and open
-    fetch(`/api/articles/${id}`)
+    fetch(`/api/articles/${numId}`)
       .then(r => r.json())
-      .then(a => { if (a && a.id) openViewModal(a); });
+      .then(art => { if (art && art.id) openViewModal(art); });
   }
 }
 

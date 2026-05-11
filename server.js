@@ -413,46 +413,74 @@ app.post('/api/ask', async (req, res) => {
     return res.status(503).json({ error: 'AI assistant is not configured. Add ANTHROPIC_API_KEY or GROQ_API_KEY to your .env file.' });
   }
 
-  // Build article context — smart retrieval: score by keyword match
+  // Smart retrieval — score all articles by keyword overlap, pick top 3 for full content
+  const allArticles = db.articles || [];
   let topArticles = [];
   if (articleId) {
-    const a = db.articles.find(x => x.id === parseInt(articleId));
+    const a = allArticles.find(x => x.id === parseInt(articleId));
     if (a) topArticles = [a];
   } else {
     const qWords = question.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w => w.length > 2);
-    const scored = db.articles.map(a => {
-      const hay = (a.title+' '+a.excerpt+' '+(a.tags||[]).join(' ')+' '+a.category+' '+a.content.slice(0,1000)).toLowerCase();
-      const score = qWords.reduce((s, w) => s + (hay.includes(w) ? 1 : 0), 0);
+    const scored = allArticles.map(a => {
+      const hay = (a.title+' '+a.excerpt+' '+(a.tags||[]).join(' ')+' '+a.category+' '+a.content.slice(0,1500)).toLowerCase();
+      const score = qWords.reduce((s,w) => s + (hay.includes(w) ? 1 : 0), 0);
       return { a, score };
-    }).sort((x, y) => y.score - x.score);
-    topArticles = scored.slice(0, 4).map(r => r.a);
+    }).sort((x,y) => y.score - x.score);
+    topArticles = scored.slice(0,3).map(r => r.a);
   }
 
-  // Build article index for link references
-  const articleIndex = db.articles.map(a => `- [Article #${a.id}] "${a.title}" (${a.category})`).join('\n');
+  // Full index of every article — so AI knows what exists even if content isn't included
+  const articleIndex = allArticles.map(a =>
+    `  • [#${a.id}] "${a.title}" — ${a.category} — Tags: ${(a.tags||[]).join(', ')}`
+  ).join('\n');
+
+  // Full content of top matched articles
   const articleContext = topArticles.map(a =>
-    `### [Article #${a.id}] ${a.title}\nCategory: ${a.category} | Tags: ${(a.tags||[]).join(', ')}\n\n${a.content.slice(0, 2500)}`
-  ).join('\n\n---\n\n');
+    `=== ARTICLE #${a.id}: ${a.title} ===\nCategory: ${a.category} | Author: ${a.author} | Tags: ${(a.tags||[]).join(', ')}\n\n${a.content.slice(0,2800)}\n`
+  ).join('\n---\n\n');
 
-  const systemPrompt = `You are a smart, concise knowledge assistant for Bluecopa. Answer employee questions using only the articles provided below.
+  const systemPrompt = `You are the Knowledge Assistant for Bluecopa — a smart, helpful AI that answers employee questions using the company knowledge base.
 
-RESPONSE RULES — follow these strictly:
-1. **Be brief and scannable.** No long paragraphs. Use structure.
-2. **Use numbered steps** for any process or how-to question.
-3. **Use tables** when comparing options, listing items with attributes, or showing checklists.
-4. **Use bullet points** for lists of 3+ items.
-5. **Bold key terms** so users can scan quickly.
-6. **Always end with article links** using this exact format on its own line: 📖 [Article Title](#article-ID) — e.g. 📖 [Leave Policy](#article-4)
-7. If the question involves something NOT in the knowledge base, say: "I don't have an article on this yet. You may want to check with [relevant team]." — keep it short.
-8. Use relevant emojis as section icons (✅ for steps, ⚠️ for warnings, 💡 for tips, 📋 for checklists).
-9. Maximum response length: 300 words. Cut anything that isn't directly useful.
+━━━ OUTPUT FORMAT — FOLLOW EXACTLY ━━━
 
-ALL ARTICLES AVAILABLE (for link references):
+Structure every response like this:
+
+1. **One-line direct answer** at the top (what, yes/no, or key fact)
+2. **Steps** (if it's a process) — use numbered list with bold step titles
+3. **Table** (if comparing things, listing options, or showing a checklist)
+4. **Key tips or warnings** — use 💡 for tips, ⚠️ for warnings
+5. **Sources** — always end with article links on their own line
+
+━━━ FORMATTING RULES ━━━
+
+- Use **bold** for key terms, action items, and important values
+- Use numbered lists (1. 2. 3.) for steps and processes
+- Use bullet points (- item) for unordered lists
+- Use markdown tables (| Col | Col |) for comparisons or structured data
+- Use emoji icons: ✅ done/confirmed, ⚠️ warning, 💡 tip, 📋 checklist, 🔗 link, 📌 important
+- Keep each response under 250 words — be concise, not comprehensive
+- Never write long paragraphs — break everything into scannable chunks
+
+━━━ ARTICLE LINKS (REQUIRED) ━━━
+
+Always end your response with sources. Use this EXACT format:
+📖 [Article Title](#article-ID)
+
+Example:
+📖 [Leave Policy & Attendance Guidelines](#article-4)
+📖 [How to Onboard a New Client onto Bluecopa](#article-1)
+
+━━━ IF NOT IN KNOWLEDGE BASE ━━━
+
+If the question isn't covered, say exactly:
+"⚠️ I don't have an article covering this yet. For [topic], I'd suggest reaching out to the [HR/Finance/Engineering] team."
+
+━━━ ALL AVAILABLE ARTICLES (reference for links) ━━━
 ${articleIndex}
 
---- RELEVANT ARTICLES ---
+━━━ RELEVANT ARTICLE CONTENT ━━━
 ${articleContext}
---- END ---`;
+━━━ END ━━━`;
 
   const messages = [];
   if (Array.isArray(history) && history.length > 0) {
