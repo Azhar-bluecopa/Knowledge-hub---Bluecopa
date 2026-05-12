@@ -1389,7 +1389,11 @@ async function viewArticle(id) {
       iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
       iframe.srcdoc = rawContent;
       iframe.onload = function() {
-        try { this.style.height = (this.contentWindow.document.documentElement.scrollHeight + 40) + 'px'; } catch(e) {}
+        try {
+          const doc = this.contentWindow.document;
+          const bodyPadBottom = parseInt(this.contentWindow.getComputedStyle(doc.body).paddingBottom) || 0;
+          this.style.height = (doc.documentElement.scrollHeight - bodyPadBottom + 8) + 'px';
+        } catch(e) {}
       };
       vc.appendChild(iframe);
     } else {
