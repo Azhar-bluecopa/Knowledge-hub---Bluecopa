@@ -1286,7 +1286,21 @@ async function viewArticle(id) {
     av.textContent=a.initials; av.style.background=avatarColors[id%avatarColors.length];
     document.getElementById('viewAuthor').textContent = a.author;
     document.getElementById('viewDate').textContent   = relDate(a.created_at);
-    document.getElementById('viewContent').innerHTML  = renderContent(a.content);
+    const vc = document.getElementById('viewContent');
+    const rawContent = a.content || '';
+    if (rawContent.trimStart().startsWith('<!DOCTYPE') || rawContent.trimStart().toLowerCase().startsWith('<html')) {
+      vc.innerHTML = '';
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'width:100%;min-height:700px;border:none;border-radius:8px;display:block;';
+      iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+      iframe.srcdoc = rawContent;
+      iframe.onload = function() {
+        try { this.style.height = (this.contentWindow.document.documentElement.scrollHeight + 40) + 'px'; } catch(e) {}
+      };
+      vc.appendChild(iframe);
+    } else {
+      vc.innerHTML = renderContent(rawContent);
+    }
     document.getElementById('viewTagsArea').innerHTML = (a.tags||[]).map(t=>`<span class="tag">${escHtml(t)}</span>`).join('');
     const u=getUser(), isAdm=!!getAdminPwd();
     const del=document.getElementById('deleteBtn');
