@@ -171,14 +171,27 @@ app.delete('/api/articles/:id', async (req, res) => {
 // ── Categories ────────────────────────────────────────────────────────────────
 app.get('/api/categories', (req, res) => res.json(db.categories || []));
 
-app.post('/api/categories', (req, res) => {
+app.post('/api/categories', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
-  res.status(201).json({ warning: 'Vercel deployment is read-only.' });
+  const { name, color } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'name required' });
+  if (!db.categories) db.categories = [];
+  if (db.categories.find(c => c.name.toLowerCase() === name.trim().toLowerCase()))
+    return res.status(409).json({ error: 'Category already exists' });
+  const cat = { id: Date.now(), name: name.trim(), color: color || '#7a7a96' };
+  db.categories.push(cat);
+  await saveDB(db);
+  res.status(201).json(cat);
 });
 
-app.delete('/api/categories/:id', (req, res) => {
+app.delete('/api/categories/:id', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
-  res.json({ success: true, warning: 'Vercel deployment is read-only.' });
+  const id = parseInt(req.params.id);
+  const idx = (db.categories || []).findIndex(c => c.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  db.categories.splice(idx, 1);
+  await saveDB(db);
+  res.json({ success: true });
 });
 
 // ── Settings ──────────────────────────────────────────────────────────────────
