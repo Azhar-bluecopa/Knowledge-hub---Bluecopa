@@ -269,12 +269,22 @@ app.get('/api/analytics', (req, res) => {
 
   // ── Viewer analytics ──────────────────────────────────────────────────────
 
+  // Normalise every viewLog entry — skip or label entries missing a real name
+  const cleanLog = viewLog.map(e => ({
+    ...e,
+    viewer: (e.viewer && e.viewer !== 'undefined' && e.viewer !== 'null' && e.viewer !== 'Anonymous')
+      ? e.viewer
+      : null,  // null = unknown, excluded from named analytics
+  }));
+  const namedLog = cleanLog.filter(e => e.viewer); // only entries with a real name
+
   // Who views the most (total views per person)
   const viewerTotals = {};
   const viewerInitialsMap = {};
-  viewLog.forEach(e => {
+  namedLog.forEach(e => {
     viewerTotals[e.viewer] = (viewerTotals[e.viewer] || 0) + 1;
-    viewerInitialsMap[e.viewer] = e.viewerInitials;
+    if (!viewerInitialsMap[e.viewer] && e.viewerInitials)
+      viewerInitialsMap[e.viewer] = e.viewerInitials;
   });
   const viewerLeaderboard = Object.entries(viewerTotals)
     .sort((a, b) => b[1] - a[1])
@@ -282,7 +292,7 @@ app.get('/api/analytics', (req, res) => {
 
   // Per viewer: which articles they read and how many times
   const viewerArticleMap = {};
-  viewLog.forEach(e => {
+  namedLog.forEach(e => {
     if (!viewerArticleMap[e.viewer]) viewerArticleMap[e.viewer] = {};
     const key = `${e.articleId}|||${e.articleTitle}`;
     viewerArticleMap[e.viewer][key] = (viewerArticleMap[e.viewer][key] || 0) + 1;
@@ -301,7 +311,7 @@ app.get('/api/analytics', (req, res) => {
 
   // Article view breakdown: per article, who viewed it
   const articleViewerMap = {};
-  viewLog.forEach(e => {
+  namedLog.forEach(e => {
     if (!articleViewerMap[e.articleId]) articleViewerMap[e.articleId] = { title: e.articleTitle, viewers: {} };
     articleViewerMap[e.articleId].viewers[e.viewer] = (articleViewerMap[e.articleId].viewers[e.viewer] || 0) + 1;
   });

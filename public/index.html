@@ -1363,10 +1363,12 @@ async function viewArticle(id) {
   viewingId = id;
   // track view with viewer identity
   const _vu = getUser();
+  const _vn = (_vu && typeof _vu.name === 'string' && _vu.name.trim() && _vu.name !== 'undefined') ? _vu.name.trim() : null;
+  const _vi = (_vu && typeof _vu.initials === 'string' && _vu.initials.trim()) ? _vu.initials.trim() : (_vn ? _vn.slice(0,2).toUpperCase() : 'AN');
   fetch(`/api/articles/${id}/view`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ viewer: _vu?.name || 'Anonymous', viewerInitials: _vu?.initials || 'AN' }),
+    body: JSON.stringify({ viewer: _vn || 'Anonymous', viewerInitials: _vi }),
   }).catch(()=>{});
   try {
     const a = await (await fetch(`/api/articles/${id}`)).json();
