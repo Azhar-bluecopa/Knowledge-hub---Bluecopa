@@ -1239,7 +1239,15 @@ async function saveEditedArticle() {
     const updated = await r.json();
     const idx = allArticles.findIndex(x=>x.id===editingArticleId);
     if (idx!==-1) allArticles[idx] = updated;
+    renderSidebar();
     applyFilters();
+    // Refresh view modal if it's still open for this article
+    if (viewingId === editingArticleId) {
+      const c = getCat(updated.category);
+      const badge = document.getElementById('viewCatBadge');
+      if (badge) { badge.textContent = updated.category; badge.style.background = c.bg; badge.style.color = c.color; }
+      document.getElementById('viewTitle').textContent = updated.title;
+    }
     closeModal();
     showToast('✓ Article updated!','success');
   } catch(e) { showToast(e.message,'error'); }
