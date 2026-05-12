@@ -141,7 +141,7 @@ app.post('/api/articles', async (req, res) => {
     id: db.nextId++,
     title, category, author: author || 'Anonymous',
     initials: initials || (author || 'A').slice(0,2).toUpperCase(),
-    excerpt: content.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,180) + '…',
+    excerpt: content.replace(/<style[\s\S]*?<\/style>/gi,'').replace(/<script[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,180) + '…',
     content, tags: Array.isArray(tags) ? tags : (tags||'').split(',').map(t=>t.trim()).filter(Boolean),
     created_at: new Date().toISOString(), views: 0,
   };
@@ -162,7 +162,7 @@ app.put('/api/articles/:id', async (req, res) => {
   if (category) a.category = category;
   if (author)   a.author   = author;
   if (initials) a.initials = initials;
-  if (content)  { a.content = content; a.excerpt = content.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,180)+'…'; }
+  if (content)  { a.content = content; a.excerpt = content.replace(/<style[\s\S]*?<\/style>/gi,'').replace(/<script[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,180)+'…'; }
   if (tags !== undefined) a.tags = Array.isArray(tags) ? tags : (tags||'').split(',').map(t=>t.trim()).filter(Boolean);
   await saveDB(db);
   res.json(a);
