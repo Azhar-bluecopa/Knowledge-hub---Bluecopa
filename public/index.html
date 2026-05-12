@@ -351,6 +351,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dash-bar{height:8px;border-radius:4px;background:var(--accent2);opacity:.8;transition:width .6s ease;}
 .dash-rank{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);width:24px;}
 .views-badge{background:rgba(122,232,180,0.12);color:var(--success);font-family:'DM Mono',monospace;font-size:11px;padding:2px 8px;border-radius:20px;}
+.dash-avatar{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;}
+.dash-kpi-row-6{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:24px;}
+@media(max-width:1100px){.dash-kpi-row-6{grid-template-columns:repeat(3,1fr);}}
+.dash-section-label{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:12px;}
+.dash-activity-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+.dash-activity-item:last-child{border-bottom:none;}
+.dash-activity-time{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;margin-left:auto;}
+.dash-viewer-row{cursor:pointer;}
+.dash-viewer-row:hover td{background:rgba(232,201,122,.05)!important;}
+.dash-sub-table{display:none;background:var(--surface2);border-radius:8px;margin:4px 0 8px;overflow:hidden;}
+.dash-sub-table td{padding:7px 14px;font-size:12px;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.03);}
+.dash-sub-table tr:last-child td{border-bottom:none;}
+.dash-zero-pill{font-size:11px;background:rgba(232,122,122,.1);color:#e87a7a;padding:2px 8px;border-radius:20px;font-family:'DM Mono',monospace;}
+.dash-medal{font-size:14px;}
 
 /* ── AI Chat Widget ── */
 .ai-fab{position:fixed;bottom:28px;right:28px;z-index:500;background:linear-gradient(135deg,#3548FF,#6c7fff);border:none;border-radius:50px;padding:13px 22px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:9px;box-shadow:0 8px 30px rgba(53,72,255,.45);transition:transform .2s,box-shadow .2s;letter-spacing:.01em;}
@@ -549,15 +563,81 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
   </div>
   <div style="padding:28px 36px;flex:1;">
-    <!-- KPI row -->
-    <div class="dash-kpi-row">
+
+    <!-- KPI row — 6 stats -->
+    <div class="dash-kpi-row-6">
       <div class="dash-kpi" style="animation-delay:.05s"><div class="dash-kpi-icon">📝</div><div class="dash-kpi-num" id="dkpiArticles">—</div><div class="dash-kpi-label">Total Articles</div></div>
-      <div class="dash-kpi" style="animation-delay:.1s"><div class="dash-kpi-icon">👁</div><div class="dash-kpi-num" id="dkpiViews">—</div><div class="dash-kpi-label">Total Views</div></div>
-      <div class="dash-kpi" style="animation-delay:.15s"><div class="dash-kpi-icon">✍️</div><div class="dash-kpi-num" id="dkpiAuthors">—</div><div class="dash-kpi-label">Contributors</div></div>
+      <div class="dash-kpi" style="animation-delay:.08s"><div class="dash-kpi-icon">👁</div><div class="dash-kpi-num" id="dkpiViews">—</div><div class="dash-kpi-label">Total Views</div></div>
+      <div class="dash-kpi" style="animation-delay:.11s"><div class="dash-kpi-icon">👥</div><div class="dash-kpi-num" id="dkpiUniqueViewers">—</div><div class="dash-kpi-label">Unique Readers</div></div>
+      <div class="dash-kpi" style="animation-delay:.14s"><div class="dash-kpi-icon">📈</div><div class="dash-kpi-num" id="dkpiAvgViews">—</div><div class="dash-kpi-label">Avg Views / Article</div></div>
+      <div class="dash-kpi" style="animation-delay:.17s"><div class="dash-kpi-icon">✍️</div><div class="dash-kpi-num" id="dkpiAuthors">—</div><div class="dash-kpi-label">Contributors</div></div>
       <div class="dash-kpi" style="animation-delay:.2s"><div class="dash-kpi-icon">🏷</div><div class="dash-kpi-num" id="dkpiCats">—</div><div class="dash-kpi-label">Categories</div></div>
     </div>
-    <!-- Row 1: Category + Author -->
-    <div class="dash-charts-grid">
+
+    <!-- Section: Readership -->
+    <div class="dash-section-label">👤 Readership</div>
+    <div class="dash-charts-grid" style="margin-bottom:24px;">
+
+      <!-- Viewer Leaderboard -->
+      <div class="dash-chart-card">
+        <div class="dash-chart-title">🏆 Top Readers</div>
+        <table class="dash-table">
+          <thead><tr><th></th><th>Name</th><th>Views</th><th style="width:90px">Share</th></tr></thead>
+          <tbody id="dashViewerLeaderboard"></tbody>
+        </table>
+      </div>
+
+      <!-- Daily views sparkline -->
+      <div class="dash-chart-card">
+        <div class="dash-chart-title">📅 Daily Views — Last 14 Days</div>
+        <canvas id="chartDailyViews" height="220"></canvas>
+      </div>
+
+      <!-- Who viewed what — expandable -->
+      <div class="dash-chart-card full">
+        <div class="dash-chart-title">🔍 Individual Reader Detail <span style="font-size:11px;color:var(--muted);font-weight:400;">(click a row to expand)</span></div>
+        <table class="dash-table" id="dashViewerDetailTable">
+          <thead><tr><th>#</th><th>Reader</th><th>Total Views</th><th>Articles Read</th><th>Most Read Article</th></tr></thead>
+          <tbody id="dashViewerDetail"></tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- Section: Articles -->
+    <div class="dash-section-label">📄 Article Performance</div>
+    <div class="dash-charts-grid" style="margin-bottom:24px;">
+
+      <!-- Most viewed chart -->
+      <div class="dash-chart-card full">
+        <div class="dash-chart-title">🔥 Most Viewed Articles</div>
+        <canvas id="chartTopViewed" height="110"></canvas>
+      </div>
+
+      <!-- Article viewer breakdown table -->
+      <div class="dash-chart-card full">
+        <div class="dash-chart-title">👁 Article View Breakdown — Who Read What</div>
+        <table class="dash-table">
+          <thead><tr><th>#</th><th>Article</th><th>Total Views</th><th>Unique Readers</th><th>Readers</th></tr></thead>
+          <tbody id="dashArticleViewers"></tbody>
+        </table>
+      </div>
+
+      <!-- Zero-view articles -->
+      <div class="dash-chart-card full" id="zeroViewCard">
+        <div class="dash-chart-title">😶 Articles With No Views Yet</div>
+        <table class="dash-table">
+          <thead><tr><th>Title</th><th>Author</th><th>Category</th><th>Published</th></tr></thead>
+          <tbody id="dashZeroViews"></tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- Section: Content & Activity -->
+    <div class="dash-section-label">📊 Content & Activity</div>
+    <div class="dash-charts-grid" style="margin-bottom:24px;">
+
       <div class="dash-chart-card">
         <div class="dash-chart-title">Articles by Category</div>
         <canvas id="chartCategory" height="220"></canvas>
@@ -566,17 +646,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div class="dash-chart-title">Top Contributors</div>
         <canvas id="chartAuthor" height="220"></canvas>
       </div>
-      <!-- Monthly trend full width -->
       <div class="dash-chart-card full">
         <div class="dash-chart-title">Articles Published — Last 6 Months</div>
         <canvas id="chartMonthly" height="100"></canvas>
       </div>
-      <!-- Most viewed CHART full width -->
-      <div class="dash-chart-card full">
-        <div class="dash-chart-title">🔥 Most Viewed Articles</div>
-        <canvas id="chartTopViewed" height="120"></canvas>
-      </div>
-      <!-- Tags + Contributor table -->
       <div class="dash-chart-card">
         <div class="dash-chart-title">Top Tags</div>
         <canvas id="chartTags" height="220"></canvas>
@@ -588,7 +661,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <tbody id="dashAuthorTable"></tbody>
         </table>
       </div>
+
     </div>
+
+    <!-- Recent Activity Feed -->
+    <div class="dash-section-label">⚡ Recent Activity</div>
+    <div class="dash-chart-card" style="margin-bottom:32px;">
+      <div class="dash-chart-title">Latest Article Views</div>
+      <div id="dashActivityFeed"></div>
+    </div>
+
   </div>
 </div>
 
@@ -1271,8 +1353,13 @@ async function publishArticle() {
 // ── View article ──────────────────────────────────────────────────────────────
 async function viewArticle(id) {
   viewingId = id;
-  // track view
-  fetch(`/api/articles/${id}/view`, { method:'POST' }).catch(()=>{});
+  // track view with viewer identity
+  const _vu = getUser();
+  fetch(`/api/articles/${id}/view`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ viewer: _vu?.name || 'Anonymous', viewerInitials: _vu?.initials || 'AN' }),
+  }).catch(()=>{});
   try {
     const a = await (await fetch(`/api/articles/${id}`)).json();
     const c = getCat(a.category);
@@ -1686,95 +1773,183 @@ async function loadDashboard() {
   try {
     const data = await (await fetch('/api/analytics')).json();
 
-    // KPIs
-    document.getElementById('dkpiArticles').textContent = data.totals.articles;
-    document.getElementById('dkpiViews').textContent    = data.totals.views.toLocaleString();
-    document.getElementById('dkpiAuthors').textContent  = data.totals.authors;
-    document.getElementById('dkpiCats').textContent     = data.totals.categories;
+    // ── KPIs ──────────────────────────────────────────────────────────────────
+    document.getElementById('dkpiArticles').textContent      = data.totals.articles;
+    document.getElementById('dkpiViews').textContent         = data.totals.views.toLocaleString();
+    document.getElementById('dkpiUniqueViewers').textContent = data.totals.uniqueViewers || 0;
+    document.getElementById('dkpiAvgViews').textContent      = data.totals.avgViews ?? '—';
+    document.getElementById('dkpiAuthors').textContent       = data.totals.authors;
+    document.getElementById('dkpiCats').textContent          = data.totals.categories;
 
-    // Category doughnut
-    destroyChart('cat');
-    const catCtx = document.getElementById('chartCategory').getContext('2d');
-    _charts['cat'] = new Chart(catCtx, {
-      type: 'doughnut',
-      data: {
-        labels: data.byCategory.map(c => c.name),
-        datasets: [{ data: data.byCategory.map(c => c.count), backgroundColor: data.byCategory.map(c => c.color), borderWidth: 2, borderColor: '#17171e' }]
-      },
-      options: { plugins: { legend: { position:'right', labels:{ color:'#7a7a96', font:{size:12}, boxWidth:12 } } }, cutout:'62%' }
+    // ── Viewer Leaderboard ────────────────────────────────────────────────────
+    const medals = ['🥇','🥈','🥉'];
+    const maxVL = data.viewerLeaderboard[0]?.views || 1;
+    document.getElementById('dashViewerLeaderboard').innerHTML = data.viewerLeaderboard.length
+      ? data.viewerLeaderboard.slice(0,10).map((v,i) => `
+        <tr>
+          <td class="dash-rank">${medals[i] || (i+1)}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="dash-avatar" style="background:${CHART_COLORS[i%CHART_COLORS.length]}">${escHtml(v.initials||v.name.slice(0,2).toUpperCase())}</div>
+              <span style="font-weight:500">${escHtml(v.name)}</span>
+            </div>
+          </td>
+          <td><span class="views-badge">👁 ${v.views}</span></td>
+          <td><div class="dash-bar" style="width:${Math.round((v.views/maxVL)*100)}%;background:${CHART_COLORS[i%CHART_COLORS.length]}"></div></td>
+        </tr>`).join('')
+      : '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:24px">No views recorded yet</td></tr>';
+
+    // ── Daily Views Line Chart ────────────────────────────────────────────────
+    destroyChart('daily');
+    const dailyLabels = Object.keys(data.dailyViews || {}).map(d => {
+      const dt = new Date(d); return dt.toLocaleDateString('default',{month:'short',day:'numeric'});
     });
-
-    // Author bar chart
-    destroyChart('author');
-    const authCtx = document.getElementById('chartAuthor').getContext('2d');
-    const topAuthors = data.byAuthor.slice(0, 8);
-    _charts['author'] = new Chart(authCtx, {
-      type: 'bar',
-      data: {
-        labels: topAuthors.map(a => a.name.split(' ')[0]),
-        datasets: [{ label: 'Articles', data: topAuthors.map(a => a.count), backgroundColor: CHART_COLORS, borderRadius: 6 }]
-      },
-      options: { plugins:{ legend:{display:false} }, scales:{ x:{ ticks:{color:'#7a7a96'}, grid:{color:'rgba(255,255,255,.04)'} }, y:{ ticks:{color:'#7a7a96',stepSize:1}, grid:{color:'rgba(255,255,255,.06)'}, beginAtZero:true } } }
-    });
-
-    // Monthly line chart
-    destroyChart('monthly');
-    const monCtx = document.getElementById('chartMonthly').getContext('2d');
-    const monLabels = Object.keys(data.monthly);
-    const monVals   = Object.values(data.monthly);
-    _charts['monthly'] = new Chart(monCtx, {
+    const dailyVals = Object.values(data.dailyViews || {});
+    _charts['daily'] = new Chart(document.getElementById('chartDailyViews').getContext('2d'), {
       type: 'line',
       data: {
-        labels: monLabels,
-        datasets: [{ label:'Articles', data: monVals, borderColor:'#7a9ee8', backgroundColor:'rgba(122,158,232,0.1)', tension:.4, fill:true, pointBackgroundColor:'#7a9ee8', pointRadius:5 }]
+        labels: dailyLabels,
+        datasets: [{ label:'Views', data: dailyVals, borderColor:'#c97ae8', backgroundColor:'rgba(201,122,232,0.1)', tension:.4, fill:true, pointBackgroundColor:'#c97ae8', pointRadius:4 }]
       },
-      options: { plugins:{ legend:{display:false} }, scales:{ x:{ticks:{color:'#7a7a96'},grid:{color:'rgba(255,255,255,.04)'}}, y:{ticks:{color:'#7a7a96',stepSize:1},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true} } }
+      options: { plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#7a7a96',maxTicksLimit:7},grid:{color:'rgba(255,255,255,.04)'}}, y:{ticks:{color:'#7a7a96',stepSize:1},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true} } }
     });
 
-    // Top tags bar
-    destroyChart('tags');
-    const tagCtx = document.getElementById('chartTags').getContext('2d');
-    _charts['tags'] = new Chart(tagCtx, {
-      type: 'bar',
-      indexAxis: 'y',
-      data: {
-        labels: data.topTags.map(t => t.tag),
-        datasets: [{ label:'Uses', data: data.topTags.map(t => t.count), backgroundColor: CHART_COLORS, borderRadius:4 }]
-      },
-      options: { plugins:{ legend:{display:false} }, scales:{ x:{ticks:{color:'#7a7a96',stepSize:1},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true}, y:{ticks:{color:'#7a7a96'},grid:{display:false}} } }
-    });
+    // ── Individual Viewer Detail (expandable) ─────────────────────────────────
+    document.getElementById('dashViewerDetail').innerHTML = data.viewerDetail.length
+      ? data.viewerDetail.map((v,i) => {
+          const topArt = v.articles[0];
+          const subRows = v.articles.map(a => `
+            <tr>
+              <td colspan="2" style="padding-left:24px">📄 ${escHtml(a.title)}</td>
+              <td>${a.count}</td>
+              <td></td>
+              <td></td>
+            </tr>`).join('');
+          return `
+            <tr class="dash-viewer-row" onclick="toggleViewerDetail(${i})" id="vrow-${i}">
+              <td class="dash-rank">${i+1}</td>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div class="dash-avatar" style="background:${CHART_COLORS[i%CHART_COLORS.length]}">${escHtml(v.initials||v.name.slice(0,2).toUpperCase())}</div>
+                  <span style="font-weight:500">${escHtml(v.name)}</span>
+                  <span style="font-size:11px;color:var(--muted)" id="vrow-arrow-${i}">▸</span>
+                </div>
+              </td>
+              <td><span class="views-badge">👁 ${v.totalViews}</span></td>
+              <td>${v.articles.length}</td>
+              <td style="font-size:12px;color:var(--muted)">${topArt ? escHtml(topArt.title.slice(0,40))+'…' : '—'}</td>
+            </tr>
+            <tr id="vsub-${i}" style="display:none"><td colspan="5" style="padding:0">${subRows ? `<table class="dash-table" style="margin:4px 8px 8px;width:calc(100% - 16px)">${subRows}</table>` : ''}</td></tr>`;
+        }).join('')
+      : '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:24px">No reader data yet</td></tr>';
 
-    // Most viewed horizontal bar chart
+    // ── Article Viewer Breakdown ──────────────────────────────────────────────
+    document.getElementById('dashArticleViewers').innerHTML = data.articleViewerDetail.length
+      ? data.articleViewerDetail.map((a,i) => {
+          const readerPills = a.viewers.slice(0,5).map(v =>
+            `<span style="font-size:11px;background:rgba(122,158,232,.12);color:var(--accent2);padding:2px 7px;border-radius:12px;margin:1px">${escHtml(v.name)} ×${v.count}</span>`
+          ).join('');
+          return `
+            <tr>
+              <td class="dash-rank">${i+1}</td>
+              <td style="font-weight:500;max-width:260px">${escHtml(a.title)}</td>
+              <td><span class="views-badge">👁 ${a.totalViews}</span></td>
+              <td><span style="font-size:12px;color:var(--muted)">${a.uniqueViewers} reader${a.uniqueViewers!==1?'s':''}</span></td>
+              <td style="max-width:220px">${readerPills || '<span style="color:var(--muted);font-size:12px">—</span>'}</td>
+            </tr>`;
+        }).join('')
+      : '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:24px">No view data yet — open some articles!</td></tr>';
+
+    // ── Zero-view articles ────────────────────────────────────────────────────
+    const zeroCard = document.getElementById('zeroViewCard');
+    if (data.zeroViewArticles && data.zeroViewArticles.length) {
+      zeroCard.style.display = '';
+      document.getElementById('dashZeroViews').innerHTML = data.zeroViewArticles.map(a => `
+        <tr>
+          <td style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="hideDashboard();viewArticle(${a.id})">${escHtml(a.title)}</td>
+          <td>${escHtml(a.author||'—')}</td>
+          <td>${escHtml(a.category||'—')}</td>
+          <td style="font-size:12px;color:var(--muted)">${a.created_at ? new Date(a.created_at).toLocaleDateString() : '—'}</td>
+        </tr>`).join('');
+    } else {
+      zeroCard.style.display = 'none';
+    }
+
+    // ── Most Viewed horizontal bar ────────────────────────────────────────────
     destroyChart('topviewed');
-    const tvCtx = document.getElementById('chartTopViewed').getContext('2d');
+    const tvEl = document.getElementById('chartTopViewed');
+    tvEl.style.display = '';
+    const tvNext = tvEl.nextElementSibling;
+    if (tvNext && tvNext.tagName === 'P') tvNext.remove();
     if (data.topViewed.length && data.topViewed[0].views > 0) {
-      _charts['topviewed'] = new Chart(tvCtx, {
-        type: 'bar',
-        indexAxis: 'y',
+      _charts['topviewed'] = new Chart(tvEl.getContext('2d'), {
+        type: 'bar', indexAxis: 'y',
         data: {
-          labels: data.topViewed.map(a => a.title.length > 45 ? a.title.slice(0,45)+'…' : a.title),
-          datasets: [{
-            label: 'Views',
-            data: data.topViewed.map(a => a.views),
-            backgroundColor: data.topViewed.map((_,i) => CHART_COLORS[i % CHART_COLORS.length]),
-            borderRadius: 5,
-          }]
+          labels: data.topViewed.map(a => a.title.length > 48 ? a.title.slice(0,48)+'…' : a.title),
+          datasets: [{ label:'Views', data: data.topViewed.map(a => a.views), backgroundColor: data.topViewed.map((_,i) => CHART_COLORS[i%CHART_COLORS.length]), borderRadius:5 }]
         },
         options: {
-          onClick: (e, els) => { if (els.length) viewArticle(data.topViewed[els[0].index].id); },
-          plugins: { legend:{ display:false }, tooltip:{ callbacks:{ label: ctx => ` ${ctx.parsed.x} views` } } },
-          scales: {
-            x:{ ticks:{color:'#7a7a96',stepSize:1}, grid:{color:'rgba(255,255,255,.06)'}, beginAtZero:true },
-            y:{ ticks:{color:'#e8e8f0',font:{size:12}}, grid:{display:false} }
-          }
+          onClick: (e, els) => { if (els.length) { hideDashboard(); viewArticle(data.topViewed[els[0].index].id); } },
+          plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ` ${ctx.parsed.x} views` } } },
+          scales:{ x:{ticks:{color:'#7a7a96',stepSize:1},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true}, y:{ticks:{color:'#e8e8f0',font:{size:12}},grid:{display:false}} }
         }
       });
     } else {
-      tvCtx.canvas.style.display = 'none';
-      tvCtx.canvas.insertAdjacentHTML('afterend','<p style="color:var(--muted);text-align:center;padding:32px 0;font-size:13px">No views yet — open some articles to start tracking!</p>');
+      tvEl.style.display = 'none';
+      tvEl.insertAdjacentHTML('afterend','<p style="color:var(--muted);text-align:center;padding:32px 0;font-size:13px">No views yet — open some articles to start tracking!</p>');
     }
 
-    // Author breakdown table
+    // ── Recent Activity Feed ──────────────────────────────────────────────────
+    const feed = document.getElementById('dashActivityFeed');
+    feed.innerHTML = data.recentActivity.length
+      ? data.recentActivity.map(e => {
+          const ago = timeAgo(new Date(e.ts));
+          return `<div class="dash-activity-item">
+            <div class="dash-avatar" style="background:${CHART_COLORS[e.viewer.charCodeAt(0)%CHART_COLORS.length]};width:28px;height:28px;font-size:10px">${escHtml(e.viewerInitials)}</div>
+            <div style="flex:1;min-width:0">
+              <span style="font-weight:500;font-size:13px">${escHtml(e.viewer)}</span>
+              <span style="color:var(--muted);font-size:13px"> read </span>
+              <span style="font-size:13px;color:var(--accent2);cursor:pointer" onclick="hideDashboard();viewArticle(${e.articleId})">${escHtml((e.articleTitle||'').slice(0,50))}${(e.articleTitle||'').length>50?'…':''}</span>
+            </div>
+            <span class="dash-activity-time">${ago}</span>
+          </div>`;
+        }).join('')
+      : '<p style="color:var(--muted);text-align:center;padding:24px;font-size:13px">No activity yet</p>';
+
+    // ── Category doughnut ─────────────────────────────────────────────────────
+    destroyChart('cat');
+    _charts['cat'] = new Chart(document.getElementById('chartCategory').getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: data.byCategory.map(c=>c.name), datasets:[{ data:data.byCategory.map(c=>c.count), backgroundColor:data.byCategory.map(c=>c.color), borderWidth:2, borderColor:'#17171e' }] },
+      options: { plugins:{ legend:{ position:'right', labels:{ color:'#7a7a96', font:{size:12}, boxWidth:12 } } }, cutout:'62%' }
+    });
+
+    // ── Author bar chart ──────────────────────────────────────────────────────
+    destroyChart('author');
+    const topAuthors = data.byAuthor.slice(0, 8);
+    _charts['author'] = new Chart(document.getElementById('chartAuthor').getContext('2d'), {
+      type: 'bar',
+      data: { labels: topAuthors.map(a=>a.name.split(' ')[0]), datasets:[{ label:'Articles', data:topAuthors.map(a=>a.count), backgroundColor:CHART_COLORS, borderRadius:6 }] },
+      options: { plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#7a7a96'},grid:{color:'rgba(255,255,255,.04)'}}, y:{ticks:{color:'#7a7a96',stepSize:1},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true} } }
+    });
+
+    // ── Monthly published line chart ──────────────────────────────────────────
+    destroyChart('monthly');
+    _charts['monthly'] = new Chart(document.getElementById('chartMonthly').getContext('2d'), {
+      type: 'line',
+      data: { labels:Object.keys(data.monthly), datasets:[{ label:'Articles', data:Object.values(data.monthly), borderColor:'#7a9ee8', backgroundColor:'rgba(122,158,232,0.1)', tension:.4, fill:true, pointBackgroundColor:'#7a9ee8', pointRadius:5 }] },
+      options: { plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#7a7a96'},grid:{color:'rgba(255,255,255,.04)'}}, y:{ticks:{color:'#7a7a96',stepSize:1},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true} } }
+    });
+
+    // ── Top tags bar ──────────────────────────────────────────────────────────
+    destroyChart('tags');
+    _charts['tags'] = new Chart(document.getElementById('chartTags').getContext('2d'), {
+      type: 'bar', indexAxis:'y',
+      data: { labels:data.topTags.map(t=>t.tag), datasets:[{ label:'Uses', data:data.topTags.map(t=>t.count), backgroundColor:CHART_COLORS, borderRadius:4 }] },
+      options: { plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#7a7a96',stepSize:1},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true}, y:{ticks:{color:'#7a7a96'},grid:{display:false}} } }
+    });
+
+    // ── Author breakdown table ────────────────────────────────────────────────
     const maxArt = data.byAuthor[0]?.count || 1;
     document.getElementById('dashAuthorTable').innerHTML = data.byAuthor.map((a,i) => `
       <tr>
@@ -1784,7 +1959,23 @@ async function loadDashboard() {
         <td><div class="dash-bar" style="width:${Math.round((a.count/maxArt)*100)}%;background:${CHART_COLORS[i%CHART_COLORS.length]}"></div></td>
       </tr>`).join('');
 
-  } catch(e) { showToast('Could not load analytics.','error'); }
+  } catch(e) { console.error(e); showToast('Could not load analytics.','error'); }
+}
+
+function toggleViewerDetail(i) {
+  const sub   = document.getElementById(`vsub-${i}`);
+  const arrow = document.getElementById(`vrow-arrow-${i}`);
+  const open  = sub.style.display !== 'none';
+  sub.style.display   = open ? 'none' : '';
+  if (arrow) arrow.textContent = open ? '▸' : '▾';
+}
+
+function timeAgo(date) {
+  const s = Math.floor((Date.now() - date) / 1000);
+  if (s < 60)   return 'just now';
+  if (s < 3600) return Math.floor(s/60)+'m ago';
+  if (s < 86400) return Math.floor(s/3600)+'h ago';
+  return Math.floor(s/86400)+'d ago';
 }
 
 // ── Admin login ───────────────────────────────────────────────────────────────

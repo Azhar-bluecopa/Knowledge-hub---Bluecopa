@@ -99,6 +99,20 @@ app.post('/api/articles/:id/view', async (req, res) => {
   const a = (db.articles || []).find(x => x.id === parseInt(req.params.id));
   if (!a) return res.status(404).json({ error: 'Not found' });
   a.views = (a.views || 0) + 1;
+
+  // Log who viewed
+  const { viewer, viewerInitials } = req.body || {};
+  if (!db.viewLog) db.viewLog = [];
+  db.viewLog.push({
+    articleId: a.id,
+    articleTitle: a.title,
+    viewer: viewer || 'Anonymous',
+    viewerInitials: viewerInitials || (viewer ? viewer.slice(0,2).toUpperCase() : 'AN'),
+    ts: new Date().toISOString(),
+  });
+  // Keep log capped at 2000 entries
+  if (db.viewLog.length > 2000) db.viewLog = db.viewLog.slice(-2000);
+
   await saveDB(db);
   res.json({ views: a.views });
 });
@@ -198,6 +212,7 @@ app.post('/api/admin/login', (req, res) => {
 app.get('/api/analytics', (req, res) => {
   const articles   = db.articles   || [];
   const categories = db.categories || [];
+  const viewLog    = db.viewLog    || [];
 
   const byCat = {};
   categories.forEach(c => { byCat[c.name] = 0; });
@@ -208,7 +223,7 @@ app.get('/api/analytics', (req, res) => {
 
   const topViewed = [...articles]
     .sort((a, b) => (b.views || 0) - (a.views || 0))
-    .slice(0, 8)
+    .slice(0, 10)
     .map(a => ({ id: a.id, title: a.title, views: a.views || 0, author: a.author, category: a.category }));
 
   const monthly = {};
@@ -228,12 +243,81 @@ app.get('/api/analytics', (req, res) => {
   articles.forEach(a => (a.tags || []).forEach(t => { tagFreq[t] = (tagFreq[t] || 0) + 1; }));
   const topTags = Object.entries(tagFreq).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([tag, count]) => ({ tag, count }));
 
+  // ── Viewer analytics ──────────────────────────────────────────────────────
+
+  // Who views the most (total views per person)
+  const viewerTotals = {};
+  const viewerInitialsMap = {};
+  viewLog.forEach(e => {
+    viewerTotals[e.viewer] = (viewerTotals[e.viewer] || 0) + 1;
+    viewerInitialsMap[e.viewer] = e.viewerInitials;
+  });
+  const viewerLeaderboard = Object.entries(viewerTotals)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, views], i) => ({ rank: i + 1, name, views, initials: viewerInitialsMap[name] }));
+
+  // Per viewer: which articles they read and how many times
+  const viewerArticleMap = {};
+  viewLog.forEach(e => {
+    if (!viewerArticleMap[e.viewer]) viewerArticleMap[e.viewer] = {};
+    const key = `${e.articleId}|||${e.articleTitle}`;
+    viewerArticleMap[e.viewer][key] = (viewerArticleMap[e.viewer][key] || 0) + 1;
+  });
+  const viewerDetail = Object.entries(viewerArticleMap).map(([viewer, arts]) => ({
+    viewer,
+    initials: viewerInitialsMap[viewer],
+    totalViews: viewerTotals[viewer] || 0,
+    articles: Object.entries(arts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([key, count]) => {
+        const [idStr, title] = key.split('|||');
+        return { id: parseInt(idStr), title, count };
+      }),
+  })).sort((a, b) => b.totalViews - a.totalViews);
+
+  // Article view breakdown: per article, who viewed it
+  const articleViewerMap = {};
+  viewLog.forEach(e => {
+    if (!articleViewerMap[e.articleId]) articleViewerMap[e.articleId] = { title: e.articleTitle, viewers: {} };
+    articleViewerMap[e.articleId].viewers[e.viewer] = (articleViewerMap[e.articleId].viewers[e.viewer] || 0) + 1;
+  });
+  const articleViewerDetail = Object.entries(articleViewerMap).map(([idStr, val]) => ({
+    id: parseInt(idStr), title: val.title,
+    totalViews: Object.values(val.viewers).reduce((s, v) => s + v, 0),
+    uniqueViewers: Object.keys(val.viewers).length,
+    viewers: Object.entries(val.viewers).sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count })),
+  })).sort((a, b) => b.totalViews - a.totalViews);
+
+  // Recent activity feed (last 30)
+  const recentActivity = [...viewLog].reverse().slice(0, 30).map(e => ({
+    viewer: e.viewer, viewerInitials: e.viewerInitials,
+    articleId: e.articleId, articleTitle: e.articleTitle, ts: e.ts,
+  }));
+
+  // Daily views over last 14 days
+  const dailyViews = {};
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    dailyViews[d.toISOString().slice(0, 10)] = 0;
+  }
+  viewLog.forEach(e => {
+    const day = e.ts ? e.ts.slice(0, 10) : null;
+    if (day && dailyViews[day] !== undefined) dailyViews[day]++;
+  });
+
+  // Zero-view articles
+  const zeroViewArticles = articles.filter(a => !(a.views > 0)).map(a => ({ id: a.id, title: a.title, author: a.author, category: a.category, created_at: a.created_at }));
+
+  const totalViews = articles.reduce((s, a) => s + (a.views || 0), 0);
+
   res.json({
     totals: {
       articles:   articles.length,
       categories: categories.length,
       authors:    Object.keys(byAuthor).length,
-      views:      articles.reduce((s, a) => s + (a.views || 0), 0),
+      views:      totalViews,
+      avgViews:   articles.length ? Math.round(totalViews / articles.length * 10) / 10 : 0,
+      uniqueViewers: Object.keys(viewerTotals).length,
     },
     byCategory: Object.entries(byCat).map(([name, count]) => ({
       name, count,
@@ -243,6 +327,12 @@ app.get('/api/analytics', (req, res) => {
     topViewed,
     monthly,
     topTags,
+    viewerLeaderboard,
+    viewerDetail,
+    articleViewerDetail,
+    recentActivity,
+    dailyViews,
+    zeroViewArticles,
   });
 });
 
