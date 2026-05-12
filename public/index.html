@@ -1090,7 +1090,7 @@ function applyRestrictions() {
   const btn = document.getElementById('newArticleBtn');
   const banner = document.getElementById('readOnlyBanner');
   btn.disabled = !canPost;
-  banner.style.display = (!canPost && !admin) ? 'block' : 'none';
+  banner.style.display = 'none';
 }
 
 // ── New article ───────────────────────────────────────────────────────────────
