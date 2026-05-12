@@ -22,10 +22,11 @@ function loadFileDB() {
   return db;
 }
 
-function saveDB(data) {
+async function saveDB(data) {
   if (mongoCol) {
-    mongoCol.replaceOne({ _id: 'main' }, { _id: 'main', ...data }, { upsert: true })
-      .catch(e => console.error('[saveDB/mongo]', e.message));
+    try {
+      await mongoCol.replaceOne({ _id: 'main' }, { _id: 'main', ...data }, { upsert: true });
+    } catch(e) { console.error('[saveDB/mongo]', e.message); }
   }
   // On Vercel file writes are no-ops, so we don't even try
 }
@@ -94,16 +95,16 @@ app.get('/api/articles/:id', (req, res) => {
 });
 
 // View increment
-app.post('/api/articles/:id/view', (req, res) => {
+app.post('/api/articles/:id/view', async (req, res) => {
   const a = (db.articles || []).find(x => x.id === parseInt(req.params.id));
   if (!a) return res.status(404).json({ error: 'Not found' });
   a.views = (a.views || 0) + 1;
-  saveDB(db);
+  await saveDB(db);
   res.json({ views: a.views });
 });
 
 // Create article
-app.post('/api/articles', (req, res) => {
+app.post('/api/articles', async (req, res) => {
   const { whoCanPost } = (db.settings && db.settings.restrictions) || {};
   if (whoCanPost === 'disabled') return res.status(403).json({ error: 'Posting is disabled.' });
   if (whoCanPost === 'admins_only' && !isAdmin(req)) return res.status(403).json({ error: 'Only admins can post.' });
@@ -120,12 +121,12 @@ app.post('/api/articles', (req, res) => {
     created_at: new Date().toISOString(), views: 0,
   };
   db.articles.push(article);
-  saveDB(db);
+  await saveDB(db);
   res.status(201).json(article);
 });
 
 // Edit article
-app.put('/api/articles/:id', (req, res) => {
+app.put('/api/articles/:id', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
   const id  = parseInt(req.params.id);
   const idx = (db.articles || []).findIndex(x => x.id === id);
@@ -138,18 +139,18 @@ app.put('/api/articles/:id', (req, res) => {
   if (initials) a.initials = initials;
   if (content)  { a.content = content; a.excerpt = content.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,180)+'…'; }
   if (tags !== undefined) a.tags = Array.isArray(tags) ? tags : (tags||'').split(',').map(t=>t.trim()).filter(Boolean);
-  saveDB(db);
+  await saveDB(db);
   res.json(a);
 });
 
 // Delete article
-app.delete('/api/articles/:id', (req, res) => {
+app.delete('/api/articles/:id', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
   const id  = parseInt(req.params.id);
   const idx = (db.articles || []).findIndex(x => x.id === id);
   if (idx === -1) return res.status(404).json({ error: 'Not found' });
   db.articles.splice(idx, 1);
-  saveDB(db);
+  await saveDB(db);
   res.json({ success: true });
 });
 
@@ -172,7 +173,7 @@ app.get('/api/settings', (req, res) => {
   res.json(pub);
 });
 
-app.put('/api/settings', (req, res) => {
+app.put('/api/settings', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
   const { restrictions, adminPassword, siteTitle, aboutText } = req.body;
   if (!db.settings) db.settings = {};
@@ -180,7 +181,7 @@ app.put('/api/settings', (req, res) => {
   if (adminPassword?.trim()) db.settings.adminPassword = adminPassword.trim();
   if (siteTitle?.trim())     db.settings.siteTitle = siteTitle.trim();
   if (aboutText !== undefined) db.settings.aboutText = aboutText;
-  saveDB(db);
+  await saveDB(db);
   res.json(db.settings);
 });
 
