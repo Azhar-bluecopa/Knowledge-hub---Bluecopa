@@ -1472,6 +1472,9 @@ function toggleViewFullscreen(){
 function renderContent(text) {
   if (!text) return '';
 
+  // If content is HTML, render it directly without markdown processing
+  if (text.trimStart().startsWith('<')) return text;
+
   const inlineFmt = (raw) => escHtml(raw)
     .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
       '<a href="$2" target="_blank" rel="noopener noreferrer" style="color:var(--accent2);text-decoration:underline;text-underline-offset:3px;">$1</a>')
