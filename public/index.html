@@ -471,12 +471,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
       <div id="categoryList"></div>
     </div>
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">Analytics</div>
-      <button class="dash-nav-btn" id="dashNavBtn" onclick="showDashboard()">
-        <span style="font-size:15px">📊</span> Dashboard
-      </button>
-    </div>
   </div>
   <div class="read-only-banner" id="readOnlyBanner">🔒 Read-only mode — posting disabled</div>
   <button class="new-article-btn" id="newArticleBtn" onclick="openModal()">✦ New Article</button>
@@ -1665,7 +1659,6 @@ function showDashboard() {
   document.getElementById('dashboardView').classList.add('active');
   document.querySelector('.main').style.display = 'none';
   document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
-  document.getElementById('dashNavBtn').classList.add('active');
   const tb = document.getElementById('topbarDashBtn');
   if (tb) { tb.style.color = 'var(--accent2)'; tb.style.background = 'rgba(232,201,122,0.12)'; }
   loadDashboard();
@@ -1674,7 +1667,6 @@ function showDashboard() {
 function hideDashboard() {
   document.getElementById('dashboardView').classList.remove('active');
   document.querySelector('.main').style.display = '';
-  document.getElementById('dashNavBtn').classList.remove('active');
   const tb = document.getElementById('topbarDashBtn');
   if (tb) { tb.style.color = ''; tb.style.background = ''; }
 }
