@@ -38,25 +38,36 @@ function getDbInitPromise() {
   dbInitPromise = (async () => {
     const uri = process.env.MONGODB_URI;
     if (uri) {
-      try {
-        const { MongoClient } = require('mongodb');
-        const client = new MongoClient(uri, { serverSelectionTimeoutMS: 6000 });
-        await client.connect();
-        mongoCol = client.db('knowledgehub').collection('store');
-        const doc = await mongoCol.findOne({ _id: 'main' });
-        if (doc) {
-          const { _id, ...data } = doc;
-          db = data;
-        } else {
-          db = loadFileDB();
-          await mongoCol.insertOne({ _id: 'main', ...db });
+      // Retry up to 3 times with 20s timeout — covers Vercel cold starts
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const { MongoClient } = require('mongodb');
+          const client = new MongoClient(uri, { serverSelectionTimeoutMS: 20000, connectTimeoutMS: 20000 });
+          await client.connect();
+          mongoCol = client.db('knowledgehub').collection('store');
+          const doc = await mongoCol.findOne({ _id: 'main' });
+          if (doc) {
+            const { _id, ...data } = doc;
+            db = data;
+          } else {
+            // First-time setup: seed from data.json into MongoDB
+            db = loadFileDB();
+            await mongoCol.insertOne({ _id: 'main', ...db });
+          }
+          console.log('[DB] MongoDB connected on attempt', attempt);
+          return; // success
+        } catch (e) {
+          console.error(`[DB] MongoDB attempt ${attempt} failed:`, e.message);
+          mongoCol = null;
+          if (attempt < 3) await new Promise(r => setTimeout(r, 1000));
         }
-        return;
-      } catch (e) {
-        console.error('[DB] MongoDB failed, using file:', e.message);
-        mongoCol = null;
       }
+      // All retries failed — keep in-memory db empty rather than loading
+      // stale data.json which would show wrong categories/articles
+      console.error('[DB] All MongoDB attempts failed — serving empty db');
+      return;
     }
+    // No MongoDB URI configured — use data.json (local dev only)
     db = loadFileDB();
   })();
   return dbInitPromise;

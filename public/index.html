@@ -2212,24 +2212,33 @@ function selectColor(col, el) {
   el.classList.add('selected');
 }
 
+async function refreshCategories() {
+  allCategories = await (await fetch('/api/categories')).json();
+  renderSidebar();
+  renderCategorySelect();
+  loadAdminPanel();
+}
+
 async function addCategory() {
   const name = document.getElementById('newCatName').value.trim();
   if (!name) { showToast('Enter a category name','error'); return; }
   try {
-    const r=await fetch('/api/categories',{method:'POST',headers:adminHeaders(),body:JSON.stringify({name,color:selectedColor})});
+    const r = await fetch('/api/categories', { method:'POST', headers:adminHeaders(), body:JSON.stringify({ name, color: selectedColor }) });
     if (!r.ok) throw new Error((await r.json()).error);
-    document.getElementById('newCatName').value='';
-    showToast(`Category "${name}" added`,'success');
-  } catch(e){ showToast(e.message,'error'); }
+    document.getElementById('newCatName').value = '';
+    await refreshCategories();
+    showToast(`Category "${name}" added`, 'success');
+  } catch(e) { showToast(e.message, 'error'); }
 }
 
 async function deleteCategory(id, name) {
-  if (!confirm(`Delete category "${name}"? Articles in this category will be moved to the first remaining category.`)) return;
+  if (!confirm(`Delete category "${name}"? Articles in this category will keep their category label.`)) return;
   try {
-    const r=await fetch(`/api/categories/${id}`,{method:'DELETE',headers:adminHeaders()});
+    const r = await fetch(`/api/categories/${id}`, { method:'DELETE', headers:adminHeaders() });
     if (!r.ok) throw new Error((await r.json()).error);
-    showToast(`Category deleted`,'info');
-  } catch(e){ showToast(e.message,'error'); }
+    await refreshCategories();
+    showToast(`Category deleted`, 'info');
+  } catch(e) { showToast(e.message, 'error'); }
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
