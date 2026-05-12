@@ -1804,8 +1804,8 @@ async function loadDashboard() {
           <td class="dash-rank">${medals[i] || (i+1)}</td>
           <td>
             <div style="display:flex;align-items:center;gap:8px">
-              <div class="dash-avatar" style="background:${CHART_COLORS[i%CHART_COLORS.length]}">${escHtml(v.initials||v.viewer.slice(0,2).toUpperCase())}</div>
-              <span style="font-weight:500">${escHtml(v.viewer)}</span>
+              <div class="dash-avatar" style="background:${CHART_COLORS[i%CHART_COLORS.length]}">${escHtml(v.initials||(v.name||'').slice(0,2).toUpperCase())}</div>
+              <span style="font-weight:500">${escHtml(v.name)}</span>
             </div>
           </td>
           <td><span class="views-badge">👁 ${v.views}</span></td>
