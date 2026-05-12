@@ -181,6 +181,27 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .search-wrap-topbar input::placeholder { color: var(--muted); }
 
+.btn-dashboard {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .18s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-dashboard:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(255,255,255,0.04);
+}
+
 .search-icon-btn {
   background: transparent; border: 1px solid var(--border);
   color: var(--muted); border-radius: 8px; padding: 8px 12px;

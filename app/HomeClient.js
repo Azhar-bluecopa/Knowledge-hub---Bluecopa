@@ -64,6 +64,9 @@ export default function HomeClient({ articles, categories, settings }) {
           </div>
 
           <div className="topbar-actions">
+            {/* Dashboard */}
+            <button className="btn-dashboard">📊 Dashboard</button>
+
             {/* Search */}
             {searchOpen ? (
               <div className="search-wrap-topbar">

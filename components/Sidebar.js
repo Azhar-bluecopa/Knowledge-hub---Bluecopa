@@ -47,14 +47,7 @@ export default function Sidebar({ categories, articles, activeCategory, onSelect
           })}
         </div>
 
-        {/* Analytics */}
-        <div className="sidebar-section">
-          <div className="sidebar-section-label">Analytics</div>
-          <div className="category-item" style={{cursor:'default', opacity:.6}}>
-            <span style={{fontSize:'14px'}}>📊</span>
-            Dashboard
-          </div>
-        </div>
+        {/* Analytics section removed — Dashboard moved to topbar */}
       </div>
 
       {/* New Article */}
