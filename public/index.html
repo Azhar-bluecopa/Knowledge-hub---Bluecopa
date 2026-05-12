@@ -517,6 +517,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="search-icon-btn" id="searchIconBtn" onclick="toggleTopbarSearch()" title="Search">
         🔍 <span style="font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;">Search</span>
       </button>
+      <button class="btn-ghost" id="topbarDashBtn" onclick="showDashboard()" title="Dashboard" style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;">
+        📊 <span>Dashboard</span>
+      </button>
       <button class="btn-about" onclick="openAbout()">ℹ️ About</button>
       <button id="exportBtn" class="btn-ghost" onclick="exportArticles()" style="display:none;">↑ Export</button>
     </div>
@@ -1663,6 +1666,8 @@ function showDashboard() {
   document.querySelector('.main').style.display = 'none';
   document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
   document.getElementById('dashNavBtn').classList.add('active');
+  const tb = document.getElementById('topbarDashBtn');
+  if (tb) { tb.style.color = 'var(--accent2)'; tb.style.background = 'rgba(232,201,122,0.12)'; }
   loadDashboard();
 }
 
@@ -1670,6 +1675,8 @@ function hideDashboard() {
   document.getElementById('dashboardView').classList.remove('active');
   document.querySelector('.main').style.display = '';
   document.getElementById('dashNavBtn').classList.remove('active');
+  const tb = document.getElementById('topbarDashBtn');
+  if (tb) { tb.style.color = ''; tb.style.background = ''; }
 }
 
 function filterCategory(cat, el) {
