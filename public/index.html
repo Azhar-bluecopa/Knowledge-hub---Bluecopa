@@ -298,6 +298,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .cat-count{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;margin-right:8px;}
 .cat-del-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;transition:all .15s;}
 .cat-del-btn:hover{border-color:var(--danger);color:var(--danger);}
+.cat-edit-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;transition:all .15s;margin-right:4px;}
+.cat-edit-btn:hover{border-color:var(--accent2);color:var(--accent2);}
+.cat-edit-panel{display:none;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--accent2);border-radius:10px;padding:14px 16px;margin-top:6px;}
+.cat-edit-panel.open{display:flex;}
+.cat-edit-colors{display:flex;gap:6px;flex-wrap:wrap;}
+.cat-edit-actions{display:flex;gap:8px;justify-content:flex-end;}
 .color-palette{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
 .color-swatch{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .15s;flex-shrink:0;}
 .color-swatch.selected{border-color:#fff;transform:scale(1.2);}
@@ -2187,11 +2193,31 @@ function loadAdminPanel() {
   const cl = document.getElementById('adminCatList');
   cl.innerHTML = allCategories.map(c=>{
     const count=allArticles.filter(a=>a.category===c.name).length;
-    return `<div class="cat-row">
-      <span class="cat-color-swatch" style="background:${c.color}"></span>
-      <span class="cat-name">${escHtml(c.name)}</span>
-      <span class="cat-count">${count} article${count!==1?'s':''}</span>
-      <button class="cat-del-btn" onclick="deleteCategory(${c.id},'${escHtml(c.name)}')">Delete</button>
+    const colorSwatches = COLOR_PALETTE.map(col=>
+      `<span class="color-swatch${col===c.color?' selected':''}" style="background:${col};cursor:pointer;" onclick="selectEditCatColor(${c.id},'${col}',this)"></span>`
+    ).join('');
+    return `<div>
+      <div class="cat-row">
+        <span class="cat-color-swatch" id="edit-swatch-${c.id}" style="background:${c.color}"></span>
+        <span class="cat-name">${escHtml(c.name)}</span>
+        <span class="cat-count">${count} article${count!==1?'s':''}</span>
+        <button class="cat-edit-btn" onclick="toggleEditCat(${c.id})">✏️ Edit</button>
+        <button class="cat-del-btn" onclick="deleteCategory(${c.id},'${escHtml(c.name)}')">Delete</button>
+      </div>
+      <div class="cat-edit-panel" id="edit-panel-${c.id}">
+        <div>
+          <div class="form-label" style="margin-bottom:6px;font-size:12px">Category Name</div>
+          <input class="form-input" id="edit-cat-name-${c.id}" value="${escHtml(c.name)}" style="width:100%;padding:8px 12px;font-size:13px;" placeholder="Category name"/>
+        </div>
+        <div>
+          <div class="form-label" style="margin-bottom:6px;font-size:12px">Color</div>
+          <div class="cat-edit-colors" id="edit-cat-colors-${c.id}">${colorSwatches}</div>
+        </div>
+        <div class="cat-edit-actions">
+          <button class="cat-del-btn" onclick="toggleEditCat(${c.id})">Cancel</button>
+          <button class="btn-primary" style="padding:6px 18px;font-size:13px" onclick="saveCategory(${c.id})">Save</button>
+        </div>
+      </div>
     </div>`;
   }).join('');
 
@@ -2244,6 +2270,48 @@ async function deleteCategory(id, name) {
     if (!r.ok) throw new Error((await r.json()).error);
     await refreshCategories();
     showToast(`Category deleted`, 'info');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+// Track selected colors per category edit form
+const _editCatColors = {};
+
+function toggleEditCat(id) {
+  const panel = document.getElementById(`edit-panel-${id}`);
+  if (!panel) return;
+  const isOpen = panel.classList.contains('open');
+  // Close all open panels first
+  document.querySelectorAll('.cat-edit-panel.open').forEach(p => p.classList.remove('open'));
+  if (!isOpen) panel.classList.add('open');
+}
+
+function selectEditCatColor(id, col, el) {
+  _editCatColors[id] = col;
+  // Update selected state in this panel's color swatches
+  const container = document.getElementById(`edit-cat-colors-${id}`);
+  if (container) container.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  // Preview the new color on the swatch in the row
+  const swatch = document.getElementById(`edit-swatch-${id}`);
+  if (swatch) swatch.style.background = col;
+}
+
+async function saveCategory(id) {
+  const nameEl = document.getElementById(`edit-cat-name-${id}`);
+  const name = nameEl?.value.trim();
+  if (!name) { showToast('Category name cannot be empty', 'error'); return; }
+  const cat = allCategories.find(c => c.id === id);
+  const color = _editCatColors[id] || cat?.color;
+  try {
+    const r = await fetch(`/api/categories/${id}`, {
+      method: 'PUT',
+      headers: adminHeaders(),
+      body: JSON.stringify({ name, color })
+    });
+    if (!r.ok) throw new Error((await r.json()).error);
+    delete _editCatColors[id];
+    await refreshCategories();
+    showToast(`Category updated`, 'success');
   } catch(e) { showToast(e.message, 'error'); }
 }
 

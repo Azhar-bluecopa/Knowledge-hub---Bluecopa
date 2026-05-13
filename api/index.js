@@ -205,6 +205,21 @@ app.delete('/api/categories/:id', async (req, res) => {
   res.json({ success: true });
 });
 
+app.put('/api/categories/:id', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  const id = parseInt(req.params.id);
+  const { name, color } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'name required' });
+  const cat = (db.categories || []).find(c => c.id === id);
+  if (!cat) return res.status(404).json({ error: 'Not found' });
+  const duplicate = (db.categories || []).find(c => c.id !== id && c.name.toLowerCase() === name.trim().toLowerCase());
+  if (duplicate) return res.status(409).json({ error: 'Category name already exists' });
+  cat.name = name.trim();
+  if (color) cat.color = color;
+  await saveDB(db);
+  res.json(cat);
+});
+
 // ── Settings ──────────────────────────────────────────────────────────────────
 app.get('/api/settings', (req, res) => {
   const { adminPassword: _, ...pub } = db.settings || {};
