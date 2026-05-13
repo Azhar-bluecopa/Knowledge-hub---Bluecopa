@@ -197,8 +197,8 @@ app.post('/api/categories', async (req, res) => {
 
 app.delete('/api/categories/:id', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
-  const id = parseInt(req.params.id);
-  const idx = (db.categories || []).findIndex(c => c.id === id);
+  const idParam = req.params.id;
+  const idx = (db.categories || []).findIndex(c => String(c.id) === idParam);
   if (idx === -1) return res.status(404).json({ error: 'Not found' });
   db.categories.splice(idx, 1);
   await saveDB(db);
@@ -207,12 +207,13 @@ app.delete('/api/categories/:id', async (req, res) => {
 
 app.put('/api/categories/:id', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
-  const id = parseInt(req.params.id);
+  const idParam = req.params.id;
   const { name, color } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'name required' });
-  const cat = (db.categories || []).find(c => c.id === id);
+  // Use string comparison to avoid type-mismatch issues (number vs float vs string IDs)
+  const cat = (db.categories || []).find(c => String(c.id) === idParam);
   if (!cat) return res.status(404).json({ error: 'Not found' });
-  const duplicate = (db.categories || []).find(c => c.id !== id && c.name.toLowerCase() === name.trim().toLowerCase());
+  const duplicate = (db.categories || []).find(c => String(c.id) !== idParam && c.name.toLowerCase() === name.trim().toLowerCase());
   if (duplicate) return res.status(409).json({ error: 'Category name already exists' });
   cat.name = name.trim();
   if (color) cat.color = color;
