@@ -112,6 +112,10 @@ function migrate() {
   }
   // add views to existing articles
   db.articles.forEach(a => { if (a.views === undefined) { a.views = 0; dirty = true; } });
+  if (!db.skillMatrix) {
+    db.skillMatrix = { processAreas: [], employees: [], currentScores: {}, snapshots: [], nextSnapshotId: 1 };
+    dirty = true;
+  }
   if (dirty) saveDB(db);
 }
 
@@ -636,6 +640,62 @@ ${articleContext}
     res.write(`data: ${JSON.stringify({ type: 'error', message: err.message })}\n\n`);
     res.end();
   }
+});
+
+// ── Skill Matrix ──────────────────────────────────────────────────────────────
+app.get('/api/skillmatrix', (req, res) => {
+  res.json(db.skillMatrix || { processAreas: [], employees: [], currentScores: {}, snapshots: [] });
+});
+
+app.put('/api/skillmatrix/config', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  if (!db.skillMatrix) db.skillMatrix = { processAreas: [], employees: [], currentScores: {}, snapshots: [], nextSnapshotId: 1 };
+  const { processAreas, employees } = req.body;
+  if (Array.isArray(processAreas)) db.skillMatrix.processAreas = processAreas.map(p => p.trim()).filter(Boolean);
+  if (Array.isArray(employees))    db.skillMatrix.employees    = employees.map(e => e.trim()).filter(Boolean);
+  saveDB(db);
+  broadcast({ type: 'skillmatrix_config_updated' });
+  res.json({ processAreas: db.skillMatrix.processAreas, employees: db.skillMatrix.employees });
+});
+
+app.put('/api/skillmatrix/scores', (req, res) => {
+  if (!db.skillMatrix) return res.status(404).json({ error: 'Not configured' });
+  const { scores } = req.body;
+  db.skillMatrix.currentScores = scores || {};
+  saveDB(db);
+  res.json({ success: true });
+});
+
+app.post('/api/skillmatrix/snapshots', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  if (!db.skillMatrix) return res.status(404).json({ error: 'Not configured' });
+  const { label } = req.body;
+  if (!db.skillMatrix.nextSnapshotId) db.skillMatrix.nextSnapshotId = 1;
+  const now = new Date();
+  const autoLabel = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const snapshot = {
+    id:         db.skillMatrix.nextSnapshotId++,
+    label:      label?.trim() || autoLabel,
+    date:       now.toISOString().split('T')[0],
+    scores:     JSON.parse(JSON.stringify(db.skillMatrix.currentScores || {})),
+    created_at: now.toISOString()
+  };
+  if (!db.skillMatrix.snapshots) db.skillMatrix.snapshots = [];
+  db.skillMatrix.snapshots.push(snapshot);
+  saveDB(db);
+  broadcast({ type: 'skillmatrix_snapshot', snapshot });
+  res.status(201).json(snapshot);
+});
+
+app.delete('/api/skillmatrix/snapshots/:id', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  if (!db.skillMatrix?.snapshots) return res.status(404).json({ error: 'Not found' });
+  const id  = parseInt(req.params.id);
+  const idx = db.skillMatrix.snapshots.findIndex(s => s.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  db.skillMatrix.snapshots.splice(idx, 1);
+  saveDB(db);
+  res.json({ success: true });
 });
 
 // ── File upload ───────────────────────────────────────────────────────────────
