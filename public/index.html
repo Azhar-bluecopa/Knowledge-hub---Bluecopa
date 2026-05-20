@@ -3232,7 +3232,7 @@ function smRenderDashboard() {
     },
     scales:{
       y:{ beginAtZero:true, max:4.5, ticks:{ color:'#7a7a96', callback:v=>SM_LEVELS[v]||'' }, grid:{color:'#2a2a38'} },
-      x:{ ticks:{ color:'#7a7a96', maxRotation:0, minRotation:0, align:'center' }, grid:{color:'#2a2a38'} }
+      x:{ ticks:{ color:'#7a7a96', maxRotation:0, minRotation:0, align:'center', autoSkip:false, callback: function(val,i){ const lbl=this.getLabelForValue(val); return lbl.length>14 ? lbl.slice(0,13)+'…' : lbl; } }, grid:{color:'#2a2a38'} }
     }
   });
 
@@ -3309,7 +3309,7 @@ function smRenderComparison() {
         legend:{labels:{color:'#e8e8f0'}},
         datalabels:{ anchor:'end', align:'top', color:'#e8e8f0', font:{size:10,weight:'600'}, formatter:v=>v>0?v.toFixed(1):'' }
       },
-      scales:{ y:{beginAtZero:true,max:4.5,ticks:{color:'#7a7a96',callback:v=>SM_LEVELS[v]||''},grid:{color:'#2a2a38'}}, x:{ticks:{color:'#7a7a96',maxRotation:0,minRotation:0,align:'center'},grid:{color:'#2a2a38'}} }
+      scales:{ y:{beginAtZero:true,max:4.5,ticks:{color:'#7a7a96',callback:v=>SM_LEVELS[v]||''},grid:{color:'#2a2a38'}}, x:{ticks:{color:'#7a7a96',maxRotation:0,minRotation:0,align:'center',autoSkip:false,callback:function(val,i){const lbl=this.getLabelForValue(val);return lbl.length>14?lbl.slice(0,13)+'…':lbl;}},grid:{color:'#2a2a38'}} }
     }
   });
 }
