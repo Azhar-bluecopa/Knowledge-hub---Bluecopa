@@ -3261,6 +3261,9 @@ function smRenderDashboard() {
         legend:{position:'bottom',labels:{color:'#e8e8f0',padding:14}},
         datalabels:{
           color:'#fff',
+          anchor:'center',
+          align:'center',
+          textAlign:'center',
           font:{size:12,weight:'700'},
           formatter:(val)=> distTotal>0 && val>0 ? `${val}\n(${Math.round(val/distTotal*100)}%)` : ''
         }
