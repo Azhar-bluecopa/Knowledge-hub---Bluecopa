@@ -3251,10 +3251,21 @@ function smRenderDashboard() {
   // Chart 3: Distribution (Beginner/Intermediate/Advanced/Expert counts)
   const dist = [0,0,0,0];
   employees.forEach(emp=>processAreas.forEach(pa=>{const v=(currentScores[emp]||{})[pa]||0;if(v>0)dist[v-1]++;}));
+  const distTotal = dist.reduce((a,b)=>a+b,0);
   smCharts.dist = new Chart(document.getElementById('smChartDist'), {
     type:'doughnut',
     data:{ labels:SM_LEVELS.slice(1), datasets:[{ data:dist, backgroundColor:['#e87a7a','#f9a74f','#7ae8b4','#00c8cc'], borderWidth:0 }] },
-    options:{ responsive:true, plugins:{ legend:{position:'bottom',labels:{color:'#e8e8f0',padding:14}} } }
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{position:'bottom',labels:{color:'#e8e8f0',padding:14}},
+        datalabels:{
+          color:'#fff',
+          font:{size:12,weight:'700'},
+          formatter:(val)=> distTotal>0 && val>0 ? `${val}\n(${Math.round(val/distTotal*100)}%)` : ''
+        }
+      }
+    }
   });
 
   // Chart 4: Employee avg scores
