@@ -3263,9 +3263,16 @@ function smRenderDashboard() {
     processAreas.forEach(pa=>{const v=(currentScores[emp]||{})[pa]||0;if(v>0){tot+=v;cnt++;}});
     return cnt?+(tot/cnt).toFixed(2):0;
   });
+  // Split employee names into 2 lines for readability
+  const empLabels = employees.map(emp => {
+    const words = emp.trim().split(' ');
+    if (words.length <= 1) return emp;
+    const mid = Math.ceil(words.length / 2);
+    return [words.slice(0, mid).join(' '), words.slice(mid).join(' ')];
+  });
   smCharts.emp = new Chart(document.getElementById('smChartEmp'), {
     type:'bar',
-    data:{ labels:employees, datasets:[{ data:empAvgs, backgroundColor:empAvgs.map(v=>SM_COLORS[Math.round(v)]||'#7a7a96'), borderRadius:5 }] },
+    data:{ labels:empLabels, datasets:[{ data:empAvgs, backgroundColor:empAvgs.map(v=>SM_COLORS[Math.round(v)]||'#7a7a96'), borderRadius:5 }] },
     options: chartOpts()
   });
 
