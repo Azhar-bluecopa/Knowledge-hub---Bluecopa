@@ -470,6 +470,59 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .ai-article-link:hover{background:rgba(53,72,255,.28);border-color:#6c7fff;color:#fff;transform:translateY(-1px);}
 .ai-link{color:#8ac2ff;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;}
 .ai-link:hover{color:#fff;}
+/* ── Skill Matrix ─────────────────────────────────────────────────────────── */
+.sm-overlay{position:fixed;inset:0;background:var(--bg);z-index:200;display:none;flex-direction:column;margin-left:260px;}
+.sm-overlay.active{display:flex;}
+.sm-topbar{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.sm-topbar-title{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:#00c8cc;letter-spacing:.08em;}
+.sm-tabs{display:flex;gap:8px;}
+.sm-tab{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:7px 18px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .18s;}
+.sm-tab.active{border-color:#00c8cc;color:#00c8cc;background:rgba(0,200,204,.1);}
+.sm-panel{display:none;flex:1;overflow:auto;padding:24px 28px;}
+.sm-panel.active{display:block;}
+.sm-panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.sm-capture-btn{background:#00c8cc;color:#0d1b2f;border:none;border-radius:8px;padding:9px 22px;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.08em;cursor:pointer;transition:opacity .18s;}
+.sm-capture-btn:hover{opacity:.85;}
+.sm-table-wrap{overflow:auto;border-radius:10px;border:1px solid var(--border);}
+.sm-table{border-collapse:collapse;width:100%;min-width:900px;}
+.sm-table thead tr{background:#0d1b2f;}
+.sm-table thead th{padding:10px 14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.07em;color:#00c8cc;text-align:center;white-space:nowrap;border-right:1px solid var(--border);}
+.sm-table thead th:first-child{text-align:left;color:var(--text);position:sticky;left:0;background:#0d1b2f;z-index:2;min-width:160px;}
+.sm-table thead th:last-child,.sm-table thead th:nth-last-child(2){color:var(--accent);}
+.sm-table tbody tr{border-bottom:1px solid var(--border);}
+.sm-table tbody td{padding:7px 10px;text-align:center;border-right:1px solid var(--border);background:var(--surface);font-size:12px;}
+.sm-table tbody td:first-child{text-align:left;font-size:13px;font-weight:500;color:var(--text);position:sticky;left:0;background:var(--surface);z-index:1;white-space:nowrap;padding:7px 14px;}
+.sm-table tfoot tr:first-child td{border-top:2px solid var(--border);}
+.sm-table tfoot td{padding:9px 10px;text-align:center;border-right:1px solid var(--border);background:var(--surface2);font-size:12px;}
+.sm-table tfoot td:first-child{text-align:left;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.07em;color:var(--accent);position:sticky;left:0;background:var(--surface2);z-index:1;padding:9px 14px;}
+.sm-select{background:transparent;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;width:100%;padding:2px;}
+.sm-select option{background:#17171e;color:var(--text);}
+.lv-0{color:var(--muted);}
+.lv-1{color:#e87a7a;font-weight:500;}
+.lv-2{color:#f9a74f;font-weight:500;}
+.lv-3{color:#7ae8b4;font-weight:500;}
+.lv-4{color:#00c8cc;font-weight:600;}
+.sm-db-controls{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap;}
+.sm-snap-sel{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;cursor:pointer;}
+.sm-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.sm-kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center;}
+.sm-kpi-val{font-size:26px;font-weight:700;color:var(--accent);font-family:'DM Mono',monospace;}
+.sm-kpi-lbl{font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.08em;}
+.sm-chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.sm-chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.sm-chart-card.full{grid-column:1/-1;}
+.sm-chart-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px;}
+.sm-empty{padding:60px 20px;text-align:center;color:var(--muted);font-size:14px;}
+.sm-adm-section{margin-bottom:20px;}
+.sm-adm-lbl{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.sm-adm-list{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;max-height:150px;overflow-y:auto;}
+.sm-adm-item{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-radius:7px;padding:7px 12px;font-size:13px;}
+.sm-adm-del{background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px;line-height:1;}
+.sm-adm-add{display:flex;gap:8px;}
+.sm-snap-list{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;}
+.sm-snap-item{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-radius:8px;padding:9px 14px;}
+.sm-snap-name{font-size:13px;font-weight:500;color:var(--text);}
+.sm-snap-date{font-size:11px;color:var(--muted);margin-top:2px;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
@@ -680,6 +733,33 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div id="dashActivityFeed"></div>
     </div>
 
+  </div>
+</div>
+
+<!-- ── Skill Matrix Overlay ── -->
+<div class="sm-overlay" id="smOverlay">
+  <!-- Top bar -->
+  <div class="sm-topbar">
+    <span class="sm-topbar-title">📈 SKILL MATRIX</span>
+    <div class="sm-tabs">
+      <button class="sm-tab active" id="smTabAssess" onclick="smSwitchTab('assess')">📝 Self-Assessment</button>
+      <button class="sm-tab" id="smTabDash" onclick="smSwitchTab('dashboard')">📊 Dashboard</button>
+    </div>
+    <button class="btn-ghost" onclick="hideSkillMatrix()" style="font-size:13px;">← Back</button>
+  </div>
+
+  <!-- Self-Assessment Panel -->
+  <div class="sm-panel active" id="smPanelAssess">
+    <div class="sm-panel-header">
+      <div style="font-size:14px;color:var(--muted);">Rate each team member's skill level per process area.</div>
+      <button class="sm-capture-btn" id="smCaptureBtn" onclick="smCaptureSnapshot()" style="display:none;">CAPTURE SNAPSHOT</button>
+    </div>
+    <div id="smAssessContent"><div class="sm-empty">Loading…</div></div>
+  </div>
+
+  <!-- Dashboard Panel -->
+  <div class="sm-panel" id="smPanelDash">
+    <div id="smDashContent"><div class="sm-empty">Loading…</div></div>
   </div>
 </div>
 
@@ -950,6 +1030,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="admin-tab" onclick="switchAdminTab('requests',this)" id="requestsTab">📩 Requests</button>
       <button class="admin-tab" onclick="switchAdminTab('settings',this)">⚙ Site Settings</button>
       <button class="admin-tab" onclick="switchAdminTab('password',this)">🔑 Password</button>
+      <button class="admin-tab" onclick="switchAdminTab('skillmatrix',this)">📈 Skill Matrix</button>
     </div>
 
     <!-- Tab: Categories -->
@@ -1013,6 +1094,35 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <input class="form-input" type="password" id="confirmAdminPwd" placeholder="Confirm new password"/>
         </div>
         <button class="btn-primary" onclick="changeAdminPassword()">Update Password</button>
+      </div>
+    </div>
+
+    <!-- Tab: Skill Matrix -->
+    <div class="admin-tab-panel" id="tab-skillmatrix">
+      <div style="padding:4px 0;">
+        <!-- Employees -->
+        <div class="sm-adm-section">
+          <div class="sm-adm-lbl">Employees</div>
+          <div class="sm-adm-list" id="smAdmEmpList"></div>
+          <div class="sm-adm-add">
+            <input class="form-input" type="text" id="smAdmEmpInput" placeholder="Add employee name" style="flex:1;"/>
+            <button class="btn-primary" onclick="smAdmAddEmp()" style="padding:9px 16px;white-space:nowrap;">+ Add</button>
+          </div>
+        </div>
+        <!-- Process Areas -->
+        <div class="sm-adm-section">
+          <div class="sm-adm-lbl">Process Areas</div>
+          <div class="sm-adm-list" id="smAdmPAList"></div>
+          <div class="sm-adm-add">
+            <input class="form-input" type="text" id="smAdmPAInput" placeholder="Add process area" style="flex:1;"/>
+            <button class="btn-primary" onclick="smAdmAddPA()" style="padding:9px 16px;white-space:nowrap;">+ Add</button>
+          </div>
+        </div>
+        <!-- Snapshots -->
+        <div class="sm-adm-section">
+          <div class="sm-adm-lbl">Snapshots</div>
+          <div class="sm-snap-list" id="smAdmSnapList"><div style="color:var(--muted);font-size:13px;">No snapshots yet.</div></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1764,10 +1874,6 @@ let _charts = {};
 function destroyChart(id) { if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; } }
 
 const CHART_COLORS = ['#7a9ee8','#e8c97a','#e87a9e','#7ae8b4','#c97ae8','#e8a87a','#7ae8e8','#e87a7a'];
-
-function showSkillMatrix() {
-  alert('Skill Matrix coming soon!');
-}
 
 function showDashboard() {
   document.getElementById('dashboardView').classList.add('active');
@@ -2854,6 +2960,430 @@ async function aiSend() {
   aiStreaming = false;
   document.getElementById('aiSendBtn').disabled = false;
   setTimeout(() => document.getElementById('aiInput').focus(), 100);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SKILL MATRIX
+// ══════════════════════════════════════════════════════════════════════════════
+let smData = null;
+let smSaveTimer = null;
+let smCharts = {};
+
+const SM_LEVELS = ['', 'Beginner', 'Intermediate', 'Advanced', 'Expert'];
+const SM_COLORS = { 0:'var(--muted)', 1:'#e87a7a', 2:'#f9a74f', 3:'#7ae8b4', 4:'#00c8cc' };
+
+function smScoreToStatus(avg) {
+  if (!avg || avg === 0) return { label:'No Data', cls:'lv-0' };
+  if (avg <= 1.5) return { label:'Beginner',     cls:'lv-1' };
+  if (avg <= 2.5) return { label:'Intermediate', cls:'lv-2' };
+  if (avg <= 3.5) return { label:'Advanced',     cls:'lv-3' };
+  return            { label:'Expert',        cls:'lv-4' };
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+async function showSkillMatrix() {
+  document.getElementById('smOverlay').classList.add('active');
+  document.querySelector('.main').style.display = 'none';
+  const tb = document.getElementById('topbarSkillBtn');
+  if (tb) { tb.style.color='#00c8cc'; tb.style.background='rgba(0,200,204,.1)'; }
+  await smLoad();
+}
+
+function hideSkillMatrix() {
+  document.getElementById('smOverlay').classList.remove('active');
+  document.querySelector('.main').style.display = '';
+  const tb = document.getElementById('topbarSkillBtn');
+  if (tb) { tb.style.color=''; tb.style.background=''; }
+  smDestroyCharts();
+}
+
+function smSwitchTab(tab) {
+  document.getElementById('smPanelAssess').classList.toggle('active', tab==='assess');
+  document.getElementById('smPanelDash').classList.toggle('active', tab==='dashboard');
+  document.getElementById('smTabAssess').classList.toggle('active', tab==='assess');
+  document.getElementById('smTabDash').classList.toggle('active', tab==='dashboard');
+  if (tab==='dashboard') smRenderDashboard();
+}
+
+// ── Load & Render ─────────────────────────────────────────────────────────────
+async function smLoad() {
+  try {
+    const r = await fetch('/api/skillmatrix');
+    smData = await r.json();
+  } catch(e) {
+    smData = { employees:[], processAreas:[], currentScores:{}, snapshots:[], nextSnapshotId:1 };
+  }
+  smRender();
+}
+
+function smRender() {
+  const isAdmin = !!getAdminPwd();
+  document.getElementById('smCaptureBtn').style.display = isAdmin ? '' : 'none';
+  smRenderGrid();
+}
+
+// ── Self-Assessment Grid ──────────────────────────────────────────────────────
+function smRenderGrid() {
+  const wrap = document.getElementById('smAssessContent');
+  const { employees, processAreas, currentScores } = smData;
+
+  if (!employees.length || !processAreas.length) {
+    wrap.innerHTML = '<div class="sm-empty">No employees or process areas configured yet.<br>Go to <strong>Admin Panel → 📈 Skill Matrix</strong> to add them.</div>';
+    return;
+  }
+
+  let html = '<div class="sm-table-wrap"><table class="sm-table"><thead><tr>';
+  html += '<th>Employee Name</th>';
+  processAreas.forEach(pa => { html += `<th>${pa}</th>`; });
+  html += '<th>Avg Score</th><th>Status</th></tr></thead><tbody>';
+
+  employees.forEach(emp => {
+    const scores = currentScores[emp] || {};
+    let total = 0, count = 0;
+    processAreas.forEach(pa => { const v=scores[pa]||0; if(v>0){total+=v;count++;} });
+    const avg = count ? (total/count) : 0;
+    const status = smScoreToStatus(avg);
+
+    html += `<tr><td>${emp}</td>`;
+    processAreas.forEach(pa => {
+      const v = scores[pa] || 0;
+      html += `<td><select class="sm-select lv-${v}" onchange="smSetScore('${emp.replace(/'/g,"\\'")}','${pa.replace(/'/g,"\\'")}',this.value,this)">`;
+      html += `<option value="0"${v===0?' selected':''}>—</option>`;
+      SM_LEVELS.slice(1).forEach((lv,i) => {
+        html += `<option value="${i+1}"${v===i+1?' selected':''}>${lv}</option>`;
+      });
+      html += `</select></td>`;
+    });
+    html += `<td class="${avg?'lv-'+(smScoreToStatus(avg).cls.slice(3)||'0'):'lv-0'}" style="font-weight:600;">${avg?avg.toFixed(1):'—'}</td>`;
+    html += `<td class="${status.cls}">${status.label}</td></tr>`;
+  });
+
+  html += '</tbody><tfoot>';
+
+  // Team Average row
+  html += '<tr><td>TEAM AVERAGE</td>';
+  processAreas.forEach(pa => {
+    let tot=0,cnt=0;
+    employees.forEach(emp => { const v=(currentScores[emp]||{})[pa]||0; if(v>0){tot+=v;cnt++;} });
+    const avg = cnt ? (tot/cnt) : 0;
+    const st = smScoreToStatus(avg);
+    html += `<td class="${st.cls}">${avg?avg.toFixed(1):'—'}</td>`;
+  });
+  html += '<td></td><td></td></tr>';
+
+  // PA Status row
+  html += '<tr><td>PA STATUS</td>';
+  processAreas.forEach(pa => {
+    let tot=0,cnt=0;
+    employees.forEach(emp => { const v=(currentScores[emp]||{})[pa]||0; if(v>0){tot+=v;cnt++;} });
+    const avg = cnt ? (tot/cnt) : 0;
+    const st = smScoreToStatus(avg);
+    html += `<td class="${st.cls}">${st.label}</td>`;
+  });
+  html += '<td></td><td></td></tr>';
+
+  html += '</tfoot></table></div>';
+  wrap.innerHTML = html;
+}
+
+function smSetScore(emp, pa, val, sel) {
+  if (!smData.currentScores[emp]) smData.currentScores[emp] = {};
+  smData.currentScores[emp][pa] = parseInt(val);
+  sel.className = `sm-select lv-${val}`;
+  // Recalculate avg & status for this row inline
+  smUpdateRowStats(emp);
+  smUpdateFooter();
+  // Debounce auto-save
+  clearTimeout(smSaveTimer);
+  smSaveTimer = setTimeout(smAutoSave, 1500);
+}
+
+function smUpdateRowStats(emp) {
+  const { processAreas, currentScores } = smData;
+  const scores = currentScores[emp] || {};
+  let tot=0,cnt=0;
+  processAreas.forEach(pa => { const v=scores[pa]||0; if(v>0){tot+=v;cnt++;} });
+  const avg = cnt ? tot/cnt : 0;
+  const st = smScoreToStatus(avg);
+  // Update the last two cells of this employee's row
+  const rows = document.querySelectorAll('.sm-table tbody tr');
+  rows.forEach(row => {
+    if (row.cells[0] && row.cells[0].textContent === emp) {
+      const n = row.cells.length;
+      row.cells[n-2].className = st.cls;
+      row.cells[n-2].textContent = avg ? avg.toFixed(1) : '—';
+      row.cells[n-1].className = st.cls;
+      row.cells[n-1].textContent = st.label;
+    }
+  });
+}
+
+function smUpdateFooter() {
+  const { employees, processAreas, currentScores } = smData;
+  const frows = document.querySelectorAll('.sm-table tfoot tr');
+  if (!frows.length) return;
+  const avgRow = frows[0], stRow = frows[1];
+  processAreas.forEach((pa, i) => {
+    let tot=0,cnt=0;
+    employees.forEach(emp => { const v=(currentScores[emp]||{})[pa]||0; if(v>0){tot+=v;cnt++;} });
+    const avg = cnt ? tot/cnt : 0;
+    const st = smScoreToStatus(avg);
+    if (avgRow.cells[i+1]) { avgRow.cells[i+1].className=st.cls; avgRow.cells[i+1].textContent=avg?avg.toFixed(1):'—'; }
+    if (stRow.cells[i+1])  { stRow.cells[i+1].className=st.cls;  stRow.cells[i+1].textContent=st.label; }
+  });
+}
+
+async function smAutoSave() {
+  try {
+    await fetch('/api/skillmatrix/scores', {
+      method:'PUT', headers:{'Content-Type':'application/json',...adminHeaders()},
+      body: JSON.stringify({ scores: smData.currentScores })
+    });
+  } catch(e) {}
+}
+
+async function smCaptureSnapshot() {
+  const label = prompt('Snapshot name (e.g. "May 2026"):');
+  if (!label) return;
+  try {
+    const r = await fetch('/api/skillmatrix/snapshots', {
+      method:'POST', headers:{'Content-Type':'application/json',...adminHeaders()},
+      body: JSON.stringify({ label })
+    });
+    const snap = await r.json();
+    smData.snapshots.push(snap);
+    showToast(`Snapshot "${label}" captured!`);
+  } catch(e) { showToast('Failed to capture snapshot'); }
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function smDestroyCharts() {
+  Object.values(smCharts).forEach(c => { try{c.destroy();}catch(_){} });
+  smCharts = {};
+}
+
+function smRenderDashboard() {
+  const wrap = document.getElementById('smDashContent');
+  const { employees, processAreas, currentScores, snapshots } = smData;
+
+  if (!employees.length || !processAreas.length) {
+    wrap.innerHTML = '<div class="sm-empty">No data yet. Add employees and process areas in the Admin Panel.</div>';
+    return;
+  }
+
+  smDestroyCharts();
+
+  // Build snapshot options
+  const snapOpts = snapshots.map(s => `<option value="${s.id}">${s.label} (${new Date(s.date).toLocaleDateString()})</option>`).join('');
+  const snap1 = snapshots[snapshots.length-1];
+  const snap2 = snapshots.length>=2 ? snapshots[snapshots.length-2] : null;
+
+  // KPIs from current scores
+  let allScores=[], expertCount=0, totalCount=0;
+  employees.forEach(emp => {
+    processAreas.forEach(pa => {
+      const v=(currentScores[emp]||{})[pa]||0;
+      if(v>0){ allScores.push(v); totalCount++; if(v===4) expertCount++; }
+    });
+  });
+  const teamAvg = allScores.length ? (allScores.reduce((a,b)=>a+b,0)/allScores.length).toFixed(2) : '—';
+  const expertRate = totalCount ? Math.round(expertCount/totalCount*100)+'%' : '—';
+  const filledEmps = employees.filter(e => processAreas.some(pa => (currentScores[e]||{})[pa]>0)).length;
+
+  wrap.innerHTML = `
+    <div class="sm-kpi-row">
+      <div class="sm-kpi"><div class="sm-kpi-val">${teamAvg}</div><div class="sm-kpi-lbl">Team Avg Score</div></div>
+      <div class="sm-kpi"><div class="sm-kpi-val">${expertRate}</div><div class="sm-kpi-lbl">Expert Rate</div></div>
+      <div class="sm-kpi"><div class="sm-kpi-val">${filledEmps}/${employees.length}</div><div class="sm-kpi-lbl">Assessed</div></div>
+      <div class="sm-kpi"><div class="sm-kpi-val">${snapshots.length}</div><div class="sm-kpi-lbl">Snapshots</div></div>
+    </div>
+    <div class="sm-chart-grid">
+      <div class="sm-chart-card full"><div class="sm-chart-title">Team Average per Process Area (Current)</div><canvas id="smChartPA"></canvas></div>
+      <div class="sm-chart-card full"><div class="sm-chart-title">Period-over-Period Comparison
+        <span style="float:right;display:flex;gap:8px;">
+          <select class="sm-snap-sel" id="smSnap1Sel" onchange="smRenderComparison()">${snapOpts}</select>
+          <select class="sm-snap-sel" id="smSnap2Sel" onchange="smRenderComparison()">${snapOpts}</select>
+        </span>
+      </div><canvas id="smChartCompare"></canvas></div>
+      <div class="sm-chart-card"><div class="sm-chart-title">Score Distribution (Current)</div><canvas id="smChartDist"></canvas></div>
+      <div class="sm-chart-card"><div class="sm-chart-title">Employee Avg Scores (Current)</div><canvas id="smChartEmp"></canvas></div>
+    </div>`;
+
+  // Set default snapshot selections
+  if (snapshots.length >= 2) {
+    document.getElementById('smSnap1Sel').value = snap2.id;
+    document.getElementById('smSnap2Sel').value = snap1.id;
+  }
+
+  const chartOpts = (title) => ({
+    responsive:true, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>`${SM_LEVELS[Math.round(c.parsed.y||c.parsed)]||c.parsed.y||c.parsed}`}} },
+    scales:{ y:{ beginAtZero:true, max:4, ticks:{ color:'#7a7a96', callback:v=>SM_LEVELS[v]||v }, grid:{color:'#2a2a38'} }, x:{ ticks:{color:'#7a7a96'}, grid:{color:'#2a2a38'} } }
+  });
+
+  // Chart 1: Team avg per PA
+  const paAvgs = processAreas.map(pa => {
+    let tot=0,cnt=0;
+    employees.forEach(emp=>{const v=(currentScores[emp]||{})[pa]||0;if(v>0){tot+=v;cnt++;}});
+    return cnt?+(tot/cnt).toFixed(2):0;
+  });
+  smCharts.pa = new Chart(document.getElementById('smChartPA'), {
+    type:'bar',
+    data:{ labels:processAreas, datasets:[{ data:paAvgs, backgroundColor:paAvgs.map(v=>SM_COLORS[Math.round(v)]||'#7a7a96'), borderRadius:5 }] },
+    options: chartOpts()
+  });
+
+  // Chart 3: Distribution (Beginner/Intermediate/Advanced/Expert counts)
+  const dist = [0,0,0,0];
+  employees.forEach(emp=>processAreas.forEach(pa=>{const v=(currentScores[emp]||{})[pa]||0;if(v>0)dist[v-1]++;}));
+  smCharts.dist = new Chart(document.getElementById('smChartDist'), {
+    type:'doughnut',
+    data:{ labels:SM_LEVELS.slice(1), datasets:[{ data:dist, backgroundColor:['#e87a7a','#f9a74f','#7ae8b4','#00c8cc'], borderWidth:0 }] },
+    options:{ responsive:true, plugins:{ legend:{position:'bottom',labels:{color:'#e8e8f0',padding:14}} } }
+  });
+
+  // Chart 4: Employee avg scores
+  const empAvgs = employees.map(emp=>{
+    let tot=0,cnt=0;
+    processAreas.forEach(pa=>{const v=(currentScores[emp]||{})[pa]||0;if(v>0){tot+=v;cnt++;}});
+    return cnt?+(tot/cnt).toFixed(2):0;
+  });
+  smCharts.emp = new Chart(document.getElementById('smChartEmp'), {
+    type:'bar',
+    data:{ labels:employees, datasets:[{ data:empAvgs, backgroundColor:empAvgs.map(v=>SM_COLORS[Math.round(v)]||'#7a7a96'), borderRadius:5 }] },
+    options: chartOpts()
+  });
+
+  smRenderComparison();
+}
+
+function smRenderComparison() {
+  if (smCharts.compare) { smCharts.compare.destroy(); delete smCharts.compare; }
+  const { processAreas, snapshots, currentScores } = smData;
+  const sel1 = document.getElementById('smSnap1Sel');
+  const sel2 = document.getElementById('smSnap2Sel');
+  if (!sel1 || !sel2 || !snapshots.length) return;
+
+  const getScores = (id) => {
+    if (!id) return null;
+    const s = snapshots.find(s=>s.id==id);
+    return s ? s.scores : null;
+  };
+
+  const sc1 = getScores(sel1.value);
+  const sc2 = getScores(sel2.value);
+  if (!sc1 && !sc2) return;
+
+  const { employees } = smData;
+  const paAvg = (scores) => processAreas.map(pa=>{
+    let tot=0,cnt=0;
+    employees.forEach(emp=>{const v=(scores[emp]||{})[pa]||0;if(v>0){tot+=v;cnt++;}});
+    return cnt?+(tot/cnt).toFixed(2):0;
+  });
+
+  const datasets = [];
+  if (sc1) datasets.push({ label: sel1.options[sel1.selectedIndex]?.text||'Snapshot 1', data:paAvg(sc1), backgroundColor:'rgba(122,158,232,.7)', borderRadius:4 });
+  if (sc2) datasets.push({ label: sel2.options[sel2.selectedIndex]?.text||'Snapshot 2', data:paAvg(sc2), backgroundColor:'rgba(0,200,204,.7)', borderRadius:4 });
+
+  smCharts.compare = new Chart(document.getElementById('smChartCompare'), {
+    type:'bar',
+    data:{ labels:processAreas, datasets },
+    options:{
+      responsive:true,
+      plugins:{ legend:{labels:{color:'#e8e8f0'}} },
+      scales:{ y:{beginAtZero:true,max:4,ticks:{color:'#7a7a96',callback:v=>SM_LEVELS[v]||v},grid:{color:'#2a2a38'}}, x:{ticks:{color:'#7a7a96'},grid:{color:'#2a2a38'}} }
+    }
+  });
+}
+
+// ── Admin Panel ───────────────────────────────────────────────────────────────
+async function smAdmLoad() {
+  if (!smData) { try{ const r=await fetch('/api/skillmatrix'); smData=await r.json(); }catch(e){ smData={employees:[],processAreas:[],currentScores:{},snapshots:[],nextSnapshotId:1}; } }
+  smRenderAdmEmp();
+  smRenderAdmPA();
+  smRenderAdmSnaps();
+}
+
+function smRenderAdmEmp() {
+  const list = document.getElementById('smAdmEmpList');
+  if (!list) return;
+  list.innerHTML = smData.employees.length ? smData.employees.map((e,i)=>
+    `<div class="sm-adm-item"><span>${e}</span><button class="sm-adm-del" onclick="smAdmDel('emp',${i})">✕</button></div>`
+  ).join('') : '<div style="color:var(--muted);font-size:13px;padding:4px 0;">No employees yet.</div>';
+}
+
+function smRenderAdmPA() {
+  const list = document.getElementById('smAdmPAList');
+  if (!list) return;
+  list.innerHTML = smData.processAreas.length ? smData.processAreas.map((p,i)=>
+    `<div class="sm-adm-item"><span>${p}</span><button class="sm-adm-del" onclick="smAdmDel('pa',${i})">✕</button></div>`
+  ).join('') : '<div style="color:var(--muted);font-size:13px;padding:4px 0;">No process areas yet.</div>';
+}
+
+function smRenderAdmSnaps() {
+  const list = document.getElementById('smAdmSnapList');
+  if (!list) return;
+  list.innerHTML = smData.snapshots.length ? smData.snapshots.map(s=>
+    `<div class="sm-snap-item"><div><div class="sm-snap-name">${s.label}</div><div class="sm-snap-date">${new Date(s.date).toLocaleDateString()}</div></div><button class="sm-adm-del" onclick="smAdmDelSnap(${s.id})">✕</button></div>`
+  ).join('') : '<div style="color:var(--muted);font-size:13px;">No snapshots yet.</div>';
+}
+
+async function smAdmAddEmp() {
+  const inp = document.getElementById('smAdmEmpInput');
+  const name = inp.value.trim();
+  if (!name) return;
+  smData.employees.push(name);
+  inp.value = '';
+  await smSaveConfig();
+  smRenderAdmEmp();
+}
+
+async function smAdmAddPA() {
+  const inp = document.getElementById('smAdmPAInput');
+  const name = inp.value.trim();
+  if (!name) return;
+  smData.processAreas.push(name);
+  inp.value = '';
+  await smSaveConfig();
+  smRenderAdmPA();
+}
+
+async function smAdmDel(type, idx) {
+  if (type==='emp')  smData.employees.splice(idx,1);
+  if (type==='pa')   smData.processAreas.splice(idx,1);
+  await smSaveConfig();
+  smRenderAdmEmp();
+  smRenderAdmPA();
+}
+
+async function smSaveConfig() {
+  try {
+    await fetch('/api/skillmatrix/config', {
+      method:'PUT', headers:{'Content-Type':'application/json',...adminHeaders()},
+      body: JSON.stringify({ employees: smData.employees, processAreas: smData.processAreas })
+    });
+    showToast('Saved!');
+  } catch(e) { showToast('Save failed'); }
+}
+
+async function smAdmDelSnap(id) {
+  if (!confirm('Delete this snapshot?')) return;
+  try {
+    await fetch(`/api/skillmatrix/snapshots/${id}`, { method:'DELETE', headers:adminHeaders() });
+    smData.snapshots = smData.snapshots.filter(s=>s.id!==id);
+    smRenderAdmSnaps();
+    showToast('Snapshot deleted');
+  } catch(e) { showToast('Delete failed'); }
+}
+
+// Hook admin panel tab switching
+const _origSwitchAdminTab = typeof switchAdminTab === 'function' ? switchAdminTab : null;
+function switchAdminTab(tab, btn) {
+  document.querySelectorAll('.admin-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.admin-tab-panel').forEach(p=>p.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const panel = document.getElementById('tab-'+tab);
+  if(panel) panel.classList.add('active');
+  if(tab==='skillmatrix') smAdmLoad();
 }
 </script>
 </body>

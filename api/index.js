@@ -646,4 +646,61 @@ app.patch('/api/article-requests/:id', (req, res) => {
   res.json(item);
 });
 
+// ── Skill Matrix ──────────────────────────────────────────────────────────────
+function ensureSM() {
+  if (!db.skillMatrix) db.skillMatrix = { employees:[], processAreas:[], currentScores:{}, snapshots:[], nextSnapshotId:1 };
+}
+
+// GET full skill matrix data
+app.get('/api/skillmatrix', (req, res) => {
+  ensureSM();
+  res.json(db.skillMatrix);
+});
+
+// PUT config (admin: update employees + process areas)
+app.put('/api/skillmatrix/config', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureSM();
+  const { employees, processAreas } = req.body;
+  if (Array.isArray(employees))    db.skillMatrix.employees    = employees;
+  if (Array.isArray(processAreas)) db.skillMatrix.processAreas = processAreas;
+  await saveDB(db);
+  res.json(db.skillMatrix);
+});
+
+// PUT scores (any logged-in user saves current scores)
+app.put('/api/skillmatrix/scores', async (req, res) => {
+  ensureSM();
+  const { scores } = req.body;
+  if (scores && typeof scores === 'object') db.skillMatrix.currentScores = scores;
+  await saveDB(db);
+  res.json({ ok: true });
+});
+
+// POST snapshot (admin)
+app.post('/api/skillmatrix/snapshots', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureSM();
+  const { label } = req.body;
+  const snap = {
+    id: db.skillMatrix.nextSnapshotId++,
+    label: label || `Snapshot ${db.skillMatrix.nextSnapshotId - 1}`,
+    date: new Date().toISOString(),
+    scores: JSON.parse(JSON.stringify(db.skillMatrix.currentScores))
+  };
+  db.skillMatrix.snapshots.push(snap);
+  await saveDB(db);
+  res.json(snap);
+});
+
+// DELETE snapshot (admin)
+app.delete('/api/skillmatrix/snapshots/:id', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureSM();
+  const id = parseInt(req.params.id);
+  db.skillMatrix.snapshots = db.skillMatrix.snapshots.filter(s => s.id !== id);
+  await saveDB(db);
+  res.json({ ok: true });
+});
+
 module.exports = app;

@@ -679,5 +679,57 @@ initDB().then(() => {
   process.exit(1);
 });
 
+// ── Skill Matrix ──────────────────────────────────────────────────────────────
+function ensureSM() {
+  if (!db.skillMatrix) db.skillMatrix = { employees:[], processAreas:[], currentScores:{}, snapshots:[], nextSnapshotId:1 };
+}
+
+app.get('/api/skillmatrix', (req, res) => {
+  ensureSM();
+  res.json(db.skillMatrix);
+});
+
+app.put('/api/skillmatrix/config', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureSM();
+  const { employees, processAreas } = req.body;
+  if (Array.isArray(employees))    db.skillMatrix.employees    = employees;
+  if (Array.isArray(processAreas)) db.skillMatrix.processAreas = processAreas;
+  saveDB();
+  res.json(db.skillMatrix);
+});
+
+app.put('/api/skillmatrix/scores', (req, res) => {
+  ensureSM();
+  const { scores } = req.body;
+  if (scores && typeof scores === 'object') db.skillMatrix.currentScores = scores;
+  saveDB();
+  res.json({ ok: true });
+});
+
+app.post('/api/skillmatrix/snapshots', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureSM();
+  const { label } = req.body;
+  const snap = {
+    id: db.skillMatrix.nextSnapshotId++,
+    label: label || `Snapshot ${db.skillMatrix.nextSnapshotId - 1}`,
+    date: new Date().toISOString(),
+    scores: JSON.parse(JSON.stringify(db.skillMatrix.currentScores))
+  };
+  db.skillMatrix.snapshots.push(snap);
+  saveDB();
+  res.json(snap);
+});
+
+app.delete('/api/skillmatrix/snapshots/:id', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureSM();
+  const id = parseInt(req.params.id);
+  db.skillMatrix.snapshots = db.skillMatrix.snapshots.filter(s => s.id !== id);
+  saveDB();
+  res.json({ ok: true });
+});
+
 // ── Export for Vercel serverless ──────────────────────────────────────────────
 module.exports = app;
