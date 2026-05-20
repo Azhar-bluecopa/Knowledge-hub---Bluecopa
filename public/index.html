@@ -531,6 +531,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="search-icon-btn" id="searchIconBtn" onclick="toggleTopbarSearch()" title="Search">
         🔍 <span style="font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;">Search</span>
       </button>
+      <button class="btn-ghost" id="topbarSkillBtn" onclick="showSkillMatrix()" title="Skill Matrix" style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;">
+        📈 <span>Skill Matrix</span>
+      </button>
       <button class="btn-ghost" id="topbarDashBtn" onclick="showDashboard()" title="Dashboard" style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;">
         📊 <span>Dashboard</span>
       </button>
@@ -1761,6 +1764,10 @@ let _charts = {};
 function destroyChart(id) { if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; } }
 
 const CHART_COLORS = ['#7a9ee8','#e8c97a','#e87a9e','#7ae8b4','#c97ae8','#e8a87a','#7ae8e8','#e87a7a'];
+
+function showSkillMatrix() {
+  alert('Skill Matrix coming soon!');
+}
 
 function showDashboard() {
   document.getElementById('dashboardView').classList.add('active');
