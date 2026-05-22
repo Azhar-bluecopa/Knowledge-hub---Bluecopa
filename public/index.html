@@ -3127,10 +3127,39 @@ async function aiSend() {
       }))
     }));
 
+    // Ensure skill matrix data is loaded
+    if (!smData) {
+      try {
+        const sr = await fetch('/api/skillmatrix');
+        smData = await sr.json();
+      } catch(e) { smData = { employees:[], processAreas:[], currentScores:{}, snapshots:[] }; }
+    }
+
+    // Build skill matrix payload
+    let skillMatrixPayload = null;
+    if (smData && smData.employees && smData.employees.length) {
+      const SM_LVL = ['Unassessed','Beginner','Intermediate','Advanced','Expert'];
+      skillMatrixPayload = {
+        employees: smData.employees,
+        processAreas: smData.processAreas,
+        scores: smData.currentScores,
+        snapshots: smData.snapshots.map(s => ({
+          label: s.label,
+          date: s.date,
+          // compact: avg score per employee in this snapshot
+          employeeAvgs: smData.employees.map(e => {
+            const sc = s.scores[e] || {};
+            const vals = smData.processAreas.map(pa => sc[pa]||0).filter(v=>v>0);
+            return { name: e, avg: vals.length ? +(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2) : 0 };
+          })
+        }))
+      };
+    }
+
     const resp = await fetch('/api/ask', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, history: aiHistory.slice(0, -1), roadmap: roadmapPayload })
+      body: JSON.stringify({ question, history: aiHistory.slice(0, -1), roadmap: roadmapPayload, skillMatrix: skillMatrixPayload })
     });
 
     aiRemoveTyping();

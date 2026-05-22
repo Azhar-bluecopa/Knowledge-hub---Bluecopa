@@ -388,7 +388,7 @@ app.get('/api/analytics', (req, res) => {
 
 // ── AI Ask (supports Anthropic Claude or Groq) ────────────────────────────────
 app.post('/api/ask', async (req, res) => {
-  const { question, articleId, history, roadmap } = req.body;
+  const { question, articleId, history, roadmap, skillMatrix } = req.body;
   if (!question?.trim()) return res.status(400).json({ error: 'Question is required.' });
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
@@ -456,11 +456,60 @@ app.post('/api/ask', async (req, res) => {
     `=== ARTICLE ID ${a.id}: ${a.title} ===\nCategory: ${a.category} | Tags: ${(a.tags||[]).join(', ')}\nLink: [${a.title}](#article-${a.id})\n\n${extractRelevant(a.content, qWords, 6000)}\n`
   ).join('\n---\n\n');
 
-  const systemPrompt = `You are the Bluecopa Knowledge Assistant. You answer employee questions using ONLY the articles in the knowledge base below. Never use outside knowledge.
+  // ── Skill Matrix Context ───────────────────────────────────────────────────
+  let skillMatrixContext = '';
+  if (skillMatrix && skillMatrix.employees && skillMatrix.employees.length) {
+    const { employees, processAreas, scores, snapshots } = skillMatrix;
+    const lvl = ['Unassessed','Beginner','Intermediate','Advanced','Expert'];
+
+    // Per-employee breakdown
+    const empRows = employees.map(emp => {
+      const sc = scores[emp] || {};
+      const vals = processAreas.map(pa => sc[pa]||0).filter(v=>v>0);
+      const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
+      const details = processAreas
+        .filter(pa => (sc[pa]||0) > 0)
+        .map(pa => `${pa}:${lvl[sc[pa]]}(${sc[pa]})`).join(', ');
+      return `  ${emp} | Avg:${avg} | ${details||'no scores'}`;
+    }).join('\n');
+
+    // Per-process-area summary
+    const paRows = processAreas.map(pa => {
+      const vals = employees.map(e => (scores[e]||{})[pa]||0).filter(v=>v>0);
+      const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
+      const experts = employees.filter(e => (scores[e]||{})[pa]===4);
+      const advanced = employees.filter(e => (scores[e]||{})[pa]===3);
+      return `  ${pa} | TeamAvg:${avg}${experts.length?` | Experts:${experts.join(',')}`:''}`
+           + `${advanced.length?` | Advanced:${advanced.join(',')}` : ''}`;
+    }).join('\n');
+
+    // Snapshot trend
+    const snapRows = (snapshots||[]).map(s =>
+      `  ${s.label}: ${s.employeeAvgs.map(e=>`${e.name}:${e.avg}`).join(', ')}`
+    ).join('\n');
+
+    skillMatrixContext = `
+
+SKILL MATRIX — Live Team Data:
+Score scale: 1=Beginner | 2=Intermediate | 3=Advanced | 4=Expert | 0=Unassessed
+
+EMPLOYEE SKILL SCORES:
+${empRows}
+
+PROCESS AREA OVERVIEW (team averages & top performers):
+${paRows}
+${snapRows ? `\nHISTORICAL SNAPSHOTS (employee avg scores per snapshot):\n${snapRows}` : ''}
+
+Use this to answer questions about: individual skill levels, who to contact for a skill, team strengths/gaps, top performers, skill trends over time. Source: Skill Matrix data.`;
+  }
+
+  const systemPrompt = `You are the Bluecopa Knowledge Assistant. You answer employee questions using the knowledge base, skill matrix data, and planned article roadmap below. Never use outside knowledge.
 
 STRICT RULES:
-- Use ONLY facts from the articles provided. Never invent URLs, steps, or info.
-- If the answer is not in the articles, say: "⚠️ I don't have this info yet. Please contact the relevant team."
+- Use ONLY facts from: (1) published articles, (2) skill matrix data, (3) roadmap. Never invent info.
+- If a topic is in the ROADMAP, tell the user the article is planned, who the owner is, and the expected date.
+- If a question is about team skills, answer using the SKILL MATRIX data directly.
+- If the answer is not in any of the three sources, say: "⚠️ I don't have this info yet. Please contact the relevant team."
 - Never echo format instructions back. Never write labels like "One-line direct answer:" or "Steps:" or "Source link:" in your response.
 - Write naturally, like a helpful colleague — not like filling in a template.
 
@@ -502,6 +551,7 @@ ${articleIndex}
 RELEVANT ARTICLE CONTENT:
 ${articleContext}
 — End of knowledge base —
+${skillMatrixContext}
 
 ${roadmap && roadmap.length ? `ARTICLE ROADMAP — Planned but not yet published:
 These articles are confirmed planned and will be published. If the user asks about a topic not covered in the published articles above but found here, tell them:
