@@ -3203,15 +3203,31 @@ function smRenderDashboard() {
       <div class="sm-kpi"><div class="sm-kpi-val">${snapshots.length}</div><div class="sm-kpi-lbl">Snapshots</div></div>
     </div>
     <div class="sm-chart-grid">
-      <div class="sm-chart-card full"><div class="sm-chart-title">Team Average per Process Area (Current)</div><canvas id="smChartPA"></canvas></div>
-      <div class="sm-chart-card full"><div class="sm-chart-title">Period-over-Period Comparison
-        <span style="float:right;display:flex;gap:8px;">
-          <select class="sm-snap-sel" id="smSnap1Sel" onchange="smRenderComparison()">${snapOpts}</select>
-          <select class="sm-snap-sel" id="smSnap2Sel" onchange="smRenderComparison()">${snapOpts}</select>
-        </span>
-      </div><canvas id="smChartCompare"></canvas></div>
-      <div class="sm-chart-card"><div class="sm-chart-title">Score Distribution (Current)</div><canvas id="smChartDist"></canvas></div>
-      <div class="sm-chart-card"><div class="sm-chart-title">Employee Avg Scores (Current)</div><canvas id="smChartEmp"></canvas></div>
+      <div class="sm-chart-card full"><div class="sm-chart-title">Team Average per Process Area (Current)</div><canvas id="smChartPA" style="max-height:220px;"></canvas></div>
+      <div class="sm-chart-card full">
+        <div class="sm-chart-title">Period-over-Period Comparison
+          <span style="float:right;display:flex;gap:8px;">
+            <select class="sm-snap-sel" id="smSnap1Sel" onchange="smRenderComparison()">${snapOpts}</select>
+            <select class="sm-snap-sel" id="smSnap2Sel" onchange="smRenderComparison()">${snapOpts}</select>
+          </span>
+        </div>
+        <canvas id="smChartCompare" style="max-height:220px;"></canvas>
+        ${getAdminPwd() ? `<div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
+          <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em;">🗂 Manage Snapshots</div>
+          <div style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;">
+            ${smData.snapshots.length ? smData.snapshots.map(s=>`
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-radius:8px;padding:8px 12px;">
+                <div>
+                  <div style="font-size:13px;font-weight:500;color:var(--text);">${s.label}</div>
+                  <div style="font-size:11px;color:var(--muted);">${new Date(s.date).toLocaleDateString()}</div>
+                </div>
+                <button onclick="smAdmDelSnap(${s.id})" style="background:rgba(232,122,122,0.15);border:1px solid rgba(232,122,122,0.3);color:#e87a7a;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">✕ Remove</button>
+              </div>`).join('') : '<div style="color:var(--muted);font-size:13px;">No snapshots yet.</div>'}
+          </div>
+        </div>` : ''}
+      </div>
+      <div class="sm-chart-card"><div class="sm-chart-title">Score Distribution (Current)</div><canvas id="smChartDist" style="max-height:200px;"></canvas></div>
+      <div class="sm-chart-card"><div class="sm-chart-title">Employee Avg Scores (Current)</div><canvas id="smChartEmp" style="max-height:200px;"></canvas></div>
     </div>`;
 
   // Set default snapshot selections
