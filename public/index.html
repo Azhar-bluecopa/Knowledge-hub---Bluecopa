@@ -514,6 +514,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .sm-chart-card.full{grid-column:1/-1;}
 .sm-view-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .18s;}
 .sm-view-btn.active{background:rgba(0,200,204,.12);border-color:#00c8cc;color:#00c8cc;}
+.sm-heatmap{border-collapse:separate;border-spacing:3px;width:100%;font-size:11px;}
+.sm-heatmap th{padding:5px 8px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.06em;text-align:center;white-space:nowrap;}
+.sm-heatmap td.sm-hm-name{color:var(--text);font-weight:500;text-align:left;padding:6px 10px;white-space:nowrap;font-size:12px;}
+.sm-heatmap td{padding:5px 8px;text-align:center;font-weight:700;font-family:'DM Mono',monospace;font-size:11px;border-radius:4px;}
+.sm-hm-0{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.2);}
+.sm-hm-1{background:rgba(232,122,122,0.22);color:#e87a7a;}
+.sm-hm-2{background:rgba(249,167,79,0.22);color:#f9a74f;}
+.sm-hm-3{background:rgba(122,232,180,0.22);color:#7ae8b4;}
+.sm-hm-4{background:rgba(0,200,204,0.22);color:#00c8cc;}
 .sm-chart-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px;}
 .sm-empty{padding:60px 20px;text-align:center;color:var(--muted);font-size:14px;}
 .sm-adm-section{margin-bottom:20px;}
@@ -3249,6 +3258,12 @@ function smRenderDashboard() {
         </div>
         <canvas id="smChartEmp" style="max-height:200px;"></canvas>
       </div>
+      <div class="sm-chart-card full"><div class="sm-chart-title">Team Skill Trend Over Time</div><canvas id="smChartTrend" style="max-height:200px;"></canvas><div id="smTrendEmpty" style="display:none;" class="sm-empty" style="padding:20px 0;font-size:13px;"></div></div>
+      <div class="sm-chart-card full"><div class="sm-chart-title">Coverage Risk by Process Area <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:8px;">— how many employees at each level per skill</span></div><canvas id="smChartCoverage" style="max-height:240px;"></canvas></div>
+      <div class="sm-chart-card full">
+        <div class="sm-chart-title">Skill Heatmap <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:8px;">— B=Beginner · I=Intermediate · A=Advanced · E=Expert</span></div>
+        <div id="smHeatmapWrap" style="overflow-x:auto;margin-top:8px;"></div>
+      </div>
     </div>`;
 
   // Set default snapshot selections
@@ -3291,6 +3306,77 @@ function smRenderDashboard() {
   smRenderEmp();
 
   smRenderComparison();
+
+  // Team Skill Trend
+  const trendLabels = [...snapshots.map(s=>s.label), 'Current'];
+  const trendScores = [...snapshots.map(s => {
+    let tot=0,cnt=0;
+    employees.forEach(e=>processAreas.forEach(pa=>{const v=(s.scores[e]||{})[pa]||0;if(v>0){tot+=v;cnt++;}}));
+    return cnt?+(tot/cnt).toFixed(2):0;
+  }), +(+teamAvg)||0];
+  if (snapshots.length > 0) {
+    smCharts.trend = new Chart(document.getElementById('smChartTrend'), {
+      type:'line',
+      data:{ labels:trendLabels, datasets:[{ label:'Team Avg', data:trendScores, borderColor:'#00c8cc', backgroundColor:'rgba(0,200,204,0.1)', tension:0.35, pointBackgroundColor:'#00c8cc', pointRadius:6, fill:true }] },
+      options:{
+        responsive:true, layout:{padding:{top:24}},
+        plugins:{ legend:{display:false}, datalabels:{anchor:'end',align:'top',color:'#e8e8f0',font:{size:12,weight:'700'},clamp:true,formatter:v=>v>0?v.toFixed(2):''} },
+        scales:{
+          y:{beginAtZero:true,max:4.5,ticks:{color:'#7a7a96',callback:v=>SM_LEVELS[v]||''},grid:{color:'#2a2a38'}},
+          x:{ticks:{color:'#7a7a96'},grid:{color:'#2a2a38'}}
+        }
+      }
+    });
+  } else {
+    document.getElementById('smChartTrend').style.display='none';
+    const el=document.getElementById('smTrendEmpty');
+    if(el){el.style.display='block';el.textContent='Capture snapshots over time to see the trend.';}
+  }
+
+  // Coverage Risk (stacked bar — employees per level per PA)
+  const covData = [1,2,3,4].map(lvl=>processAreas.map(pa=>employees.filter(e=>(currentScores[e]||{})[pa]===lvl).length));
+  smCharts.coverage = new Chart(document.getElementById('smChartCoverage'), {
+    type:'bar',
+    data:{
+      labels:processAreas,
+      datasets:[
+        {label:'Beginner',   data:covData[0], backgroundColor:'#e87a7a', borderRadius:3, stack:'s'},
+        {label:'Intermediate',data:covData[1], backgroundColor:'#f9a74f', borderRadius:3, stack:'s'},
+        {label:'Advanced',   data:covData[2], backgroundColor:'#7ae8b4', borderRadius:3, stack:'s'},
+        {label:'Expert',     data:covData[3], backgroundColor:'#00c8cc', borderRadius:3, stack:'s'}
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{ legend:{position:'bottom',labels:{color:'#e8e8f0',padding:14}}, datalabels:{display:false} },
+      scales:{
+        y:{beginAtZero:true,stacked:true,ticks:{color:'#7a7a96',stepSize:1},grid:{color:'#2a2a38'}},
+        x:{stacked:true,ticks:{color:'#7a7a96',maxRotation:30,minRotation:0},grid:{color:'#2a2a38'}}
+      }
+    }
+  });
+
+  // Skill Heatmap (HTML table)
+  const hmWrap = document.getElementById('smHeatmapWrap');
+  if (hmWrap) {
+    const hmLbl = ['—','B','I','A','E'];
+    hmWrap.innerHTML = `<table class="sm-heatmap">
+      <thead><tr>
+        <th style="text-align:left;">Employee</th>
+        ${processAreas.map(pa=>`<th title="${pa}">${pa.length>10?pa.slice(0,9)+'…':pa}</th>`).join('')}
+        <th>Avg</th>
+      </tr></thead>
+      <tbody>
+        ${employees.map(emp=>{
+          const sc=currentScores[emp]||{};
+          const vals=processAreas.map(pa=>sc[pa]||0);
+          const filled=vals.filter(v=>v>0);
+          const avg=filled.length?(filled.reduce((a,b)=>a+b,0)/filled.length).toFixed(1):'—';
+          return `<tr><td class="sm-hm-name">${emp}</td>${vals.map(v=>`<td class="sm-hm-${v}">${hmLbl[v]}</td>`).join('')}<td class="sm-hm-${Math.round(+avg)||0}">${avg}</td></tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+  }
 }
 
 function smRenderComparison() {
@@ -3488,6 +3574,8 @@ function smRenderIndDash(selectedEmp) {
       <div class="sm-chart-card full"><div class="sm-chart-title">Skills vs Team Average — ${emp}</div><canvas id="smIndChartPA" style="max-height:220px;"></canvas></div>
       <div class="sm-chart-card"><div class="sm-chart-title">Score Over Time</div><canvas id="smIndChartTime" style="max-height:200px;"></canvas></div>
       <div class="sm-chart-card"><div class="sm-chart-title">Skill Distribution</div><canvas id="smIndChartDist" style="max-height:200px;"></canvas></div>
+      <div class="sm-chart-card"><div class="sm-chart-title">Skill Radar</div><canvas id="smIndChartRadar" style="max-height:260px;"></canvas></div>
+      <div class="sm-chart-card full"><div class="sm-chart-title">Peer Ranking by Skill <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:8px;">— sorted by individual score, vs team average</span></div><canvas id="smIndChartRank" style="max-height:260px;"></canvas></div>
     </div>`;
 
   const empPaScores = processAreas.map(pa => empScores[pa]||0);
@@ -3537,6 +3625,67 @@ function smRenderIndDash(selectedEmp) {
       plugins:{
         legend:{position:'bottom',labels:{color:'#e8e8f0',padding:12}},
         datalabels:{color:'#fff',anchor:'center',align:'center',textAlign:'center',font:{size:12,weight:'700'},formatter:val=>distTotal>0&&val>0?`${val}\n(${Math.round(val/distTotal*100)}%)`:''}
+      }
+    }
+  });
+
+  // Skill Radar
+  smCharts.indRadar = new Chart(document.getElementById('smIndChartRadar'), {
+    type:'radar',
+    data:{
+      labels: processAreas,
+      datasets:[{
+        label: emp,
+        data: processAreas.map(pa=>empScores[pa]||0),
+        backgroundColor:'rgba(0,200,204,0.15)',
+        borderColor:'#00c8cc',
+        pointBackgroundColor:'#00c8cc',
+        pointRadius:4
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{ legend:{display:false}, datalabels:{display:false} },
+      scales:{
+        r:{
+          beginAtZero:true, min:0, max:4,
+          ticks:{stepSize:1,color:'#7a7a96',backdropColor:'transparent',callback:v=>SM_LEVELS[v]||''},
+          grid:{color:'#2a2a38'},
+          angleLines:{color:'#2a2a38'},
+          pointLabels:{color:'#e8e8f0',font:{size:11}}
+        }
+      }
+    }
+  });
+
+  // Peer Ranking (horizontal bar, sorted by individual score desc)
+  const rankPAs = [...processAreas].sort((a,b)=>(empScores[b]||0)-(empScores[a]||0));
+  const rankEmpScores = rankPAs.map(pa=>empScores[pa]||0);
+  const rankTeamAvg = rankPAs.map(pa=>{
+    let tot=0,cnt=0;
+    employees.forEach(e=>{const v=(currentScores[e]||{})[pa]||0;if(v>0){tot+=v;cnt++;}});
+    return cnt?+(tot/cnt).toFixed(2):0;
+  });
+  smCharts.indRank = new Chart(document.getElementById('smIndChartRank'), {
+    type:'bar',
+    data:{
+      labels: rankPAs,
+      datasets:[
+        {label:emp, data:rankEmpScores, backgroundColor:rankEmpScores.map(v=>SM_COLORS[Math.round(v)]||'rgba(122,122,150,.4)'), borderRadius:4},
+        {label:'Team Avg', data:rankTeamAvg, backgroundColor:'rgba(255,255,255,0.08)', borderColor:'rgba(255,255,255,0.3)', borderWidth:1.5, borderRadius:4}
+      ]
+    },
+    options:{
+      indexAxis:'y',
+      responsive:true,
+      layout:{padding:{right:30}},
+      plugins:{
+        legend:{labels:{color:'#e8e8f0'}},
+        datalabels:{anchor:'end',align:'right',color:'#e8e8f0',font:{size:10,weight:'600'},clamp:true,formatter:v=>v>0?v.toFixed(1):''}
+      },
+      scales:{
+        x:{beginAtZero:true,max:4.5,ticks:{color:'#7a7a96',callback:v=>SM_LEVELS[v]||''},grid:{color:'#2a2a38'}},
+        y:{ticks:{color:'#e8e8f0'},grid:{color:'#2a2a38'}}
       }
     }
   });
