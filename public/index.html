@@ -342,24 +342,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dashboard-view.active{display:flex;}
 .roadmap-view{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:200;background:var(--bg);flex-direction:column;overflow-y:auto;}
 .roadmap-view.active{display:flex;}
-.roadmap-body{padding:36px;flex:1;}
-.rm-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 13px;border-radius:20px;font-size:12px;font-weight:600;}
-.rm-badge.coming-soon{background:rgba(0,200,204,.14);color:#00c8cc;border:1px solid rgba(0,200,204,.3);}
-.rm-badge.planned{background:rgba(122,158,232,.14);color:#7a9ee8;border:1px solid rgba(122,158,232,.3);}
-.rm-badge.research{background:rgba(249,167,79,.14);color:#f9a74f;border:1px solid rgba(249,167,79,.3);}
-.roadmap-section{margin-bottom:40px;}
-.roadmap-section-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:18px;display:flex;align-items:center;gap:12px;}
-.roadmap-section-title::after{content:'';flex:1;height:1px;background:var(--border);}
-.roadmap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;}
-.roadmap-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;transition:border-color .18s,transform .15s;}
-.roadmap-card:hover{border-color:rgba(0,200,204,.3);transform:translateY(-2px);}
-.roadmap-card-top{margin-bottom:12px;}
-.roadmap-card-title{font-size:15px;font-weight:600;color:var(--text);line-height:1.45;margin-bottom:8px;}
-.roadmap-card-desc{font-size:13px;color:var(--muted);line-height:1.65;}
-.roadmap-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);}
-.roadmap-cat{font-size:11px;font-weight:600;padding:3px 9px;border-radius:4px;text-transform:uppercase;letter-spacing:.05em;}
-.roadmap-timeline{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
-.roadmap-empty-section{color:var(--muted);font-size:13px;padding:12px 0;grid-column:1/-1;font-style:italic;}
+.roadmap-body{flex:1;}
+.rm-topics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+.rm-topic-block{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .18s;}
+.rm-topic-block:hover{border-color:rgba(0,200,204,.2);}
+.rm-topic-head{padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);}
+.rm-topic-name{font-size:13px;font-weight:700;color:var(--text);flex:1;}
+.rm-article-item{padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;flex-direction:column;gap:5px;}
+.rm-article-item:last-child{border-bottom:none;}
+.rm-article-title{font-size:13px;font-weight:500;color:var(--text);line-height:1.4;}
+.rm-article-meta{display:flex;align-items:center;justify-content:space-between;}
+.rm-article-owner{font-size:11px;color:var(--muted);}
+.rm-article-date{font-size:10px;font-family:'DM Mono',monospace;background:rgba(0,200,204,.08);border:1px solid rgba(0,200,204,.2);border-radius:4px;padding:2px 7px;color:#00c8cc;}
 .dash-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;}
 .dash-kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 24px;animation:fadeUp .4s ease both;}
 .dash-kpi-num{font-family:'Playfair Display',serif;font-size:34px;font-weight:700;}
@@ -663,16 +657,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
   </div>
   <div class="roadmap-body">
-    <div style="margin-bottom:32px;">
-      <p style="font-size:14px;color:var(--muted);line-height:1.75;max-width:700px;">
-        This page tracks all planned and upcoming articles for the Knowledge Hub — from content actively being written to topics still in research. Use it to stay informed on what's coming next.
-      </p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;">
-        <span class="rm-badge coming-soon">🔮 Coming Soon</span>
-        <span class="rm-badge planned">📋 Planned</span>
-        <span class="rm-badge research">💡 In Research</span>
-      </div>
-    </div>
     <div id="roadmapContent"></div>
   </div>
 </div>
@@ -1941,15 +1925,46 @@ function destroyChart(id) { if (_charts[id]) { _charts[id].destroy(); delete _ch
 const CHART_COLORS = ['#7a9ee8','#e8c97a','#e87a9e','#7ae8b4','#c97ae8','#e8a87a','#7ae8e8','#e87a7a'];
 
 // ── Roadmap ───────────────────────────────────────────────────────────────────
-const ROADMAP_ITEMS = [
-  // Items will be added here — each entry has:
-  // { title, description, category, status ('coming-soon'|'planned'|'research'), month }
+const ROADMAP_DATA = [
+  { name:'Data Ingestion', color:'#3b82f6', articles:[
+    { title:'Bulk Connector (GCS, S3)',                    owner:'Vinuth Kumar Gunturi' },
+    { title:'Normal Files Connector (GCS, GDrive, OneDrive)', owner:'Hemanth Varma Pakalapati' },
+    { title:'Zip File Ingestion & Routing',                owner:'Divyam Pandey / Sreeyanka Panda' },
+    { title:'Filebox / Form-based Upload',                 owner:'Chinmayee Priyadarshini' },
+    { title:'Databox & Blob Storage Basics',               owner:'Tanmay Satapathy / Sai Kumar' },
+    { title:'Scheduled vs. Event-triggered Ingestion',     owner:'Vinuth Kumar Gunturi' },
+  ]},
+  { name:'Approval Workflows', color:'#f9a74f', articles:[
+    { title:'Single-level Approval',       owner:'Srinivas Puneeth' },
+    { title:'Multi-level Approval (L0/L1)',owner:'Sanjeev S Bidarahalli' },
+    { title:'Escalation & SLA Handling',   owner:'Karthik Varma' },
+    { title:'Conditional Routing',         owner:'Pradyumn Vibhandik' },
+    { title:'Approval via Email',          owner:'Dharma Teja Taddi' },
+  ]},
+  { name:'Reconciliation', color:'#7ae8b4', articles:[
+    { title:'Match & Exception Identification', owner:'Bhavana Priya' },
+    { title:'Manual Resolution Workflows',      owner:'Gayatri Lakshmi Srinija' },
+  ]},
+  { name:'Workflows', color:'#a78bfa', articles:[
+    { title:'Workflow Trigger Types',      owner:'Srikanth Ande' },
+    { title:'Node Configuration Basics',   owner:'Sreeyanka Panda' },
+    { title:'Data Transformation Nodes',   owner:'Sreekar' },
+    { title:'API Integration Nodes',       owner:'Sai Kumar' },
+    { title:'Error Handling & Retry',      owner:'Sameera J' },
+    { title:'Monitoring & Alerting',       owner:'Bhuvaneshwari Jangam' },
+    { title:'Template Reuse',              owner:'Sai Deeraj Kona' },
+  ]},
+  { name:'Connectors & Integrations', color:'#00c8cc', articles:[
+    { title:'REST API Connector',      owner:'Sai Kumar' },
+    { title:'Webhook / Event Triggers',owner:'Anusha Mola' },
+    { title:'Database Connectors',     owner:'Somnath Behera' },
+  ]},
+  { name:'Exports & Reports', color:'#e87a7a', articles:[
+    { title:'Multi-sheet Excel Export',     owner:'Shubham Das' },
+    { title:'Scheduled Report Delivery',    owner:'Dharma Teja Taddi' },
+    { title:'Export via Email',             owner:'Jnanendra Avinash Golakoti' },
+  ]},
 ];
-
-const RM_CAT_COLORS = {
-  'Platform':'#3b82f6','Product':'#a78bfa','Onboarding':'#34d399',
-  'Finance & FP&A':'#f59e0b','Implementation stories – Unique scenarios':'#f472b6'
-};
 
 function showRoadmap() {
   document.getElementById('roadmapView').classList.add('active');
@@ -1970,40 +1985,77 @@ function hideRoadmap() {
 
 function renderRoadmap() {
   const wrap = document.getElementById('roadmapContent');
-  const sections = [
-    { key:'coming-soon', label:'🔮 Coming Soon', sub:'actively being written' },
-    { key:'planned',     label:'📋 Planned',     sub:'confirmed for future publication' },
-    { key:'research',    label:'💡 In Research', sub:'topics being explored' }
-  ];
+  const total = ROADMAP_DATA.reduce((s,t)=>s+t.articles.length,0);
 
-  if (!ROADMAP_ITEMS.length) {
-    wrap.innerHTML = `<div style="text-align:center;padding:72px 0;">
-      <div style="font-size:52px;margin-bottom:18px;">🗺</div>
-      <div style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:8px;">Roadmap items coming soon</div>
-      <div style="font-size:14px;color:var(--muted);">Planned articles will appear here shortly. Check back soon.</div>
-    </div>`;
-    return;
-  }
+  // ── Road timeline ──────────────────────────────────────────────────────────
+  const roadCells = [];
 
-  wrap.innerHTML = sections.map(sec => {
-    const items = ROADMAP_ITEMS.filter(i => i.status === sec.key);
-    const catColor = (cat) => RM_CAT_COLORS[cat] || '#7a7a96';
-    return `<div class="roadmap-section">
-      <div class="roadmap-section-title">${sec.label}&nbsp;<span style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;">${sec.sub}</span></div>
-      <div class="roadmap-grid">
-        ${items.length ? items.map(item => `
-          <div class="roadmap-card">
-            <div class="roadmap-card-top"><span class="rm-badge ${item.status}">${sec.label}</span></div>
-            <div class="roadmap-card-title">${escHtml(item.title)}</div>
-            ${item.description ? `<div class="roadmap-card-desc">${escHtml(item.description)}</div>` : ''}
-            <div class="roadmap-card-footer">
-              <span class="roadmap-cat" style="background:${catColor(item.category)}22;color:${catColor(item.category)};">${escHtml(item.category||'General')}</span>
-              ${item.month ? `<span class="roadmap-timeline">📅 ${escHtml(item.month)}</span>` : ''}
-            </div>
-          </div>`).join('') : `<div class="roadmap-empty-section">No items here yet.</div>`}
+  // Road bar
+  roadCells.push(`<div style="grid-row:2;grid-column:1/-1;background:linear-gradient(to right,#111e30,#1a2d45,#111e30);border-radius:26px;border:1px solid rgba(0,200,204,0.14);position:relative;z-index:1;">
+    <div style="position:absolute;top:50%;left:24px;right:24px;height:2px;transform:translateY(-50%);background:repeating-linear-gradient(to right,rgba(255,255,255,.16) 0,rgba(255,255,255,.16) 18px,transparent 18px,transparent 38px);"></div>
+  </div>`);
+
+  ROADMAP_DATA.forEach((topic, i) => {
+    const col = i + 1;
+    const above = i % 2 === 0;
+    const num = String(i+1).padStart(2,'0');
+    const c = topic.color;
+    const cnt = topic.articles.length;
+    const lbl = topic.name.trim();
+
+    if (above) {
+      roadCells.push(`<div style="grid-row:1;grid-column:${col};display:flex;flex-direction:column;align-items:center;justify-content:flex-end;">
+        <div style="font-size:11px;font-weight:700;color:${c};text-align:center;line-height:1.35;max-width:94px;">${lbl}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px;">${cnt} articles</div>
+        <div style="width:2px;height:16px;background:${c};opacity:0.45;margin-top:6px;"></div>
+      </div>`);
+    }
+
+    roadCells.push(`<div style="grid-row:2;grid-column:${col};display:flex;align-items:center;justify-content:center;z-index:3;">
+      <div style="width:54px;height:54px;border-radius:50%;background:${c};display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:#fff;box-shadow:0 0 0 4px #0d1b2f,0 0 0 6px ${c}55;transition:transform .2s;cursor:default;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''">${num}</div>
+    </div>`);
+
+    if (!above) {
+      roadCells.push(`<div style="grid-row:3;grid-column:${col};display:flex;flex-direction:column;align-items:center;justify-content:flex-start;">
+        <div style="width:2px;height:16px;background:${c};opacity:0.45;margin-bottom:6px;"></div>
+        <div style="font-size:11px;font-weight:700;color:${c};text-align:center;line-height:1.35;max-width:94px;">${lbl}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px;">${cnt} articles</div>
+      </div>`);
+    }
+  });
+
+  // ── Topic cards ────────────────────────────────────────────────────────────
+  const topicCards = ROADMAP_DATA.map(topic => {
+    const c = topic.color;
+    return `<div class="rm-topic-block" style="border-top:3px solid ${c};">
+      <div class="rm-topic-head">
+        <div style="width:9px;height:9px;border-radius:50%;background:${c};flex-shrink:0;"></div>
+        <div class="rm-topic-name">${escHtml(topic.name.trim())}</div>
+        <div style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:${c}18;color:${c};">${topic.articles.length}</div>
       </div>
+      ${topic.articles.map(a=>`
+        <div class="rm-article-item">
+          <div class="rm-article-title">${escHtml(a.title)}</div>
+          <div class="rm-article-meta">
+            <span class="rm-article-owner">👤 ${escHtml(a.owner)}</span>
+            <span class="rm-article-date">📅 TBD</span>
+          </div>
+        </div>`).join('')}
     </div>`;
   }).join('');
+
+  wrap.innerHTML = `
+    <div style="padding:28px 48px 8px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:13px;color:var(--muted);">${ROADMAP_DATA.length} topic areas &nbsp;·&nbsp; ${total} planned articles &nbsp;·&nbsp; Timelines TBD</div>
+    </div>
+    <div style="padding:8px 48px 32px;">
+      <div style="display:grid;grid-template-rows:88px 54px 96px;grid-template-columns:repeat(6,1fr);">
+        ${roadCells.join('')}
+      </div>
+    </div>
+    <div style="padding:0 48px 52px;">
+      <div class="rm-topics-grid">${topicCards}</div>
+    </div>`;
 }
 
 function showDashboard() {
