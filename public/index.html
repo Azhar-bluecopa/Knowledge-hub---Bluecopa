@@ -340,7 +340,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dash-nav-btn.active{background:rgba(232,201,122,0.12);color:var(--accent2);}
 .dashboard-view{display:none;margin-left:260px;flex-direction:column;min-height:100vh;}
 .dashboard-view.active{display:flex;}
-.roadmap-view{display:none;margin-left:260px;flex-direction:column;min-height:100vh;}
+.roadmap-view{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:200;background:var(--bg);flex-direction:column;overflow-y:auto;}
 .roadmap-view.active{display:flex;}
 .roadmap-body{padding:36px;flex:1;}
 .rm-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 13px;border-radius:20px;font-size:12px;font-weight:600;}
