@@ -3213,7 +3213,10 @@ function smRenderDashboard() {
         </div>
         <canvas id="smChartCompare" style="max-height:220px;"></canvas>
         ${getAdminPwd() ? `<div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
-          <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em;">🗂 Manage Snapshots</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">🗂 Manage Snapshots</div>
+            <button onclick="smCaptureSnapshot()" style="background:#00c8cc;color:#0d1b2f;border:none;border-radius:8px;padding:7px 16px;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;cursor:pointer;">+ CAPTURE NEW SNAPSHOT</button>
+          </div>
           <div style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;">
             ${smData.snapshots.length ? smData.snapshots.map(s=>`
               <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-radius:8px;padding:8px 12px;">
