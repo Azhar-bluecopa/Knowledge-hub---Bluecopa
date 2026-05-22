@@ -348,14 +348,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .rm-topic-block:hover{border-color:rgba(0,200,204,.2);}
 .rm-topic-head{padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);}
 .rm-topic-name{font-size:13px;font-weight:700;color:var(--text);flex:1;}
-.rm-article-item{padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;flex-direction:column;gap:5px;}
+.rm-article-item{padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;flex-direction:column;gap:5px;transition:background .2s;}
 .rm-article-item:last-child{border-bottom:none;}
+.rm-article-item.overdue{background:rgba(232,122,122,.07);border-left:3px solid rgba(232,122,122,.6);padding-left:13px;}
 .rm-article-title{font-size:13px;font-weight:500;color:var(--text);line-height:1.4;}
 .rm-article-meta{display:flex;align-items:center;justify-content:space-between;}
 .rm-article-owner{font-size:11px;color:var(--muted);}
 .rm-article-date{font-size:10px;font-family:'DM Mono',monospace;background:rgba(0,200,204,.08);border:1px solid rgba(0,200,204,.2);border-radius:4px;padding:2px 7px;color:#00c8cc;}
+.rm-article-date.overdue{background:rgba(232,122,122,.15);border-color:rgba(232,122,122,.45);color:#e87a7a;}
 .rm-date-editable{cursor:pointer;transition:background .15s,border-color .15s;}
 .rm-date-editable:hover{background:rgba(0,200,204,.18);border-color:rgba(0,200,204,.5);color:#00c8cc;}
+.rm-date-editable.overdue:hover{background:rgba(232,122,122,.28);border-color:rgba(232,122,122,.7);color:#e87a7a;}
 .rm-date-input{font-size:10px;font-family:'DM Mono',monospace;background:rgba(0,200,204,.12);border:1px solid rgba(0,200,204,.5);border-radius:4px;padding:2px 7px;color:#e8e8f0;outline:none;width:96px;}
 .dash-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;}
 .dash-kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 24px;animation:fadeUp .4s ease both;}
@@ -1934,6 +1937,35 @@ function rmSaveDate(key, val) {
   rmDates[key] = val.trim();
   localStorage.setItem('kb_rm_dates', JSON.stringify(rmDates));
 }
+// Parse a roadmap date string (e.g. "June 2026", "Q3 2026") → Date or null
+function rmParseDate(str) {
+  if (!str || !str.trim()) return null;
+  str = str.trim();
+  // Handle "Q1 2026" format — use end of that quarter
+  const qm = str.match(/^Q([1-4])\s+(\d{4})$/i);
+  if (qm) {
+    const q = parseInt(qm[1]), yr = parseInt(qm[2]);
+    // end-of-quarter: new Date(year, q*3, 0) gives last day of the quarter's last month
+    return new Date(yr, q * 3, 0);
+  }
+  // Handle "Month Year" (e.g. "June 2026") — use end of that month
+  const mym = str.match(/^([A-Za-z]+)\s+(\d{4})$/);
+  if (mym) {
+    const d = new Date(mym[1] + ' 1, ' + mym[2]);
+    if (!isNaN(d)) return new Date(d.getFullYear(), d.getMonth() + 1, 0); // last day of month
+  }
+  // Fallback: try native parse
+  const d = new Date(str);
+  return isNaN(d) ? null : d;
+}
+
+// Returns true if the stored date string represents a date that has already passed
+function rmIsOverdue(dv) {
+  if (!dv) return false;
+  const d = rmParseDate(dv);
+  return d ? d < new Date() : false;
+}
+
 function rmEditDate(el, key) {
   const input = document.createElement('input');
   input.className = 'rm-date-input';
@@ -1944,12 +1976,19 @@ function rmEditDate(el, key) {
   const commit = () => {
     const val = input.value.trim();
     rmSaveDate(key, val);
+    const overdue = rmIsOverdue(val);
     const span = document.createElement('span');
-    span.className = 'rm-article-date rm-date-editable';
-    span.title = '✏ Click to edit date';
-    span.textContent = val ? '📅 ' + val : '📅 TBD';
+    span.className = 'rm-article-date rm-date-editable' + (overdue ? ' overdue' : '');
+    span.title = overdue ? '⚠ Overdue — click to edit date' : '✏ Click to edit date';
+    span.textContent = (val ? '📅 ' + val : '📅 TBD') + (overdue ? ' ⚠' : '');
     span.onclick = () => rmEditDate(span, key);
     input.replaceWith(span);
+    // Update parent article-item highlight
+    const item = span.closest('.rm-article-item');
+    if (item) {
+      if (overdue) item.classList.add('overdue');
+      else item.classList.remove('overdue');
+    }
   };
   input.addEventListener('keydown', e => { if (e.key==='Enter'||e.key==='Escape') { e.preventDefault(); commit(); } });
   input.addEventListener('blur', commit);
@@ -2067,10 +2106,14 @@ function renderRoadmap() {
       ${topic.articles.map((a, ai)=>{
         const dk = `${ti}-${ai}`;
         const dv = rmDates[dk] || '';
+        const overdue = rmIsOverdue(dv);
+        const dateBadgeClass = 'rm-article-date' + (isAdmin ? ' rm-date-editable' : '') + (overdue ? ' overdue' : '');
+        const dateLabel = (dv ? '📅 ' + dv : '📅 TBD') + (overdue ? ' ⚠' : '');
+        const dateBadgeTitle = overdue ? '⚠ Overdue — click to edit date' : (isAdmin ? '✏ Click to edit date' : '');
         const dateBadge = isAdmin
-          ? `<span class="rm-article-date rm-date-editable" title="✏ Click to edit date" onclick="rmEditDate(this,'${dk}')">${dv ? '📅 '+dv : '📅 TBD'}</span>`
-          : `<span class="rm-article-date">${dv ? '📅 '+dv : '📅 TBD'}</span>`;
-        return `<div class="rm-article-item">
+          ? `<span class="${dateBadgeClass}" title="${dateBadgeTitle}" onclick="rmEditDate(this,'${dk}')">${dateLabel}</span>`
+          : `<span class="${dateBadgeClass}">${dateLabel}</span>`;
+        return `<div class="rm-article-item${overdue ? ' overdue' : ''}">
           <div class="rm-article-title">${escHtml(a.title)}</div>
           <div class="rm-article-meta">
             <span class="rm-article-owner">👤 ${escHtml(a.owner)}</span>
