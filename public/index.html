@@ -3229,8 +3229,23 @@ function smRenderDashboard() {
           </div>
         </div>` : ''}
       </div>
-      <div class="sm-chart-card"><div class="sm-chart-title">Score Distribution (Current)</div><canvas id="smChartDist" style="max-height:200px;"></canvas></div>
-      <div class="sm-chart-card"><div class="sm-chart-title">Employee Avg Scores (Current)</div><canvas id="smChartEmp" style="max-height:200px;"></canvas></div>
+      <div class="sm-chart-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+          <div class="sm-chart-title" style="margin-bottom:0;">Score Distribution</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <select class="sm-snap-sel" id="smDistSnap1Sel" onchange="smRenderDist()"><option value="current">Current</option>${snapOpts}</select>
+            <select class="sm-snap-sel" id="smDistSnap2Sel" onchange="smRenderDist()"><option value="">vs Period…</option>${snapOpts}</select>
+          </div>
+        </div>
+        <canvas id="smChartDist" style="max-height:200px;"></canvas>
+      </div>
+      <div class="sm-chart-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+          <div class="sm-chart-title" style="margin-bottom:0;">Employee Avg Scores</div>
+          <select class="sm-snap-sel" id="smEmpSnapSel" onchange="smRenderEmp()"><option value="current">Current</option>${snapOpts}</select>
+        </div>
+        <canvas id="smChartEmp" style="max-height:200px;"></canvas>
+      </div>
     </div>`;
 
   // Set default snapshot selections
@@ -3268,47 +3283,9 @@ function smRenderDashboard() {
     options: chartOpts()
   });
 
-  // Chart 3: Distribution (Beginner/Intermediate/Advanced/Expert counts)
-  const dist = [0,0,0,0];
-  employees.forEach(emp=>processAreas.forEach(pa=>{const v=(currentScores[emp]||{})[pa]||0;if(v>0)dist[v-1]++;}));
-  const distTotal = dist.reduce((a,b)=>a+b,0);
-  smCharts.dist = new Chart(document.getElementById('smChartDist'), {
-    type:'doughnut',
-    data:{ labels:SM_LEVELS.slice(1), datasets:[{ data:dist, backgroundColor:['#e87a7a','#f9a74f','#7ae8b4','#00c8cc'], borderWidth:0 }] },
-    options:{
-      responsive:true,
-      plugins:{
-        legend:{position:'bottom',labels:{color:'#e8e8f0',padding:14}},
-        datalabels:{
-          color:'#fff',
-          anchor:'center',
-          align:'center',
-          textAlign:'center',
-          font:{size:12,weight:'700'},
-          formatter:(val)=> distTotal>0 && val>0 ? `${val}\n(${Math.round(val/distTotal*100)}%)` : ''
-        }
-      }
-    }
-  });
-
-  // Chart 4: Employee avg scores
-  const empAvgs = employees.map(emp=>{
-    let tot=0,cnt=0;
-    processAreas.forEach(pa=>{const v=(currentScores[emp]||{})[pa]||0;if(v>0){tot+=v;cnt++;}});
-    return cnt?+(tot/cnt).toFixed(2):0;
-  });
-  // Split employee names into 2 lines for readability
-  const empLabels = employees.map(emp => {
-    const words = emp.trim().split(' ');
-    if (words.length <= 1) return emp;
-    const mid = Math.ceil(words.length / 2);
-    return [words.slice(0, mid).join(' '), words.slice(mid).join(' ')];
-  });
-  smCharts.emp = new Chart(document.getElementById('smChartEmp'), {
-    type:'bar',
-    data:{ labels:empLabels, datasets:[{ data:empAvgs, backgroundColor:empAvgs.map(v=>SM_COLORS[Math.round(v)]||'#7a7a96'), borderRadius:5 }] },
-    options: chartOpts()
-  });
+  // Chart 3 & 4: rendered by dedicated functions so dropdowns can re-trigger them
+  smRenderDist();
+  smRenderEmp();
 
   smRenderComparison();
 }
@@ -3351,6 +3328,100 @@ function smRenderComparison() {
         datalabels:{ anchor:'end', align:'top', color:'#e8e8f0', font:{size:10,weight:'600'}, formatter:v=>v>0?v.toFixed(1):'' }
       },
       scales:{ y:{beginAtZero:true,max:4.5,ticks:{color:'#7a7a96',callback:v=>SM_LEVELS[v]||''},grid:{color:'#2a2a38'}}, x:{ticks:{color:'#7a7a96',maxRotation:0,minRotation:0,align:'center',autoSkip:false,callback:function(val,i){const lbl=this.getLabelForValue(val);return lbl.length>14?lbl.slice(0,13)+'…':lbl;}},grid:{color:'#2a2a38'}} }
+    }
+  });
+}
+
+function smRenderDist() {
+  if (smCharts.dist) { smCharts.dist.destroy(); delete smCharts.dist; }
+  const { employees, processAreas, currentScores, snapshots } = smData;
+  const sel1 = document.getElementById('smDistSnap1Sel');
+  const sel2 = document.getElementById('smDistSnap2Sel');
+  if (!sel1) return;
+
+  const getScores = (val) => {
+    if (!val || val === 'current') return currentScores;
+    const s = snapshots.find(s => s.id == val);
+    return s ? s.scores : null;
+  };
+  const calcDist = (scores) => {
+    const d = [0,0,0,0];
+    employees.forEach(emp => processAreas.forEach(pa => { const v=(scores[emp]||{})[pa]||0; if(v>0) d[v-1]++; }));
+    return d;
+  };
+
+  const sc1 = getScores(sel1.value);
+  const sc2 = sel2 && sel2.value ? getScores(sel2.value) : null;
+  const dist1 = calcDist(sc1 || {});
+  const distTotal = dist1.reduce((a,b)=>a+b,0);
+  const lbl1 = sel1.value === 'current' ? 'Current' : (sel1.options[sel1.selectedIndex]?.text || 'Period 1');
+  const lbl2 = sel2 && sel2.value ? (sel2.options[sel2.selectedIndex]?.text || 'Period 2') : null;
+
+  const datasets = [{ label: lbl1, data: dist1, backgroundColor: ['#e87a7a','#f9a74f','#7ae8b4','#00c8cc'], borderRadius: 4, borderWidth: 0 }];
+  if (sc2 && lbl2) {
+    datasets.push({ label: lbl2, data: calcDist(sc2), backgroundColor: ['rgba(232,122,122,.4)','rgba(249,167,79,.4)','rgba(122,232,180,.4)','rgba(0,200,204,.4)'], borderRadius: 4, borderWidth: 0 });
+  }
+
+  smCharts.dist = new Chart(document.getElementById('smChartDist'), {
+    type: sc2 ? 'bar' : 'doughnut',
+    data: { labels: SM_LEVELS.slice(1), datasets },
+    options: sc2 ? {
+      responsive: true,
+      plugins: {
+        legend: { position:'bottom', labels:{ color:'#e8e8f0', padding:12 } },
+        datalabels: { anchor:'end', align:'top', color:'#e8e8f0', font:{ size:11, weight:'600' }, formatter: v => v > 0 ? v : '' }
+      },
+      scales: {
+        y: { beginAtZero:true, ticks:{ color:'#7a7a96', stepSize:1 }, grid:{ color:'#2a2a38' } },
+        x: { ticks:{ color:'#7a7a96' }, grid:{ color:'#2a2a38' } }
+      }
+    } : {
+      responsive: true,
+      plugins: {
+        legend: { position:'bottom', labels:{ color:'#e8e8f0', padding:14 } },
+        datalabels: { color:'#fff', anchor:'center', align:'center', textAlign:'center', font:{ size:12, weight:'700' }, formatter: val => distTotal>0 && val>0 ? `${val}\n(${Math.round(val/distTotal*100)}%)` : '' }
+      }
+    }
+  });
+}
+
+function smRenderEmp() {
+  if (smCharts.emp) { smCharts.emp.destroy(); delete smCharts.emp; }
+  const { employees, processAreas, currentScores, snapshots } = smData;
+  const sel = document.getElementById('smEmpSnapSel');
+
+  let scores = currentScores;
+  if (sel && sel.value && sel.value !== 'current') {
+    const s = snapshots.find(s => s.id == sel.value);
+    if (s) scores = s.scores;
+  }
+
+  const empAvgs = employees.map(emp => {
+    let tot=0, cnt=0;
+    processAreas.forEach(pa => { const v=(scores[emp]||{})[pa]||0; if(v>0){tot+=v;cnt++;} });
+    return cnt ? +(tot/cnt).toFixed(2) : 0;
+  });
+  const empLabels = employees.map(emp => {
+    const words = emp.trim().split(' ');
+    if (words.length <= 1) return emp;
+    const mid = Math.ceil(words.length / 2);
+    return [words.slice(0, mid).join(' '), words.slice(mid).join(' ')];
+  });
+
+  smCharts.emp = new Chart(document.getElementById('smChartEmp'), {
+    type: 'bar',
+    data: { labels: empLabels, datasets: [{ data: empAvgs, backgroundColor: empAvgs.map(v => SM_COLORS[Math.round(v)]||'#7a7a96'), borderRadius: 5 }] },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => SM_LEVELS[Math.round(c.parsed.y)] || c.parsed.y } },
+        datalabels: { anchor:'end', align:'top', color:'#e8e8f0', font:{ size:11, weight:'600' }, formatter: v => v > 0 ? v.toFixed(1) : '' }
+      },
+      scales: {
+        y: { beginAtZero:true, max:4.5, ticks:{ color:'#7a7a96', callback: v => SM_LEVELS[v]||'' }, grid:{ color:'#2a2a38' } },
+        x: { ticks:{ color:'#7a7a96', maxRotation:0, minRotation:0, align:'center', autoSkip:false, callback: function(val,i){ const lbl=this.getLabelForValue(val); return typeof lbl==='string'?(lbl.length>14?lbl.slice(0,13)+'…':lbl):lbl; } }, grid:{ color:'#2a2a38' } }
+      }
     }
   });
 }
