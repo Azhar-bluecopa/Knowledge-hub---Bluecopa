@@ -577,6 +577,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
       <div id="categoryList"></div>
     </div>
+    <div class="sidebar-section" style="margin-top:4px;padding-bottom:8px;">
+      <div class="sidebar-section-label">Quick Links</div>
+      <div class="category-item" id="sidebarRoadmapBtn" onclick="showRoadmap()">
+        <span style="font-size:15px;">🗺</span> Roadmap
+      </div>
+    </div>
   </div>
   <div class="read-only-banner" id="readOnlyBanner">🔒 Read-only mode — posting disabled</div>
   <button class="new-article-btn" id="newArticleBtn" onclick="openModal()">✦ New Article</button>
@@ -622,9 +628,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </button>
       <button class="btn-ghost" id="topbarDashBtn" onclick="showDashboard()" title="Dashboard" style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;">
         📊 <span>Dashboard</span>
-      </button>
-      <button class="btn-ghost" id="topbarRoadmapBtn" onclick="showRoadmap()" title="Roadmap" style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;">
-        🗺 <span>Roadmap</span>
       </button>
       <button class="btn-about" onclick="openAbout()">ℹ️ About</button>
       <button id="exportBtn" class="btn-ghost" onclick="exportArticles()" style="display:none;">↑ Export</button>
@@ -1952,16 +1955,17 @@ function showRoadmap() {
   document.getElementById('roadmapView').classList.add('active');
   document.querySelector('.main').style.display = 'none';
   hideDashboard();
-  const tb = document.getElementById('topbarRoadmapBtn');
-  if (tb) { tb.style.color='#00c8cc'; tb.style.background='rgba(0,200,204,0.1)'; }
+  document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
+  const sb = document.getElementById('sidebarRoadmapBtn');
+  if (sb) sb.classList.add('active');
   renderRoadmap();
 }
 
 function hideRoadmap() {
   document.getElementById('roadmapView').classList.remove('active');
   document.querySelector('.main').style.display = '';
-  const tb = document.getElementById('topbarRoadmapBtn');
-  if (tb) { tb.style.color=''; tb.style.background=''; }
+  const sb = document.getElementById('sidebarRoadmapBtn');
+  if (sb) sb.classList.remove('active');
 }
 
 function renderRoadmap() {
