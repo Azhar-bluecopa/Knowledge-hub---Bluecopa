@@ -340,6 +340,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dash-nav-btn.active{background:rgba(232,201,122,0.12);color:var(--accent2);}
 .dashboard-view{display:none;margin-left:260px;flex-direction:column;min-height:100vh;}
 .dashboard-view.active{display:flex;}
+.roadmap-view{display:none;margin-left:260px;flex-direction:column;min-height:100vh;}
+.roadmap-view.active{display:flex;}
+.roadmap-body{padding:36px;flex:1;}
+.rm-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 13px;border-radius:20px;font-size:12px;font-weight:600;}
+.rm-badge.coming-soon{background:rgba(0,200,204,.14);color:#00c8cc;border:1px solid rgba(0,200,204,.3);}
+.rm-badge.planned{background:rgba(122,158,232,.14);color:#7a9ee8;border:1px solid rgba(122,158,232,.3);}
+.rm-badge.research{background:rgba(249,167,79,.14);color:#f9a74f;border:1px solid rgba(249,167,79,.3);}
+.roadmap-section{margin-bottom:40px;}
+.roadmap-section-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:18px;display:flex;align-items:center;gap:12px;}
+.roadmap-section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.roadmap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;}
+.roadmap-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;transition:border-color .18s,transform .15s;}
+.roadmap-card:hover{border-color:rgba(0,200,204,.3);transform:translateY(-2px);}
+.roadmap-card-top{margin-bottom:12px;}
+.roadmap-card-title{font-size:15px;font-weight:600;color:var(--text);line-height:1.45;margin-bottom:8px;}
+.roadmap-card-desc{font-size:13px;color:var(--muted);line-height:1.65;}
+.roadmap-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);}
+.roadmap-cat{font-size:11px;font-weight:600;padding:3px 9px;border-radius:4px;text-transform:uppercase;letter-spacing:.05em;}
+.roadmap-timeline{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+.roadmap-empty-section{color:var(--muted);font-size:13px;padding:12px 0;grid-column:1/-1;font-style:italic;}
 .dash-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;}
 .dash-kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 24px;animation:fadeUp .4s ease both;}
 .dash-kpi-num{font-family:'Playfair Display',serif;font-size:34px;font-weight:700;}
@@ -603,6 +623,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="btn-ghost" id="topbarDashBtn" onclick="showDashboard()" title="Dashboard" style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;">
         📊 <span>Dashboard</span>
       </button>
+      <button class="btn-ghost" id="topbarRoadmapBtn" onclick="showRoadmap()" title="Roadmap" style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;">
+        🗺 <span>Roadmap</span>
+      </button>
       <button class="btn-about" onclick="openAbout()">ℹ️ About</button>
       <button id="exportBtn" class="btn-ghost" onclick="exportArticles()" style="display:none;">↑ Export</button>
     </div>
@@ -624,6 +647,32 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
   </div>
 </main>
+
+<!-- ── Roadmap View ── -->
+<div class="roadmap-view" id="roadmapView">
+  <div class="topbar" style="position:sticky;top:0;z-index:50;background:var(--bg);">
+    <div>
+      <div class="topbar-title">🗺 Roadmap</div>
+      <div class="topbar-meta">Upcoming articles and planned content for the Knowledge Hub</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn-ghost" onclick="hideRoadmap()">← Back to Articles</button>
+    </div>
+  </div>
+  <div class="roadmap-body">
+    <div style="margin-bottom:32px;">
+      <p style="font-size:14px;color:var(--muted);line-height:1.75;max-width:700px;">
+        This page tracks all planned and upcoming articles for the Knowledge Hub — from content actively being written to topics still in research. Use it to stay informed on what's coming next.
+      </p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;">
+        <span class="rm-badge coming-soon">🔮 Coming Soon</span>
+        <span class="rm-badge planned">📋 Planned</span>
+        <span class="rm-badge research">💡 In Research</span>
+      </div>
+    </div>
+    <div id="roadmapContent"></div>
+  </div>
+</div>
 
 <!-- ── Dashboard View ── -->
 <div class="dashboard-view" id="dashboardView">
@@ -1887,6 +1936,71 @@ let _charts = {};
 function destroyChart(id) { if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; } }
 
 const CHART_COLORS = ['#7a9ee8','#e8c97a','#e87a9e','#7ae8b4','#c97ae8','#e8a87a','#7ae8e8','#e87a7a'];
+
+// ── Roadmap ───────────────────────────────────────────────────────────────────
+const ROADMAP_ITEMS = [
+  // Items will be added here — each entry has:
+  // { title, description, category, status ('coming-soon'|'planned'|'research'), month }
+];
+
+const RM_CAT_COLORS = {
+  'Platform':'#3b82f6','Product':'#a78bfa','Onboarding':'#34d399',
+  'Finance & FP&A':'#f59e0b','Implementation stories – Unique scenarios':'#f472b6'
+};
+
+function showRoadmap() {
+  document.getElementById('roadmapView').classList.add('active');
+  document.querySelector('.main').style.display = 'none';
+  hideDashboard();
+  const tb = document.getElementById('topbarRoadmapBtn');
+  if (tb) { tb.style.color='#00c8cc'; tb.style.background='rgba(0,200,204,0.1)'; }
+  renderRoadmap();
+}
+
+function hideRoadmap() {
+  document.getElementById('roadmapView').classList.remove('active');
+  document.querySelector('.main').style.display = '';
+  const tb = document.getElementById('topbarRoadmapBtn');
+  if (tb) { tb.style.color=''; tb.style.background=''; }
+}
+
+function renderRoadmap() {
+  const wrap = document.getElementById('roadmapContent');
+  const sections = [
+    { key:'coming-soon', label:'🔮 Coming Soon', sub:'actively being written' },
+    { key:'planned',     label:'📋 Planned',     sub:'confirmed for future publication' },
+    { key:'research',    label:'💡 In Research', sub:'topics being explored' }
+  ];
+
+  if (!ROADMAP_ITEMS.length) {
+    wrap.innerHTML = `<div style="text-align:center;padding:72px 0;">
+      <div style="font-size:52px;margin-bottom:18px;">🗺</div>
+      <div style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:8px;">Roadmap items coming soon</div>
+      <div style="font-size:14px;color:var(--muted);">Planned articles will appear here shortly. Check back soon.</div>
+    </div>`;
+    return;
+  }
+
+  wrap.innerHTML = sections.map(sec => {
+    const items = ROADMAP_ITEMS.filter(i => i.status === sec.key);
+    const catColor = (cat) => RM_CAT_COLORS[cat] || '#7a7a96';
+    return `<div class="roadmap-section">
+      <div class="roadmap-section-title">${sec.label}&nbsp;<span style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;">${sec.sub}</span></div>
+      <div class="roadmap-grid">
+        ${items.length ? items.map(item => `
+          <div class="roadmap-card">
+            <div class="roadmap-card-top"><span class="rm-badge ${item.status}">${sec.label}</span></div>
+            <div class="roadmap-card-title">${escHtml(item.title)}</div>
+            ${item.description ? `<div class="roadmap-card-desc">${escHtml(item.description)}</div>` : ''}
+            <div class="roadmap-card-footer">
+              <span class="roadmap-cat" style="background:${catColor(item.category)}22;color:${catColor(item.category)};">${escHtml(item.category||'General')}</span>
+              ${item.month ? `<span class="roadmap-timeline">📅 ${escHtml(item.month)}</span>` : ''}
+            </div>
+          </div>`).join('') : `<div class="roadmap-empty-section">No items here yet.</div>`}
+      </div>
+    </div>`;
+  }).join('');
+}
 
 function showDashboard() {
   document.getElementById('dashboardView').classList.add('active');
