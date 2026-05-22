@@ -3367,9 +3367,10 @@ function smRenderDist() {
     data: { labels: SM_LEVELS.slice(1), datasets },
     options: sc2 ? {
       responsive: true,
+      layout: { padding: { top: 24 } },
       plugins: {
         legend: { position:'bottom', labels:{ color:'#e8e8f0', padding:12 } },
-        datalabels: { anchor:'end', align:'top', color:'#e8e8f0', font:{ size:11, weight:'600' }, formatter: v => v > 0 ? v : '' }
+        datalabels: { anchor:'end', align:'top', color:'#e8e8f0', font:{ size:11, weight:'600' }, clamp: true, formatter: v => v > 0 ? v : '' }
       },
       scales: {
         y: { beginAtZero:true, ticks:{ color:'#7a7a96', stepSize:1 }, grid:{ color:'#2a2a38' } },
