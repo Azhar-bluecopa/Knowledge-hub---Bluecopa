@@ -512,6 +512,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .sm-chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
 .sm-chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
 .sm-chart-card.full{grid-column:1/-1;}
+.sm-view-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .18s;}
+.sm-view-btn.active{background:rgba(0,200,204,.12);border-color:#00c8cc;color:#00c8cc;}
 .sm-chart-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px;}
 .sm-empty{padding:60px 20px;text-align:center;color:var(--muted);font-size:14px;}
 .sm-adm-section{margin-bottom:20px;}
@@ -3172,7 +3174,7 @@ function smRenderDashboard() {
   const { employees, processAreas, currentScores, snapshots } = smData;
 
   if (!employees.length || !processAreas.length) {
-    wrap.innerHTML = '<div class="sm-empty">No data yet. Add employees and process areas in the Admin Panel.</div>';
+    wrap.innerHTML = smViewToggle('team') + '<div class="sm-empty">No data yet. Add employees and process areas in the Admin Panel.</div>';
     return;
   }
 
@@ -3196,6 +3198,7 @@ function smRenderDashboard() {
   const filledEmps = employees.filter(e => processAreas.some(pa => (currentScores[e]||{})[pa]>0)).length;
 
   wrap.innerHTML = `
+    ${smViewToggle('team')}
     <div class="sm-kpi-row">
       <div class="sm-kpi"><div class="sm-kpi-val">${teamAvg}</div><div class="sm-kpi-lbl">Team Avg Score</div></div>
       <div class="sm-kpi"><div class="sm-kpi-val">${expertRate}</div><div class="sm-kpi-lbl">Expert Rate</div></div>
@@ -3422,6 +3425,118 @@ function smRenderEmp() {
       scales: {
         y: { beginAtZero:true, max:4.5, ticks:{ color:'#7a7a96', callback: v => SM_LEVELS[v]||'' }, grid:{ color:'#2a2a38' } },
         x: { ticks:{ color:'#7a7a96', maxRotation:0, minRotation:0, align:'center', autoSkip:false, callback: function(val,i){ const lbl=this.getLabelForValue(val); return typeof lbl==='string'?(lbl.length>14?lbl.slice(0,13)+'…':lbl):lbl; } }, grid:{ color:'#2a2a38' } }
+      }
+    }
+  });
+}
+
+function smViewToggle(active) {
+  return `<div style="display:flex;gap:8px;margin-bottom:22px;">
+    <button class="sm-view-btn ${active==='team'?'active':''}" onclick="smDashViewTeam()">👥 Team View</button>
+    <button class="sm-view-btn ${active==='ind'?'active':''}" onclick="smDashViewInd()">👤 Individual View</button>
+  </div>`;
+}
+
+function smDashViewTeam() { smDestroyCharts(); smRenderDashboard(); }
+function smDashViewInd()  { smRenderIndDash(); }
+
+function smRenderIndDash(selectedEmp) {
+  const wrap = document.getElementById('smDashContent');
+  const { employees, processAreas, currentScores, snapshots } = smData;
+  if (!employees.length || !processAreas.length) {
+    wrap.innerHTML = smViewToggle('ind') + '<div class="sm-empty">No data yet. Add employees and process areas in the Admin Panel.</div>';
+    return;
+  }
+  smDestroyCharts();
+  const emp = selectedEmp || employees[0];
+  const empScores = currentScores[emp] || {};
+
+  const empVals = processAreas.map(pa => empScores[pa]||0).filter(v=>v>0);
+  const empAvg = empVals.length ? +(empVals.reduce((a,b)=>a+b,0)/empVals.length).toFixed(2) : 0;
+  const expertCnt = empVals.filter(v=>v===4).length;
+  const topPA = processAreas.reduce((best,pa) => (empScores[pa]||0)>(empScores[best]||0)?pa:best, processAreas[0]);
+
+  const teamPaAvg = processAreas.map(pa => {
+    let tot=0,cnt=0;
+    employees.forEach(e => { const v=(currentScores[e]||{})[pa]||0; if(v>0){tot+=v;cnt++;} });
+    return cnt ? +(tot/cnt).toFixed(2) : 0;
+  });
+
+  const timeLabels = [...snapshots.map(s=>s.label), 'Current'];
+  const timeScores = [...snapshots.map(s => {
+    const sc=s.scores[emp]||{};
+    const vals=processAreas.map(pa=>sc[pa]||0).filter(v=>v>0);
+    return vals.length ? +(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2) : 0;
+  }), empAvg];
+
+  const empOpts = employees.map(e=>`<option value="${e}" ${e===emp?'selected':''}>${e}</option>`).join('');
+  const paLabels = processAreas.map(pa => { const w=pa.trim().split(' '); if(w.length<=1)return pa; const m=Math.ceil(w.length/2); return [w.slice(0,m).join(' '),w.slice(m).join(' ')]; });
+
+  wrap.innerHTML = `
+    ${smViewToggle('ind')}
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+      <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Employee</div>
+      <select class="sm-snap-sel" style="font-size:13px;padding:7px 12px;" onchange="smRenderIndDash(this.value)">${empOpts}</select>
+    </div>
+    <div class="sm-kpi-row">
+      <div class="sm-kpi"><div class="sm-kpi-val">${empAvg||'—'}</div><div class="sm-kpi-lbl">Avg Score</div></div>
+      <div class="sm-kpi"><div class="sm-kpi-val">${expertCnt}</div><div class="sm-kpi-lbl">Expert Skills</div></div>
+      <div class="sm-kpi"><div class="sm-kpi-val" style="font-size:15px;line-height:1.3;">${topPA||'—'}</div><div class="sm-kpi-lbl">Top Area</div></div>
+      <div class="sm-kpi"><div class="sm-kpi-val">${empVals.length}/${processAreas.length}</div><div class="sm-kpi-lbl">Assessed</div></div>
+    </div>
+    <div class="sm-chart-grid">
+      <div class="sm-chart-card full"><div class="sm-chart-title">Skills vs Team Average — ${emp}</div><canvas id="smIndChartPA" style="max-height:220px;"></canvas></div>
+      <div class="sm-chart-card"><div class="sm-chart-title">Score Over Time</div><canvas id="smIndChartTime" style="max-height:200px;"></canvas></div>
+      <div class="sm-chart-card"><div class="sm-chart-title">Skill Distribution</div><canvas id="smIndChartDist" style="max-height:200px;"></canvas></div>
+    </div>`;
+
+  const empPaScores = processAreas.map(pa => empScores[pa]||0);
+  smCharts.indPA = new Chart(document.getElementById('smIndChartPA'), {
+    type:'bar',
+    data:{ labels:paLabels, datasets:[
+      { label:emp, data:empPaScores, backgroundColor:empPaScores.map(v=>SM_COLORS[Math.round(v)]||'rgba(122,122,150,.4)'), borderRadius:5 },
+      { label:'Team Avg', data:teamPaAvg, backgroundColor:'rgba(255,255,255,0.08)', borderColor:'rgba(255,255,255,0.3)', borderWidth:1.5, borderRadius:5 }
+    ]},
+    options:{
+      responsive:true, layout:{padding:{top:22}},
+      plugins:{
+        legend:{labels:{color:'#e8e8f0'}},
+        datalabels:{anchor:'end',align:'top',color:'#e8e8f0',font:{size:10,weight:'600'},clamp:true,formatter:v=>v>0?v.toFixed(1):''}
+      },
+      scales:{
+        y:{beginAtZero:true,max:4.5,ticks:{color:'#7a7a96',callback:v=>SM_LEVELS[v]||''},grid:{color:'#2a2a38'}},
+        x:{ticks:{color:'#7a7a96',maxRotation:0,minRotation:0,align:'center',autoSkip:false},grid:{color:'#2a2a38'}}
+      }
+    }
+  });
+
+  smCharts.indTime = new Chart(document.getElementById('smIndChartTime'), {
+    type:'line',
+    data:{ labels:timeLabels, datasets:[{ label:'Avg Score', data:timeScores, borderColor:'#00c8cc', backgroundColor:'rgba(0,200,204,0.1)', tension:0.35, pointBackgroundColor:'#00c8cc', pointRadius:5, fill:true }] },
+    options:{
+      responsive:true, layout:{padding:{top:22}},
+      plugins:{
+        legend:{display:false},
+        datalabels:{anchor:'end',align:'top',color:'#e8e8f0',font:{size:11,weight:'600'},clamp:true,formatter:v=>v>0?v.toFixed(1):''}
+      },
+      scales:{
+        y:{beginAtZero:true,max:4.5,ticks:{color:'#7a7a96',callback:v=>SM_LEVELS[v]||''},grid:{color:'#2a2a38'}},
+        x:{ticks:{color:'#7a7a96'},grid:{color:'#2a2a38'}}
+      }
+    }
+  });
+
+  const dist=[0,0,0,0];
+  processAreas.forEach(pa=>{const v=empScores[pa]||0;if(v>0)dist[v-1]++;});
+  const distTotal=dist.reduce((a,b)=>a+b,0);
+  smCharts.indDist = new Chart(document.getElementById('smIndChartDist'), {
+    type:'doughnut',
+    data:{ labels:SM_LEVELS.slice(1), datasets:[{ data:dist, backgroundColor:['#e87a7a','#f9a74f','#7ae8b4','#00c8cc'], borderWidth:0 }] },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{position:'bottom',labels:{color:'#e8e8f0',padding:12}},
+        datalabels:{color:'#fff',anchor:'center',align:'center',textAlign:'center',font:{size:12,weight:'700'},formatter:val=>distTotal>0&&val>0?`${val}\n(${Math.round(val/distTotal*100)}%)`:''}
       }
     }
   });
