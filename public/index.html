@@ -1953,8 +1953,8 @@ const RM_CAT_COLORS = {
 
 function showRoadmap() {
   document.getElementById('roadmapView').classList.add('active');
+  document.getElementById('dashboardView').classList.remove('active');
   document.querySelector('.main').style.display = 'none';
-  hideDashboard();
   document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
   const sb = document.getElementById('sidebarRoadmapBtn');
   if (sb) sb.classList.add('active');
