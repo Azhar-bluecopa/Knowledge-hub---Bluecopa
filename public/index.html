@@ -354,6 +354,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .rm-article-meta{display:flex;align-items:center;justify-content:space-between;}
 .rm-article-owner{font-size:11px;color:var(--muted);}
 .rm-article-date{font-size:10px;font-family:'DM Mono',monospace;background:rgba(0,200,204,.08);border:1px solid rgba(0,200,204,.2);border-radius:4px;padding:2px 7px;color:#00c8cc;}
+.rm-date-editable{cursor:pointer;transition:background .15s,border-color .15s;}
+.rm-date-editable:hover{background:rgba(0,200,204,.18);border-color:rgba(0,200,204,.5);color:#00c8cc;}
+.rm-date-input{font-size:10px;font-family:'DM Mono',monospace;background:rgba(0,200,204,.12);border:1px solid rgba(0,200,204,.5);border-radius:4px;padding:2px 7px;color:#e8e8f0;outline:none;width:96px;}
 .dash-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;}
 .dash-kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 24px;animation:fadeUp .4s ease both;}
 .dash-kpi-num{font-family:'Playfair Display',serif;font-size:34px;font-weight:700;}
@@ -1925,6 +1928,33 @@ function destroyChart(id) { if (_charts[id]) { _charts[id].destroy(); delete _ch
 const CHART_COLORS = ['#7a9ee8','#e8c97a','#e87a9e','#7ae8b4','#c97ae8','#e8a87a','#7ae8e8','#e87a7a'];
 
 // ── Roadmap ───────────────────────────────────────────────────────────────────
+// Roadmap date storage (persisted in localStorage, admin-only editable)
+const rmDates = JSON.parse(localStorage.getItem('kb_rm_dates') || '{}');
+function rmSaveDate(key, val) {
+  rmDates[key] = val.trim();
+  localStorage.setItem('kb_rm_dates', JSON.stringify(rmDates));
+}
+function rmEditDate(el, key) {
+  const input = document.createElement('input');
+  input.className = 'rm-date-input';
+  input.value = rmDates[key] || '';
+  input.placeholder = 'e.g. June 2026';
+  el.replaceWith(input);
+  input.focus(); input.select();
+  const commit = () => {
+    const val = input.value.trim();
+    rmSaveDate(key, val);
+    const span = document.createElement('span');
+    span.className = 'rm-article-date rm-date-editable';
+    span.title = '✏ Click to edit date';
+    span.textContent = val ? '📅 ' + val : '📅 TBD';
+    span.onclick = () => rmEditDate(span, key);
+    input.replaceWith(span);
+  };
+  input.addEventListener('keydown', e => { if (e.key==='Enter'||e.key==='Escape') { e.preventDefault(); commit(); } });
+  input.addEventListener('blur', commit);
+}
+
 const ROADMAP_DATA = [
   { name:'Data Ingestion', color:'#3b82f6', articles:[
     { title:'Bulk Connector (GCS, S3)',                    owner:'Vinuth Kumar Gunturi' },
@@ -2025,7 +2055,8 @@ function renderRoadmap() {
   });
 
   // ── Topic cards ────────────────────────────────────────────────────────────
-  const topicCards = ROADMAP_DATA.map(topic => {
+  const isAdmin = !!getAdminPwd();
+  const topicCards = ROADMAP_DATA.map((topic, ti) => {
     const c = topic.color;
     return `<div class="rm-topic-block" style="border-top:3px solid ${c};">
       <div class="rm-topic-head">
@@ -2033,14 +2064,20 @@ function renderRoadmap() {
         <div class="rm-topic-name">${escHtml(topic.name.trim())}</div>
         <div style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:${c}18;color:${c};">${topic.articles.length}</div>
       </div>
-      ${topic.articles.map(a=>`
-        <div class="rm-article-item">
+      ${topic.articles.map((a, ai)=>{
+        const dk = `${ti}-${ai}`;
+        const dv = rmDates[dk] || '';
+        const dateBadge = isAdmin
+          ? `<span class="rm-article-date rm-date-editable" title="✏ Click to edit date" onclick="rmEditDate(this,'${dk}')">${dv ? '📅 '+dv : '📅 TBD'}</span>`
+          : `<span class="rm-article-date">${dv ? '📅 '+dv : '📅 TBD'}</span>`;
+        return `<div class="rm-article-item">
           <div class="rm-article-title">${escHtml(a.title)}</div>
           <div class="rm-article-meta">
             <span class="rm-article-owner">👤 ${escHtml(a.owner)}</span>
-            <span class="rm-article-date">📅 TBD</span>
+            ${dateBadge}
           </div>
-        </div>`).join('')}
+        </div>`;
+      }).join('')}
     </div>`;
   }).join('');
 
