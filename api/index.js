@@ -388,7 +388,7 @@ app.get('/api/analytics', (req, res) => {
 
 // ── AI Ask (supports Anthropic Claude or Groq) ────────────────────────────────
 app.post('/api/ask', async (req, res) => {
-  const { question, articleId, history } = req.body;
+  const { question, articleId, history, roadmap } = req.body;
   if (!question?.trim()) return res.status(400).json({ error: 'Question is required.' });
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
@@ -501,7 +501,18 @@ ${articleIndex}
 
 RELEVANT ARTICLE CONTENT:
 ${articleContext}
-— End of knowledge base —`;
+— End of knowledge base —
+
+${roadmap && roadmap.length ? `ARTICLE ROADMAP — Planned but not yet published:
+These articles are confirmed planned and will be published. If the user asks about a topic not covered in the published articles above but found here, tell them:
+- The article is planned/in progress (not published yet)
+- Who the owner/author is
+- The expected date (if not TBD)
+- Be helpful and encouraging — let them know it's coming soon
+
+ROADMAP DATA:
+${roadmap.map(t => `Topic: ${t.topic}\n${t.articles.map(a => `  • "${a.title}" — Owner: ${a.owner}${a.date && a.date !== 'TBD' ? ` — Expected: ${a.date}` : ' — Date: TBD'}`).join('\n')}`).join('\n\n')}
+— End of roadmap —` : ''}`;
 
   const messages = [];
   if (Array.isArray(history) && history.length > 0) {

@@ -3117,10 +3117,20 @@ async function aiSend() {
   aiShowTyping();
 
   try {
+    // Build roadmap payload with any saved dates
+    const roadmapPayload = ROADMAP_DATA.map((topic, ti) => ({
+      topic: topic.name,
+      articles: topic.articles.map((a, ai) => ({
+        title: a.title,
+        owner: a.owner,
+        date: rmDates[`${ti}-${ai}`] || 'TBD'
+      }))
+    }));
+
     const resp = await fetch('/api/ask', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, history: aiHistory.slice(0, -1) }) // exclude last user msg (already in question)
+      body: JSON.stringify({ question, history: aiHistory.slice(0, -1), roadmap: roadmapPayload })
     });
 
     aiRemoveTyping();
