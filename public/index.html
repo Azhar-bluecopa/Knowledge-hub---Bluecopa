@@ -555,6 +555,80 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .sm-snap-item{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-radius:8px;padding:9px 14px;}
 .sm-snap-name{font-size:13px;font-weight:500;color:var(--text);}
 .sm-snap-date{font-size:11px;color:var(--muted);margin-top:2px;}
+/* ════════════════════ DELIVERY WIKIPEDIA LANDING ════════════════════ */
+#dwLanding{position:fixed;inset:0;z-index:150;background:#030308;display:flex;flex-direction:column;align-items:center;overflow-y:auto;font-family:'DM Sans',sans-serif;}
+#dwLanding.dw-hidden{display:none;}
+#dw-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+.dw-orbs{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden;}
+.dw-orb{position:absolute;border-radius:50%;filter:blur(90px);}
+.dw-orb1{width:600px;height:600px;background:radial-gradient(circle,rgba(0,200,204,.1),transparent 70%);top:-150px;left:-150px;animation:dw-d1 20s ease-in-out infinite alternate;}
+.dw-orb2{width:500px;height:500px;background:radial-gradient(circle,rgba(99,102,241,.08),transparent 70%);top:-80px;right:-150px;animation:dw-d2 24s ease-in-out infinite alternate;}
+.dw-orb3{width:400px;height:400px;background:radial-gradient(circle,rgba(249,167,79,.06),transparent 70%);bottom:-100px;left:20%;animation:dw-d3 18s ease-in-out infinite alternate;}
+.dw-orb4{width:350px;height:350px;background:radial-gradient(circle,rgba(122,232,180,.06),transparent 70%);bottom:-80px;right:15%;animation:dw-d4 22s ease-in-out infinite alternate;}
+@keyframes dw-d1{0%{transform:translate(0,0);}100%{transform:translate(80px,60px);}}
+@keyframes dw-d2{0%{transform:translate(0,0);}100%{transform:translate(-70px,80px);}}
+@keyframes dw-d3{0%{transform:translate(0,0);}100%{transform:translate(60px,-80px);}}
+@keyframes dw-d4{0%{transform:translate(0,0);}100%{transform:translate(-50px,-60px);}}
+.dw-vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse 90% 80% at 50% 40%,transparent 30%,rgba(3,3,8,.7) 100%);}
+.dw-page{position:relative;z-index:10;width:100%;display:flex;flex-direction:column;align-items:center;padding:52px 48px 80px;}
+.dw-brand-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:44px;}
+.dw-brand-ring{width:100px;height:100px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(0,200,204,.04);border:1px solid rgba(0,200,204,.15);box-shadow:0 0 0 10px rgba(0,200,204,.025),0 0 0 20px rgba(0,200,204,.01),0 0 36px rgba(0,200,204,.1);margin-bottom:16px;animation:dw-ring-pulse 3s ease-in-out infinite;}
+@keyframes dw-ring-pulse{0%,100%{box-shadow:0 0 0 10px rgba(0,200,204,.025),0 0 0 20px rgba(0,200,204,.01),0 0 36px rgba(0,200,204,.1);}50%{box-shadow:0 0 0 14px rgba(0,200,204,.04),0 0 0 28px rgba(0,200,204,.018),0 0 55px rgba(0,200,204,.18);}}
+.dw-brand-logo{height:46px;filter:brightness(2) drop-shadow(0 0 16px rgba(0,200,204,.5));}
+.dw-brand-name{font-size:12px;font-family:'DM Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:rgba(0,200,204,.5);margin-bottom:5px;}
+.dw-brand-tagline-row{display:flex;align-items:center;gap:12px;}
+.dw-brand-sep{height:1px;width:44px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12));}
+.dw-brand-sep.r{background:linear-gradient(90deg,rgba(255,255,255,.12),transparent);}
+.dw-brand-tagline{font-size:10px;color:rgba(232,232,240,.22);letter-spacing:.18em;text-transform:uppercase;font-family:'DM Mono',monospace;}
+.dw-hero{text-align:center;margin-bottom:60px;}
+.dw-hero-title{font-family:'Playfair Display',serif;font-size:clamp(48px,7vw,88px);font-weight:900;line-height:1;letter-spacing:-.03em;margin-bottom:18px;white-space:nowrap;background:linear-gradient(145deg,#ffffff 0%,rgba(200,240,255,.9) 35%,rgba(0,200,204,.85) 65%,rgba(99,102,241,.7) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:dw-shimmer 6s ease-in-out infinite alternate;}
+@keyframes dw-shimmer{0%{filter:drop-shadow(0 0 30px rgba(0,200,204,.2));}100%{filter:drop-shadow(0 0 60px rgba(0,200,204,.35));}}
+.dw-hero-kicker{display:inline-flex;align-items:center;gap:8px;margin-top:18px;margin-bottom:20px;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:rgba(0,200,204,.7);padding:6px 18px;background:rgba(0,200,204,.06);border:1px solid rgba(0,200,204,.16);border-radius:4px;}
+.dw-kicker-dot{width:6px;height:6px;background:#00c8cc;border-radius:50%;box-shadow:0 0 8px #00c8cc;animation:dw-blink 2s ease infinite;}
+@keyframes dw-blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.dw-hero-sub{font-size:16px;color:rgba(232,232,240,.36);max-width:520px;margin:0 auto 30px;line-height:1.8;font-weight:300;}
+.dw-hero-stats{display:flex;justify-content:center;gap:0;}
+.dw-h-stat{padding:14px 32px;position:relative;text-align:center;}
+.dw-h-stat+.dw-h-stat::before{content:'';position:absolute;left:0;top:20%;height:60%;width:1px;background:rgba(255,255,255,.08);}
+.dw-h-stat-n{font-family:'Playfair Display',serif;font-size:30px;font-weight:800;background:linear-gradient(135deg,#fff,#00c8cc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.dw-h-stat-l{font-size:9.5px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(232,232,240,.3);margin-top:4px;}
+.dw-cards-label{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:rgba(232,232,240,.18);margin-bottom:18px;display:flex;align-items:center;gap:14px;align-self:flex-start;max-width:1200px;width:100%;}
+.dw-cards-label::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.04);}
+.dw-cards-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;width:100%;max-width:1200px;}
+.dw-card{position:relative;border-radius:24px;cursor:pointer;overflow:visible;padding:30px 24px 26px;background:rgba(255,255,255,.028);border:1px solid rgba(255,255,255,.07);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);transition:box-shadow .3s;animation:dw-float var(--fdur,4s) ease-in-out infinite;animation-delay:var(--fdel,0s);}
+@keyframes dw-float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.dw-card-inner{overflow:hidden;border-radius:24px;position:relative;}
+@property --dw-angle{syntax:'<angle>';inherits:false;initial-value:0deg;}
+.dw-card-spin{position:absolute;inset:-1px;border-radius:25px;background:conic-gradient(from var(--dw-angle),transparent 70%,rgba(var(--cr),.6) 82%,rgba(var(--cr),.8) 86%,rgba(var(--cr),.6) 90%,transparent 100%);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;padding:1px;opacity:0;transition:opacity .4s;animation:dw-border-spin 4s linear infinite;animation-play-state:paused;}
+@keyframes dw-border-spin{to{--dw-angle:360deg;}}
+.dw-card:hover .dw-card-spin{opacity:1;animation-play-state:running;}
+.dw-card-orb{position:absolute;top:-28px;right:-28px;width:90px;height:90px;border-radius:50%;background:rgba(var(--cr),.16);filter:blur(28px);pointer-events:none;opacity:.5;transition:opacity .3s;}
+.dw-card:hover .dw-card-orb{opacity:1;}
+.dw-card:hover{animation-play-state:paused;box-shadow:0 28px 70px rgba(0,0,0,.55),0 0 50px rgba(var(--cr),.1);}
+.dw-card-icon{font-size:42px;margin-bottom:16px;display:block;line-height:1;filter:drop-shadow(0 0 14px rgba(var(--cr),.55));transition:transform .3s,filter .3s;}
+.dw-card:hover .dw-card-icon{transform:scale(1.1) translateY(-3px);filter:drop-shadow(0 0 26px rgba(var(--cr),.88));}
+.dw-card-num{font-family:'DM Mono',monospace;font-size:9px;color:rgba(var(--cr),1);opacity:.35;letter-spacing:.22em;margin-bottom:7px;}
+.dw-card-name{font-family:'Playfair Display',serif;font-size:18px;font-weight:800;color:#fff;margin-bottom:8px;line-height:1.25;}
+.dw-card-desc{font-size:12px;color:rgba(232,232,240,.34);line-height:1.7;font-weight:300;}
+.dw-card-badge{font-size:9px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:10px;background:rgba(var(--cr),.08);color:rgba(var(--cr),1);border:1px solid rgba(var(--cr),.2);letter-spacing:.07em;display:inline-block;margin-bottom:5px;}
+.dw-card-footer{margin-top:18px;display:flex;align-items:center;justify-content:space-between;}
+.dw-card-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(var(--cr),.45),rgba(var(--cr),.1),transparent);}
+.dw-card-arrow{width:26px;height:26px;border-radius:50%;border:1px solid rgba(var(--cr),.22);display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(var(--cr),1);background:rgba(var(--cr),.06);opacity:0;transform:translateX(-6px);transition:all .22s;flex-shrink:0;margin-left:10px;}
+.dw-card:hover .dw-card-arrow{opacity:1;transform:translateX(0);}
+/* Info tooltip */
+.dw-info-btn{position:absolute;top:-10px;right:-10px;width:22px;height:22px;border-radius:50%;background:rgba(14,14,24,.9);border:1px solid rgba(var(--cr),.35);color:rgba(var(--cr),.8);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:20;transition:all .18s;font-family:'DM Mono',monospace;line-height:1;}
+.dw-info-btn:hover{background:rgba(var(--cr),.15);border-color:rgba(var(--cr),.7);color:rgba(var(--cr),1);transform:scale(1.15);}
+.dw-tooltip{display:none;position:absolute;bottom:calc(100% + 14px);left:50%;transform:translateX(-50%);background:rgba(10,10,20,.97);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px 18px;width:230px;z-index:50;pointer-events:none;backdrop-filter:blur(20px);}
+.dw-tooltip.open{display:block;}
+.dw-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:7px solid transparent;border-top-color:rgba(255,255,255,.1);}
+.dw-tooltip-title{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(var(--cr),1);margin-bottom:9px;}
+.dw-tooltip-text{font-size:11.5px;color:rgba(232,232,240,.5);line-height:1.72;}
+/* Home button */
+.btn-home{background:transparent;border:1px solid rgba(0,200,204,.3);color:rgba(0,200,204,.7);border-radius:8px;padding:8px 14px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:6px;}
+.btn-home:hover{border-color:rgba(0,200,204,.6);color:#00c8cc;background:rgba(0,200,204,.08);}
+.dw-bottom-row{display:flex;align-items:center;justify-content:center;gap:28px;margin-top:36px;width:100%;max-width:1200px;}
+.dw-bottom-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);}
+.dw-bottom-text{font-size:10px;font-family:'DM Mono',monospace;color:rgba(232,232,240,.18);letter-spacing:.14em;text-transform:uppercase;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
@@ -620,6 +694,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           autocomplete="off"/>
         <button onclick="closeTopbarSearch()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0;flex-shrink:0;" title="Close">✕</button>
       </div>
+      <button class="btn-home" id="btnHome" onclick="showLanding()" title="Home">🏠 <span>Home</span></button>
       <button class="search-icon-btn" id="searchIconBtn" onclick="toggleTopbarSearch()" title="Search">
         🔍 <span style="font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;">Search</span>
       </button>
@@ -4070,6 +4145,262 @@ function switchAdminTab(tab, btn) {
   if(panel) panel.classList.add('active');
   if(tab==='skillmatrix') smAdmLoad();
 }
+</script>
+<!-- ═══════════════════════════════════════════
+     DELIVERY WIKIPEDIA LANDING OVERLAY
+═══════════════════════════════════════════ -->
+<canvas id="dw-canvas"></canvas>
+<div id="dwLanding">
+  <div class="dw-orbs">
+    <div class="dw-orb dw-orb1"></div>
+    <div class="dw-orb dw-orb2"></div>
+    <div class="dw-orb dw-orb3"></div>
+    <div class="dw-orb dw-orb4"></div>
+  </div>
+  <div class="dw-vignette"></div>
+
+  <div class="dw-page">
+
+    <!-- Brand -->
+    <div class="dw-brand-wrap">
+      <div class="dw-brand-ring">
+        <img src="/bluecopa-logo.png" alt="Bluecopa" class="dw-brand-logo">
+      </div>
+      <div class="dw-brand-name">Bluecopa</div>
+      <div class="dw-brand-tagline-row">
+        <div class="dw-brand-sep"></div>
+        <div class="dw-brand-tagline">Delivery Team's Go-To Place</div>
+        <div class="dw-brand-sep r"></div>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="dw-hero">
+      <div class="dw-hero-title">Delivery Wikipedia</div>
+      <div class="dw-hero-kicker">
+        <span class="dw-kicker-dot"></span>
+        Bluecopa · Your Delivery Team's Go-To Place
+      </div>
+      <div class="dw-hero-sub">The single source of truth for Bluecopa's delivery team — knowledge, skills, metrics, history, and learning, all in one place.</div>
+      <div class="dw-hero-stats">
+        <div class="dw-h-stat"><div class="dw-h-stat-n">34+</div><div class="dw-h-stat-l">Knowledge Articles</div></div>
+        <div class="dw-h-stat"><div class="dw-h-stat-n">5</div><div class="dw-h-stat-l">Core Sections</div></div>
+        <div class="dw-h-stat"><div class="dw-h-stat-n">Live</div><div class="dw-h-stat-l">Skill Tracking</div></div>
+        <div class="dw-h-stat"><div class="dw-h-stat-n">∞</div><div class="dw-h-stat-l">Always Growing</div></div>
+      </div>
+    </div>
+
+    <!-- Section cards -->
+    <div class="dw-cards-label">Explore Sections</div>
+    <div class="dw-cards-grid">
+
+      <!-- 01 Knowledge Articles -->
+      <div class="dw-card" style="--cr:0,200,204;--fdur:4.2s;--fdel:0s;" onclick="dwGoKnowledge()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip01')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip01">
+          <div class="dw-tooltip-title">Knowledge Articles</div>
+          <div class="dw-tooltip-text">Step-by-step guides, how-tos, deep technical docs and best practices covering every Bluecopa feature — written by the team, for the team. Browse by category or search.</div>
+        </div>
+        <div class="dw-card-badge">● Live</div>
+        <span class="dw-card-icon">📚</span>
+        <div class="dw-card-num">// 01</div>
+        <div class="dw-card-name">Knowledge Articles</div>
+        <div class="dw-card-desc">Step-by-step guides, how-tos and deep technical docs covering every Bluecopa feature.</div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+      <!-- 02 Skill Matrix -->
+      <div class="dw-card" style="--cr:129,140,248;--fdur:3.8s;--fdel:.5s;" onclick="dwGoSkillMatrix()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip02')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip02">
+          <div class="dw-tooltip-title">Skill Matrix</div>
+          <div class="dw-tooltip-text">See where every team member stands across all process areas. Track growth over time, spot skill gaps, and celebrate expertise — with live data snapshots and visual dashboards.</div>
+        </div>
+        <div class="dw-card-badge">● Live</div>
+        <span class="dw-card-icon">🧠</span>
+        <div class="dw-card-num">// 02</div>
+        <div class="dw-card-name">Skill Matrix</div>
+        <div class="dw-card-desc">Track every team member's skills across all process areas with live data.</div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+      <!-- 03 KPIs -->
+      <div class="dw-card" style="--cr:249,167,79;--fdur:4.5s;--fdel:1s;" onclick="dwComingSoon('KPIs')">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip03')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip03">
+          <div class="dw-tooltip-title">KPIs</div>
+          <div class="dw-tooltip-text">Delivery performance metrics that actually matter — velocity, quality, efficiency and team health indicators, all in one live dashboard. Compare period-over-period trends.</div>
+        </div>
+        <div class="dw-card-badge">◌ Coming Soon</div>
+        <span class="dw-card-icon">📊</span>
+        <div class="dw-card-num">// 03</div>
+        <div class="dw-card-name">KPIs</div>
+        <div class="dw-card-desc">Delivery performance metrics — velocity, quality and team health, all live.</div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+      <!-- 04 Delivery Journey -->
+      <div class="dw-card" style="--cr:122,232,180;--fdur:4s;--fdel:1.5s;" onclick="dwComingSoon('Delivery Journey')">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip04')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip04">
+          <div class="dw-tooltip-title">The Delivery Journey</div>
+          <div class="dw-tooltip-text">A living record of every past implementation — what was built, what was learned, and how each project shaped the team we are today. Project stories, timelines and retrospectives.</div>
+        </div>
+        <div class="dw-card-badge">◌ Coming Soon</div>
+        <span class="dw-card-icon">🏛️</span>
+        <div class="dw-card-num">// 04</div>
+        <div class="dw-card-name">The Delivery Journey</div>
+        <div class="dw-card-desc">A living record of every past implementation and what we learned.</div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+      <!-- 05 Process Puzzle -->
+      <div class="dw-card" style="--cr:232,122,122;--fdur:3.6s;--fdel:2s;" onclick="dwComingSoon('Process Puzzle')">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip05')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip05">
+          <div class="dw-tooltip-title">Process Puzzle</div>
+          <div class="dw-tooltip-text">Quizzes, puzzles and interactive challenges built around real Bluecopa processes — learn by doing and level up your knowledge. Fun, gamified learning for the delivery team.</div>
+        </div>
+        <div class="dw-card-badge">◌ Coming Soon</div>
+        <span class="dw-card-icon">🧩</span>
+        <div class="dw-card-num">// 05</div>
+        <div class="dw-card-name">Process Puzzle</div>
+        <div class="dw-card-desc">Quizzes, puzzles and interactive challenges — learn by doing and level up.</div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+    </div><!-- /dw-cards-grid -->
+
+    <div class="dw-bottom-row">
+      <div class="dw-bottom-line"></div>
+      <div class="dw-bottom-text">Bluecopa · Delivery Wikipedia · 2026</div>
+      <div class="dw-bottom-line"></div>
+    </div>
+
+  </div><!-- /dw-page -->
+</div><!-- /dwLanding -->
+
+<script>
+/* ── Landing overlay JS ── */
+function showLanding(){
+  document.getElementById('dwLanding').classList.remove('dw-hidden');
+  document.getElementById('dw-canvas').style.display='block';
+  // hide skill matrix if open
+  const sm=document.getElementById('smOverlay');
+  if(sm) sm.classList.remove('active');
+  // close any open tooltips
+  document.querySelectorAll('.dw-tooltip').forEach(t=>t.classList.remove('open'));
+  // restart canvas
+  dwCanvasRunning=true;
+}
+
+function hideLanding(){
+  document.getElementById('dwLanding').classList.add('dw-hidden');
+  document.getElementById('dw-canvas').style.display='none';
+  dwCanvasRunning=false;
+}
+
+function dwGoKnowledge(){
+  hideLanding();
+  // articles view is already the default main content — just make sure it's visible
+  document.getElementById('pageTitle').textContent='All Articles';
+  document.getElementById('pageMeta').textContent='Browse and manage your team\'s knowledge base';
+}
+
+function dwGoSkillMatrix(){
+  hideLanding();
+  showSkillMatrix();
+}
+
+function dwComingSoon(name){
+  showToast(name+' is coming soon! 🚀','success');
+}
+
+function dwToggleTip(id){
+  const tip=document.getElementById(id);
+  const wasOpen=tip.classList.contains('open');
+  document.querySelectorAll('.dw-tooltip').forEach(t=>t.classList.remove('open'));
+  if(!wasOpen) tip.classList.add('open');
+}
+
+// Close tooltips on outside click
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.dw-info-btn') && !e.target.closest('.dw-tooltip')){
+    document.querySelectorAll('.dw-tooltip').forEach(t=>t.classList.remove('open'));
+  }
+});
+
+/* ── Particle canvas for landing ── */
+const dwCv=document.getElementById('dw-canvas');
+const dwCtx=dwCv.getContext('2d');
+let dwW,dwH,dwCanvasRunning=true;
+function dwResize(){dwW=dwCv.width=innerWidth;dwH=dwCv.height=innerHeight;}
+dwResize(); window.addEventListener('resize',dwResize);
+
+const DW_COLORS=[[0,200,204],[99,102,241],[249,167,79],[122,232,180],[232,122,122]];
+const dwPts=Array.from({length:90},()=>({
+  x:Math.random()*innerWidth,y:Math.random()*innerHeight,
+  vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4,
+  r:Math.random()*2+.6,c:DW_COLORS[Math.floor(Math.random()*5)],
+  tw:Math.random()*Math.PI*2,tws:.008+Math.random()*.018
+}));
+const dwShoots=[];
+function dwSpawn(){
+  const c=DW_COLORS[Math.floor(Math.random()*5)];
+  dwShoots.push({x:Math.random()*dwW*1.2,y:Math.random()*dwH*.5,vx:-(4+Math.random()*5),vy:1+Math.random()*3,life:1,decay:.018+Math.random()*.012,len:80+Math.random()*110,c});
+}
+setInterval(dwSpawn,2400); setInterval(dwSpawn,4000);
+
+function dwDraw(){
+  if(!dwCanvasRunning){requestAnimationFrame(dwDraw);return;}
+  dwCtx.clearRect(0,0,dwW,dwH);
+  dwPts.forEach(p=>{
+    p.tw+=p.tws;const a=.5+.5*Math.sin(p.tw);
+    p.vx*=.993;p.vy*=.993;p.x+=p.vx;p.y+=p.vy;
+    if(p.x<0)p.x=dwW;if(p.x>dwW)p.x=0;if(p.y<0)p.y=dwH;if(p.y>dwH)p.y=0;
+    const[r,g,b]=p.c;
+    const g2=dwCtx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*4);
+    g2.addColorStop(0,`rgba(${r},${g},${b},${a*.22})`);g2.addColorStop(1,`rgba(${r},${g},${b},0)`);
+    dwCtx.beginPath();dwCtx.arc(p.x,p.y,p.r*4,0,Math.PI*2);dwCtx.fillStyle=g2;dwCtx.fill();
+    dwCtx.beginPath();dwCtx.arc(p.x,p.y,p.r,0,Math.PI*2);dwCtx.fillStyle=`rgba(${r},${g},${b},${a*.75})`;dwCtx.fill();
+  });
+  for(let i=0;i<dwPts.length;i++) for(let j=i+1;j<dwPts.length;j++){
+    const dx=dwPts[i].x-dwPts[j].x,dy=dwPts[i].y-dwPts[j].y,d=Math.hypot(dx,dy);
+    if(d<130){const[r,g,b]=dwPts[i].c;dwCtx.beginPath();dwCtx.strokeStyle=`rgba(${r},${g},${b},${(1-d/130)*.18})`;dwCtx.lineWidth=.6;dwCtx.moveTo(dwPts[i].x,dwPts[i].y);dwCtx.lineTo(dwPts[j].x,dwPts[j].y);dwCtx.stroke();}
+  }
+  for(let i=dwShoots.length-1;i>=0;i--){
+    const s=dwShoots[i];const[r,g,b]=s.c;
+    const sg=dwCtx.createLinearGradient(s.x,s.y,s.x+s.len*.6,s.y-s.len*.25);
+    sg.addColorStop(0,`rgba(${r},${g},${b},0)`);sg.addColorStop(.6,`rgba(${r},${g},${b},${s.life*.45})`);sg.addColorStop(1,`rgba(255,255,255,${s.life*.85})`);
+    dwCtx.beginPath();dwCtx.strokeStyle=sg;dwCtx.lineWidth=1.4*s.life;dwCtx.moveTo(s.x,s.y);dwCtx.lineTo(s.x+s.len*.6,s.y-s.len*.25);dwCtx.stroke();
+    dwCtx.beginPath();dwCtx.arc(s.x+s.len*.6,s.y-s.len*.25,1.8*s.life,0,Math.PI*2);dwCtx.fillStyle=`rgba(255,255,255,${s.life*.75})`;dwCtx.fill();
+    s.x+=s.vx;s.y+=s.vy;s.life-=s.decay;
+    if(s.life<=0||s.x<-200)dwShoots.splice(i,1);
+  }
+  requestAnimationFrame(dwDraw);
+}
+dwDraw();
+
+// Card 3D tilt on dw-cards
+document.querySelectorAll('.dw-card').forEach(card=>{
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect();
+    const dx=(e.clientX-r.left-r.width/2)/(r.width/2);
+    const dy=(e.clientY-r.top-r.height/2)/(r.height/2);
+    card.style.transform=`perspective(700px) rotateX(${-dy*7}deg) rotateY(${dx*7}deg) translateY(-8px) scale(1.02)`;
+  });
+  card.addEventListener('mouseleave',()=>{card.style.transform='';});
+});
 </script>
 </body>
 </html>
