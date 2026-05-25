@@ -775,10 +775,67 @@ app.post('/api/puzzle/generate', async (req, res) => {
     if (db.processGame.gameHistory.length > 20) db.processGame.gameHistory.shift();
   }
 
-  const formats = ['quiz', 'trivia', 'scenario'];
-  const gameType = formats[Math.floor(Math.random() * formats.length)];
-  const typeDesc = gameType === 'quiz' ? 'knowledge-testing questions' : gameType === 'trivia' ? 'factual trivia questions' : 'real-world scenario-based challenges';
-  const prompt = `You are creating a weekly ${gameType} game for a delivery team called "Process Puzzle".\n\nKNOWLEDGE BASE:\n${articles}\n\nPROCESS AREAS: ${processAreas}\n\nGenerate exactly 8 ${typeDesc} based on the content above. Return ONLY valid JSON with no markdown fences:\n{\n  "type": "${gameType}",\n  "title": "Week ${week} ${gameType.charAt(0).toUpperCase()+gameType.slice(1)} Challenge",\n  "instructions": "Read each question carefully and select the best answer. Timer starts when you begin!",\n  "questions": [\n    {\n      "id": 1,\n      "type": "multiple-choice",\n      "question": "Question text?",\n      "options": ["Option A", "Option B", "Option C", "Option D"],\n      "correct": 0,\n      "explanation": "Brief explanation why this is correct.",\n      "difficulty": "medium"\n    }\n  ]\n}`;
+  const PP_FORMATS = [
+    { id:'knowledge_quiz', name:'Knowledge Quiz',     icon:'📝', color:'quiz',
+      desc:'Test your knowledge of delivery processes and workflows',
+      rules:`Generate 8 multiple-choice KNOWLEDGE questions. Each must have exactly 4 options (A-D). Test understanding of processes, tools, and workflows. One option is clearly correct; the other 3 are plausible but wrong. Mix 2 easy, 4 medium, 2 hard.` },
+    { id:'true_false',     name:'True or False',      icon:'⚖️', color:'trivia',
+      desc:'Decide if each statement is true or false',
+      rules:`Generate 8 TRUE/FALSE questions. Each question MUST be a statement (not a question). Options MUST be exactly ["True","False"] — only 2 options. Set correct to 0 if statement is True, 1 if False. Mix ~4 true and ~4 false. Include one surprising fact.` },
+    { id:'riddle_round',   name:'Riddle Round',       icon:'🔮', color:'scenario',
+      desc:'Solve creative riddles about delivery and data concepts',
+      rules:`Generate 8 RIDDLES where each answer is a process, tool, concept, or workflow term from the knowledge base. Write each riddle metaphorically (e.g. "I flow between systems carrying data, I transform and cleanse but never rest — what am I?"). Provide 4 answer options, one correct. Make riddles clever but solvable with domain knowledge.` },
+    { id:'fill_blank',     name:'Fill in the Blank',  icon:'✏️', color:'quiz',
+      desc:'Complete the missing word or phrase in each statement',
+      rules:`Generate 8 FILL-IN-THE-BLANK questions. Each is a sentence with exactly ONE blank marked as _____. Provide 4 options to fill the blank — only one is correct. The correct answer must be a key term, acronym, or concept from the knowledge base. Make the blanks meaningful, not trivial.` },
+    { id:'spot_mistake',   name:'Spot the Mistake',   icon:'🔍', color:'trivia',
+      desc:'Find the deliberate error hidden in each description',
+      rules:`Generate 8 SPOT-THE-MISTAKE questions. Each describes a process or concept with ONE deliberate factual mistake. Format: "A colleague described [topic] as: [description with embedded mistake]. What is incorrect?" Provide 4 options — only one correctly identifies the mistake. Other 3 options point to things that were actually correct or are irrelevant.` },
+    { id:'scenario',       name:'Scenario Challenge', icon:'🎯', color:'scenario',
+      desc:'Make the right call in real-world delivery situations',
+      rules:`Generate 8 SCENARIO-BASED questions presenting realistic delivery team situations. Each presents a work situation with a problem or decision. Provide 4 possible actions — only one is clearly the best approach. Wrong options should be common mistakes or partial solutions, not obviously wrong.` },
+    { id:'what_next',      name:'What Comes Next?',   icon:'⏭️', color:'quiz',
+      desc:'Identify the next correct step in a delivery workflow',
+      rules:`Generate 8 SEQUENCING questions. Each describes a process up to a certain step then asks "What should happen next?" Provide 4 options for the next step — one is correct. Draw from different process areas (ingestion, reconciliation, reporting, exports, etc.). Vary difficulty.` },
+    { id:'term_buster',    name:'Term Buster',        icon:'📖', color:'trivia',
+      desc:'Match terms, acronyms, and definitions from the knowledge base',
+      rules:`Generate 8 TERMINOLOGY questions about specific terms, acronyms, tools, or concepts from the knowledge base. Format questions as "What is [TERM]?", "What does [ACRONYM] stand for?", or "Which best describes [CONCEPT]?". Provide 4 options — one correct definition, 3 plausible but wrong. Include at least 2 acronym questions.` },
+    { id:'mixed_bag',      name:'Mixed Bag',          icon:'🎲', color:'quiz',
+      desc:'A surprise mix of all question types — stay on your toes!',
+      rules:`Generate 8 questions using a MIX of formats: 2 standard multiple-choice (4 options), 2 TRUE/FALSE (options MUST be exactly ["True","False"] — no other values), 2 fill-in-the-blank (sentence with _____ and 4 options), 2 riddles (metaphorical description, 4 options). For true/false, ALWAYS use exactly ["True","False"] as the options array.` },
+  ];
+  const fmt = PP_FORMATS[Math.floor(Math.random() * PP_FORMATS.length)];
+  const prompt = `You are creating a weekly game for a delivery team's "Process Puzzle" challenge.
+
+KNOWLEDGE BASE (base all questions on this content):
+${articles}
+
+PROCESS AREAS: ${processAreas}
+
+═══ GAME FORMAT: ${fmt.name.toUpperCase()} ═══
+Description: ${fmt.desc}
+
+QUESTION RULES:
+${fmt.rules}
+
+Return ONLY valid JSON with no markdown, no code fences, no backticks:
+{
+  "type": "${fmt.id}",
+  "title": "Week ${week}: ${fmt.name}",
+  "instructions": "One clear sentence telling players exactly how to play this specific format.",
+  "questions": [
+    {
+      "id": 1,
+      "question": "Full question text here",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correct": 0,
+      "explanation": "Why this is correct / what the right answer means",
+      "difficulty": "easy"
+    }
+  ]
+}
+
+Generate exactly 8 questions. Return ONLY the JSON object, nothing else.`;
 
   try {
     let raw = '';
@@ -802,9 +859,12 @@ app.post('/api/puzzle/generate', async (req, res) => {
     const parsed = JSON.parse(raw.slice(js, je));
     const newGame = {
       id: gameId, week, year,
-      type: parsed.type || gameType,
-      title: parsed.title || `Week ${week} Challenge`,
-      instructions: parsed.instructions || 'Answer all questions as fast as you can!',
+      type: parsed.type || fmt.id,
+      formatIcon: fmt.icon,
+      formatColor: fmt.color,
+      formatDesc: fmt.desc,
+      title: parsed.title || `Week ${week}: ${fmt.name}`,
+      instructions: parsed.instructions || fmt.desc,
       questions: (parsed.questions || []).map((q, i) => ({ ...q, id: i + 1 })),
       publishedAt: now.toISOString(),
       totalQuestions: (parsed.questions || []).length
