@@ -342,6 +342,40 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dashboard-view.active{display:flex;}
 .roadmap-view{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:200;background:var(--bg);flex-direction:column;overflow-y:auto;}
 .roadmap-view.active{display:flex;}
+/* ── Admin Page ── */
+.admin-page{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:200;background:var(--bg);flex-direction:column;overflow-y:auto;}
+.admin-page.active{display:flex;}
+.adm-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+.adm-kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 22px;position:relative;overflow:hidden;}
+.adm-kpi-icon{font-size:22px;margin-bottom:8px;}
+.adm-kpi-val{font-family:'Playfair Display',serif;font-size:30px;font-weight:700;color:var(--text);}
+.adm-kpi-label{font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.08em;font-family:'DM Mono',monospace;}
+.adm-kpi-accent{position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent-grad,var(--accent));border-radius:14px 14px 0 0;}
+.adm-section{background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-bottom:20px;overflow:hidden;}
+.adm-section-head{display:flex;align-items:center;gap:12px;padding:18px 24px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
+.adm-section-head:hover{background:rgba(255,255,255,.02);}
+.adm-section-title{font-size:14px;font-weight:700;color:var(--text);flex:1;}
+.adm-section-badge{font-size:10px;font-family:'DM Mono',monospace;padding:2px 9px;border-radius:10px;background:rgba(0,200,204,.1);border:1px solid rgba(0,200,204,.25);color:#00c8cc;}
+.adm-section-badge.warn{background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.3);color:#fbbf24;}
+.adm-section-body{padding:20px 24px;}
+.adm-section-toggle{font-size:12px;color:var(--muted);transition:transform .2s;}
+.adm-section-body.collapsed{display:none;}
+.adm-action-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.adm-action-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;border:1px solid var(--border);background:var(--surface2);color:var(--text);}
+.adm-action-btn:hover{border-color:var(--accent);color:var(--accent);}
+.adm-action-btn.danger:hover{border-color:var(--danger);color:var(--danger);}
+.adm-sign-out{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:rgba(232,122,122,.1);border:1px solid rgba(232,122,122,.25);color:#e87a7a;transition:all .18s;}
+.adm-sign-out:hover{background:rgba(232,122,122,.2);border-color:rgba(232,122,122,.5);}
+.adm-divider{height:1px;background:var(--border);margin:16px 0;}
+.adm-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.adm-field-group{display:flex;flex-direction:column;gap:6px;}
+.adm-field-label{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.adm-roadmap-list{max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
+.adm-rm-row{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);}
+.adm-rm-title{flex:1;font-size:12.5px;color:var(--text);}
+.adm-rm-date{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);}
+.adm-rm-edit{font-size:11px;cursor:pointer;color:var(--muted);border:none;background:none;padding:2px 6px;border-radius:4px;transition:color .15s;}
+.adm-rm-edit:hover{color:#00c8cc;}
 .roadmap-body{flex:1;}
 .rm-topics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
 .rm-topic-block{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .18s;}
@@ -582,6 +616,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="category-item" id="sidebarRoadmapBtn" onclick="showRoadmap()">
         <span style="font-size:15px;">🗺</span> Roadmap
       </div>
+      <div class="category-item" id="sidebarAdminBtn" onclick="showAdminPage()" style="display:none;margin-top:2px;">
+        <span style="font-size:15px;">⚑</span>
+        <span style="flex:1;">Admin Dashboard</span>
+        <span id="sidebarAdminDot" style="display:none;width:7px;height:7px;background:var(--danger);border-radius:50%;animation:pulse 2s infinite;"></span>
+      </div>
     </div>
   </div>
   <div class="read-only-banner" id="readOnlyBanner">🔒 Read-only mode — posting disabled</div>
@@ -652,6 +691,181 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </main>
 
 <!-- ── Roadmap View ── -->
+<!-- ── Admin Page ── -->
+<div class="admin-page" id="adminPageView">
+  <div class="topbar" style="position:sticky;top:0;z-index:50;background:var(--bg);">
+    <div>
+      <div class="topbar-title">⚑ Admin Dashboard</div>
+      <div class="topbar-meta">Manage site content, settings, and team data</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="adm-sign-out" onclick="adminSignOut()">🔓 Sign Out Admin</button>
+      <button class="btn-ghost" onclick="hideAdminPage()" style="margin-left:8px;">← Back to Articles</button>
+    </div>
+  </div>
+
+  <div style="padding:28px 48px 60px;max-width:1200px;width:100%;margin:0 auto;">
+
+    <!-- KPI Cards -->
+    <div class="adm-kpi-grid" id="admKpiGrid">
+      <div class="adm-kpi">
+        <div class="adm-kpi-accent" style="background:linear-gradient(90deg,#00c8cc,#0891b2);"></div>
+        <div class="adm-kpi-icon">📚</div>
+        <div class="adm-kpi-val" id="admKpiArticles">—</div>
+        <div class="adm-kpi-label">Published Articles</div>
+      </div>
+      <div class="adm-kpi">
+        <div class="adm-kpi-accent" style="background:linear-gradient(90deg,#fbbf24,#f97316);"></div>
+        <div class="adm-kpi-icon">📩</div>
+        <div class="adm-kpi-val" id="admKpiRequests">—</div>
+        <div class="adm-kpi-label">Pending Requests</div>
+      </div>
+      <div class="adm-kpi">
+        <div class="adm-kpi-accent" style="background:linear-gradient(90deg,#818cf8,#6366f1);"></div>
+        <div class="adm-kpi-icon">🏷</div>
+        <div class="adm-kpi-val" id="admKpiCats">—</div>
+        <div class="adm-kpi-label">Categories</div>
+      </div>
+      <div class="adm-kpi">
+        <div class="adm-kpi-accent" style="background:linear-gradient(90deg,#7ae8b4,#10b981);"></div>
+        <div class="adm-kpi-icon">📅</div>
+        <div class="adm-kpi-val" id="admKpiRoadmap">—</div>
+        <div class="adm-kpi-label">Roadmap Articles</div>
+      </div>
+    </div>
+
+    <!-- ── Section: Article Requests ── -->
+    <div class="adm-section">
+      <div class="adm-section-head" onclick="admToggle('reqBody',this)">
+        <span style="font-size:18px;">📩</span>
+        <div class="adm-section-title">Article Requests</div>
+        <span class="adm-section-badge warn" id="admReqBadge" style="display:none;">0 pending</span>
+        <span class="adm-section-toggle">▾</span>
+      </div>
+      <div class="adm-section-body" id="reqBody">
+        <div id="admRequestList"><div class="req-empty">Loading requests…</div></div>
+      </div>
+    </div>
+
+    <!-- ── Section: Categories ── -->
+    <div class="adm-section">
+      <div class="adm-section-head" onclick="admToggle('catBody',this)">
+        <span style="font-size:18px;">🏷</span>
+        <div class="adm-section-title">Categories</div>
+        <span class="adm-section-badge">Manage</span>
+        <span class="adm-section-toggle">▾</span>
+      </div>
+      <div class="adm-section-body" id="catBody">
+        <div class="adm-action-row">
+          <button class="adm-action-btn" onclick="openModal();hideAdminPage()">✦ Add New Article</button>
+        </div>
+        <div class="cat-list" id="admCatList2"></div>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;">Add New Category</div>
+          <div class="adm-two-col">
+            <div class="adm-field-group">
+              <div class="adm-field-label">Category Name</div>
+              <input class="form-input" id="admNewCatName" placeholder="e.g. Integrations" style="font-size:13px;"/>
+            </div>
+            <div class="adm-field-group">
+              <div class="adm-field-label">Colour</div>
+              <input type="color" id="admNewCatColor" value="#00c8cc" style="height:38px;width:100%;border-radius:8px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;"/>
+            </div>
+          </div>
+          <button class="btn-primary" style="margin-top:12px;" onclick="admAddCategory()">Add Category</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Section: Skill Matrix ── -->
+    <div class="adm-section">
+      <div class="adm-section-head" onclick="admToggle('smBody',this)">
+        <span style="font-size:18px;">🧠</span>
+        <div class="adm-section-title">Skill Matrix</div>
+        <span class="adm-section-badge">Live Data</span>
+        <span class="adm-section-toggle">▾</span>
+      </div>
+      <div class="adm-section-body" id="smBody">
+        <div class="adm-action-row">
+          <button class="adm-action-btn" onclick="admCaptureSnapshot()">📸 Capture New Snapshot</button>
+          <button class="adm-action-btn" onclick="showSkillMatrix();hideAdminPage()">📊 Open Skill Matrix</button>
+        </div>
+        <div id="admSnapshotList" style="font-size:13px;color:var(--muted);">Loading snapshots…</div>
+      </div>
+    </div>
+
+    <!-- ── Section: Roadmap Dates ── -->
+    <div class="adm-section">
+      <div class="adm-section-head" onclick="admToggle('rmBody',this)">
+        <span style="font-size:18px;">🗺</span>
+        <div class="adm-section-title">Roadmap — Date Management</div>
+        <span class="adm-section-badge">Editable</span>
+        <span class="adm-section-toggle">▾</span>
+      </div>
+      <div class="adm-section-body" id="rmBody">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6;">Set target dates for planned articles. Overdue entries are automatically highlighted in red on the Roadmap page.</p>
+        <div class="adm-roadmap-list" id="admRoadmapList">Loading…</div>
+        <div style="margin-top:14px;">
+          <button class="adm-action-btn" onclick="showRoadmap();hideAdminPage()">🗺 Open Full Roadmap</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Section: Site Settings ── -->
+    <div class="adm-section">
+      <div class="adm-section-head" onclick="admToggle('settBody',this)">
+        <span style="font-size:18px;">⚙</span>
+        <div class="adm-section-title">Site Settings</div>
+        <span class="adm-section-badge">Access Control</span>
+        <span class="adm-section-toggle">▾</span>
+      </div>
+      <div class="adm-section-body" id="settBody">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;">Article Posting Mode</div>
+        <div id="admRestrictionOptions" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+          <div class="restriction-option" id="admOpt-open" onclick="admSelectRestriction('open')">
+            <input type="radio" name="admPostRestriction" value="open"/>
+            <div><div class="restriction-label">🌐 Open</div><div class="restriction-desc">Anyone can post and edit articles.</div></div>
+          </div>
+          <div class="restriction-option" id="admOpt-admins_only" onclick="admSelectRestriction('admins_only')">
+            <input type="radio" name="admPostRestriction" value="admins_only"/>
+            <div><div class="restriction-label">🔒 Admins Only</div><div class="restriction-desc">Only admins can post. Regular users can read but not write.</div></div>
+          </div>
+          <div class="restriction-option" id="admOpt-named_only" onclick="admSelectRestriction('named_only')">
+            <input type="radio" name="admPostRestriction" value="named_only"/>
+            <div><div class="restriction-label">👤 Named Users Only</div><div class="restriction-desc">Only users with a set display name can post.</div></div>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="admSaveSettings()">Save Settings</button>
+      </div>
+    </div>
+
+    <!-- ── Section: Password ── -->
+    <div class="adm-section">
+      <div class="adm-section-head" onclick="admToggle('pwdBody',this)">
+        <span style="font-size:18px;">🔑</span>
+        <div class="adm-section-title">Change Admin Password</div>
+        <span class="adm-section-badge">Security</span>
+        <span class="adm-section-toggle">▾</span>
+      </div>
+      <div class="adm-section-body" id="pwdBody">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">All current admin sessions will need to re-enter the new password after this change.</p>
+        <div class="adm-two-col" style="margin-bottom:14px;">
+          <div class="adm-field-group">
+            <div class="adm-field-label">New Password</div>
+            <input class="form-input" type="password" id="admNewPwd" placeholder="Enter new password"/>
+          </div>
+          <div class="adm-field-group">
+            <div class="adm-field-label">Confirm Password</div>
+            <input class="form-input" type="password" id="admConfirmPwd" placeholder="Confirm new password"/>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="admChangePassword()">Update Password</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <div class="roadmap-view" id="roadmapView">
   <div class="topbar" style="position:sticky;top:0;z-index:50;background:var(--bg);">
     <div>
@@ -1215,6 +1429,8 @@ function renderUserInfo() {
   const isAdm = !!getAdminPwd();
   document.getElementById('adminBadge').style.display = isAdm ? 'inline-flex' : 'none';
   document.getElementById('exportBtn').style.display  = isAdm ? 'inline-flex' : 'none';
+  const admSideBtn = document.getElementById('sidebarAdminBtn');
+  if (admSideBtn) admSideBtn.style.display = isAdm ? 'flex' : 'none';
 }
 function openIdentityModal() {
   const u = getUser();
@@ -2035,9 +2251,247 @@ const ROADMAP_DATA = [
   ]},
 ];
 
+/* ── Admin Page ─────────────────────────────────────────────── */
+function showAdminPage() {
+  if (!getAdminPwd()) { openAdminPanel(); return; }
+  document.getElementById('adminPageView').classList.add('active');
+  document.getElementById('dashboardView').classList.remove('active');
+  document.getElementById('roadmapView').classList.remove('active');
+  document.querySelector('.main').style.display = 'none';
+  document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
+  const sb = document.getElementById('sidebarAdminBtn');
+  if (sb) sb.classList.add('active');
+  admLoadAll();
+}
+
+function hideAdminPage() {
+  document.getElementById('adminPageView').classList.remove('active');
+  document.querySelector('.main').style.display = '';
+  const sb = document.getElementById('sidebarAdminBtn');
+  if (sb) sb.classList.remove('active');
+}
+
+function admToggle(bodyId, headEl) {
+  const body = document.getElementById(bodyId);
+  const toggle = headEl.querySelector('.adm-section-toggle');
+  const collapsed = body.classList.toggle('collapsed');
+  if (toggle) toggle.textContent = collapsed ? '▸' : '▾';
+}
+
+async function admLoadAll() {
+  // KPI: articles
+  const arts = document.querySelectorAll('.article-card');
+  document.getElementById('admKpiArticles').textContent = arts.length || (window.allArticles ? window.allArticles.length : '—');
+  // KPI: categories
+  const cats = document.querySelectorAll('#categoryList .category-item');
+  document.getElementById('admKpiCats').textContent = cats.length || '—';
+  // KPI: roadmap
+  const total = ROADMAP_DATA.reduce((s,t)=>s+t.articles.length,0);
+  document.getElementById('admKpiRoadmap').textContent = total;
+  // Load requests
+  admLoadRequests();
+  // Load snapshots
+  admLoadSnapshots();
+  // Load roadmap list
+  admLoadRoadmapList();
+  // Load categories
+  admLoadCategories();
+  // Load settings
+  admLoadSettings();
+}
+
+async function admLoadRequests() {
+  try {
+    const r = await fetch('/api/article-requests', { headers: { 'x-admin-password': getAdminPwd() } });
+    const data = await r.json();
+    const pending = data.filter(d => d.status === 'pending');
+    document.getElementById('admKpiRequests').textContent = pending.length;
+    const badge = document.getElementById('admReqBadge');
+    if (pending.length > 0) {
+      badge.textContent = pending.length + ' pending';
+      badge.style.display = '';
+      const dot = document.getElementById('sidebarAdminDot');
+      if (dot) dot.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+    const list = document.getElementById('admRequestList');
+    if (!data.length) { list.innerHTML = '<div class="req-empty">No article requests yet.</div>'; return; }
+    list.innerHTML = data.map(req => `
+      <div class="req-card ${req.status === 'resolved' ? 'resolved' : ''}">
+        <div class="req-topic">${escHtml(req.topic)}</div>
+        <div class="req-desc">${escHtml(req.description || '')}</div>
+        <div class="req-meta">
+          <span>👤 ${escHtml(req.requestedBy || 'Anonymous')}</span>
+          <span>🕐 ${new Date(req.createdAt).toLocaleDateString()}</span>
+          <span class="req-status ${req.status}">${req.status === 'pending' ? '⏳ Pending' : '✓ Resolved'}</span>
+        </div>
+        ${req.status === 'pending' ? `<div class="req-actions"><button class="req-resolve-btn" onclick="admResolveRequest('${req.id}')">✓ Mark Resolved</button></div>` : ''}
+      </div>`).join('');
+  } catch(e) { document.getElementById('admRequestList').innerHTML = '<div class="req-empty">Could not load requests.</div>'; }
+}
+
+async function admResolveRequest(id) {
+  try {
+    await fetch(`/api/article-requests/${id}/resolve`, {
+      method: 'POST', headers: { 'x-admin-password': getAdminPwd() }
+    });
+    admLoadRequests();
+    showToast('✓ Request marked as resolved', 'success');
+  } catch(e) { showToast('Failed to resolve request', 'error'); }
+}
+
+function admLoadCategories() {
+  const src = document.getElementById('adminCatList');
+  const dest = document.getElementById('admCatList2');
+  if (src && dest) dest.innerHTML = src.innerHTML;
+}
+
+function admAddCategory() {
+  const name = document.getElementById('admNewCatName').value.trim();
+  const color = document.getElementById('admNewCatColor').value;
+  if (!name) { showToast('Enter a category name', 'error'); return; }
+  // Reuse existing addCategory if available
+  if (typeof addCategory === 'function') {
+    addCategory(name, color);
+    document.getElementById('admNewCatName').value = '';
+  }
+}
+
+function admLoadSnapshots() {
+  if (!smData || !smData.snapshots) { document.getElementById('admSnapshotList').textContent = 'No snapshots yet.'; return; }
+  const list = smData.snapshots;
+  document.getElementById('admSnapshotList').innerHTML = list.length
+    ? `<div style="display:flex;flex-direction:column;gap:8px;">` + list.map(s => `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+          <span style="font-size:13px;font-weight:600;color:var(--text);flex:1;">📸 ${escHtml(s.label)}</span>
+          <span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);">${s.date ? new Date(s.date).toLocaleDateString() : ''}</span>
+        </div>`).join('') + `</div>`
+    : '<div style="color:var(--muted);font-size:13px;">No snapshots captured yet.</div>';
+}
+
+async function admCaptureSnapshot() {
+  const label = prompt('Snapshot label (e.g. "May 2026"):');
+  if (!label) return;
+  try {
+    const r = await fetch('/api/skillmatrix/snapshot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': getAdminPwd() },
+      body: JSON.stringify({ label })
+    });
+    if (r.ok) {
+      const fresh = await fetch('/api/skillmatrix');
+      smData = await fresh.json();
+      admLoadSnapshots();
+      showToast('📸 Snapshot "' + label + '" captured!', 'success');
+    } else { showToast('Failed to capture snapshot', 'error'); }
+  } catch(e) { showToast('Error capturing snapshot', 'error'); }
+}
+
+function admLoadRoadmapList() {
+  const list = document.getElementById('admRoadmapList');
+  const rows = [];
+  ROADMAP_DATA.forEach((topic, ti) => {
+    topic.articles.forEach((a, ai) => {
+      const dk = `${ti}-${ai}`;
+      const dv = rmDates[dk] || '';
+      const overdue = rmIsOverdue(dv);
+      rows.push(`
+        <div class="adm-rm-row" style="${overdue ? 'border-left:3px solid rgba(232,122,122,.6);' : ''}">
+          <span style="font-size:10px;padding:1px 7px;border-radius:8px;background:${topic.color}18;color:${topic.color};border:1px solid ${topic.color}44;font-family:'DM Mono',monospace;">${escHtml(topic.name)}</span>
+          <span class="adm-rm-title">${escHtml(a.title)}</span>
+          <span class="adm-rm-date" style="${overdue?'color:#e87a7a;':''}">${dv ? '📅 '+dv : '—'}</span>
+          <button class="adm-rm-edit" onclick="admEditRmDate(this,'${dk}')">✏</button>
+        </div>`);
+    });
+  });
+  list.innerHTML = rows.join('');
+}
+
+function admEditRmDate(btn, key) {
+  const row = btn.closest('.adm-rm-row');
+  const dateSpan = row.querySelector('.adm-rm-date');
+  const input = document.createElement('input');
+  input.value = rmDates[key] || '';
+  input.placeholder = 'e.g. June 2026';
+  input.style.cssText = 'font-size:11px;font-family:"DM Mono",monospace;background:var(--surface);border:1px solid var(--accent);border-radius:4px;padding:2px 8px;color:var(--text);outline:none;width:110px;';
+  dateSpan.replaceWith(input);
+  input.focus(); input.select();
+  const commit = () => {
+    const val = input.value.trim();
+    rmSaveDate(key, val);
+    const overdue = rmIsOverdue(val);
+    const span = document.createElement('span');
+    span.className = 'adm-rm-date';
+    span.style.color = overdue ? '#e87a7a' : '';
+    span.textContent = val ? '📅 '+val : '—';
+    input.replaceWith(span);
+    row.style.borderLeft = overdue ? '3px solid rgba(232,122,122,.6)' : '';
+    showToast('📅 Date saved', 'success');
+  };
+  input.addEventListener('keydown', e => { if(e.key==='Enter'||e.key==='Escape') commit(); });
+  input.addEventListener('blur', commit);
+}
+
+async function admLoadSettings() {
+  try {
+    const r = await fetch('/api/settings', { headers: { 'x-admin-password': getAdminPwd() } });
+    const d = await r.json();
+    const mode = d.postRestriction || 'open';
+    document.querySelectorAll('[name="admPostRestriction"]').forEach(radio => {
+      radio.checked = radio.value === mode;
+    });
+    document.querySelectorAll('#admRestrictionOptions .restriction-option').forEach(opt => {
+      opt.classList.toggle('selected', opt.querySelector('input').value === mode);
+    });
+  } catch(e) {}
+}
+
+function admSelectRestriction(val) {
+  document.querySelectorAll('[name="admPostRestriction"]').forEach(r => r.checked = r.value === val);
+  document.querySelectorAll('#admRestrictionOptions .restriction-option').forEach(opt => {
+    opt.classList.toggle('selected', opt.querySelector('input').value === val);
+  });
+}
+
+async function admSaveSettings() {
+  const val = document.querySelector('[name="admPostRestriction"]:checked')?.value || 'open';
+  try {
+    await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': getAdminPwd() },
+      body: JSON.stringify({ postRestriction: val })
+    });
+    showToast('⚙ Settings saved', 'success');
+  } catch(e) { showToast('Failed to save settings', 'error'); }
+}
+
+async function admChangePassword() {
+  const np = document.getElementById('admNewPwd').value;
+  const cp = document.getElementById('admConfirmPwd').value;
+  if (!np) { showToast('Enter a new password', 'error'); return; }
+  if (np !== cp) { showToast('Passwords do not match', 'error'); return; }
+  // reuse existing changeAdminPassword logic
+  document.getElementById('newAdminPwd').value = np;
+  document.getElementById('confirmAdminPwd').value = cp;
+  await changeAdminPassword();
+  document.getElementById('admNewPwd').value = '';
+  document.getElementById('admConfirmPwd').value = '';
+}
+
+function adminSignOut() {
+  if (!confirm('Sign out of admin? You will need to re-enter the password to access admin features.')) return;
+  setAdminPwd(null);
+  hideAdminPage();
+  document.getElementById('adminBadge').style.display = 'none';
+  document.getElementById('sidebarAdminBtn').style.display = 'none';
+  showToast('🔓 Signed out of admin', 'info');
+}
+
 function showRoadmap() {
   document.getElementById('roadmapView').classList.add('active');
   document.getElementById('dashboardView').classList.remove('active');
+  document.getElementById('adminPageView').classList.remove('active');
   document.querySelector('.main').style.display = 'none';
   document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
   const sb = document.getElementById('sidebarRoadmapBtn');
@@ -2463,6 +2917,9 @@ async function submitAdminLogin() {
     closeAdminLogin();
     renderUserInfo();
     applyRestrictions();
+    // Show sidebar admin link
+    const admSideBtn = document.getElementById('sidebarAdminBtn');
+    if (admSideBtn) admSideBtn.style.display = 'flex';
     showAdminPanel();
   } catch { showToast('Server error','error'); }
 }
