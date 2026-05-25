@@ -3383,7 +3383,8 @@ function hideSkillMatrix() {
   smDestroyCharts();
 }
 
-function smSwitchTab(tab) {
+function smSwitchTab(tab, noHistory) {
+  if(!noHistory && !_dwNavFlag) history.pushState({screen:'skillmatrix', tab}, '');
   document.getElementById('smPanelAssess').classList.toggle('active', tab==='assess');
   document.getElementById('smPanelDash').classList.toggle('active', tab==='dashboard');
   document.getElementById('smTabAssess').classList.toggle('active', tab==='assess');
@@ -4334,7 +4335,7 @@ function dwGoKnowledge(){
 
 function dwGoSkillMatrix(){
   hideLanding();
-  history.pushState({screen:'skillmatrix'}, '');
+  history.pushState({screen:'skillmatrix', tab:'assess'}, '');
   showSkillMatrix();
 }
 
@@ -4382,9 +4383,10 @@ window.addEventListener('popstate', function(e){
     dwCanvasRunning = true;
     document.querySelectorAll('.dw-tooltip').forEach(t=>t.classList.remove('open'));
   } else if(scr === 'skillmatrix'){
+    const tab = (e.state && e.state.tab) || 'assess';
     if(sm) sm.classList.add('active');
     if(mainEl) mainEl.style.display = 'none';
-    smLoad();
+    smLoad().then(() => smSwitchTab(tab, true));
   } else if(scr === 'dashboard'){
     if(dv) dv.classList.add('active');
     if(mainEl) mainEl.style.display = 'none';
