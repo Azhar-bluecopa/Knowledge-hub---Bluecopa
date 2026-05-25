@@ -136,6 +136,14 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+function getWeekNumber(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+}
+
 function broadcast(data) {
   if (!wss) return; // no-op on Vercel
   const msg = JSON.stringify(data);
@@ -682,6 +690,7 @@ initDB().then(() => {
 // ── Skill Matrix ──────────────────────────────────────────────────────────────
 function ensureSM() {
   if (!db.skillMatrix) db.skillMatrix = { employees:[], processAreas:[], currentScores:{}, snapshots:[], nextSnapshotId:1 };
+  if (!db.processGame) db.processGame = { currentGame: null, attempts: [], gameHistory: [] };
 }
 
 app.get('/api/skillmatrix', (req, res) => {
@@ -729,6 +738,111 @@ app.delete('/api/skillmatrix/snapshots/:id', (req, res) => {
   db.skillMatrix.snapshots = db.skillMatrix.snapshots.filter(s => s.id !== id);
   saveDB();
   res.json({ ok: true });
+});
+
+// ── Process Puzzle ────────────────────────────────────────────────────────────
+app.get('/api/puzzle/current', (req, res) => {
+  if (!db.processGame) db.processGame = { currentGame: null, attempts: [], gameHistory: [] };
+  const game = db.processGame.currentGame;
+  if (!game) return res.json({ game: null });
+  const safeQ = game.questions.map(q => ({ id: q.id, type: q.type, question: q.question, options: q.options, difficulty: q.difficulty }));
+  const gameAttempts = db.processGame.attempts.filter(a => a.gameId === game.id && a.isFirstAttempt);
+  res.json({ game: { ...game, questions: safeQ, participantCount: gameAttempts.length } });
+});
+
+app.post('/api/puzzle/generate', async (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  if (!db.processGame) db.processGame = { currentGame: null, attempts: [], gameHistory: [] };
+  const articles = (db.articles || []).slice(0, 12).map(a =>
+    `Title: ${a.title}\nCategory: ${a.category}\nExcerpt: ${(a.content || a.excerpt || '').replace(/<[^>]+>/g, '').slice(0, 600)}`
+  ).join('\n\n---\n\n');
+  const processAreas = (db.skillMatrix && db.skillMatrix.processAreas || []).join(', ') || 'Data Ingestion, Workflows, Portal Creation, Reconciliation, Exports';
+  const now = new Date();
+  const week = getWeekNumber(now);
+  const year = now.getFullYear();
+  const gameId = `week-${year}-${week}`;
+  if (db.processGame.currentGame) {
+    db.processGame.gameHistory.push(db.processGame.currentGame);
+    if (db.processGame.gameHistory.length > 20) db.processGame.gameHistory.shift();
+  }
+  try {
+    const Anthropic = require('@anthropic-ai/sdk');
+    const client = new Anthropic.default({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const formats = ['quiz', 'trivia', 'scenario'];
+    const gameType = formats[Math.floor(Math.random() * formats.length)];
+    const typeDesc = gameType === 'quiz' ? 'knowledge-testing questions' : gameType === 'trivia' ? 'factual trivia questions' : 'real-world scenario-based challenges';
+    const prompt = `You are creating a weekly ${gameType} game for a delivery team called "Process Puzzle".\n\nKNOWLEDGE BASE:\n${articles}\n\nPROCESS AREAS: ${processAreas}\n\nGenerate exactly 8 ${typeDesc} based on the content above. Return ONLY valid JSON, no markdown:\n{\n  "type": "${gameType}",\n  "title": "Week ${week} ${gameType.charAt(0).toUpperCase()+gameType.slice(1)} Challenge",\n  "instructions": "Read each question carefully and select the best answer. Timer starts when you begin!",\n  "questions": [\n    {\n      "id": 1,\n      "type": "multiple-choice",\n      "question": "Question text?",\n      "options": ["Option A", "Option B", "Option C", "Option D"],\n      "correct": 0,\n      "explanation": "Brief explanation why this is correct.",\n      "difficulty": "medium"\n    }\n  ]\n}`;
+    const message = await client.messages.create({ model: 'claude-opus-4-5', max_tokens: 2500, messages: [{ role: 'user', content: prompt }] });
+    const raw = message.content[0].text.trim();
+    const js = raw.indexOf('{'), je = raw.lastIndexOf('}') + 1;
+    const parsed = JSON.parse(raw.slice(js, je));
+    const newGame = {
+      id: gameId, week, year,
+      type: parsed.type || gameType,
+      title: parsed.title || `Week ${week} Challenge`,
+      instructions: parsed.instructions || 'Answer all questions as fast as you can!',
+      questions: (parsed.questions || []).map((q, i) => ({ ...q, id: i + 1 })),
+      publishedAt: now.toISOString(),
+      totalQuestions: (parsed.questions || []).length
+    };
+    db.processGame.currentGame = newGame;
+    saveDB(db);
+    const safeQ = newGame.questions.map(q => ({ id: q.id, type: q.type, question: q.question, options: q.options, difficulty: q.difficulty }));
+    res.json({ success: true, game: { ...newGame, questions: safeQ } });
+  } catch (err) {
+    console.error('Puzzle generate error:', err);
+    res.status(500).json({ error: 'Failed to generate: ' + err.message });
+  }
+});
+
+app.post('/api/puzzle/attempt', async (req, res) => {
+  if (!db.processGame) return res.status(404).json({ error: 'No game' });
+  const { gameId, playerName, playerInitials, answers, timeTaken } = req.body;
+  if (!gameId || !playerName || !Array.isArray(answers)) return res.status(400).json({ error: 'Missing fields' });
+  const game = db.processGame.currentGame;
+  if (!game || game.id !== gameId) return res.status(404).json({ error: 'Game not found or expired' });
+  const prev = db.processGame.attempts.filter(a => a.gameId === gameId && a.playerName.toLowerCase() === playerName.toLowerCase());
+  const isFirstAttempt = prev.length === 0;
+  let correct = 0;
+  const questionResults = game.questions.map((q, i) => {
+    const ok = answers[i] === q.correct;
+    if (ok) correct++;
+    return { questionId: q.id, question: q.question, selected: answers[i], correct: q.correct, isCorrect: ok, explanation: q.explanation, options: q.options };
+  });
+  const accuracy = Math.round((correct / game.questions.length) * 100);
+  const attempt = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+    gameId, playerName,
+    playerInitials: playerInitials || playerName.slice(0, 2).toUpperCase(),
+    answers, score: correct, total: game.questions.length, accuracy,
+    timeTaken: timeTaken || 0, completedAt: new Date().toISOString(), isFirstAttempt
+  };
+  db.processGame.attempts.push(attempt);
+  if (db.processGame.attempts.length > 2000) db.processGame.attempts = db.processGame.attempts.slice(-2000);
+  saveDB(db);
+  res.json({ success: true, attempt, questionResults, gameTitle: game.title });
+});
+
+app.get('/api/puzzle/leaderboard', (req, res) => {
+  if (!db.processGame || !db.processGame.currentGame) return res.json({ leaderboard: [], game: null });
+  const game = db.processGame.currentGame;
+  const lb = db.processGame.attempts
+    .filter(a => a.gameId === game.id && a.isFirstAttempt)
+    .sort((a, b) => b.accuracy - a.accuracy || a.timeTaken - b.timeTaken)
+    .slice(0, 20)
+    .map((a, i) => ({ rank: i + 1, playerName: a.playerName, playerInitials: a.playerInitials, score: a.score, total: a.total, accuracy: a.accuracy, timeTaken: a.timeTaken }));
+  res.json({ leaderboard: lb, game: { id: game.id, title: game.title, week: game.week, type: game.type } });
+});
+
+app.get('/api/puzzle/analytics', (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  if (!db.processGame || !db.processGame.currentGame) return res.json({ analytics: null });
+  const game = db.processGame.currentGame;
+  const all = db.processGame.attempts.filter(a => a.gameId === game.id);
+  const first = all.filter(a => a.isFirstAttempt);
+  const avgAcc = first.length ? Math.round(first.reduce((s, a) => s + a.accuracy, 0) / first.length) : 0;
+  const avgTime = first.length ? Math.round(first.reduce((s, a) => s + a.timeTaken, 0) / first.length) : 0;
+  res.json({ analytics: { totalParticipants: first.length, totalAttempts: all.length, avgAccuracy: avgAcc, avgTime, topScore: first.length ? Math.max(...first.map(a => a.accuracy)) : 0, gameTitle: game.title, week: game.week } });
 });
 
 // ── Export for Vercel serverless ──────────────────────────────────────────────

@@ -635,6 +635,97 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dw-bottom-row{display:flex;align-items:center;justify-content:center;gap:28px;margin-top:36px;width:100%;max-width:1200px;}
 .dw-bottom-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);}
 .dw-bottom-text{font-size:10px;font-family:'DM Mono',monospace;color:rgba(232,232,240,.18);letter-spacing:.14em;text-transform:uppercase;}
+/* ══════════════════ PROCESS PUZZLE ══════════════════ */
+.pp-overlay{position:fixed;inset:0;background:var(--bg);z-index:200;display:none;flex-direction:column;}
+.pp-overlay.active{display:flex;}
+.pp-topbar{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:16px;}
+.pp-topbar-title{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:var(--accent);letter-spacing:.08em;}
+.pp-admin-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 28px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.pp-generate-btn{background:var(--accent);color:#0f0f13;border:none;border-radius:8px;padding:9px 20px;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.06em;cursor:pointer;transition:opacity .18s;display:flex;align-items:center;gap:8px;}
+.pp-generate-btn:hover{opacity:.85;}
+.pp-generate-btn:disabled{opacity:.5;cursor:not-allowed;}
+.pp-admin-label{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.08em;}
+.pp-body{flex:1;overflow-y:auto;padding:32px 48px 64px;}
+/* Landing */
+.pp-landing{max-width:720px;margin:0 auto;}
+.pp-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:20px;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;font-weight:600;margin-bottom:16px;}
+.pp-badge-quiz{background:rgba(232,201,122,.12);color:var(--accent);border:1px solid rgba(232,201,122,.3);}
+.pp-badge-trivia{background:rgba(122,158,232,.12);color:#7a9ee8;border:1px solid rgba(122,158,232,.3);}
+.pp-badge-scenario{background:rgba(122,232,180,.12);color:var(--success);border:1px solid rgba(122,232,180,.3);}
+.pp-game-title{font-family:'Playfair Display',serif;font-size:36px;font-weight:800;color:var(--text);margin-bottom:10px;line-height:1.15;}
+.pp-week-label{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.1em;margin-bottom:20px;}
+.pp-instructions-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 22px;margin-bottom:24px;font-size:14px;color:var(--text);line-height:1.7;}
+.pp-meta-row{display:flex;gap:20px;margin-bottom:28px;flex-wrap:wrap;}
+.pp-meta-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 20px;text-align:center;min-width:100px;}
+.pp-meta-num{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);}
+.pp-meta-label{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;margin-top:4px;}
+.pp-start-btn{background:var(--accent);color:#0f0f13;border:none;border-radius:12px;padding:14px 40px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:opacity .18s,transform .15s;display:flex;align-items:center;gap:10px;margin-bottom:36px;}
+.pp-start-btn:hover{opacity:.88;transform:translateY(-2px);}
+.pp-no-game{text-align:center;padding:80px 20px;color:var(--muted);}
+.pp-no-game-icon{font-size:56px;margin-bottom:16px;}
+.pp-no-game-title{font-family:'Playfair Display',serif;font-size:22px;color:var(--text);margin-bottom:8px;}
+/* Game view */
+.pp-game-view{max-width:720px;margin:0 auto;display:none;}
+.pp-game-view.active{display:block;}
+.pp-game-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.pp-timer{font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:var(--accent);letter-spacing:.05em;}
+.pp-q-counter{font-size:13px;color:var(--muted);font-family:'DM Mono',monospace;}
+.pp-progress{height:4px;background:var(--border);border-radius:2px;margin-bottom:28px;overflow:hidden;}
+.pp-progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s ease;}
+.pp-difficulty{display:inline-block;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;padding:2px 10px;border-radius:20px;margin-bottom:14px;}
+.pp-diff-easy{background:rgba(122,232,180,.1);color:var(--success);}
+.pp-diff-medium{background:rgba(232,201,122,.1);color:var(--accent);}
+.pp-diff-hard{background:rgba(232,122,122,.1);color:var(--danger);}
+.pp-question-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:24px;}
+.pp-question-text{font-size:18px;font-weight:600;color:var(--text);line-height:1.6;}
+.pp-options{display:flex;flex-direction:column;gap:10px;margin-bottom:24px;}
+.pp-option{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px 18px;font-size:14px;color:var(--text);cursor:pointer;transition:all .18s;text-align:left;display:flex;align-items:center;gap:12px;}
+.pp-option:hover:not(.selected):not(.correct):not(.wrong){border-color:rgba(232,201,122,.35);color:var(--accent);}
+.pp-option.selected{border-color:var(--accent);background:rgba(232,201,122,.1);color:var(--accent);}
+.pp-option.correct{border-color:var(--success);background:rgba(122,232,180,.12);color:var(--success);}
+.pp-option.wrong{border-color:var(--danger);background:rgba(232,122,122,.1);color:var(--danger);}
+.pp-opt-letter{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;flex-shrink:0;}
+.pp-game-actions{display:flex;gap:12px;justify-content:flex-end;}
+.pp-btn{border:none;border-radius:10px;padding:11px 28px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;cursor:pointer;transition:all .18s;}
+.pp-btn-primary{background:var(--accent);color:#0f0f13;}
+.pp-btn-primary:hover{opacity:.88;}
+.pp-btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.pp-btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+/* Results */
+.pp-results-view{max-width:760px;margin:0 auto;display:none;}
+.pp-results-view.active{display:block;}
+.pp-results-header{text-align:center;margin-bottom:36px;}
+.pp-score-display{display:flex;align-items:center;justify-content:center;gap:32px;margin-bottom:28px;flex-wrap:wrap;}
+.pp-score-ring{width:130px;height:130px;border-radius:50%;background:conic-gradient(var(--accent) var(--pct,0%), var(--surface2) 0%);display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 0 0 4px var(--surface2);}
+.pp-score-inner{width:100px;height:100px;border-radius:50%;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.pp-score-pct{font-family:'Playfair Display',serif;font-size:26px;font-weight:800;color:var(--accent);}
+.pp-score-label{font-size:9px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;}
+.pp-result-stats{display:flex;flex-direction:column;gap:10px;}
+.pp-result-stat{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text);}
+.pp-result-stat-icon{font-size:20px;width:28px;text-align:center;}
+.pp-result-stat-val{font-weight:700;color:var(--accent);font-family:'DM Mono',monospace;margin-left:auto;}
+.pp-first-attempt-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(122,232,180,.1);border:1px solid rgba(122,232,180,.3);color:var(--success);border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;margin-bottom:24px;}
+.pp-repeat-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(122,122,150,.08);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 16px;font-size:13px;margin-bottom:24px;}
+.pp-answers-title{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+.pp-answers-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.pp-answer-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;border-left:4px solid var(--border);}
+.pp-answer-item.correct{border-left-color:var(--success);}
+.pp-answer-item.wrong{border-left-color:var(--danger);}
+.pp-answer-q{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;}
+.pp-answer-detail{font-size:12px;color:var(--muted);margin-bottom:4px;}
+.pp-answer-explanation{font-size:11.5px;color:rgba(232,232,240,.4);font-style:italic;margin-top:6px;line-height:1.6;}
+.pp-lb-section{margin-top:32px;}
+.pp-lb-title{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+.pp-lb-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.pp-lb-table{width:100%;border-collapse:collapse;}
+.pp-lb-table th{color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:7px 12px;text-align:left;border-bottom:1px solid var(--border);}
+.pp-lb-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;color:var(--text);}
+.pp-lb-table tr:last-child td{border-bottom:none;}
+.pp-lb-table tr:hover td{background:var(--surface);}
+.pp-lb-rank{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);width:36px;}
+.pp-lb-name{display:flex;align-items:center;gap:10px;}
+.pp-lb-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#c9a040);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0f0f13;flex-shrink:0;}
+.pp-results-actions{display:flex;gap:12px;justify-content:center;margin-top:28px;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
@@ -4275,7 +4366,7 @@ function switchAdminTab(tab, btn, noHistory) {
       </div>
 
       <!-- 05 Process Puzzle -->
-      <div class="dw-card" style="--cr:232,122,122;--fdur:3.6s;--fdel:2s;" onclick="dwComingSoon('Process Puzzle')">
+      <div class="dw-card" style="--cr:232,122,122;--fdur:3.6s;--fdel:2s;" onclick="dwGoProcessPuzzle()">
         <div class="dw-card-spin"></div>
         <div class="dw-card-orb"></div>
         <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip05')" title="About this section">i</div>
@@ -4304,6 +4395,253 @@ function switchAdminTab(tab, btn, noHistory) {
 
 <script>
 /* ── Landing overlay JS ── */
+// ══════════════════════════════════════════════════════
+// PROCESS PUZZLE
+// ══════════════════════════════════════════════════════
+let ppCurrentGame = null;
+let ppAnswers = [];
+let ppTimerInterval = null;
+let ppTimerSeconds = 0;
+let ppCurrentQ = 0;
+let ppSubmitData = null;
+
+async function dwGoProcessPuzzle() {
+  hideLanding();
+  if(!_dwNavFlag) history.pushState({screen:'processpuzzle'}, '');
+  document.getElementById('ppOverlay').classList.add('active');
+  document.querySelector('.main').style.display = 'none';
+  // Show admin bar if admin
+  document.getElementById('ppAdminBar').style.display = getAdminPwd() ? 'flex' : 'none';
+  await ppLoad();
+}
+
+function hidePP() {
+  document.getElementById('ppOverlay').classList.remove('active');
+  document.querySelector('.main').style.display = '';
+  ppStopTimer();
+}
+
+async function ppLoad() {
+  ppShowView('landing');
+  document.getElementById('ppNoGame').style.display = 'none';
+  document.getElementById('ppGameInfo').style.display = 'none';
+  try {
+    const r = await fetch('/api/puzzle/current');
+    const data = await r.json();
+    ppCurrentGame = data.game;
+    if (!ppCurrentGame) {
+      document.getElementById('ppNoGame').style.display = 'block';
+      return;
+    }
+    ppRenderLanding();
+  } catch(e) {
+    document.getElementById('ppNoGame').style.display = 'block';
+  }
+}
+
+function ppRenderLanding() {
+  const g = ppCurrentGame;
+  document.getElementById('ppNoGame').style.display = 'none';
+  document.getElementById('ppGameInfo').style.display = 'block';
+  // Badge
+  const badgeEl = document.getElementById('ppTypeBadge');
+  badgeEl.className = `pp-badge pp-badge-${g.type}`;
+  const icons = {quiz:'📝', trivia:'💡', scenario:'🎯'};
+  badgeEl.innerHTML = `${icons[g.type]||'🧩'} ${g.type.toUpperCase()}`;
+  document.getElementById('ppGameTitle').textContent = g.title;
+  document.getElementById('ppWeekLabel').textContent = `Week ${g.week} · ${g.year}`;
+  document.getElementById('ppInstructions').textContent = g.instructions;
+  document.getElementById('ppQCount').textContent = g.totalQuestions || g.questions.length;
+  document.getElementById('ppParticipants').textContent = g.participantCount || 0;
+  // Load mini leaderboard
+  ppLoadLandingLb();
+}
+
+async function ppLoadLandingLb() {
+  try {
+    const r = await fetch('/api/puzzle/leaderboard');
+    const data = await r.json();
+    const lb = data.leaderboard || [];
+    const medals = ['🥇','🥈','🥉'];
+    const html = lb.length === 0 ? '<p style="color:var(--muted);font-size:13px;text-align:center;padding:16px 0;">No attempts yet — be the first!</p>' :
+      `<table class="pp-lb-table"><thead><tr><th>Rank</th><th>Player</th><th>Score</th><th>Time</th></tr></thead><tbody>` +
+      lb.slice(0,5).map((p,i) => `<tr><td class="pp-lb-rank">${medals[i]||`#${p.rank}`}</td><td><div class="pp-lb-name"><div class="pp-lb-avatar">${p.playerInitials}</div>${p.playerName}</div></td><td style="color:var(--accent);font-weight:700;">${p.accuracy}%</td><td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">${ppFmtTime(p.timeTaken)}</td></tr>`).join('') +
+      '</tbody></table>';
+    const lbEl = document.getElementById('ppLandingLb');
+    lbEl.innerHTML = `<div class="pp-lb-title" style="margin-top:0;">Top Players This Week</div>${html}`;
+  } catch(e) {}
+}
+
+function ppShowView(view) {
+  document.getElementById('ppLandingView').style.display = view==='landing' ? 'block' : 'none';
+  document.getElementById('ppGameView').className = `pp-game-view${view==='game'?' active':''}`;
+  document.getElementById('ppResultsView').className = `pp-results-view${view==='results'?' active':''}`;
+}
+
+function ppStartGame() {
+  if (!ppCurrentGame) return;
+  ppAnswers = new Array(ppCurrentGame.questions.length).fill(-1);
+  ppCurrentQ = 0;
+  ppTimerSeconds = 0;
+  ppSubmitData = null;
+  ppShowView('game');
+  ppStartTimer();
+  ppRenderQuestion();
+}
+
+function ppStartTimer() {
+  ppStopTimer();
+  ppTimerInterval = setInterval(() => {
+    ppTimerSeconds++;
+    const m = String(Math.floor(ppTimerSeconds/60)).padStart(2,'0');
+    const s = String(ppTimerSeconds%60).padStart(2,'0');
+    const el = document.getElementById('ppTimer');
+    if(el) el.textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+function ppStopTimer() {
+  if(ppTimerInterval){ clearInterval(ppTimerInterval); ppTimerInterval=null; }
+}
+
+function ppRenderQuestion() {
+  const q = ppCurrentGame.questions[ppCurrentQ];
+  const n = ppCurrentGame.questions.length;
+  document.getElementById('ppQCounter').textContent = `Question ${ppCurrentQ+1} of ${n}`;
+  document.getElementById('ppProgressFill').style.width = `${((ppCurrentQ+1)/n)*100}%`;
+  const diff = q.difficulty||'medium';
+  const diffEl = document.getElementById('ppDiffBadge');
+  diffEl.className = `pp-difficulty pp-diff-${diff}`;
+  diffEl.textContent = diff.charAt(0).toUpperCase()+diff.slice(1);
+  document.getElementById('ppQuestionText').textContent = q.question;
+  const letters = ['A','B','C','D','E'];
+  const opts = document.getElementById('ppOptions');
+  opts.innerHTML = (q.options||[]).map((opt,i) => {
+    const sel = ppAnswers[ppCurrentQ]===i;
+    return `<button class="pp-option${sel?' selected':''}" onclick="ppSelectOption(${i})"><span class="pp-opt-letter">${letters[i]}</span>${opt}</button>`;
+  }).join('');
+  // Show/hide nav buttons
+  document.getElementById('ppPrevBtn').style.display = ppCurrentQ>0 ? 'block' : 'none';
+  const isLast = ppCurrentQ===n-1;
+  document.getElementById('ppNextBtn').style.display = isLast ? 'none' : 'block';
+  document.getElementById('ppSubmitBtn').style.display = isLast ? 'block' : 'none';
+}
+
+function ppSelectOption(idx) {
+  ppAnswers[ppCurrentQ] = idx;
+  document.querySelectorAll('.pp-option').forEach((btn,i) => {
+    btn.classList.toggle('selected', i===idx);
+  });
+}
+
+function ppNextQuestion() {
+  if(ppCurrentQ < ppCurrentGame.questions.length-1){ ppCurrentQ++; ppRenderQuestion(); }
+}
+
+function ppPrevQuestion() {
+  if(ppCurrentQ > 0){ ppCurrentQ--; ppRenderQuestion(); }
+}
+
+async function ppSubmit() {
+  ppStopTimer();
+  const user = getUser();
+  if(!user||!user.name||user.name==='Anonymous'){
+    showToast('Please set your name first — click your avatar at the bottom left','error');
+    ppStartTimer(); return;
+  }
+  const btn = document.getElementById('ppSubmitBtn');
+  btn.disabled=true; btn.textContent='Submitting…';
+  try {
+    const r = await fetch('/api/puzzle/attempt', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ gameId:ppCurrentGame.id, playerName:user.name, playerInitials:user.initials||user.name.slice(0,2).toUpperCase(), answers:ppAnswers, timeTaken:ppTimerSeconds })
+    });
+    const data = await r.json();
+    if(data.success){ ppSubmitData=data; ppShowResults(data); }
+    else showToast(data.error||'Submit failed','error');
+  } catch(e){ showToast('Network error','error'); }
+  btn.disabled=false; btn.textContent='Submit ✓';
+}
+
+async function ppShowResults(data) {
+  ppShowView('results');
+  const { attempt, questionResults } = data;
+  const pct = attempt.accuracy;
+  // Score ring
+  document.getElementById('ppScoreRing').style.setProperty('--pct', `${pct * 3.6}deg`);
+  document.getElementById('ppScorePct').textContent = `${pct}%`;
+  document.getElementById('ppResCorrect').textContent = `${attempt.score} / ${attempt.total}`;
+  document.getElementById('ppResTime').textContent = ppFmtTime(attempt.timeTaken);
+  // Attempt badge
+  document.getElementById('ppAttemptBadge').innerHTML = attempt.isFirstAttempt
+    ? '<div class="pp-first-attempt-badge">🏆 First attempt — counts for the leaderboard!</div>'
+    : '<div class="pp-repeat-badge">ℹ️ Practice attempt — does not affect rankings</div>';
+  // Answer breakdown
+  const letters = ['A','B','C','D','E'];
+  document.getElementById('ppAnswerBreakdown').innerHTML = (questionResults||[]).map((qr,i) => `
+    <div class="pp-answer-item ${qr.isCorrect?'correct':'wrong'}">
+      <div class="pp-answer-q">${i+1}. ${qr.question}</div>
+      <div class="pp-answer-detail" style="color:${qr.isCorrect?'var(--success)':'var(--danger)'};">
+        ${qr.isCorrect?'✅':'❌'} Your answer: ${qr.selected>=0?(letters[qr.selected]+'. '+qr.options[qr.selected]):'No answer'}
+        ${!qr.isCorrect?` &nbsp;·&nbsp; <span style="color:var(--success);">Correct: ${letters[qr.correct]}. ${qr.options[qr.correct]}</span>`:''}
+      </div>
+      ${qr.explanation?`<div class="pp-answer-explanation">💡 ${qr.explanation}</div>`:''}
+    </div>`).join('');
+  // Leaderboard
+  await ppLoadResultsLb(attempt);
+}
+
+async function ppLoadResultsLb(myAttempt) {
+  try {
+    const r = await fetch('/api/puzzle/leaderboard');
+    const data = await r.json();
+    const lb = data.leaderboard||[];
+    const medals=['🥇','🥈','🥉'];
+    const myRank = lb.findIndex(p=>p.playerName.toLowerCase()===myAttempt.playerName.toLowerCase());
+    document.getElementById('ppResRank').textContent = myRank>=0 ? `#${myRank+1}` : '—';
+    document.getElementById('ppResultsLb').innerHTML = lb.length===0
+      ? '<p style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">No players yet.</p>'
+      : `<table class="pp-lb-table"><thead><tr><th>Rank</th><th>Player</th><th>Accuracy</th><th>Time</th></tr></thead><tbody>` +
+        lb.map((p,i)=>{
+          const isMe = p.playerName.toLowerCase()===myAttempt.playerName.toLowerCase();
+          return `<tr style="${isMe?'background:rgba(232,201,122,.05);':''}"><td class="pp-lb-rank">${medals[i]||`#${p.rank}`}</td><td><div class="pp-lb-name"><div class="pp-lb-avatar" style="${isMe?'background:var(--accent);':''}">${p.playerInitials}</div><span style="${isMe?'color:var(--accent);font-weight:700;':''}">${p.playerName}${isMe?' (you)':''}</span></div></td><td style="font-weight:700;color:var(--accent);">${p.accuracy}%</td><td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">${ppFmtTime(p.timeTaken)}</td></tr>`;
+        }).join('') + '</tbody></table>';
+  } catch(e) {}
+}
+
+function ppPlayAgain() { ppStopTimer(); ppStartGame(); }
+
+function ppFmtTime(s) {
+  if(!s&&s!==0) return '—';
+  const m=Math.floor(s/60), sec=s%60;
+  return m>0?`${m}m ${sec}s`:`${sec}s`;
+}
+
+async function ppGenerateGame() {
+  const btn=document.getElementById('ppGenerateBtn');
+  const status=document.getElementById('ppAdminStatus');
+  btn.disabled=true; btn.textContent='⏳ Generating with AI…';
+  status.textContent='This may take 10-15 seconds…';
+  try {
+    const r=await fetch('/api/puzzle/generate',{method:'POST',headers:{'x-admin-password':getAdminPwd()}});
+    const data=await r.json();
+    if(data.success){
+      ppCurrentGame=data.game;
+      showToast(`New ${data.game.type} game generated! 🎮`,'success');
+      ppRenderLanding();
+      ppShowView('landing');
+      status.textContent=`Last generated: just now`;
+    } else {
+      showToast(data.error||'Generation failed','error');
+      status.textContent='Generation failed';
+    }
+  } catch(e){
+    showToast('Generation error: '+e.message,'error');
+    status.textContent='Error';
+  }
+  btn.disabled=false; btn.textContent='🎲 Generate New Game';
+}
+
 // ── History API: prevents pushState during popstate handling ──
 let _dwNavFlag = false;
 
@@ -4384,6 +4722,7 @@ window.addEventListener('popstate', function(e){
   closeAdminPanel();
   closeModal();
   smDestroyCharts();
+  hidePP();
   document.getElementById('dwLanding').classList.add('dw-hidden');
   document.getElementById('dw-canvas').style.display = 'none';
   dwCanvasRunning = false;
@@ -4422,6 +4761,11 @@ window.addEventListener('popstate', function(e){
   } else if(scr === 'about'){
     // Popping forward to about — reopen the modal
     openAbout();
+  } else if(scr === 'processpuzzle'){
+    document.getElementById('ppOverlay').classList.add('active');
+    document.querySelector('.main').style.display = 'none';
+    document.getElementById('ppAdminBar').style.display = getAdminPwd() ? 'flex' : 'none';
+    ppLoad();
   }
   // 'articles', 'article-detail', 'new-article' → main view already restored by reset
 
@@ -4497,5 +4841,94 @@ document.querySelectorAll('.dw-card').forEach(card=>{
   card.addEventListener('mouseleave',()=>{card.style.transform='';});
 });
 </script>
+
+<!-- ═══════════════════════════════════════════════════
+     PROCESS PUZZLE OVERLAY
+═══════════════════════════════════════════════════ -->
+<div class="pp-overlay" id="ppOverlay">
+  <!-- Top bar -->
+  <div class="pp-topbar">
+    <span class="pp-topbar-title">🧩 PROCESS PUZZLE</span>
+    <button class="btn-home" onclick="hidePP();showLanding();" title="Home">🏠 <span>Home</span></button>
+  </div>
+  <!-- Admin bar (shown only to admins) -->
+  <div class="pp-admin-bar" id="ppAdminBar" style="display:none;">
+    <span class="pp-admin-label">⚡ ADMIN CONTROLS</span>
+    <button class="pp-generate-btn" id="ppGenerateBtn" onclick="ppGenerateGame()">🎲 Generate New Game</button>
+    <span class="pp-admin-label" id="ppAdminStatus" style="margin-left:8px;"></span>
+  </div>
+  <!-- Body -->
+  <div class="pp-body" id="ppBody">
+    <!-- Landing view -->
+    <div id="ppLandingView" class="pp-landing">
+      <div class="pp-no-game" id="ppNoGame">
+        <div class="pp-no-game-icon">🧩</div>
+        <div class="pp-no-game-title">No Game This Week Yet</div>
+        <p style="color:var(--muted);font-size:14px;margin-top:8px;">Check back soon or ask your admin to launch this week's challenge.</p>
+      </div>
+      <div id="ppGameInfo" style="display:none;">
+        <div id="ppTypeBadge" class="pp-badge pp-badge-quiz"></div>
+        <div class="pp-game-title" id="ppGameTitle"></div>
+        <div class="pp-week-label" id="ppWeekLabel"></div>
+        <div class="pp-instructions-box" id="ppInstructions"></div>
+        <div class="pp-meta-row">
+          <div class="pp-meta-item"><div class="pp-meta-num" id="ppQCount">—</div><div class="pp-meta-label">Questions</div></div>
+          <div class="pp-meta-item"><div class="pp-meta-num" id="ppParticipants">—</div><div class="pp-meta-label">Players</div></div>
+        </div>
+        <button class="pp-start-btn" onclick="ppStartGame()">▶ Start Game</button>
+        <!-- Mini leaderboard on landing -->
+        <div id="ppLandingLb"></div>
+      </div>
+    </div>
+    <!-- Game view -->
+    <div id="ppGameView" class="pp-game-view">
+      <div class="pp-game-header">
+        <div class="pp-timer" id="ppTimer">00:00</div>
+        <div class="pp-q-counter" id="ppQCounter">Question 1 of 8</div>
+      </div>
+      <div class="pp-progress"><div class="pp-progress-fill" id="ppProgressFill" style="width:0%"></div></div>
+      <div id="ppDiffBadge" class="pp-difficulty pp-diff-medium"></div>
+      <div class="pp-question-card">
+        <div class="pp-question-text" id="ppQuestionText"></div>
+      </div>
+      <div class="pp-options" id="ppOptions"></div>
+      <div class="pp-game-actions">
+        <button class="pp-btn pp-btn-secondary" onclick="ppPrevQuestion()" id="ppPrevBtn" style="display:none;">← Previous</button>
+        <button class="pp-btn pp-btn-secondary" onclick="ppNextQuestion()" id="ppNextBtn">Next →</button>
+        <button class="pp-btn pp-btn-primary" onclick="ppSubmit()" id="ppSubmitBtn" style="display:none;">Submit ✓</button>
+      </div>
+    </div>
+    <!-- Results view -->
+    <div id="ppResultsView" class="pp-results-view">
+      <div class="pp-results-header">
+        <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:24px;">Your Results</div>
+        <div class="pp-score-display">
+          <div class="pp-score-ring" id="ppScoreRing">
+            <div class="pp-score-inner">
+              <div class="pp-score-pct" id="ppScorePct">0%</div>
+              <div class="pp-score-label">Accuracy</div>
+            </div>
+          </div>
+          <div class="pp-result-stats">
+            <div class="pp-result-stat"><span class="pp-result-stat-icon">✅</span> Correct answers <span class="pp-result-stat-val" id="ppResCorrect">—</span></div>
+            <div class="pp-result-stat"><span class="pp-result-stat-icon">⏱️</span> Time taken <span class="pp-result-stat-val" id="ppResTime">—</span></div>
+            <div class="pp-result-stat"><span class="pp-result-stat-icon">🏆</span> Your rank <span class="pp-result-stat-val" id="ppResRank">—</span></div>
+          </div>
+        </div>
+        <div id="ppAttemptBadge"></div>
+      </div>
+      <div class="pp-answers-title">Question Breakdown</div>
+      <div id="ppAnswerBreakdown"></div>
+      <div class="pp-lb-section">
+        <div class="pp-lb-title">Leaderboard</div>
+        <div id="ppResultsLb"></div>
+      </div>
+      <div class="pp-results-actions">
+        <button class="pp-btn pp-btn-secondary" onclick="ppPlayAgain()">🔁 Play Again</button>
+        <button class="pp-btn pp-btn-primary" onclick="hidePP();showLanding();">🏠 Home</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
