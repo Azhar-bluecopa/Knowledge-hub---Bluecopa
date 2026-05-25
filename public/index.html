@@ -518,11 +518,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .sm-select{background:#2a2a40;border:1px solid rgba(232,201,122,0.2);border-radius:6px;outline:none;box-shadow:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;width:100%;padding:4px 6px;-webkit-tap-highlight-color:transparent;transition:background .18s,border-color .18s;}
 .sm-select:focus{outline:none;box-shadow:none;}
 .sm-select option{background:#1e1e28;color:var(--text);font-weight:400;}
-.lv-0{background:#2a2a40;color:var(--muted);}
-.lv-1{background:#fb923c;color:#1a0a00;border-color:#fb923c;}
-.lv-2{background:#fbbf24;color:#1a1000;border-color:#fbbf24;}
-.lv-3{background:#3b82f6;color:#fff;border-color:#3b82f6;}
-.lv-4{background:#4ade80;color:#001a0a;border-color:#4ade80;}
+.lv-0{color:var(--muted);}
+.lv-1{color:#fb923c;font-weight:500;}
+.lv-2{color:#fbbf24;font-weight:500;}
+.lv-3{color:#3b82f6;font-weight:500;}
+.lv-4{color:#4ade80;font-weight:600;}
+/* Box colors scoped to select elements only — td cells keep text-only styling */
+.sm-select.lv-0{background:#2a2a40;}
+.sm-select.lv-1{background:#fb923c;color:#1a0a00;border-color:#fb923c;}
+.sm-select.lv-2{background:#fbbf24;color:#1a1000;border-color:#fbbf24;}
+.sm-select.lv-3{background:#3b82f6;color:#fff;border-color:#3b82f6;}
+.sm-select.lv-4{background:#4ade80;color:#001a0a;border-color:#4ade80;}
 .sm-db-controls{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap;}
 .sm-snap-sel{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;cursor:pointer;}
 .sm-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
