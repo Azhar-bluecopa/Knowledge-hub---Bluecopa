@@ -345,7 +345,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .roadmap-body{flex:1;}
 .rm-topics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
 .rm-topic-block{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .18s;}
-.rm-topic-block:hover{border-color:rgba(0,200,204,.2);}
+.rm-topic-block:hover{border-color:rgba(232,201,122,.25);}
 .rm-topic-head{padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);}
 .rm-topic-name{font-size:13px;font-weight:700;color:var(--text);flex:1;}
 .rm-article-item{padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;flex-direction:column;gap:5px;transition:background .2s;}
@@ -354,12 +354,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .rm-article-title{font-size:13px;font-weight:500;color:var(--text);line-height:1.4;}
 .rm-article-meta{display:flex;align-items:center;justify-content:space-between;}
 .rm-article-owner{font-size:11px;color:var(--muted);}
-.rm-article-date{font-size:10px;font-family:'DM Mono',monospace;background:rgba(0,200,204,.08);border:1px solid rgba(0,200,204,.2);border-radius:4px;padding:2px 7px;color:#00c8cc;}
+.rm-article-date{font-size:10px;font-family:'DM Mono',monospace;background:rgba(232,201,122,.08);border:1px solid rgba(232,201,122,.25);border-radius:4px;padding:2px 7px;color:var(--accent);}
 .rm-article-date.overdue{background:rgba(232,122,122,.15);border-color:rgba(232,122,122,.45);color:#e87a7a;}
 .rm-date-editable{cursor:pointer;transition:background .15s,border-color .15s;}
-.rm-date-editable:hover{background:rgba(0,200,204,.18);border-color:rgba(0,200,204,.5);color:#00c8cc;}
+.rm-date-editable:hover{background:rgba(232,201,122,.15);border-color:rgba(232,201,122,.5);color:var(--accent);}
 .rm-date-editable.overdue:hover{background:rgba(232,122,122,.28);border-color:rgba(232,122,122,.7);color:#e87a7a;}
-.rm-date-input{font-size:10px;font-family:'DM Mono',monospace;background:rgba(0,200,204,.12);border:1px solid rgba(0,200,204,.5);border-radius:4px;padding:2px 7px;color:#e8e8f0;outline:none;width:96px;}
+.rm-date-input{font-size:10px;font-family:'DM Mono',monospace;background:rgba(232,201,122,.1);border:1px solid rgba(232,201,122,.4);border-radius:4px;padding:2px 7px;color:#e8e8f0;outline:none;width:96px;}
 .dash-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;}
 .dash-kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 24px;animation:fadeUp .4s ease both;}
 .dash-kpi-num{font-family:'Playfair Display',serif;font-size:34px;font-weight:700;}
@@ -494,20 +494,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .sm-overlay{position:fixed;inset:0;background:var(--bg);z-index:200;display:none;flex-direction:column;}
 .sm-overlay.active{display:flex;}
 .sm-topbar{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.sm-topbar-title{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:#00c8cc;letter-spacing:.08em;}
+.sm-topbar-title{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:var(--accent);letter-spacing:.08em;}
 .sm-tabs{display:flex;gap:8px;}
 .sm-tab{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:7px 18px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .18s;}
-.sm-tab.active{border-color:#00c8cc;color:#00c8cc;background:rgba(0,200,204,.1);}
+.sm-tab.active{border-color:var(--accent);color:var(--accent);background:rgba(232,201,122,.1);}
 .sm-panel{display:none;flex:1;overflow:auto;padding:24px 28px;}
 .sm-panel.active{display:block;}
 .sm-panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
-.sm-capture-btn{background:#00c8cc;color:#0d1b2f;border:none;border-radius:8px;padding:9px 22px;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.08em;cursor:pointer;transition:opacity .18s;}
+.sm-capture-btn{background:var(--accent);color:#0f0f13;border:none;border-radius:8px;padding:9px 22px;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.08em;cursor:pointer;transition:opacity .18s;}
 .sm-capture-btn:hover{opacity:.85;}
 .sm-table-wrap{overflow:auto;border-radius:10px;border:1px solid var(--border);}
 .sm-table{border-collapse:collapse;width:100%;min-width:900px;}
-.sm-table thead tr{background:#0d1b2f;}
-.sm-table thead th{padding:10px 14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.07em;color:#00c8cc;text-align:center;white-space:normal;border-right:1px solid var(--border);width:150px;min-width:150px;max-width:150px;vertical-align:middle;line-height:1.4;}
-.sm-table thead th:first-child{text-align:left;color:var(--text);position:sticky;left:0;background:#0d1b2f;z-index:2;min-width:160px;}
+.sm-table thead tr{background:var(--surface2);}
+.sm-table thead th{padding:10px 14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.07em;color:var(--accent);text-align:center;white-space:normal;border-right:1px solid var(--border);width:150px;min-width:150px;max-width:150px;vertical-align:middle;line-height:1.4;}
+.sm-table thead th:first-child{text-align:left;color:var(--text);position:sticky;left:0;background:var(--surface2);z-index:2;min-width:160px;}
 .sm-table thead th:last-child,.sm-table thead th:nth-last-child(2){color:var(--accent);}
 .sm-table tbody tr{border-bottom:1px solid var(--border);}
 .sm-table tbody td{padding:7px 10px;text-align:center;border-right:1px solid var(--border);background:var(--surface);font-size:12px;width:150px;min-width:150px;max-width:150px;}
@@ -515,8 +515,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .sm-table tfoot tr:first-child td{border-top:2px solid var(--border);}
 .sm-table tfoot td{padding:9px 10px;text-align:center;border-right:1px solid var(--border);background:var(--surface2);font-size:12px;}
 .sm-table tfoot td:first-child{text-align:left;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.07em;color:var(--accent);position:sticky;left:0;background:var(--surface2);z-index:1;padding:9px 14px;}
-.sm-select{background:#0d1b2f;border:1px solid rgba(0,200,204,0.2);border-radius:6px;outline:none;box-shadow:none;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;width:100%;padding:4px 6px;accent-color:#4f9de8;-webkit-tap-highlight-color:transparent;}
-.sm-select:focus{outline:none;box-shadow:none;border-color:rgba(0,200,204,0.5);}
+.sm-select{background:var(--surface2);border:1px solid rgba(232,201,122,0.2);border-radius:6px;outline:none;box-shadow:none;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;width:100%;padding:4px 6px;accent-color:#e8c97a;-webkit-tap-highlight-color:transparent;}
+.sm-select:focus{outline:none;box-shadow:none;border-color:rgba(232,201,122,0.5);}
 .sm-select option{background:#17171e;color:var(--text);}
 .lv-0{color:var(--muted);}
 .lv-1{color:#fb923c;font-weight:500;}
@@ -533,7 +533,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .sm-chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
 .sm-chart-card.full{grid-column:1/-1;}
 .sm-view-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .18s;}
-.sm-view-btn.active{background:rgba(0,200,204,.12);border-color:#00c8cc;color:#00c8cc;}
+.sm-view-btn.active{background:rgba(232,201,122,.1);border-color:var(--accent);color:var(--accent);}
 .sm-heatmap{border-collapse:separate;border-spacing:3px;width:100%;font-size:11px;}
 .sm-heatmap th{padding:5px 8px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.06em;text-align:center;white-space:nowrap;}
 .sm-heatmap td.sm-hm-name{color:var(--text);font-weight:500;text-align:left;padding:6px 10px;white-space:nowrap;font-size:12px;}
@@ -624,8 +624,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dw-tooltip-title{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(var(--cr),1);margin-bottom:9px;}
 .dw-tooltip-text{font-size:11.5px;color:rgba(232,232,240,.5);line-height:1.72;}
 /* Home button */
-.btn-home{background:transparent;border:1px solid rgba(0,200,204,.3);color:rgba(0,200,204,.7);border-radius:8px;padding:8px 14px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:6px;}
-.btn-home:hover{border-color:rgba(0,200,204,.6);color:#00c8cc;background:rgba(0,200,204,.08);}
+.btn-home{background:transparent;border:1px solid rgba(232,201,122,.35);color:rgba(232,201,122,.75);border-radius:8px;padding:8px 14px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:6px;}
+.btn-home:hover{border-color:var(--accent);color:var(--accent);background:rgba(232,201,122,.08);}
 .dw-bottom-row{display:flex;align-items:center;justify-content:center;gap:28px;margin-top:36px;width:100%;max-width:1200px;}
 .dw-bottom-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);}
 .dw-bottom-text{font-size:10px;font-family:'DM Mono',monospace;color:rgba(232,232,240,.18);letter-spacing:.14em;text-transform:uppercase;}
@@ -2095,7 +2095,7 @@ const ROADMAP_DATA = [
     { title:'Monitoring & Alerting',       owner:'Bhuvaneshwari Jangam' },
     { title:'Template Reuse',              owner:'Sai Deeraj Kona' },
   ]},
-  { name:'Connectors & Integrations', color:'#00c8cc', articles:[
+  { name:'Connectors & Integrations', color:'#e8c97a', articles:[
     { title:'REST API Connector',      owner:'Sai Kumar' },
     { title:'Webhook / Event Triggers',owner:'Anusha Mola' },
     { title:'Database Connectors',     owner:'Somnath Behera' },
@@ -2132,7 +2132,7 @@ function renderRoadmap() {
   const roadCells = [];
 
   // Road bar
-  roadCells.push(`<div style="grid-row:2;grid-column:1/-1;background:linear-gradient(to right,#111e30,#1a2d45,#111e30);border-radius:26px;border:1px solid rgba(0,200,204,0.14);position:relative;z-index:1;">
+  roadCells.push(`<div style="grid-row:2;grid-column:1/-1;background:linear-gradient(to right,#111e30,#1a2d45,#111e30);border-radius:26px;border:1px solid rgba(232,201,122,0.15);position:relative;z-index:1;">
     <div style="position:absolute;top:50%;left:24px;right:24px;height:2px;transform:translateY(-50%);background:repeating-linear-gradient(to right,rgba(255,255,255,.16) 0,rgba(255,255,255,.16) 18px,transparent 18px,transparent 38px);"></div>
   </div>`);
 
@@ -3362,7 +3362,7 @@ async function showSkillMatrix() {
   document.getElementById('smOverlay').classList.add('active');
   document.querySelector('.main').style.display = 'none';
   const tb = document.getElementById('topbarSkillBtn');
-  if (tb) { tb.style.color='#00c8cc'; tb.style.background='rgba(0,200,204,.1)'; }
+  if (tb) { tb.style.color='#e8c97a'; tb.style.background='rgba(232,201,122,.1)'; }
   await smLoad();
 }
 
@@ -3588,7 +3588,7 @@ function smRenderDashboard() {
         ${getAdminPwd() ? `<div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
             <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">🗂 Manage Snapshots</div>
-            <button onclick="smCaptureSnapshot()" style="background:#00c8cc;color:#0d1b2f;border:none;border-radius:8px;padding:7px 16px;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;cursor:pointer;">+ CAPTURE NEW SNAPSHOT</button>
+            <button onclick="smCaptureSnapshot()" style="background:#e8c97a;color:#0f0f13;border:none;border-radius:8px;padding:7px 16px;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;cursor:pointer;">+ CAPTURE NEW SNAPSHOT</button>
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;">
             ${smData.snapshots.length ? smData.snapshots.map(s=>`
@@ -3678,7 +3678,7 @@ function smRenderDashboard() {
   if (snapshots.length > 0) {
     smCharts.trend = new Chart(document.getElementById('smChartTrend'), {
       type:'line',
-      data:{ labels:trendLabels, datasets:[{ label:'Team Avg', data:trendScores, borderColor:'#00c8cc', backgroundColor:'rgba(0,200,204,0.1)', tension:0.35, pointBackgroundColor:'#00c8cc', pointRadius:6, fill:true }] },
+      data:{ labels:trendLabels, datasets:[{ label:'Team Avg', data:trendScores, borderColor:'#e8c97a', backgroundColor:'rgba(232,201,122,0.1)', tension:0.35, pointBackgroundColor:'#e8c97a', pointRadius:6, fill:true }] },
       options:{
         responsive:true, layout:{padding:{top:24}},
         plugins:{ legend:{display:false}, datalabels:{anchor:'end',align:'top',color:'#e8e8f0',font:{size:12,weight:'700'},clamp:true,formatter:v=>v>0?v.toFixed(2):''} },
@@ -3704,7 +3704,7 @@ function smRenderDashboard() {
         {label:'Beginner',   data:covData[0], backgroundColor:'#e87a7a', borderRadius:3, stack:'s'},
         {label:'Intermediate',data:covData[1], backgroundColor:'#f9a74f', borderRadius:3, stack:'s'},
         {label:'Advanced',   data:covData[2], backgroundColor:'#7ae8b4', borderRadius:3, stack:'s'},
-        {label:'Expert',     data:covData[3], backgroundColor:'#00c8cc', borderRadius:3, stack:'s'}
+        {label:'Expert',     data:covData[3], backgroundColor:'#e8c97a', borderRadius:3, stack:'s'}
       ]
     },
     options:{
@@ -3961,7 +3961,7 @@ function smRenderIndDash(selectedEmp) {
 
   smCharts.indTime = new Chart(document.getElementById('smIndChartTime'), {
     type:'line',
-    data:{ labels:timeLabels, datasets:[{ label:'Avg Score', data:timeScores, borderColor:'#00c8cc', backgroundColor:'rgba(0,200,204,0.1)', tension:0.35, pointBackgroundColor:'#00c8cc', pointRadius:5, fill:true }] },
+    data:{ labels:timeLabels, datasets:[{ label:'Avg Score', data:timeScores, borderColor:'#e8c97a', backgroundColor:'rgba(232,201,122,0.1)', tension:0.35, pointBackgroundColor:'#e8c97a', pointRadius:5, fill:true }] },
     options:{
       responsive:true, layout:{padding:{top:22}},
       plugins:{
@@ -3998,9 +3998,9 @@ function smRenderIndDash(selectedEmp) {
       datasets:[{
         label: emp,
         data: processAreas.map(pa=>empScores[pa]||0),
-        backgroundColor:'rgba(0,200,204,0.15)',
-        borderColor:'#00c8cc',
-        pointBackgroundColor:'#00c8cc',
+        backgroundColor:'rgba(232,201,122,0.15)',
+        borderColor:'#e8c97a',
+        pointBackgroundColor:'#e8c97a',
         pointRadius:4
       }]
     },
