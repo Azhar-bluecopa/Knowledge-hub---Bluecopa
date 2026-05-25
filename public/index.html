@@ -1428,6 +1428,7 @@ function applyRestrictions() {
 let editingArticleId = null;
 
 function openModal() {
+  if(!_dwNavFlag) history.pushState({screen:'new-article'}, '');
   editingArticleId = null;
   document.getElementById('modalTitle').textContent = 'Write New Article';
   document.getElementById('publishBtn').textContent = 'Publish Article';
@@ -1755,6 +1756,7 @@ function autoResizeComment(el) {
 }
 
 function openAbout(){
+  if(!_dwNavFlag) history.pushState({screen:'about'}, '');
   // Show edit button only for admins
   const editBtn = document.getElementById('aboutEditBtn');
   editBtn.style.display = !!getAdminPwd() ? 'flex' : 'none';
@@ -2557,6 +2559,7 @@ async function handleAdminRequired() {
 }
 
 function showAdminPanel() {
+  if(!_dwNavFlag) history.pushState({screen:'admin', tab:'categories'}, '');
   loadAdminPanel();
   refreshRequestBadge();
   document.getElementById('adminPanelOverlay').classList.add('open');
@@ -3894,8 +3897,8 @@ function smViewToggle(active) {
   </div>`;
 }
 
-function smDashViewTeam() { smDestroyCharts(); smRenderDashboard(); }
-function smDashViewInd()  { smRenderIndDash(); }
+function smDashViewTeam() { if(!_dwNavFlag) history.pushState({screen:'skillmatrix', tab:'dashboard', view:'team'}, ''); smDestroyCharts(); smRenderDashboard(); }
+function smDashViewInd()  { if(!_dwNavFlag) history.pushState({screen:'skillmatrix', tab:'dashboard', view:'ind'}, '');  smRenderIndDash(); }
 
 function smRenderIndDash(selectedEmp) {
   const wrap = document.getElementById('smDashContent');
@@ -4144,13 +4147,15 @@ async function smAdmDelSnap(id) {
 
 // Hook admin panel tab switching
 const _origSwitchAdminTab = typeof switchAdminTab === 'function' ? switchAdminTab : null;
-function switchAdminTab(tab, btn) {
+function switchAdminTab(tab, btn, noHistory) {
+  if(!noHistory && !_dwNavFlag) history.pushState({screen:'admin', tab}, '');
   document.querySelectorAll('.admin-tab').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.admin-tab-panel').forEach(p=>p.classList.remove('active'));
   if(btn) btn.classList.add('active');
   const panel = document.getElementById('tab-'+tab);
   if(panel) panel.classList.add('active');
   if(tab==='skillmatrix') smAdmLoad();
+  if(tab==='requests') loadRequestsTab();
 }
 </script>
 <!-- ═══════════════════════════════════════════
@@ -4361,8 +4366,23 @@ window.addEventListener('popstate', function(e){
   _dwNavFlag = true;
   const scr = (e.state && e.state.screen) || 'landing';
 
-  // 1. Close everything & reset to clean state
+  // ── Admin panel tabs: keep panel open, just switch tab ──
+  if(scr === 'admin'){
+    closeAbout(); closeViewModal(); closeModal();
+    document.getElementById('adminPanelOverlay').classList.add('open');
+    const tab = (e.state && e.state.tab) || 'categories';
+    const btn = [...document.querySelectorAll('#adminPanelOverlay .admin-tab')]
+                  .find(b => (b.getAttribute('onclick')||'').includes(`'${tab}'`));
+    switchAdminTab(tab, btn, true);
+    _dwNavFlag = false;
+    return;
+  }
+
+  // ── For all other states: close every overlay/modal first ──
   closeViewModal();
+  closeAbout();
+  closeAdminPanel();
+  closeModal();
   smDestroyCharts();
   document.getElementById('dwLanding').classList.add('dw-hidden');
   document.getElementById('dw-canvas').style.display = 'none';
@@ -4376,17 +4396,21 @@ window.addEventListener('popstate', function(e){
   if(rv) rv.classList.remove('active');
   if(mainEl) mainEl.style.display = '';
 
-  // 2. Activate the target screen
+  // ── Activate the target screen ──
   if(scr === 'landing'){
     document.getElementById('dwLanding').classList.remove('dw-hidden');
     document.getElementById('dw-canvas').style.display = 'block';
     dwCanvasRunning = true;
     document.querySelectorAll('.dw-tooltip').forEach(t=>t.classList.remove('open'));
   } else if(scr === 'skillmatrix'){
-    const tab = (e.state && e.state.tab) || 'assess';
+    const tab  = (e.state && e.state.tab)  || 'assess';
+    const view = (e.state && e.state.view) || 'team';
     if(sm) sm.classList.add('active');
     if(mainEl) mainEl.style.display = 'none';
-    smLoad().then(() => smSwitchTab(tab, true));
+    smLoad().then(() => {
+      smSwitchTab(tab, true);
+      if(tab === 'dashboard' && view === 'ind') smRenderIndDash();
+    });
   } else if(scr === 'dashboard'){
     if(dv) dv.classList.add('active');
     if(mainEl) mainEl.style.display = 'none';
@@ -4395,8 +4419,11 @@ window.addEventListener('popstate', function(e){
     if(rv) rv.classList.add('active');
     if(mainEl) mainEl.style.display = 'none';
     renderRoadmap();
+  } else if(scr === 'about'){
+    // Popping forward to about — reopen the modal
+    openAbout();
   }
-  // 'articles' and 'article-detail' → default main view already restored above
+  // 'articles', 'article-detail', 'new-article' → main view already restored by reset
 
   _dwNavFlag = false;
 });
