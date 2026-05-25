@@ -698,9 +698,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="search-icon-btn" id="searchIconBtn" onclick="toggleTopbarSearch()" title="Search">
         🔍 <span style="font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;">Search</span>
       </button>
-      <button class="btn-ghost" id="topbarSkillBtn" onclick="showSkillMatrix()" title="Skill Matrix" style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;">
-        📈 <span>Skill Matrix</span>
-      </button>
       <button class="btn-ghost" id="topbarDashBtn" onclick="showDashboard()" title="Dashboard" style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;">
         📊 <span>Dashboard</span>
       </button>
@@ -875,7 +872,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="sm-tab active" id="smTabAssess" onclick="smSwitchTab('assess')">📝 Self-Assessment</button>
       <button class="sm-tab" id="smTabDash" onclick="smSwitchTab('dashboard')">📊 Dashboard</button>
     </div>
-    <button class="btn-ghost" onclick="hideSkillMatrix()" style="font-size:13px;">← Back</button>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="btn-home" onclick="hideSkillMatrix();showLanding();" title="Home">🏠 <span>Home</span></button>
+      <button class="btn-ghost" onclick="hideSkillMatrix()" style="font-size:13px;">← Back</button>
+    </div>
   </div>
 
   <!-- Self-Assessment Panel -->
