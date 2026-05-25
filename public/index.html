@@ -636,96 +636,184 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dw-bottom-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);}
 .dw-bottom-text{font-size:10px;font-family:'DM Mono',monospace;color:rgba(232,232,240,.18);letter-spacing:.14em;text-transform:uppercase;}
 /* ══════════════════ PROCESS PUZZLE ══════════════════ */
-.pp-overlay{position:fixed;inset:0;background:var(--bg);z-index:200;display:none;flex-direction:column;}
+/* ═══ PROCESS PUZZLE v2 ═══ */
+.pp-overlay{position:fixed;inset:0;z-index:200;display:none;flex-direction:column;background:#0a0a0f;overflow:hidden;}
 .pp-overlay.active{display:flex;}
-.pp-topbar{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:16px;}
-.pp-topbar-title{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:var(--accent);letter-spacing:.08em;}
-.pp-admin-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 28px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
-.pp-generate-btn{background:var(--accent);color:#0f0f13;border:none;border-radius:8px;padding:9px 20px;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.06em;cursor:pointer;transition:opacity .18s;display:flex;align-items:center;gap:8px;}
-.pp-generate-btn:hover{opacity:.85;}
-.pp-generate-btn:disabled{opacity:.5;cursor:not-allowed;}
-.pp-admin-label{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.08em;}
-.pp-body{flex:1;overflow-y:auto;padding:32px 48px 64px;}
-/* Landing */
-.pp-landing{max-width:720px;margin:0 auto;}
-.pp-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:20px;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;font-weight:600;margin-bottom:16px;}
-.pp-badge-quiz{background:rgba(232,201,122,.12);color:var(--accent);border:1px solid rgba(232,201,122,.3);}
-.pp-badge-trivia{background:rgba(122,158,232,.12);color:#7a9ee8;border:1px solid rgba(122,158,232,.3);}
-.pp-badge-scenario{background:rgba(122,232,180,.12);color:var(--success);border:1px solid rgba(122,232,180,.3);}
-.pp-game-title{font-family:'Playfair Display',serif;font-size:36px;font-weight:800;color:var(--text);margin-bottom:10px;line-height:1.15;}
-.pp-week-label{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.1em;margin-bottom:20px;}
-.pp-instructions-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 22px;margin-bottom:24px;font-size:14px;color:var(--text);line-height:1.7;}
-.pp-meta-row{display:flex;gap:20px;margin-bottom:28px;flex-wrap:wrap;}
-.pp-meta-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 20px;text-align:center;min-width:100px;}
-.pp-meta-num{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--accent);}
-.pp-meta-label{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;margin-top:4px;}
-.pp-start-btn{background:var(--accent);color:#0f0f13;border:none;border-radius:12px;padding:14px 40px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:opacity .18s,transform .15s;display:flex;align-items:center;gap:10px;margin-bottom:36px;}
-.pp-start-btn:hover{opacity:.88;transform:translateY(-2px);}
-.pp-no-game{text-align:center;padding:80px 20px;color:var(--muted);}
-.pp-no-game-icon{font-size:56px;margin-bottom:16px;}
-.pp-no-game-title{font-family:'Playfair Display',serif;font-size:22px;color:var(--text);margin-bottom:8px;}
-/* Game view */
-.pp-game-view{max-width:720px;margin:0 auto;display:none;}
-.pp-game-view.active{display:block;}
-.pp-game-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
-.pp-timer{font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:var(--accent);letter-spacing:.05em;}
-.pp-q-counter{font-size:13px;color:var(--muted);font-family:'DM Mono',monospace;}
-.pp-progress{height:4px;background:var(--border);border-radius:2px;margin-bottom:28px;overflow:hidden;}
-.pp-progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s ease;}
-.pp-difficulty{display:inline-block;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;padding:2px 10px;border-radius:20px;margin-bottom:14px;}
+
+/* Floating bg pieces */
+.pp-bg{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.pp-piece{position:absolute;opacity:0.045;font-size:42px;animation:pp-float linear infinite;user-select:none;}
+@keyframes pp-float{0%{transform:translateY(110vh) rotate(0deg);opacity:0;}8%{opacity:0.045;}92%{opacity:0.045;}100%{transform:translateY(-100px) rotate(400deg);opacity:0;}}
+
+/* Topbar */
+.pp-topbar{position:relative;z-index:10;padding:0 28px;height:58px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(90deg,rgba(232,201,122,.07) 0%,transparent 60%);border-bottom:1px solid rgba(232,201,122,.13);flex-shrink:0;}
+.pp-topbar-brand{display:flex;align-items:center;gap:11px;}
+.pp-topbar-icon{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#e8c97a,#c9a040);display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 0 14px rgba(232,201,122,.3);animation:pp-glow 3s ease-in-out infinite;}
+@keyframes pp-glow{0%,100%{box-shadow:0 0 14px rgba(232,201,122,.3);}50%{box-shadow:0 0 28px rgba(232,201,122,.6);}}
+.pp-topbar-title{font-family:'DM Mono',monospace;font-size:13px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;background:linear-gradient(90deg,#e8c97a,#f5e6a8,#e8c97a);background-size:200% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:pp-shimmer 3.5s linear infinite;}
+@keyframes pp-shimmer{0%{background-position:200% center;}100%{background-position:-200% center;}}
+
+/* Admin bar */
+.pp-admin-bar{position:relative;z-index:10;background:rgba(232,201,122,.04);border-bottom:1px solid rgba(232,201,122,.1);padding:8px 28px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.pp-admin-label{font-size:10px;color:rgba(232,201,122,.5);font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;}
+.pp-generate-btn{background:linear-gradient(135deg,#e8c97a,#c9a040);color:#0a0a0f;border:none;border-radius:8px;padding:8px 16px;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.06em;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:7px;box-shadow:0 2px 12px rgba(232,201,122,.2);}
+.pp-generate-btn:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(232,201,122,.4);}
+.pp-generate-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+/* Scrollable body */
+.pp-body{flex:1;overflow-y:auto;position:relative;z-index:5;}
+
+/* ── NO GAME ── */
+.pp-no-game{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;padding:40px 20px;}
+.pp-no-game-icon{font-size:72px;margin-bottom:18px;animation:pp-wobble 2.2s ease-in-out infinite;}
+@keyframes pp-wobble{0%,100%{transform:rotate(-6deg) scale(1);}50%{transform:rotate(6deg) scale(1.08);}}
+.pp-no-game-title{font-family:'Playfair Display',serif;font-size:26px;font-weight:800;color:var(--text);margin-bottom:10px;}
+.pp-no-game-sub{font-size:14px;color:var(--muted);max-width:340px;line-height:1.7;}
+
+/* ── LANDING ── */
+.pp-landing{max-width:860px;margin:0 auto;padding:44px 32px;}
+.pp-hero{text-align:center;margin-bottom:44px;}
+.pp-hero-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:5px 16px;border-radius:20px;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.16em;text-transform:uppercase;font-weight:700;margin-bottom:18px;}
+.pp-badge-quiz{background:rgba(232,201,122,.1);color:#e8c97a;border:1px solid rgba(232,201,122,.3);}
+.pp-badge-trivia{background:rgba(122,158,232,.1);color:#7a9ee8;border:1px solid rgba(122,158,232,.3);}
+.pp-badge-scenario{background:rgba(122,232,180,.1);color:#7ae8b4;border:1px solid rgba(122,232,180,.3);}
+.pp-hero-title{font-family:'Playfair Display',serif;font-size:clamp(28px,4.5vw,48px);font-weight:900;line-height:1.1;color:var(--text);margin-bottom:12px;}
+.pp-hero-title .hl{background:linear-gradient(135deg,#e8c97a 0%,#f5e6a8 50%,#c9a040 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.pp-hero-sub{font-size:15px;color:var(--muted);margin-bottom:28px;line-height:1.7;}
+.pp-week-label{display:inline-block;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.1em;margin-bottom:28px;}
+.pp-instructions-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:32px;font-size:14px;color:rgba(232,232,240,.7);line-height:1.75;text-align:left;}
+
+/* Stats */
+.pp-stats-row{display:flex;gap:14px;justify-content:center;margin-bottom:36px;flex-wrap:wrap;}
+.pp-stat-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 26px;text-align:center;min-width:110px;position:relative;overflow:hidden;transition:transform .2s,border-color .2s,box-shadow .2s;}
+.pp-stat-card:hover{transform:translateY(-4px);border-color:rgba(232,201,122,.3);box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.pp-stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.5;}
+.pp-stat-num{font-family:'Playfair Display',serif;font-size:34px;font-weight:800;color:var(--accent);line-height:1;margin-bottom:6px;}
+.pp-stat-lbl{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;}
+
+/* Start button */
+.pp-start-btn{display:inline-flex;align-items:center;gap:12px;background:linear-gradient(135deg,#e8c97a,#c9a040);color:#0a0a0f;border:none;border-radius:16px;padding:17px 50px;font-family:'DM Sans',sans-serif;font-weight:800;font-size:17px;cursor:pointer;box-shadow:0 8px 32px rgba(232,201,122,.35);transition:all .2s;margin-bottom:44px;position:relative;overflow:hidden;letter-spacing:.02em;}
+.pp-start-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.18),transparent);}
+.pp-start-btn:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 16px 40px rgba(232,201,122,.5);}
+.pp-start-btn:active{transform:translateY(0) scale(.99);}
+
+/* Leaderboard sections */
+.pp-section-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:12px;}
+.pp-section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.pp-lb-section{margin-top:8px;}
+
+/* ── GAME VIEW ── */
+.pp-game-view{display:none;flex-direction:column;min-height:calc(100vh - 120px);padding:28px 32px;}
+.pp-game-view.active{display:flex;}
+
+/* Game header */
+.pp-game-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;max-width:780px;margin-left:auto;margin-right:auto;width:100%;}
+.pp-timer-wrap{display:flex;flex-direction:column;align-items:center;}
+.pp-timer{font-family:'DM Mono',monospace;font-size:40px;font-weight:700;color:var(--accent);line-height:1;letter-spacing:.05em;transition:color .3s;}
+.pp-timer-lbl{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;margin-top:2px;}
+.pp-q-pill{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 18px;font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);letter-spacing:.08em;}
+.pp-q-pill strong{color:var(--text);}
+
+/* Stepped progress */
+.pp-steps{display:flex;gap:5px;max-width:780px;margin:0 auto 24px;width:100%;}
+.pp-step{flex:1;height:7px;border-radius:4px;background:var(--border);transition:background .35s;}
+.pp-step.done{background:var(--accent);}
+.pp-step.current{background:rgba(232,201,122,.5);animation:pp-step-pulse 1.1s ease-in-out infinite alternate;}
+@keyframes pp-step-pulse{from{background:rgba(232,201,122,.3);}to{background:rgba(232,201,122,.75);}}
+
+/* Question card */
+.pp-q-card{max-width:780px;margin:0 auto 22px;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:30px;position:relative;overflow:hidden;}
+.pp-q-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#e8c97a,#7a9ee8,#7ae8b4);}
+.pp-diff-badge{display:inline-block;font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;padding:3px 12px;border-radius:20px;margin-bottom:14px;}
 .pp-diff-easy{background:rgba(122,232,180,.1);color:var(--success);}
 .pp-diff-medium{background:rgba(232,201,122,.1);color:var(--accent);}
 .pp-diff-hard{background:rgba(232,122,122,.1);color:var(--danger);}
-.pp-question-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:24px;}
-.pp-question-text{font-size:18px;font-weight:600;color:var(--text);line-height:1.6;}
-.pp-options{display:flex;flex-direction:column;gap:10px;margin-bottom:24px;}
-.pp-option{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px 18px;font-size:14px;color:var(--text);cursor:pointer;transition:all .18s;text-align:left;display:flex;align-items:center;gap:12px;}
-.pp-option:hover:not(.selected):not(.correct):not(.wrong){border-color:rgba(232,201,122,.35);color:var(--accent);}
-.pp-option.selected{border-color:var(--accent);background:rgba(232,201,122,.1);color:var(--accent);}
-.pp-option.correct{border-color:var(--success);background:rgba(122,232,180,.12);color:var(--success);}
-.pp-option.wrong{border-color:var(--danger);background:rgba(232,122,122,.1);color:var(--danger);}
-.pp-opt-letter{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;flex-shrink:0;}
-.pp-game-actions{display:flex;gap:12px;justify-content:flex-end;}
+.pp-q-number{font-family:'DM Mono',monospace;font-size:10px;color:rgba(232,201,122,.4);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;}
+.pp-q-text{font-size:19px;font-weight:700;color:var(--text);line-height:1.55;}
+
+/* Options — 2-col grid */
+.pp-options-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:780px;margin:0 auto 22px;width:100%;}
+@media(max-width:580px){.pp-options-grid{grid-template-columns:1fr;}}
+.pp-opt{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:15px 18px;font-size:14px;color:var(--text);cursor:pointer;transition:all .18s;text-align:left;display:flex;align-items:center;gap:13px;position:relative;overflow:hidden;}
+.pp-opt:hover:not(.selected):not(.pp-correct):not(.pp-wrong){border-color:rgba(232,201,122,.4);transform:translateY(-2px);box-shadow:0 4px 18px rgba(232,201,122,.1);}
+.pp-opt.selected{border-color:var(--accent);background:rgba(232,201,122,.08);color:var(--accent);}
+.pp-opt.pp-correct{border-color:var(--success);background:rgba(122,232,180,.1);color:var(--success);}
+.pp-opt.pp-wrong{border-color:var(--danger);background:rgba(232,122,122,.08);color:var(--danger);}
+.pp-opt-key{width:30px;height:30px;border-radius:8px;flex-shrink:0;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;transition:background .18s;}
+.pp-opt.selected .pp-opt-key{background:rgba(232,201,122,.2);}
+.pp-opt.pp-correct .pp-opt-key{background:rgba(122,232,180,.2);}
+.pp-opt.pp-wrong .pp-opt-key{background:rgba(232,122,122,.15);}
+
+/* Game actions */
+.pp-game-actions{display:flex;gap:12px;justify-content:flex-end;max-width:780px;margin:0 auto;width:100%;}
 .pp-btn{border:none;border-radius:10px;padding:11px 28px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;cursor:pointer;transition:all .18s;}
-.pp-btn-primary{background:var(--accent);color:#0f0f13;}
-.pp-btn-primary:hover{opacity:.88;}
-.pp-btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.pp-btn-primary{background:var(--accent);color:#0a0a0f;box-shadow:0 4px 16px rgba(232,201,122,.22);}
+.pp-btn-primary:hover{opacity:.88;transform:translateY(-1px);}
+.pp-btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border);}
 .pp-btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
-/* Results */
-.pp-results-view{max-width:760px;margin:0 auto;display:none;}
+
+/* ── RESULTS ── */
+.pp-results-view{display:none;padding:40px 32px;}
 .pp-results-view.active{display:block;}
-.pp-results-header{text-align:center;margin-bottom:36px;}
-.pp-score-display{display:flex;align-items:center;justify-content:center;gap:32px;margin-bottom:28px;flex-wrap:wrap;}
-.pp-score-ring{width:130px;height:130px;border-radius:50%;background:conic-gradient(var(--accent) var(--pct,0%), var(--surface2) 0%);display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 0 0 4px var(--surface2);}
-.pp-score-inner{width:100px;height:100px;border-radius:50%;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;}
-.pp-score-pct{font-family:'Playfair Display',serif;font-size:26px;font-weight:800;color:var(--accent);}
-.pp-score-label{font-size:9px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;}
-.pp-result-stats{display:flex;flex-direction:column;gap:10px;}
-.pp-result-stat{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text);}
-.pp-result-stat-icon{font-size:20px;width:28px;text-align:center;}
-.pp-result-stat-val{font-weight:700;color:var(--accent);font-family:'DM Mono',monospace;margin-left:auto;}
-.pp-first-attempt-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(122,232,180,.1);border:1px solid rgba(122,232,180,.3);color:var(--success);border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;margin-bottom:24px;}
-.pp-repeat-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(122,122,150,.08);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 16px;font-size:13px;margin-bottom:24px;}
-.pp-answers-title{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:10px;}
-.pp-answers-title::after{content:'';flex:1;height:1px;background:var(--border);}
-.pp-answer-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;border-left:4px solid var(--border);}
+.pp-results-hero{max-width:780px;margin:0 auto 44px;text-align:center;}
+.pp-results-title{font-family:'Playfair Display',serif;font-size:32px;font-weight:900;color:var(--text);margin-bottom:6px;}
+.pp-results-sub{font-size:14px;color:var(--muted);margin-bottom:32px;}
+.pp-score-ring{width:156px;height:156px;border-radius:50%;background:conic-gradient(var(--accent) var(--pct,0%), #1e1e28 0%);display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(232,201,122,.22);margin:0 auto 30px;animation:pp-ring-in .8s cubic-bezier(.34,1.56,.64,1) both;}
+@keyframes pp-ring-in{from{transform:scale(.4) rotate(-180deg);opacity:0;}to{transform:scale(1) rotate(0deg);opacity:1;}}
+.pp-score-inner{width:118px;height:118px;border-radius:50%;background:#0a0a0f;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.pp-score-pct{font-family:'Playfair Display',serif;font-size:32px;font-weight:900;color:var(--accent);line-height:1;}
+.pp-score-label{font-size:8px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:2px;}
+/* Results stat cards */
+.pp-res-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:780px;margin:0 auto 28px;}
+@media(max-width:560px){.pp-res-grid{grid-template-columns:1fr 1fr;}}
+.pp-res-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 14px;text-align:center;animation:pp-card-in .5s ease both;}
+.pp-res-card:nth-child(1){animation-delay:.1s;}
+.pp-res-card:nth-child(2){animation-delay:.2s;}
+.pp-res-card:nth-child(3){animation-delay:.3s;}
+@keyframes pp-card-in{from{transform:translateY(18px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.pp-res-card-icon{font-size:22px;margin-bottom:7px;}
+.pp-res-card-val{font-family:'Playfair Display',serif;font-size:22px;font-weight:800;color:var(--accent);line-height:1;}
+.pp-res-card-lbl{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;margin-top:4px;}
+/* Badges */
+.pp-first-attempt-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(122,232,180,.08);border:1px solid rgba(122,232,180,.25);color:var(--success);border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;margin-bottom:28px;}
+.pp-repeat-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(122,122,150,.06);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:10px 20px;font-size:13px;margin-bottom:28px;}
+/* Section header */
+.pp-section-hdr{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;max-width:780px;margin-left:auto;margin-right:auto;display:flex;align-items:center;gap:12px;}
+.pp-section-hdr::after{content:'';flex:1;height:1px;background:var(--border);}
+/* Answer breakdown */
+.pp-answer-list{max-width:780px;margin:0 auto 36px;}
+.pp-answer-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:10px;border-left:3px solid var(--border);display:flex;gap:13px;align-items:flex-start;}
 .pp-answer-item.correct{border-left-color:var(--success);}
 .pp-answer-item.wrong{border-left-color:var(--danger);}
-.pp-answer-q{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;}
-.pp-answer-detail{font-size:12px;color:var(--muted);margin-bottom:4px;}
-.pp-answer-explanation{font-size:11.5px;color:rgba(232,232,240,.4);font-style:italic;margin-top:6px;line-height:1.6;}
-.pp-lb-section{margin-top:32px;}
-.pp-lb-title{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:10px;}
-.pp-lb-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.pp-answer-icon{font-size:17px;flex-shrink:0;margin-top:1px;}
+.pp-answer-q{font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px;}
+.pp-answer-detail{font-size:12px;color:var(--muted);margin-bottom:3px;}
+.pp-answer-exp{font-size:11.5px;color:rgba(232,232,240,.4);font-style:italic;margin-top:5px;line-height:1.6;}
+/* Podium */
+.pp-lb-wrap{max-width:780px;margin:0 auto;}
+.pp-podium{display:flex;align-items:flex-end;justify-content:center;gap:10px;margin-bottom:20px;}
+.pp-podium-slot{display:flex;flex-direction:column;align-items:center;gap:7px;flex:1;max-width:200px;}
+.pp-podium-avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#0a0a0f;flex-shrink:0;}
+.pp-podium-slot.p1 .pp-podium-avatar{background:linear-gradient(135deg,#e8c97a,#c9a040);width:52px;height:52px;box-shadow:0 0 20px rgba(232,201,122,.4);}
+.pp-podium-slot.p2 .pp-podium-avatar{background:linear-gradient(135deg,#c0c0c0,#909090);width:42px;height:42px;}
+.pp-podium-slot.p3 .pp-podium-avatar{background:linear-gradient(135deg,#cd7f32,#9a5a20);width:38px;height:38px;}
+.pp-podium-name{font-size:12px;font-weight:600;color:var(--text);text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pp-podium-score{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);}
+.pp-podium-block{width:100%;border-radius:10px 10px 0 0;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.pp-podium-slot.p1 .pp-podium-block{height:96px;background:linear-gradient(135deg,rgba(232,201,122,.12),rgba(232,201,122,.04));border:1px solid rgba(232,201,122,.22);border-bottom:none;}
+.pp-podium-slot.p2 .pp-podium-block{height:70px;background:linear-gradient(135deg,rgba(192,192,192,.1),rgba(192,192,192,.03));border:1px solid rgba(192,192,192,.18);border-bottom:none;}
+.pp-podium-slot.p3 .pp-podium-block{height:52px;background:linear-gradient(135deg,rgba(205,127,50,.1),rgba(205,127,50,.03));border:1px solid rgba(205,127,50,.18);border-bottom:none;}
+/* Leaderboard table */
 .pp-lb-table{width:100%;border-collapse:collapse;}
 .pp-lb-table th{color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:7px 12px;text-align:left;border-bottom:1px solid var(--border);}
 .pp-lb-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;color:var(--text);}
 .pp-lb-table tr:last-child td{border-bottom:none;}
 .pp-lb-table tr:hover td{background:var(--surface);}
 .pp-lb-rank{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);width:36px;}
-.pp-lb-name{display:flex;align-items:center;gap:10px;}
-.pp-lb-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#c9a040);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0f0f13;flex-shrink:0;}
-.pp-results-actions{display:flex;gap:12px;justify-content:center;margin-top:28px;}
+.pp-lb-name-cell{display:flex;align-items:center;gap:10px;}
+.pp-lb-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#c9a040);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0a0a0f;flex-shrink:0;}
+.pp-lb-mine td{background:rgba(232,201,122,.05)!important;}
+.pp-results-actions{display:flex;gap:12px;justify-content:center;margin-top:32px;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
@@ -4410,8 +4498,23 @@ async function dwGoProcessPuzzle() {
   if(!_dwNavFlag) history.pushState({screen:'processpuzzle'}, '');
   document.getElementById('ppOverlay').classList.add('active');
   document.querySelector('.main').style.display = 'none';
-  // Show admin bar if admin
   document.getElementById('ppAdminBar').style.display = getAdminPwd() ? 'flex' : 'none';
+  // Spawn floating bg pieces
+  const bg = document.getElementById('ppBg');
+  if (bg && !bg.dataset.spawned) {
+    bg.dataset.spawned = '1';
+    const pieces = ['🧩','⚙️','🔧','📊','💡','🎯','⚡','🔍','📈','🏆'];
+    for (let i=0; i<18; i++) {
+      const el = document.createElement('span');
+      el.className = 'pp-piece';
+      el.textContent = pieces[i % pieces.length];
+      el.style.left = `${Math.random()*100}%`;
+      el.style.animationDuration = `${12+Math.random()*18}s`;
+      el.style.animationDelay = `${Math.random()*20}s`;
+      el.style.fontSize = `${28+Math.random()*36}px`;
+      bg.appendChild(el);
+    }
+  }
   await ppLoad();
 }
 
@@ -4443,17 +4546,15 @@ function ppRenderLanding() {
   const g = ppCurrentGame;
   document.getElementById('ppNoGame').style.display = 'none';
   document.getElementById('ppGameInfo').style.display = 'block';
-  // Badge
   const badgeEl = document.getElementById('ppTypeBadge');
-  badgeEl.className = `pp-badge pp-badge-${g.type}`;
+  badgeEl.className = `pp-hero-eyebrow pp-badge-${g.type}`;
   const icons = {quiz:'📝', trivia:'💡', scenario:'🎯'};
   badgeEl.innerHTML = `${icons[g.type]||'🧩'} ${g.type.toUpperCase()}`;
   document.getElementById('ppGameTitle').textContent = g.title;
-  document.getElementById('ppWeekLabel').textContent = `Week ${g.week} · ${g.year}`;
+  document.getElementById('ppWeekLabel').textContent = `📅 Week ${g.week} · ${g.year}`;
   document.getElementById('ppInstructions').textContent = g.instructions;
-  document.getElementById('ppQCount').textContent = g.totalQuestions || g.questions.length;
+  document.getElementById('ppQCount').textContent = g.totalQuestions || (g.questions||[]).length;
   document.getElementById('ppParticipants').textContent = g.participantCount || 0;
-  // Load mini leaderboard
   ppLoadLandingLb();
 }
 
@@ -4463,12 +4564,15 @@ async function ppLoadLandingLb() {
     const data = await r.json();
     const lb = data.leaderboard || [];
     const medals = ['🥇','🥈','🥉'];
-    const html = lb.length === 0 ? '<p style="color:var(--muted);font-size:13px;text-align:center;padding:16px 0;">No attempts yet — be the first!</p>' :
-      `<table class="pp-lb-table"><thead><tr><th>Rank</th><th>Player</th><th>Score</th><th>Time</th></tr></thead><tbody>` +
-      lb.slice(0,5).map((p,i) => `<tr><td class="pp-lb-rank">${medals[i]||`#${p.rank}`}</td><td><div class="pp-lb-name"><div class="pp-lb-avatar">${p.playerInitials}</div>${p.playerName}</div></td><td style="color:var(--accent);font-weight:700;">${p.accuracy}%</td><td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">${ppFmtTime(p.timeTaken)}</td></tr>`).join('') +
-      '</tbody></table>';
-    const lbEl = document.getElementById('ppLandingLb');
-    lbEl.innerHTML = `<div class="pp-lb-title" style="margin-top:0;">Top Players This Week</div>${html}`;
+    let html = `<div class="pp-section-title">Top Players This Week</div>`;
+    if (lb.length === 0) {
+      html += '<p style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">No attempts yet — be the first to play!</p>';
+    } else {
+      html += `<table class="pp-lb-table"><thead><tr><th>Rank</th><th>Player</th><th>Score</th><th>Time</th></tr></thead><tbody>` +
+        lb.slice(0,5).map((p,i) => `<tr><td class="pp-lb-rank">${medals[i]||'#'+(i+1)}</td><td><div class="pp-lb-name-cell"><div class="pp-lb-avatar">${p.playerInitials}</div>${p.playerName}</div></td><td style="color:var(--accent);font-weight:700;">${p.accuracy}%</td><td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">${ppFmtTime(p.timeTaken)}</td></tr>`).join('') +
+        '</tbody></table>';
+    }
+    document.getElementById('ppLandingLb').innerHTML = html;
   } catch(e) {}
 }
 
@@ -4507,20 +4611,27 @@ function ppStopTimer() {
 function ppRenderQuestion() {
   const q = ppCurrentGame.questions[ppCurrentQ];
   const n = ppCurrentGame.questions.length;
-  document.getElementById('ppQCounter').textContent = `Question ${ppCurrentQ+1} of ${n}`;
-  document.getElementById('ppProgressFill').style.width = `${((ppCurrentQ+1)/n)*100}%`;
+  // Q counter pill
+  document.getElementById('ppQCounter').innerHTML = `Q <strong>${ppCurrentQ+1}</strong> / ${n}`;
+  // Stepped progress
+  const stepsEl = document.getElementById('ppSteps');
+  stepsEl.innerHTML = Array.from({length:n},(_,i)=>`<div class="pp-step${i<ppCurrentQ?' done':i===ppCurrentQ?' current':''}"></div>`).join('');
+  // Difficulty
   const diff = q.difficulty||'medium';
   const diffEl = document.getElementById('ppDiffBadge');
-  diffEl.className = `pp-difficulty pp-diff-${diff}`;
+  diffEl.className = `pp-diff-badge pp-diff-${diff}`;
   diffEl.textContent = diff.charAt(0).toUpperCase()+diff.slice(1);
+  // Q number & text
+  document.getElementById('ppQNumber').textContent = `QUESTION ${ppCurrentQ+1} OF ${n}`;
   document.getElementById('ppQuestionText').textContent = q.question;
+  // Options grid
   const letters = ['A','B','C','D','E'];
   const opts = document.getElementById('ppOptions');
   opts.innerHTML = (q.options||[]).map((opt,i) => {
     const sel = ppAnswers[ppCurrentQ]===i;
-    return `<button class="pp-option${sel?' selected':''}" onclick="ppSelectOption(${i})"><span class="pp-opt-letter">${letters[i]}</span>${opt}</button>`;
+    return `<button class="pp-opt${sel?' selected':''}" onclick="ppSelectOption(${i})"><span class="pp-opt-key">${letters[i]}</span>${opt}</button>`;
   }).join('');
-  // Show/hide nav buttons
+  // Nav buttons
   document.getElementById('ppPrevBtn').style.display = ppCurrentQ>0 ? 'block' : 'none';
   const isLast = ppCurrentQ===n-1;
   document.getElementById('ppNextBtn').style.display = isLast ? 'none' : 'block';
@@ -4529,7 +4640,7 @@ function ppRenderQuestion() {
 
 function ppSelectOption(idx) {
   ppAnswers[ppCurrentQ] = idx;
-  document.querySelectorAll('.pp-option').forEach((btn,i) => {
+  document.querySelectorAll('.pp-opt').forEach((btn,i) => {
     btn.classList.toggle('selected', i===idx);
   });
 }
@@ -4570,7 +4681,12 @@ async function ppShowResults(data) {
   // Score ring
   document.getElementById('ppScoreRing').style.setProperty('--pct', `${pct * 3.6}deg`);
   document.getElementById('ppScorePct').textContent = `${pct}%`;
-  document.getElementById('ppResCorrect').textContent = `${attempt.score} / ${attempt.total}`;
+  // Result title based on score
+  const titles = pct===100?'🎯 Perfect Score!':pct>=80?'🔥 Excellent!':pct>=60?'👍 Good Work!':pct>=40?'💪 Keep Going!':'😅 Better Luck Next Time!';
+  document.getElementById('ppResultsTitle').textContent = titles;
+  document.getElementById('ppResultsSub').textContent = `${attempt.score} correct out of ${attempt.total} questions`;
+  // Stats cards
+  document.getElementById('ppResCorrect').textContent = `${attempt.score}/${attempt.total}`;
   document.getElementById('ppResTime').textContent = ppFmtTime(attempt.timeTaken);
   // Attempt badge
   document.getElementById('ppAttemptBadge').innerHTML = attempt.isFirstAttempt
@@ -4580,14 +4696,16 @@ async function ppShowResults(data) {
   const letters = ['A','B','C','D','E'];
   document.getElementById('ppAnswerBreakdown').innerHTML = (questionResults||[]).map((qr,i) => `
     <div class="pp-answer-item ${qr.isCorrect?'correct':'wrong'}">
-      <div class="pp-answer-q">${i+1}. ${qr.question}</div>
-      <div class="pp-answer-detail" style="color:${qr.isCorrect?'var(--success)':'var(--danger)'};">
-        ${qr.isCorrect?'✅':'❌'} Your answer: ${qr.selected>=0?(letters[qr.selected]+'. '+qr.options[qr.selected]):'No answer'}
-        ${!qr.isCorrect?` &nbsp;·&nbsp; <span style="color:var(--success);">Correct: ${letters[qr.correct]}. ${qr.options[qr.correct]}</span>`:''}
+      <div class="pp-answer-icon">${qr.isCorrect?'✅':'❌'}</div>
+      <div>
+        <div class="pp-answer-q">${i+1}. ${qr.question}</div>
+        <div class="pp-answer-detail" style="color:${qr.isCorrect?'var(--success)':'var(--danger)'};">
+          Your answer: ${qr.selected>=0?(letters[qr.selected]+'. '+qr.options[qr.selected]):'No answer'}
+          ${!qr.isCorrect?` &nbsp;·&nbsp; <span style="color:var(--success);">Correct: ${letters[qr.correct]}. ${qr.options[qr.correct]}</span>`:''}
+        </div>
+        ${qr.explanation?`<div class="pp-answer-exp">💡 ${qr.explanation}</div>`:''}
       </div>
-      ${qr.explanation?`<div class="pp-answer-explanation">💡 ${qr.explanation}</div>`:''}
     </div>`).join('');
-  // Leaderboard
   await ppLoadResultsLb(attempt);
 }
 
@@ -4596,16 +4714,36 @@ async function ppLoadResultsLb(myAttempt) {
     const r = await fetch('/api/puzzle/leaderboard');
     const data = await r.json();
     const lb = data.leaderboard||[];
-    const medals=['🥇','🥈','🥉'];
     const myRank = lb.findIndex(p=>p.playerName.toLowerCase()===myAttempt.playerName.toLowerCase());
     document.getElementById('ppResRank').textContent = myRank>=0 ? `#${myRank+1}` : '—';
-    document.getElementById('ppResultsLb').innerHTML = lb.length===0
-      ? '<p style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">No players yet.</p>'
-      : `<table class="pp-lb-table"><thead><tr><th>Rank</th><th>Player</th><th>Accuracy</th><th>Time</th></tr></thead><tbody>` +
-        lb.map((p,i)=>{
+    if (lb.length===0) {
+      document.getElementById('ppResultsLb').innerHTML = '<p style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">No players yet.</p>';
+      return;
+    }
+    // Podium for top 3 (reordered: 2nd, 1st, 3rd)
+    const order = [lb[1], lb[0], lb[2]].filter(Boolean);
+    const slotClass = ['p2','p1','p3'];
+    const podiumEmoji = ['🥈','🥇','🥉'];
+    let html = `<div class="pp-podium">`;
+    order.forEach((p,idx) => {
+      const isMe = p && p.playerName.toLowerCase()===myAttempt.playerName.toLowerCase();
+      html += `<div class="pp-podium-slot ${slotClass[idx]}">
+        <div class="pp-podium-avatar" style="${isMe?'outline:2px solid var(--accent);outline-offset:2px;':''}">${p.playerInitials}</div>
+        <div class="pp-podium-name" style="${isMe?'color:var(--accent);':''}">${p.playerName}${isMe?' ★':''}</div>
+        <div class="pp-podium-score">${p.accuracy}%</div>
+        <div class="pp-podium-block">${podiumEmoji[idx]}</div>
+      </div>`;
+    });
+    html += `</div>`;
+    // Table for 4th+
+    if (lb.length > 3) {
+      html += `<table class="pp-lb-table"><thead><tr><th>Rank</th><th>Player</th><th>Accuracy</th><th>Time</th></tr></thead><tbody>` +
+        lb.slice(3).map((p,i) => {
           const isMe = p.playerName.toLowerCase()===myAttempt.playerName.toLowerCase();
-          return `<tr style="${isMe?'background:rgba(232,201,122,.05);':''}"><td class="pp-lb-rank">${medals[i]||`#${p.rank}`}</td><td><div class="pp-lb-name"><div class="pp-lb-avatar" style="${isMe?'background:var(--accent);':''}">${p.playerInitials}</div><span style="${isMe?'color:var(--accent);font-weight:700;':''}">${p.playerName}${isMe?' (you)':''}</span></div></td><td style="font-weight:700;color:var(--accent);">${p.accuracy}%</td><td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">${ppFmtTime(p.timeTaken)}</td></tr>`;
+          return `<tr class="${isMe?'pp-lb-mine':''}"><td class="pp-lb-rank">#${i+4}</td><td><div class="pp-lb-name-cell"><div class="pp-lb-avatar" style="${isMe?'background:var(--accent);':''}">${p.playerInitials}</div><span style="${isMe?'color:var(--accent);font-weight:700;':''}">${p.playerName}${isMe?' (you)':''}</span></div></td><td style="font-weight:700;color:var(--accent);">${p.accuracy}%</td><td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">${ppFmtTime(p.timeTaken)}</td></tr>`;
         }).join('') + '</tbody></table>';
+    }
+    document.getElementById('ppResultsLb').innerHTML = html;
   } catch(e) {}
 }
 
@@ -4847,88 +4985,114 @@ document.querySelectorAll('.dw-card').forEach(card=>{
      PROCESS PUZZLE OVERLAY
 ═══════════════════════════════════════════════════ -->
 <div class="pp-overlay" id="ppOverlay">
-  <!-- Top bar -->
+  <!-- Floating bg puzzle pieces -->
+  <div class="pp-bg" id="ppBg"></div>
+  <!-- Topbar -->
   <div class="pp-topbar">
-    <span class="pp-topbar-title">🧩 PROCESS PUZZLE</span>
+    <div class="pp-topbar-brand">
+      <div class="pp-topbar-icon">🧩</div>
+      <span class="pp-topbar-title">Process Puzzle</span>
+    </div>
     <button class="btn-home" onclick="hidePP();showLanding();" title="Home">🏠 <span>Home</span></button>
   </div>
-  <!-- Admin bar (shown only to admins) -->
+  <!-- Admin bar -->
   <div class="pp-admin-bar" id="ppAdminBar" style="display:none;">
-    <span class="pp-admin-label">⚡ ADMIN CONTROLS</span>
+    <span class="pp-admin-label">⚡ Admin Controls</span>
     <button class="pp-generate-btn" id="ppGenerateBtn" onclick="ppGenerateGame()">🎲 Generate New Game</button>
-    <span class="pp-admin-label" id="ppAdminStatus" style="margin-left:8px;"></span>
+    <span class="pp-admin-label" id="ppAdminStatus" style="margin-left:6px;"></span>
   </div>
   <!-- Body -->
   <div class="pp-body" id="ppBody">
-    <!-- Landing view -->
+
+    <!-- LANDING VIEW -->
     <div id="ppLandingView" class="pp-landing">
+      <!-- No game state -->
       <div class="pp-no-game" id="ppNoGame">
         <div class="pp-no-game-icon">🧩</div>
         <div class="pp-no-game-title">No Game This Week Yet</div>
-        <p style="color:var(--muted);font-size:14px;margin-top:8px;">Check back soon or ask your admin to launch this week's challenge.</p>
+        <p class="pp-no-game-sub">Check back soon or ask your admin to launch this week's challenge.</p>
       </div>
+      <!-- Game info -->
       <div id="ppGameInfo" style="display:none;">
-        <div id="ppTypeBadge" class="pp-badge pp-badge-quiz"></div>
-        <div class="pp-game-title" id="ppGameTitle"></div>
-        <div class="pp-week-label" id="ppWeekLabel"></div>
-        <div class="pp-instructions-box" id="ppInstructions"></div>
-        <div class="pp-meta-row">
-          <div class="pp-meta-item"><div class="pp-meta-num" id="ppQCount">—</div><div class="pp-meta-label">Questions</div></div>
-          <div class="pp-meta-item"><div class="pp-meta-num" id="ppParticipants">—</div><div class="pp-meta-label">Players</div></div>
+        <div class="pp-hero">
+          <div id="ppTypeBadge" class="pp-hero-eyebrow pp-badge-quiz"></div>
+          <div class="pp-hero-title"><span class="hl" id="ppGameTitle"></span></div>
+          <div class="pp-week-label" id="ppWeekLabel"></div>
+          <div class="pp-instructions-box" id="ppInstructions"></div>
+          <div class="pp-stats-row">
+            <div class="pp-stat-card">
+              <div class="pp-stat-num" id="ppQCount">—</div>
+              <div class="pp-stat-lbl">Questions</div>
+            </div>
+            <div class="pp-stat-card">
+              <div class="pp-stat-num" id="ppParticipants">—</div>
+              <div class="pp-stat-lbl">Players</div>
+            </div>
+          </div>
+          <button class="pp-start-btn" onclick="ppStartGame()">▶ &nbsp;Start Game</button>
         </div>
-        <button class="pp-start-btn" onclick="ppStartGame()">▶ Start Game</button>
-        <!-- Mini leaderboard on landing -->
-        <div id="ppLandingLb"></div>
+        <!-- Mini leaderboard -->
+        <div class="pp-lb-section" id="ppLandingLb"></div>
       </div>
     </div>
-    <!-- Game view -->
+
+    <!-- GAME VIEW -->
     <div id="ppGameView" class="pp-game-view">
-      <div class="pp-game-header">
-        <div class="pp-timer" id="ppTimer">00:00</div>
-        <div class="pp-q-counter" id="ppQCounter">Question 1 of 8</div>
+      <div class="pp-game-hdr">
+        <div class="pp-timer-wrap">
+          <div class="pp-timer" id="ppTimer">00:00</div>
+          <div class="pp-timer-lbl">Elapsed</div>
+        </div>
+        <div class="pp-q-pill" id="ppQCounter">Q <strong>1</strong> / 8</div>
       </div>
-      <div class="pp-progress"><div class="pp-progress-fill" id="ppProgressFill" style="width:0%"></div></div>
-      <div id="ppDiffBadge" class="pp-difficulty pp-diff-medium"></div>
-      <div class="pp-question-card">
-        <div class="pp-question-text" id="ppQuestionText"></div>
+      <!-- Stepped progress -->
+      <div class="pp-steps" id="ppSteps"></div>
+      <!-- Question card -->
+      <div class="pp-q-card">
+        <div id="ppDiffBadge" class="pp-diff-badge pp-diff-medium"></div>
+        <div class="pp-q-number" id="ppQNumber"></div>
+        <div class="pp-q-text" id="ppQuestionText"></div>
       </div>
-      <div class="pp-options" id="ppOptions"></div>
+      <!-- Options grid -->
+      <div class="pp-options-grid" id="ppOptions"></div>
+      <!-- Actions -->
       <div class="pp-game-actions">
-        <button class="pp-btn pp-btn-secondary" onclick="ppPrevQuestion()" id="ppPrevBtn" style="display:none;">← Previous</button>
+        <button class="pp-btn pp-btn-secondary" onclick="ppPrevQuestion()" id="ppPrevBtn" style="display:none;">← Prev</button>
         <button class="pp-btn pp-btn-secondary" onclick="ppNextQuestion()" id="ppNextBtn">Next →</button>
         <button class="pp-btn pp-btn-primary" onclick="ppSubmit()" id="ppSubmitBtn" style="display:none;">Submit ✓</button>
       </div>
     </div>
-    <!-- Results view -->
+
+    <!-- RESULTS VIEW -->
     <div id="ppResultsView" class="pp-results-view">
-      <div class="pp-results-header">
-        <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:24px;">Your Results</div>
-        <div class="pp-score-display">
-          <div class="pp-score-ring" id="ppScoreRing">
-            <div class="pp-score-inner">
-              <div class="pp-score-pct" id="ppScorePct">0%</div>
-              <div class="pp-score-label">Accuracy</div>
-            </div>
+      <div class="pp-results-hero">
+        <div class="pp-results-title" id="ppResultsTitle">Your Results</div>
+        <div class="pp-results-sub" id="ppResultsSub">Here's how you did this week</div>
+        <div class="pp-score-ring" id="ppScoreRing">
+          <div class="pp-score-inner">
+            <div class="pp-score-pct" id="ppScorePct">0%</div>
+            <div class="pp-score-label">Accuracy</div>
           </div>
-          <div class="pp-result-stats">
-            <div class="pp-result-stat"><span class="pp-result-stat-icon">✅</span> Correct answers <span class="pp-result-stat-val" id="ppResCorrect">—</span></div>
-            <div class="pp-result-stat"><span class="pp-result-stat-icon">⏱️</span> Time taken <span class="pp-result-stat-val" id="ppResTime">—</span></div>
-            <div class="pp-result-stat"><span class="pp-result-stat-icon">🏆</span> Your rank <span class="pp-result-stat-val" id="ppResRank">—</span></div>
-          </div>
+        </div>
+        <div class="pp-res-grid">
+          <div class="pp-res-card"><div class="pp-res-card-icon">✅</div><div class="pp-res-card-val" id="ppResCorrect">—</div><div class="pp-res-card-lbl">Correct</div></div>
+          <div class="pp-res-card"><div class="pp-res-card-icon">⏱️</div><div class="pp-res-card-val" id="ppResTime">—</div><div class="pp-res-card-lbl">Time</div></div>
+          <div class="pp-res-card"><div class="pp-res-card-icon">🏆</div><div class="pp-res-card-val" id="ppResRank">—</div><div class="pp-res-card-lbl">Rank</div></div>
         </div>
         <div id="ppAttemptBadge"></div>
       </div>
-      <div class="pp-answers-title">Question Breakdown</div>
-      <div id="ppAnswerBreakdown"></div>
-      <div class="pp-lb-section">
-        <div class="pp-lb-title">Leaderboard</div>
-        <div id="ppResultsLb"></div>
-      </div>
+      <!-- Answer breakdown -->
+      <div class="pp-section-hdr" style="max-width:780px;width:100%;">Question Breakdown</div>
+      <div class="pp-answer-list" id="ppAnswerBreakdown"></div>
+      <!-- Leaderboard -->
+      <div class="pp-section-hdr" style="max-width:780px;width:100%;">Leaderboard</div>
+      <div class="pp-lb-wrap" id="ppResultsLb"></div>
       <div class="pp-results-actions">
         <button class="pp-btn pp-btn-secondary" onclick="ppPlayAgain()">🔁 Play Again</button>
         <button class="pp-btn pp-btn-primary" onclick="hidePP();showLanding();">🏠 Home</button>
       </div>
     </div>
+
   </div>
 </div>
 </body>
