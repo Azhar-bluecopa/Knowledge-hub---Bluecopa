@@ -753,6 +753,15 @@ app.get('/api/puzzle/current', (req, res) => {
 app.post('/api/puzzle/generate', async (req, res) => {
   if (!isAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
   if (!db.processGame) db.processGame = { currentGame: null, attempts: [], gameHistory: [] };
+
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  const groqKey      = process.env.GROQ_API_KEY;
+  const useAnthropic = anthropicKey && anthropicKey !== 'your-anthropic-api-key-here';
+  const useGroq      = groqKey      && groqKey      !== 'your-groq-api-key-here';
+  if (!useAnthropic && !useGroq) {
+    return res.status(503).json({ error: 'AI not configured. Add ANTHROPIC_API_KEY or GROQ_API_KEY to env vars.' });
+  }
+
   const articles = (db.articles || []).slice(0, 12).map(a =>
     `Title: ${a.title}\nCategory: ${a.category}\nExcerpt: ${(a.content || a.excerpt || '').replace(/<[^>]+>/g, '').slice(0, 600)}`
   ).join('\n\n---\n\n');
@@ -765,16 +774,31 @@ app.post('/api/puzzle/generate', async (req, res) => {
     db.processGame.gameHistory.push(db.processGame.currentGame);
     if (db.processGame.gameHistory.length > 20) db.processGame.gameHistory.shift();
   }
+
+  const formats = ['quiz', 'trivia', 'scenario'];
+  const gameType = formats[Math.floor(Math.random() * formats.length)];
+  const typeDesc = gameType === 'quiz' ? 'knowledge-testing questions' : gameType === 'trivia' ? 'factual trivia questions' : 'real-world scenario-based challenges';
+  const prompt = `You are creating a weekly ${gameType} game for a delivery team called "Process Puzzle".\n\nKNOWLEDGE BASE:\n${articles}\n\nPROCESS AREAS: ${processAreas}\n\nGenerate exactly 8 ${typeDesc} based on the content above. Return ONLY valid JSON with no markdown fences:\n{\n  "type": "${gameType}",\n  "title": "Week ${week} ${gameType.charAt(0).toUpperCase()+gameType.slice(1)} Challenge",\n  "instructions": "Read each question carefully and select the best answer. Timer starts when you begin!",\n  "questions": [\n    {\n      "id": 1,\n      "type": "multiple-choice",\n      "question": "Question text?",\n      "options": ["Option A", "Option B", "Option C", "Option D"],\n      "correct": 0,\n      "explanation": "Brief explanation why this is correct.",\n      "difficulty": "medium"\n    }\n  ]\n}`;
+
   try {
-    const Anthropic = require('@anthropic-ai/sdk');
-    const client = new Anthropic.default({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const formats = ['quiz', 'trivia', 'scenario'];
-    const gameType = formats[Math.floor(Math.random() * formats.length)];
-    const typeDesc = gameType === 'quiz' ? 'knowledge-testing questions' : gameType === 'trivia' ? 'factual trivia questions' : 'real-world scenario-based challenges';
-    const prompt = `You are creating a weekly ${gameType} game for a delivery team called "Process Puzzle".\n\nKNOWLEDGE BASE:\n${articles}\n\nPROCESS AREAS: ${processAreas}\n\nGenerate exactly 8 ${typeDesc} based on the content above. Return ONLY valid JSON, no markdown:\n{\n  "type": "${gameType}",\n  "title": "Week ${week} ${gameType.charAt(0).toUpperCase()+gameType.slice(1)} Challenge",\n  "instructions": "Read each question carefully and select the best answer. Timer starts when you begin!",\n  "questions": [\n    {\n      "id": 1,\n      "type": "multiple-choice",\n      "question": "Question text?",\n      "options": ["Option A", "Option B", "Option C", "Option D"],\n      "correct": 0,\n      "explanation": "Brief explanation why this is correct.",\n      "difficulty": "medium"\n    }\n  ]\n}`;
-    const message = await client.messages.create({ model: 'claude-opus-4-7', max_tokens: 2500, messages: [{ role: 'user', content: prompt }] });
-    const raw = message.content[0].text.trim();
+    let raw = '';
+    if (useAnthropic) {
+      const Anthropic = require('@anthropic-ai/sdk');
+      const client = new Anthropic.default({ apiKey: anthropicKey });
+      const message = await client.messages.create({ model: 'claude-opus-4-7', max_tokens: 2500, messages: [{ role: 'user', content: prompt }] });
+      raw = message.content[0].text.trim();
+    } else {
+      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 2500, temperature: 0.7, stream: false }),
+      });
+      if (!groqRes.ok) throw new Error(`Groq API error ${groqRes.status}: ${await groqRes.text()}`);
+      const groqData = await groqRes.json();
+      raw = (groqData.choices[0].message.content || '').trim();
+    }
     const js = raw.indexOf('{'), je = raw.lastIndexOf('}') + 1;
+    if (js === -1 || je === 0) throw new Error('AI did not return valid JSON');
     const parsed = JSON.parse(raw.slice(js, je));
     const newGame = {
       id: gameId, week, year,
