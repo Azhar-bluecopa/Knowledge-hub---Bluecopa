@@ -4632,12 +4632,13 @@ async function ppGenerateGame() {
       ppShowView('landing');
       status.textContent=`Last generated: just now`;
     } else {
-      showToast(data.error||'Generation failed','error');
-      status.textContent='Generation failed';
+      const msg = data.error || 'Generation failed';
+      showToast(msg, 'error');
+      status.textContent = msg.length > 60 ? msg.slice(0,60)+'…' : msg;
     }
   } catch(e){
-    showToast('Generation error: '+e.message,'error');
-    status.textContent='Error';
+    showToast('Network error: '+e.message,'error');
+    status.textContent = 'Network error';
   }
   btn.disabled=false; btn.textContent='🎲 Generate New Game';
 }

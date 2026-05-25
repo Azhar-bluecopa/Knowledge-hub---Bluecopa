@@ -772,7 +772,7 @@ app.post('/api/puzzle/generate', async (req, res) => {
     const gameType = formats[Math.floor(Math.random() * formats.length)];
     const typeDesc = gameType === 'quiz' ? 'knowledge-testing questions' : gameType === 'trivia' ? 'factual trivia questions' : 'real-world scenario-based challenges';
     const prompt = `You are creating a weekly ${gameType} game for a delivery team called "Process Puzzle".\n\nKNOWLEDGE BASE:\n${articles}\n\nPROCESS AREAS: ${processAreas}\n\nGenerate exactly 8 ${typeDesc} based on the content above. Return ONLY valid JSON, no markdown:\n{\n  "type": "${gameType}",\n  "title": "Week ${week} ${gameType.charAt(0).toUpperCase()+gameType.slice(1)} Challenge",\n  "instructions": "Read each question carefully and select the best answer. Timer starts when you begin!",\n  "questions": [\n    {\n      "id": 1,\n      "type": "multiple-choice",\n      "question": "Question text?",\n      "options": ["Option A", "Option B", "Option C", "Option D"],\n      "correct": 0,\n      "explanation": "Brief explanation why this is correct.",\n      "difficulty": "medium"\n    }\n  ]\n}`;
-    const message = await client.messages.create({ model: 'claude-opus-4-5', max_tokens: 2500, messages: [{ role: 'user', content: prompt }] });
+    const message = await client.messages.create({ model: 'claude-opus-4-7', max_tokens: 2500, messages: [{ role: 'user', content: prompt }] });
     const raw = message.content[0].text.trim();
     const js = raw.indexOf('{'), je = raw.lastIndexOf('}') + 1;
     const parsed = JSON.parse(raw.slice(js, je));
