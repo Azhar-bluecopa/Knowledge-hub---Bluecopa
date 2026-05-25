@@ -1606,6 +1606,7 @@ async function publishArticle() {
 
 // ── View article ──────────────────────────────────────────────────────────────
 async function viewArticle(id) {
+  history.pushState({screen:'article-detail'}, '');
   viewingId = id;
   // track view with viewer identity
   const _vu = getUser();
@@ -2108,6 +2109,7 @@ const ROADMAP_DATA = [
 ];
 
 function showRoadmap() {
+  if(!_dwNavFlag) history.pushState({screen:'roadmap'}, '');
   document.getElementById('roadmapView').classList.add('active');
   document.getElementById('dashboardView').classList.remove('active');
   document.querySelector('.main').style.display = 'none';
@@ -2211,6 +2213,7 @@ function renderRoadmap() {
 }
 
 function showDashboard() {
+  if(!_dwNavFlag) history.pushState({screen:'dashboard'}, '');
   document.getElementById('dashboardView').classList.add('active');
   document.querySelector('.main').style.display = 'none';
   document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
@@ -4289,12 +4292,21 @@ function switchAdminTab(tab, btn) {
 
 <script>
 /* ── Landing overlay JS ── */
+// ── History API: prevents pushState during popstate handling ──
+let _dwNavFlag = false;
+
 function showLanding(){
+  if(!_dwNavFlag) history.pushState({screen:'landing'}, '');
   document.getElementById('dwLanding').classList.remove('dw-hidden');
   document.getElementById('dw-canvas').style.display='block';
-  // hide skill matrix if open
+  // hide other overlays
   const sm=document.getElementById('smOverlay');
   if(sm) sm.classList.remove('active');
+  const dv=document.getElementById('dashboardView');
+  if(dv) dv.classList.remove('active');
+  const rv=document.getElementById('roadmapView');
+  if(rv) rv.classList.remove('active');
+  document.querySelector('.main').style.display='';
   // close any open tooltips
   document.querySelectorAll('.dw-tooltip').forEach(t=>t.classList.remove('open'));
   // restart canvas
@@ -4309,13 +4321,14 @@ function hideLanding(){
 
 function dwGoKnowledge(){
   hideLanding();
-  // articles view is already the default main content — just make sure it's visible
+  history.pushState({screen:'articles'}, '');
   document.getElementById('pageTitle').textContent='All Articles';
   document.getElementById('pageMeta').textContent='Browse and manage your team\'s knowledge base';
 }
 
 function dwGoSkillMatrix(){
   hideLanding();
+  history.pushState({screen:'skillmatrix'}, '');
   showSkillMatrix();
 }
 
@@ -4329,6 +4342,56 @@ function dwToggleTip(id){
   document.querySelectorAll('.dw-tooltip').forEach(t=>t.classList.remove('open'));
   if(!wasOpen) tip.classList.add('open');
 }
+
+// ═══════════════════════════════════════════════════════════
+// BROWSER BACK BUTTON — History API
+// Stamp the landing page as the very first history entry
+// so the back button always has a valid state to return to.
+// ═══════════════════════════════════════════════════════════
+history.replaceState({screen:'landing'}, '');
+
+window.addEventListener('popstate', function(e){
+  _dwNavFlag = true;
+  const scr = (e.state && e.state.screen) || 'landing';
+
+  // 1. Close everything & reset to clean state
+  closeViewModal();
+  smDestroyCharts();
+  document.getElementById('dwLanding').classList.add('dw-hidden');
+  document.getElementById('dw-canvas').style.display = 'none';
+  dwCanvasRunning = false;
+  const sm  = document.getElementById('smOverlay');
+  const dv  = document.getElementById('dashboardView');
+  const rv  = document.getElementById('roadmapView');
+  const mainEl = document.querySelector('.main');
+  if(sm) sm.classList.remove('active');
+  if(dv) dv.classList.remove('active');
+  if(rv) rv.classList.remove('active');
+  if(mainEl) mainEl.style.display = '';
+
+  // 2. Activate the target screen
+  if(scr === 'landing'){
+    document.getElementById('dwLanding').classList.remove('dw-hidden');
+    document.getElementById('dw-canvas').style.display = 'block';
+    dwCanvasRunning = true;
+    document.querySelectorAll('.dw-tooltip').forEach(t=>t.classList.remove('open'));
+  } else if(scr === 'skillmatrix'){
+    if(sm) sm.classList.add('active');
+    if(mainEl) mainEl.style.display = 'none';
+    smLoad();
+  } else if(scr === 'dashboard'){
+    if(dv) dv.classList.add('active');
+    if(mainEl) mainEl.style.display = 'none';
+    loadDashboard();
+  } else if(scr === 'roadmap'){
+    if(rv) rv.classList.add('active');
+    if(mainEl) mainEl.style.display = 'none';
+    renderRoadmap();
+  }
+  // 'articles' and 'article-detail' → default main view already restored above
+
+  _dwNavFlag = false;
+});
 
 // Close tooltips on outside click
 document.addEventListener('click',function(e){
