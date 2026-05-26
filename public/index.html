@@ -604,9 +604,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 @keyframes dw-blink{0%,100%{opacity:1;}50%{opacity:.3;}}
 .dw-hero-sub{font-size:16px;color:rgba(232,232,240,.36);max-width:520px;margin:0 auto 30px;line-height:1.8;font-weight:300;}
 .dw-hero-stats{display:flex;justify-content:center;gap:0;}
-.dw-h-stat{padding:14px 32px;position:relative;text-align:center;}
+.dw-h-stat{padding:14px 24px;position:relative;text-align:center;min-width:120px;}
 .dw-h-stat+.dw-h-stat::before{content:'';position:absolute;left:0;top:20%;height:60%;width:1px;background:rgba(255,255,255,.08);}
 .dw-h-stat-n{font-family:'Playfair Display',serif;font-size:30px;font-weight:800;background:linear-gradient(135deg,#fff,#e8c97a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.dw-h-stat-sub{font-size:9px;font-family:'DM Mono',monospace;color:rgba(232,201,122,.5);letter-spacing:.04em;margin-top:2px;}
 .dw-h-stat-l{font-size:9.5px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(232,232,240,.3);margin-top:4px;}
 .dw-cards-label{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:rgba(232,232,240,.18);margin-bottom:18px;display:flex;align-items:center;gap:14px;align-self:flex-start;max-width:1200px;width:100%;}
 .dw-cards-label::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.04);}
@@ -1606,6 +1607,7 @@ async function loadAll() {
   renderCategorySelect();
   applyFilters();
   document.getElementById('siteTitle').textContent = siteSettings.siteTitle || 'KnowledgeHub';
+  if(typeof updateLandingStats==='function') updateLandingStats();
 }
 
 function applyRestrictions() {
@@ -4392,10 +4394,27 @@ function switchAdminTab(tab, btn, noHistory) {
       </div>
       <div class="dw-hero-sub">The single source of truth for Bluecopa's delivery team — knowledge, skills, metrics, history, and learning, all in one place.</div>
       <div class="dw-hero-stats">
-        <div class="dw-h-stat"><div class="dw-h-stat-n">34+</div><div class="dw-h-stat-l">Knowledge Articles</div></div>
-        <div class="dw-h-stat"><div class="dw-h-stat-n">5</div><div class="dw-h-stat-l">Core Sections</div></div>
-        <div class="dw-h-stat"><div class="dw-h-stat-n">Live</div><div class="dw-h-stat-l">Skill Tracking</div></div>
-        <div class="dw-h-stat"><div class="dw-h-stat-n">∞</div><div class="dw-h-stat-l">Always Growing</div></div>
+        <div class="dw-h-stat">
+          <div class="dw-h-stat-n" id="dwStatArticles">—</div>
+          <div class="dw-h-stat-sub" id="dwStatPlanned"></div>
+          <div class="dw-h-stat-l">Knowledge Articles</div>
+        </div>
+        <div class="dw-h-stat">
+          <div class="dw-h-stat-n" id="dwStatSMPeople">—</div>
+          <div class="dw-h-stat-l">Team Members</div>
+        </div>
+        <div class="dw-h-stat">
+          <div class="dw-h-stat-n">Soon</div>
+          <div class="dw-h-stat-l">KPIs</div>
+        </div>
+        <div class="dw-h-stat">
+          <div class="dw-h-stat-n">Soon</div>
+          <div class="dw-h-stat-l">Delivery Journey</div>
+        </div>
+        <div class="dw-h-stat">
+          <div class="dw-h-stat-n" id="dwStatGames">—</div>
+          <div class="dw-h-stat-l">Games Hosted</div>
+        </div>
       </div>
     </div>
 
@@ -4831,6 +4850,40 @@ function showLanding(){
   document.querySelectorAll('.dw-tooltip').forEach(t=>t.classList.remove('open'));
   // restart canvas
   dwCanvasRunning=true;
+  // refresh live stats
+  updateLandingStats();
+}
+
+function dwCountUp(el,target,dur){
+  if(!el||typeof target!=='number')return;
+  const start=performance.now();
+  (function tick(now){
+    const p=Math.min((now-start)/dur,1);
+    const e=1-Math.pow(1-p,3);
+    el.textContent=Math.round(target*e);
+    if(p<1)requestAnimationFrame(tick);
+  })(start);
+}
+
+async function updateLandingStats(){
+  // 1. Articles posted + planned from roadmap
+  const posted=allArticles.length||0;
+  const planned=typeof ROADMAP_DATA!=='undefined'?ROADMAP_DATA.reduce((s,t)=>s+(t.articles?t.articles.length:0),0):0;
+  const artEl=document.getElementById('dwStatArticles');
+  const planEl=document.getElementById('dwStatPlanned');
+  if(artEl){if(posted)dwCountUp(artEl,posted,900);else artEl.textContent='—';}
+  if(planEl)planEl.textContent=planned?`+ ${planned} planned`:'';
+  // 2. Skill matrix people
+  let smCount=null;
+  if(typeof smData!=='undefined'&&smData&&smData.employees)smCount=smData.employees.length;
+  else{try{const r=await fetch('/api/skillmatrix');if(r.ok){const d=await r.json();smCount=d.employees?d.employees.length:null;}}catch(e){}}
+  const smEl=document.getElementById('dwStatSMPeople');
+  if(smEl){if(smCount!==null)dwCountUp(smEl,smCount,800);else smEl.textContent='—';}
+  // 3. Games hosted
+  let games=null;
+  try{const r=await fetch('/api/puzzle/leaderboard');if(r.ok){const d=await r.json();if(d.game&&d.game.week!=null)games=d.game.week;}}catch(e){}
+  const gEl=document.getElementById('dwStatGames');
+  if(gEl){if(games!==null)dwCountUp(gEl,games,700);else gEl.textContent='—';}
 }
 
 function hideLanding(){
