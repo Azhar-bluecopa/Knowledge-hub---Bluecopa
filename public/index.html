@@ -680,8 +680,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .pp-body{flex:1;position:relative;z-index:5;display:flex;flex-direction:column;overflow:hidden;}
 
 /* ── LANDING VIEW ── */
-.pp-landing{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;overflow:hidden;}
-.pp-dg-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 40px 0;position:relative;z-index:3;}
+.pp-landing{position:absolute;inset:0;display:flex;flex-direction:column;align-items:stretch;overflow:hidden;}
+.pp-dg-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 40px 40px;position:relative;z-index:3;min-height:0;}
 .pp-dg-eyebrow{font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:rgba(255,255,255,.38);margin-bottom:20px;display:flex;align-items:center;justify-content:center;gap:14px;}
 .pp-dg-eyebrow::before,.pp-dg-eyebrow::after{content:'';flex:0 0 50px;height:1px;background:rgba(255,255,255,.18);}
 .pp-dg-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(60px,10vw,126px);font-weight:400;letter-spacing:.04em;text-transform:uppercase;color:#fff;line-height:.9;margin-bottom:10px;animation:pp-rise 1s cubic-bezier(.16,1,.3,1) both;}
@@ -706,12 +706,37 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .pp-meta-chip{display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:20px;font-size:11px;color:rgba(255,255,255,.45);font-family:'DM Mono',monospace;letter-spacing:.08em;}
 .pp-meta-chip-val{color:rgba(255,255,255,.8);font-weight:600;}
 
-/* ── Arc of cards at bottom ── */
-.pp-arc-wrap{position:relative;width:100%;height:240px;flex-shrink:0;z-index:2;overflow:hidden;}
-.pp-arc-inner{position:absolute;bottom:-60px;left:50%;transform:translateX(-50%);width:0;height:0;}
-.pp-arc-card{position:absolute;bottom:0;left:0;width:90px;height:130px;border-radius:14px;border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 12px 40px rgba(0,0,0,.6);transform-origin:bottom center;cursor:pointer;transition:filter .3s,transform .3s;animation:pp-arc-rise 1.2s cubic-bezier(.16,1,.3,1) both;}
-.pp-arc-card:hover{filter:brightness(1.4);}
-@keyframes pp-arc-rise{from{opacity:0;transform:var(--arc-transform) translateY(60px)}to{opacity:1;transform:var(--arc-transform)}}
+/* 3D product stage — bottom of landing */
+.pp-3d-stage{position:relative;width:100%;height:300px;flex-shrink:0;z-index:2;overflow:visible;}
+.pp-3d-ring{
+  position:absolute;bottom:0;left:0;right:0;
+  perspective:800px;
+  will-change:filter,opacity,transform;
+  /* initial state — entrance animation will change these via JS */
+}
+.pp-card-row{
+  display:flex;align-items:flex-end;justify-content:center;
+  gap:0;
+  transform-style:preserve-3d;
+  padding-bottom:20px;
+}
+.pp-card{
+  width:110px;height:160px;border-radius:16px;
+  border:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;justify-content:center;
+  font-size:32px;
+  box-shadow:0 16px 48px rgba(0,0,0,.7);
+  flex-shrink:0;
+  margin:0 -8px;
+  transition:filter .3s;
+  cursor:pointer;
+  position:relative;
+}
+.pp-card:hover{filter:brightness(1.35);z-index:10;}
+/* Hide instructions and meta on landing — shown in game view only */
+#ppLandingView .pp-instructions-box{display:none!important;}
+#ppLandingView .pp-meta-row{display:none!important;}
+#ppLandingView #ppTypeBadge{display:none!important;}
 
 /* ── Badge variants ── */
 .pp-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;}
@@ -4524,44 +4549,118 @@ let ppAnimFrame = null;
 let ppMouseX = 0, ppMouseY = 0;
 
 function ppInitCanvas() {
-  // Arc cards — fan of 9 colored puzzle cards at the bottom
-  const arcInner = document.getElementById('ppArcInner');
-  if (arcInner && !arcInner.dataset.built) {
-    arcInner.dataset.built = '1';
+  const ring = document.getElementById('pp3dRing');
+  const row  = document.getElementById('ppCardRow');
+  if (!ring || !row) return;
+
+  let scrollProg = 0;
+  let targetProg  = 0;
+
+  // ── Build card row ────────────────────────────────────────────
+  if (!row.dataset.built) {
+    row.dataset.built = '1';
     const emojis = ['🧩','⚙️','🎯','📊','💡','🔍','📈','🏆','⚡'];
-    const colors = [
-      'linear-gradient(160deg,#1a0a2e,#2d1060)',
-      'linear-gradient(160deg,#0a1a2e,#0d3060)',
-      'linear-gradient(160deg,#1a2e0a,#1a6030)',
-      'linear-gradient(160deg,#2e1a0a,#603010)',
-      'linear-gradient(160deg,#0a2e2a,#0d6050)',
-      'linear-gradient(160deg,#2e0a1a,#600d30)',
-      'linear-gradient(160deg,#1a0a2e,#3d1580)',
-      'linear-gradient(160deg,#0a1e2e,#0d4060)',
-      'linear-gradient(160deg,#2e2a0a,#605010)',
+    const grads  = [
+      'linear-gradient(160deg,#1a0938,#3d0f80)',
+      'linear-gradient(160deg,#092038,#0d4080)',
+      'linear-gradient(160deg,#0a2e1a,#0d6030)',
+      'linear-gradient(160deg,#2e160a,#7c3510)',
+      'linear-gradient(160deg,#092828,#0d5550)',
+      'linear-gradient(160deg,#280918,#6b0d35)',
+      'linear-gradient(160deg,#1a0a3a,#4a1590)',
+      'linear-gradient(160deg,#0a1e30,#0d4575)',
+      'linear-gradient(160deg,#2a240a,#665510)',
     ];
-    // 9 cards, angles from -64 to +64 degrees, radius 320px
-    const n = 9;
-    const radius = 320;
-    for (let i = 0; i < n; i++) {
-      const angle = -64 + i * (128 / (n - 1));
+    // Fan offsets: centre card is highest (0 Y offset), outer cards droop down
+    const yOffsets = [60, 38, 20, 8, 0, 8, 20, 38, 60];
+    const rotates  = [-18,-12,-7,-3, 0, 3, 7, 12, 18]; // slight rotation per card
+    emojis.forEach((em, i) => {
       const card = document.createElement('div');
-      card.className = 'pp-arc-card';
-      card.textContent = emojis[i];
-      card.style.background = colors[i];
-      card.style.setProperty('--arc-transform', `rotate(${angle}deg) translateY(-${radius}px) translateX(-50%)`);
-      card.style.transform = `rotate(${angle}deg) translateY(-${radius}px) translateX(-50%)`;
-      card.style.animationDelay = `${0.4 + i * 0.06}s`;
-      arcInner.appendChild(card);
-    }
+      card.className = 'pp-card';
+      card.style.background   = grads[i];
+      card.style.marginBottom = yOffsets[i] + 'px';
+      card.style.transform    = `rotate(${rotates[i]}deg)`;
+      card.textContent = em;
+      row.appendChild(card);
+    });
   }
-  // Show leaderboard section
-  const lbSec = document.getElementById('ppLbSection');
-  if (lbSec) lbSec.style.display = 'block';
+
+  // ── Entrance animation (mimics DG exactly) ────────────────────
+  // Start state: blurred, invisible, below + tilted
+  ring.style.cssText = `
+    perspective: 800px;
+    filter: blur(18px);
+    opacity: 0;
+    transform: translateY(70px) scale(0.88) rotateX(-14deg);
+    will-change: filter, opacity, transform;
+    transition: none;
+  `;
+
+  // After short delay, animate to resting state
+  setTimeout(() => {
+    ring.style.transition = 'filter 1.1s cubic-bezier(.16,1,.3,1), opacity 1.1s cubic-bezier(.16,1,.3,1), transform 1.1s cubic-bezier(.16,1,.3,1)';
+    ring.style.filter    = 'blur(0px)';
+    ring.style.opacity   = '1';
+    ring.style.transform = 'translateY(20px) scale(1) rotateX(10deg)';
+  }, 400);
+
+  // ── Scroll + mouse driven animation ──────────────────────────
+  let mouseX      = 0.5;  // 0-1 normalised
+  let breathPhase = 0;
+  const overlay   = document.getElementById('ppOverlay');
+
+  // Wheel → scroll progress
+  function onWheel(e) {
+    e.preventDefault();
+    targetProg += e.deltaY * 0.0008;
+    targetProg  = Math.max(0, Math.min(1, targetProg));
+  }
+  overlay._ppWheel && overlay.removeEventListener('wheel', overlay._ppWheel, {passive:false});
+  overlay._ppWheel = onWheel;
+  overlay.addEventListener('wheel', onWheel, {passive:false});
+
+  // Mouse → parallax tilt
+  function onMouse(e) { mouseX = e.clientX / window.innerWidth; }
+  overlay._ppMouse && overlay.removeEventListener('mousemove', overlay._ppMouse);
+  overlay._ppMouse = onMouse;
+  overlay.addEventListener('mousemove', onMouse);
+
+  // RAF loop — smooth lerp
+  function tick(now) {
+    // Lerp scroll progress
+    scrollProg += (targetProg - scrollProg) * 0.07;
+
+    // Breathing: slow sine wave ±4px, only when close to resting
+    breathPhase += 0.012;
+    const breathY = Math.sin(breathPhase) * 4 * (1 - scrollProg);
+
+    // Derived values
+    const rotX   = 10  - scrollProg * 10;           // 10° → 0°
+    const rotY   = (mouseX - 0.5) * 12;             // ±6° from mouse
+    const transY = 20  - scrollProg * 140 + breathY; // 20px → -120px (rises up)
+    const sc     = 1   + scrollProg * 0.04;          // slight scale-up
+
+    ring.style.transform = `translateY(${transY.toFixed(1)}px) scale(${sc.toFixed(3)}) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg)`;
+
+    ppAnimFrame = requestAnimationFrame(tick);
+  }
+
+  // Start loop after entrance
+  setTimeout(() => {
+    if (ppAnimFrame) cancelAnimationFrame(ppAnimFrame);
+    ppAnimFrame = requestAnimationFrame(tick);
+  }, 500);
 }
 
 function ppStopCanvas() {
   if (ppAnimFrame) { cancelAnimationFrame(ppAnimFrame); ppAnimFrame = null; }
+  const overlay = document.getElementById('ppOverlay');
+  if (overlay) {
+    overlay._ppWheel  && overlay.removeEventListener('wheel', overlay._ppWheel, {passive:false});
+    overlay._ppMouse  && overlay.removeEventListener('mousemove', overlay._ppMouse);
+    overlay._ppWheel  = null;
+    overlay._ppMouse  = null;
+  }
 }
 
 async function dwGoProcessPuzzle() {
@@ -4627,6 +4726,8 @@ function ppRenderLanding() {
   document.getElementById('ppQCount').textContent = g.totalQuestions || (g.questions||[]).length;
   document.getElementById('ppParticipants').textContent = g.participantCount || 0;
   ppLoadLandingLb();
+  const lbSec = document.getElementById('ppLbSection');
+  if (lbSec) lbSec.style.display = 'block';
 }
 
 async function ppLoadLandingLb() {
@@ -5247,13 +5348,15 @@ document.querySelectorAll('.dw-card').forEach(card=>{
           </div>
         </div>
 
-        <!-- Arc of cards -->
-        <div class="pp-arc-wrap">
-          <div class="pp-arc-inner" id="ppArcInner"></div>
+        <!-- 3D card stage (DG style) -->
+        <div class="pp-3d-stage">
+          <div class="pp-3d-ring" id="pp3dRing">
+            <div class="pp-card-row" id="ppCardRow"></div>
+          </div>
         </div>
       </div>
 
-      <!-- Leaderboard (outside hero, below) -->
+      <!-- Leaderboard -->
       <div class="pp-lb-section" id="ppLbSection" style="padding:32px 24px 60px;width:100%;max-width:560px;margin:0 auto;display:none;">
         <div class="pp-lb-title">Current Leaderboard</div>
         <div id="ppLandingLb"></div>
