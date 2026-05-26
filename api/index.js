@@ -586,7 +586,48 @@ ${roadmap.map(t => `Topic: ${t.topic}\n${t.articles.map(a => `  • "${a.title}"
   res.flushHeaders();
 
   try {
-    if (useAnthropic) {
+    let responded = false;
+
+    // Try Groq first (free/fast). On any error (incl. 429 rate-limit) fall back to Anthropic.
+    if (useGroq) {
+      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'system', content: systemPrompt }, ...messages],
+          max_tokens: 1024, temperature: 0.2, stream: true,
+        }),
+      });
+      if (groqRes.ok) {
+        responded = true;
+        const reader = groqRes.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n'); buf = lines.pop();
+          for (const line of lines) {
+            const l = line.trim();
+            if (!l || l === 'data: [DONE]') continue;
+            if (l.startsWith('data: ')) {
+              try {
+                const json = JSON.parse(l.slice(6));
+                const text = json.choices?.[0]?.delta?.content;
+                if (text) res.write(`data: ${JSON.stringify({ type: 'text', text })}\n\n`);
+              } catch { /* skip */ }
+            }
+          }
+        }
+      } else {
+        const errText = await groqRes.text();
+        console.warn('[Ask] Groq failed:', groqRes.status, errText.substring(0, 120), '— trying Anthropic fallback');
+      }
+    }
+
+    if (!responded && useAnthropic) {
       const Anthropic = require('@anthropic-ai/sdk');
       const client = new Anthropic.default({ apiKey: anthropicKey });
       const stream = await client.messages.stream({
@@ -598,38 +639,10 @@ ${roadmap.map(t => `Topic: ${t.topic}\n${t.articles.map(a => `  • "${a.title}"
           res.write(`data: ${JSON.stringify({ type: 'text', text: event.delta.text })}\n\n`);
         }
       }
-    } else {
-      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [{ role: 'system', content: systemPrompt }, ...messages],
-          max_tokens: 1024, temperature: 0.2, stream: true,
-        }),
-      });
-      if (!groqRes.ok) throw new Error(`Groq API error ${groqRes.status}`);
-      const reader = groqRes.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        const lines = buf.split('\n'); buf = lines.pop();
-        for (const line of lines) {
-          const l = line.trim();
-          if (!l || l === 'data: [DONE]') continue;
-          if (l.startsWith('data: ')) {
-            try {
-              const json = JSON.parse(l.slice(6));
-              const text = json.choices?.[0]?.delta?.content;
-              if (text) res.write(`data: ${JSON.stringify({ type: 'text', text })}\n\n`);
-            } catch { /* skip */ }
-          }
-        }
-      }
+      responded = true;
     }
+
+    if (!responded) throw new Error('No AI provider available or all providers failed');
     res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
     res.end();
   } catch (err) {
@@ -909,7 +922,32 @@ Generate exactly ${questionCount} questions. Every question MUST match the ${fmt
 
   try {
     let raw = '';
-    if (useAnthropic) {
+
+    // Try Groq first (free/fast). On any error (incl. 429 rate-limit) fall back to Anthropic.
+    if (useGroq) {
+      try {
+        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              { role: 'system', content: `You are a quiz generator that STRICTLY follows format instructions. You NEVER output standard MCQ unless the format is "knowledge_quiz". Return ONLY valid JSON.` },
+              { role: 'user', content: prompt }
+            ],
+            max_tokens: 3000, temperature: 0.65, stream: false
+          }),
+        });
+        if (!groqRes.ok) throw new Error(`Groq API error ${groqRes.status}: ${await groqRes.text()}`);
+        const groqData = await groqRes.json();
+        raw = (groqData.choices[0].message.content || '').trim();
+      } catch (groqErr) {
+        console.warn('[PP] Groq failed:', groqErr.message.substring(0, 150), '— trying Anthropic fallback');
+        if (!useAnthropic) throw groqErr; // no fallback available, re-throw
+      }
+    }
+
+    if (!raw && useAnthropic) {
       const Anthropic = require('@anthropic-ai/sdk');
       const client = new Anthropic.default({ apiKey: anthropicKey });
       const message = await client.messages.create({
@@ -919,23 +957,9 @@ Generate exactly ${questionCount} questions. Every question MUST match the ${fmt
         messages: [{ role: 'user', content: prompt }]
       });
       raw = message.content[0].text.trim();
-    } else {
-      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [
-            { role: 'system', content: `You are a quiz generator that STRICTLY follows format instructions. You NEVER output standard MCQ unless the format is "knowledge_quiz". Return ONLY valid JSON.` },
-            { role: 'user', content: prompt }
-          ],
-          max_tokens: 3000, temperature: 0.65, stream: false
-        }),
-      });
-      if (!groqRes.ok) throw new Error(`Groq API error ${groqRes.status}: ${await groqRes.text()}`);
-      const groqData = await groqRes.json();
-      raw = (groqData.choices[0].message.content || '').trim();
     }
+
+    if (!raw) throw new Error('No AI provider available');
     const js = raw.indexOf('{'), je = raw.lastIndexOf('}') + 1;
     if (js === -1 || je === 0) throw new Error('AI did not return valid JSON');
     const parsed = JSON.parse(raw.slice(js, je));
