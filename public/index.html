@@ -877,6 +877,89 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .pp-instructions-box{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px 20px;text-align:left;margin-bottom:20px;}
 .pp-instructions-box h4{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:8px;}
 .pp-instructions-box p{font-size:13px;color:rgba(255,255,255,.55);line-height:1.65;}
+
+/* ══════════════════════════════════════════════════════════
+   PREMIUM UI UPGRADE — comprehensive polish pass
+   ══════════════════════════════════════════════════════════ */
+
+/* Global */
+::selection{background:rgba(232,201,122,0.2);color:var(--text);}
+html{scroll-behavior:smooth;}
+.main{scrollbar-width:thin;scrollbar-color:rgba(42,42,56,0.7) transparent;}
+.main::-webkit-scrollbar{width:5px;}
+.main::-webkit-scrollbar-track{background:transparent;}
+.main::-webkit-scrollbar-thumb{background:rgba(42,42,56,0.9);border-radius:4px;}
+
+/* Section title — decorative left accent bar */
+.section-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;display:flex;align-items:center;gap:10px;letter-spacing:-.01em;}
+.section-title::before{content:'';display:block;width:3px;height:18px;background:linear-gradient(180deg,var(--accent),rgba(232,201,122,0.25));border-radius:2px;flex-shrink:0;}
+
+/* Dashboard KPI cards — gradient + top line + hover lift */
+.dash-kpi{background:linear-gradient(155deg,rgba(26,26,40,0.95) 0%,var(--surface) 100%);border:1px solid rgba(42,42,56,0.85);border-radius:14px;padding:20px 22px;animation:fadeUp .4s ease both;position:relative;overflow:hidden;transition:border-color .22s,box-shadow .22s,transform .22s;}
+.dash-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(232,201,122,0.22),transparent);}
+.dash-kpi:hover{border-color:rgba(232,201,122,0.2);box-shadow:0 6px 28px rgba(0,0,0,0.35);transform:translateY(-2px);}
+.dash-kpi-num{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;line-height:1;}
+.dash-kpi-label{font-size:10px;color:rgba(122,122,150,0.8);margin-top:6px;text-transform:uppercase;letter-spacing:.1em;font-family:'DM Mono',monospace;}
+.dash-kpi-icon{font-size:20px;margin-bottom:10px;display:block;line-height:1;}
+
+/* Dashboard chart cards — same treatment */
+.dash-chart-card{background:linear-gradient(155deg,rgba(26,26,40,0.95) 0%,var(--surface) 100%);border:1px solid rgba(42,42,56,0.85);border-radius:14px;padding:24px;animation:fadeUp .5s ease both;position:relative;overflow:hidden;}
+.dash-chart-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(232,201,122,0.18),transparent);}
+.dash-chart-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:600;margin-bottom:18px;color:var(--text);display:flex;align-items:center;gap:8px;}
+
+/* Dashboard section labels — decorative left line */
+.dash-section-label{font-size:9.5px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.15em;color:rgba(122,122,150,0.65);margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+.dash-section-label::before{content:'';display:block;width:18px;height:1px;background:linear-gradient(90deg,rgba(232,201,122,0.5),transparent);flex-shrink:0;}
+
+/* Dashboard table — more refined */
+.dash-table th{color:rgba(122,122,150,0.65);font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;padding:8px 10px;text-align:left;border-bottom:1px solid rgba(42,42,56,0.6);}
+.dash-table td{padding:11px 10px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle;}
+.dash-table tr:hover td{background:rgba(232,201,122,0.04)!important;}
+.dash-viewer-row:hover td{background:rgba(232,201,122,0.05)!important;}
+.views-badge{background:rgba(122,232,180,0.1);color:var(--success);font-family:'DM Mono',monospace;font-size:11px;padding:2px 9px;border-radius:20px;border:1px solid rgba(122,232,180,0.18);}
+
+/* Roadmap cards — gradient + hover lift + row hover */
+.rm-topic-block{background:linear-gradient(155deg,rgba(22,22,34,0.95) 0%,var(--surface) 100%);border:1px solid rgba(42,42,56,0.85);border-radius:16px;overflow:hidden;transition:border-color .22s,box-shadow .22s,transform .22s;}
+.rm-topic-block:hover{border-color:rgba(232,201,122,0.22);box-shadow:0 8px 32px rgba(0,0,0,0.38);transform:translateY(-2px);}
+.rm-topic-head{padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(42,42,56,0.6);}
+.rm-topic-name{font-size:13px;font-weight:700;color:var(--text);flex:1;letter-spacing:.01em;}
+.rm-article-item{padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.03);display:flex;flex-direction:column;gap:5px;transition:background .18s;}
+.rm-article-item:hover{background:rgba(255,255,255,0.025);}
+.rm-article-title{font-size:13px;font-weight:500;color:rgba(232,232,240,0.88);line-height:1.4;}
+.rm-article-owner{font-size:11px;color:rgba(122,122,150,0.75);}
+
+/* Landing page section cards — enhanced hover (arrow + icon animate) */
+.dw-card{position:relative;border-radius:24px;cursor:pointer;overflow:visible;padding:30px 24px 26px;background:rgba(255,255,255,.028);border:1px solid rgba(255,255,255,.07);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);transition:box-shadow .3s,border-color .3s,transform .3s;animation:dw-float var(--fdur,4s) ease-in-out infinite;animation-delay:var(--fdel,0s);}
+.dw-card:hover{box-shadow:0 24px 64px rgba(0,0,0,0.6),0 0 0 1px rgba(var(--cr),0.18);border-color:rgba(var(--cr),0.22);transform:translateY(-4px);}
+.dw-card:hover .dw-card-arrow{opacity:1 !important;transform:translateX(0) !important;}
+.dw-card:hover .dw-card-icon{transform:scale(1.1) translateY(-3px);filter:drop-shadow(0 0 22px rgba(var(--cr),.75));}
+.dw-card-arrow{width:28px;height:28px;border-radius:50%;border:1px solid rgba(var(--cr),.22);display:flex;align-items:center;justify-content:center;font-size:12px;color:rgba(var(--cr),1);background:rgba(var(--cr),.06);opacity:0;transform:translateX(-8px);transition:all .28s cubic-bezier(0.4,0,0.2,1);flex-shrink:0;margin-left:10px;}
+.dw-card-desc{font-size:12px;color:rgba(232,232,240,.42);line-height:1.7;font-weight:300;}
+
+/* Landing stats row — subtle glass container */
+.dw-hero-stats{display:flex;justify-content:center;gap:0;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:16px;overflow:hidden;backdrop-filter:blur(12px);}
+.dw-h-stat{padding:16px 28px;position:relative;text-align:center;min-width:130px;}
+.dw-h-stat+.dw-h-stat::before{content:'';position:absolute;left:0;top:15%;height:70%;width:1px;background:rgba(255,255,255,.07);}
+.dw-h-stat-n{font-family:'Playfair Display',serif;font-size:28px;font-weight:800;background:linear-gradient(135deg,#fff 0%,#e8c97a 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+
+/* "EXPLORE SECTIONS" header — decorative */
+.dw-sections-hdr,.dw-sections-label{font-size:9.5px;font-family:'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase;color:rgba(232,232,240,0.25);display:flex;align-items:center;gap:12px;}
+.dw-sections-hdr::before,.dw-sections-hdr::after,.dw-sections-label::before,.dw-sections-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent);}
+
+/* AI FAB button — tighter shadow */
+.ai-fab{position:fixed;bottom:28px;right:28px;z-index:500;background:linear-gradient(135deg,#3548FF,#5c6fff);border:none;border-radius:50px;padding:13px 22px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:9px;box-shadow:0 6px 28px rgba(53,72,255,.4),0 0 0 1px rgba(53,72,255,0.3);transition:transform .22s,box-shadow .22s;letter-spacing:.01em;}
+.ai-fab:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(53,72,255,.55),0 0 0 1px rgba(53,72,255,0.4);}
+
+/* Form inputs — more refined focus */
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:rgba(232,201,122,0.55);box-shadow:0 0 0 3px rgba(232,201,122,0.08);}
+
+/* Primary button — gradient */
+.btn-primary{background:linear-gradient(135deg,#e8c97a 0%,#d4b55a 100%);color:#0f0f13;border:none;border-radius:10px;padding:10px 22px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(232,201,122,0.2);}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(232,201,122,0.3);}
+
+/* Topbar bottom border with gradient glow */
+.topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,rgba(232,201,122,0.12) 50%,transparent 100%);}
+.topbar{position:sticky;top:0;z-index:50;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
