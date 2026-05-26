@@ -4705,9 +4705,11 @@ async function dwGoProcessPuzzle() {
 
 function hidePP() {
   document.getElementById('ppOverlay').classList.remove('active');
-  document.querySelector('.main').style.display = '';
   ppStopTimer();
   ppStopCanvas();
+  // Only navigate home when called directly (Exit button).
+  // When called from popstate, _dwNavFlag is true — let popstate manage navigation.
+  if (!_dwNavFlag) showLanding();
 }
 
 async function ppLoad() {
