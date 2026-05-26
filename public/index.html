@@ -962,97 +962,6 @@ html{scroll-behavior:smooth;}
 .topbar{position:sticky;top:0;z-index:50;}
 
 /* ══════════════════════════════════════════════════════════
-   LANDING PAGE — Full cinematic redesign (pacomepertant style)
-   ══════════════════════════════════════════════════════════ */
-#dwLanding{position:fixed;inset:0;z-index:150;background:#080808;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;font-family:'DM Sans',sans-serif;color:#fff;cursor:none;}
-#dwLanding.dw-hidden{display:none;}
-
-/* Custom cursor */
-.dw-cur{position:fixed;width:8px;height:8px;background:#fff;border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .25s,height .25s;mix-blend-mode:difference;top:0;left:0;}
-.dw-cur-ring{position:fixed;width:36px;height:36px;border:1px solid rgba(255,255,255,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:transform .12s ease-out,width .25s,height .25s,border-color .25s;top:0;left:0;mix-blend-mode:difference;}
-
-/* Grain overlay */
-.dw-grain-v2{position:fixed;inset:-50%;width:200%;height:200%;pointer-events:none;z-index:2;opacity:.045;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px 180px;animation:dw-grain-shift 0.8s steps(1) infinite;}
-
-/* Navigation */
-.dw-nav2{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:24px 52px;}
-.dw-nav2-brand{font-family:'DM Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.85);}
-.dw-nav2-links{display:flex;gap:32px;}
-.dw-nav2-link{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:400;color:rgba(255,255,255,.38);cursor:pointer;transition:color .2s;letter-spacing:.01em;background:none;border:none;padding:0;}
-.dw-nav2-link:hover{color:#fff;}
-.dw-nav2-year{font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,.2);letter-spacing:.1em;}
-
-/* Hero area */
-.dw-hero2{position:relative;z-index:10;flex:0 0 auto;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:120px 48px 80px;text-align:center;}
-
-/* Eyebrow line */
-.dw-eyebrow2{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:40px;display:flex;align-items:center;gap:16px;animation:dw-fadein2 1s ease .1s both;}
-.dw-eyebrow2::before,.dw-eyebrow2::after{content:'';display:block;width:48px;height:1px;background:rgba(255,255,255,.14);}
-
-/* Giant title */
-.dw-mtitle{font-family:'Playfair Display',serif;font-size:clamp(64px,10vw,140px);font-weight:900;line-height:.9;letter-spacing:-.03em;margin-bottom:0;color:#fff;}
-.dw-mtitle-row{display:block;overflow:hidden;padding-bottom:.05em;}
-.dw-mtitle-inner{display:block;transform:translateY(105%);animation:dw-reveal2 1s cubic-bezier(.16,1,.3,1) forwards;}
-.dw-mtitle-row:nth-child(2) .dw-mtitle-inner{animation-delay:.12s;font-style:italic;color:rgba(255,255,255,.72);}
-
-/* Divider line under title */
-.dw-title-rule{width:100%;max-width:480px;height:1px;background:rgba(255,255,255,.08);margin:36px auto;}
-
-/* Subtitle */
-.dw-sub2{font-size:15px;font-weight:300;color:rgba(255,255,255,.35);max-width:420px;line-height:1.85;margin:0 auto 52px;animation:dw-fadein2 1s ease .4s both;}
-
-/* CTA buttons */
-.dw-cta-wrap{display:flex;align-items:center;gap:14px;animation:dw-fadein2 1s ease .6s both;}
-.dw-cta2{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:12px 26px;border-radius:40px;cursor:pointer;transition:all .22s;letter-spacing:.02em;}
-.dw-cta2.primary{background:#fff;color:#080808;border:1px solid #fff;}
-.dw-cta2.primary:hover{background:rgba(255,255,255,.88);transform:translateY(-1px);}
-.dw-cta2.ghost{background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.15);}
-.dw-cta2.ghost:hover{border-color:rgba(255,255,255,.4);color:#fff;}
-
-/* Stats strip inside hero */
-.dw-stats2{display:flex;align-items:stretch;border-top:1px solid rgba(255,255,255,.06);margin-top:72px;padding-top:0;animation:dw-fadein2 1s ease .8s both;}
-.dw-stat2{padding:28px 44px;text-align:center;}
-.dw-stat2+.dw-stat2{border-left:1px solid rgba(255,255,255,.06);}
-.dw-stat2-n{font-family:'Playfair Display',serif;font-size:38px;font-weight:800;color:#fff;line-height:1;display:block;}
-.dw-stat2-sub{font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.28);letter-spacing:.05em;display:block;margin-top:2px;min-height:13px;}
-.dw-stat2-l{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.22);margin-top:6px;display:block;}
-
-/* Marquee belt */
-.dw-marquee2{position:relative;z-index:10;width:100%;overflow:hidden;border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06);padding:16px 0;}
-.dw-marquee2-track{display:flex;white-space:nowrap;animation:dw-mq 30s linear infinite;}
-.dw-marquee2-track:hover{animation-play-state:paused;}
-.dw-mq-item{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.2);padding:0 28px;flex-shrink:0;display:inline-flex;align-items:center;gap:28px;}
-.dw-mq-item::after{content:'✦';font-size:7px;color:rgba(255,255,255,.12);}
-
-/* Section list */
-.dw-slist{position:relative;z-index:10;width:100%;max-width:960px;margin:0 auto;padding:60px 52px 100px;}
-.dw-slist-hdr{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.18);margin-bottom:0;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;}
-.dw-srow{display:flex;align-items:center;justify-content:space-between;padding:26px 0;border-bottom:1px solid rgba(255,255,255,.055);cursor:pointer;transition:border-color .25s;position:relative;overflow:hidden;}
-.dw-srow::before{content:'';position:absolute;left:0;bottom:0;width:0;height:1px;background:rgba(255,255,255,.3);transition:width .4s cubic-bezier(.4,0,.2,1);}
-.dw-srow:hover::before{width:100%;}
-.dw-srow:hover .dw-srow-name{transform:translateX(6px);}
-.dw-srow:hover .dw-srow-arrow{opacity:1;transform:translateX(0);}
-.dw-srow:hover .dw-srow-num{color:rgba(255,255,255,.5);}
-.dw-srow-left{display:flex;align-items:center;gap:24px;}
-.dw-srow-num{font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,.18);letter-spacing:.08em;transition:color .25s;width:28px;flex-shrink:0;}
-.dw-srow-info{display:flex;flex-direction:column;gap:5px;}
-.dw-srow-name{font-family:'Playfair Display',serif;font-size:clamp(22px,3vw,30px);font-weight:700;color:#fff;transition:transform .3s cubic-bezier(.4,0,.2,1);line-height:1.1;}
-.dw-srow-desc{font-size:12px;color:rgba(255,255,255,.25);font-weight:300;line-height:1.5;}
-.dw-srow-right{display:flex;align-items:center;gap:16px;flex-shrink:0;}
-.dw-srow-badge{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:4px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.3);}
-.dw-srow-badge.live{border-color:rgba(122,232,180,.3);color:rgba(122,232,180,.65);background:rgba(122,232,180,.05);}
-.dw-srow-arrow{font-size:18px;color:rgba(255,255,255,.6);opacity:0;transform:translateX(-10px);transition:opacity .25s,transform .3s cubic-bezier(.4,0,.2,1);margin-left:8px;}
-
-/* Footer */
-.dw-foot2{position:relative;z-index:10;display:flex;align-items:center;justify-content:center;padding:28px 52px;border-top:1px solid rgba(255,255,255,.05);}
-.dw-foot2-txt{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.14);}
-
-/* Keyframes */
-@keyframes dw-reveal2{from{transform:translateY(105%);}to{transform:translateY(0);}}
-@keyframes dw-fadein2{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
-@keyframes dw-mq{from{transform:translateX(0);}to{transform:translateX(-50%);}}
-
-/* ══════════════════════════════════════════════════════════
    SKILL MATRIX — premium upgrade
    ══════════════════════════════════════════════════════════ */
 
@@ -4621,184 +4530,75 @@ function switchAdminTab(tab, btn, noHistory) {
 }
 </script>
 <!-- ═══════════════════════════════════════════
-     DELIVERY WIKIPEDIA LANDING — v2 cinematic
+     DELIVERY WIKIPEDIA LANDING OVERLAY
 ═══════════════════════════════════════════ -->
-<canvas id="dw-canvas" style="display:none"></canvas>
+<canvas id="dw-canvas"></canvas>
 <div id="dwLanding">
-
-  <!-- Custom cursor -->
-  <div class="dw-cur" id="dwCur"></div>
-  <div class="dw-cur-ring" id="dwCurRing"></div>
-
-  <!-- Grain texture -->
-  <div class="dw-grain-v2"></div>
-
-  <!-- Fixed top nav -->
-  <nav class="dw-nav2">
-    <div class="dw-nav2-brand">Bluecopa · KnowledgeHub</div>
-    <div class="dw-nav2-links">
-      <button class="dw-nav2-link" onclick="dwGoKnowledge()">Articles</button>
-      <button class="dw-nav2-link" onclick="dwGoSkillMatrix()">Skill Matrix</button>
-      <button class="dw-nav2-link" onclick="dwGoProcessPuzzle()">Games</button>
-      <button class="dw-nav2-link" onclick="showRoadmap()">Roadmap</button>
-    </div>
-    <div class="dw-nav2-year">2026</div>
-  </nav>
-
-  <!-- Hero -->
-  <div class="dw-hero2">
-    <div class="dw-eyebrow2">Bluecopa · Delivery Team's Knowledge Base</div>
-
-    <h1 class="dw-mtitle">
-      <span class="dw-mtitle-row"><span class="dw-mtitle-inner">Delivery</span></span>
-      <span class="dw-mtitle-row"><span class="dw-mtitle-inner">Wikipedia</span></span>
-    </h1>
-
-    <div class="dw-title-rule"></div>
-
-    <p class="dw-sub2">The single source of truth for Bluecopa's delivery team — knowledge, skills, metrics, history, and learning, all in one place.</p>
-
-    <div class="dw-cta-wrap">
-      <button class="dw-cta2 primary" onclick="dwGoKnowledge()">Explore Articles →</button>
-      <button class="dw-cta2 ghost" onclick="dwGoSkillMatrix()">View Skill Matrix</button>
-    </div>
-
-    <!-- Stats -->
-    <div class="dw-stats2">
-      <div class="dw-stat2">
-        <span class="dw-stat2-n" id="dwStatArticles">—</span>
-        <span class="dw-stat2-sub" id="dwStatPlanned"></span>
-        <span class="dw-stat2-l">Articles</span>
-      </div>
-      <div class="dw-stat2">
-        <span class="dw-stat2-n" id="dwStatSMPeople">—</span>
-        <span class="dw-stat2-sub"></span>
-        <span class="dw-stat2-l">Team Members</span>
-      </div>
-      <div class="dw-stat2">
-        <span class="dw-stat2-n">Soon</span>
-        <span class="dw-stat2-sub"></span>
-        <span class="dw-stat2-l">KPIs</span>
-      </div>
-      <div class="dw-stat2">
-        <span class="dw-stat2-n" id="dwStatGames">—</span>
-        <span class="dw-stat2-sub"></span>
-        <span class="dw-stat2-l">Games Hosted</span>
-      </div>
-    </div>
+  <div class="dw-orbs">
+    <div class="dw-orb dw-orb1"></div>
+    <div class="dw-orb dw-orb2"></div>
+    <div class="dw-orb dw-orb3"></div>
+    <div class="dw-orb dw-orb4"></div>
   </div>
+  <div class="dw-vignette"></div>
+  <div class="dw-dot-grid"></div>
+  <div class="dw-grain"></div>
+  <div class="dw-sweep"></div>
 
-  <!-- Scrolling marquee -->
-  <div class="dw-marquee2">
-    <div class="dw-marquee2-track">
-      <span class="dw-mq-item">Knowledge Articles</span>
-      <span class="dw-mq-item">Skill Matrix</span>
-      <span class="dw-mq-item">KPI Dashboard</span>
-      <span class="dw-mq-item">Delivery Journey</span>
-      <span class="dw-mq-item">Process Puzzle</span>
-      <span class="dw-mq-item">Knowledge Articles</span>
-      <span class="dw-mq-item">Skill Matrix</span>
-      <span class="dw-mq-item">KPI Dashboard</span>
-      <span class="dw-mq-item">Delivery Journey</span>
-      <span class="dw-mq-item">Process Puzzle</span>
-      <span class="dw-mq-item">Knowledge Articles</span>
-      <span class="dw-mq-item">Skill Matrix</span>
-      <span class="dw-mq-item">KPI Dashboard</span>
-      <span class="dw-mq-item">Delivery Journey</span>
-      <span class="dw-mq-item">Process Puzzle</span>
-    </div>
-  </div>
+  <div class="dw-page">
 
-  <!-- Section list -->
-  <div class="dw-slist">
-    <div class="dw-slist-hdr">
-      <span>Sections</span>
-      <span>5 areas</span>
+    <!-- Brand -->
+    <div class="dw-brand-wrap">
+      <div class="dw-brand-ring">
+        <img src="/bluecopa-logo.png" alt="Bluecopa" class="dw-brand-logo">
+      </div>
+      <div class="dw-brand-name">Bluecopa</div>
+      <div class="dw-brand-tagline-row">
+        <div class="dw-brand-sep"></div>
+        <div class="dw-brand-tagline">Delivery Team's Go-To Place</div>
+        <div class="dw-brand-sep r"></div>
+      </div>
     </div>
 
-    <!-- 01 -->
-    <div class="dw-srow" onclick="dwGoKnowledge()">
-      <div class="dw-srow-left">
-        <span class="dw-srow-num">01</span>
-        <div class="dw-srow-info">
-          <div class="dw-srow-name">Knowledge Articles</div>
-          <div class="dw-srow-desc">Step-by-step guides, how-tos and deep technical docs</div>
+    <!-- Hero -->
+    <div class="dw-hero">
+      <div class="dw-hero-title">Delivery Wikipedia</div>
+      <div class="dw-hero-kicker">
+        <span class="dw-kicker-dot"></span>
+        Bluecopa · Your Delivery Team's Go-To Place
+      </div>
+      <div class="dw-hero-sub">The single source of truth for Bluecopa's delivery team — knowledge, skills, metrics, history, and learning, all in one place.</div>
+      <div class="dw-hero-stats">
+        <div class="dw-h-stat">
+          <div class="dw-h-stat-n" id="dwStatArticles">—</div>
+          <div class="dw-h-stat-sub" id="dwStatPlanned"></div>
+          <div class="dw-h-stat-l">Knowledge Articles</div>
+        </div>
+        <div class="dw-h-stat">
+          <div class="dw-h-stat-n" id="dwStatSMPeople">—</div>
+          <div class="dw-h-stat-sub"></div>
+          <div class="dw-h-stat-l">Team Members</div>
+        </div>
+        <div class="dw-h-stat">
+          <div class="dw-h-stat-n">Soon</div>
+          <div class="dw-h-stat-sub"></div>
+          <div class="dw-h-stat-l">KPIs</div>
+        </div>
+        <div class="dw-h-stat">
+          <div class="dw-h-stat-n">Soon</div>
+          <div class="dw-h-stat-sub"></div>
+          <div class="dw-h-stat-l">Delivery Journey</div>
+        </div>
+        <div class="dw-h-stat">
+          <div class="dw-h-stat-n" id="dwStatGames">—</div>
+          <div class="dw-h-stat-sub"></div>
+          <div class="dw-h-stat-l">Games Hosted</div>
         </div>
       </div>
-      <div class="dw-srow-right">
-        <span class="dw-srow-badge live">Live</span>
-        <span class="dw-srow-arrow">↗</span>
-      </div>
     </div>
 
-    <!-- 02 -->
-    <div class="dw-srow" onclick="dwGoSkillMatrix()">
-      <div class="dw-srow-left">
-        <span class="dw-srow-num">02</span>
-        <div class="dw-srow-info">
-          <div class="dw-srow-name">Skill Matrix</div>
-          <div class="dw-srow-desc">Track every team member's skills across all process areas</div>
-        </div>
-      </div>
-      <div class="dw-srow-right">
-        <span class="dw-srow-badge live">Live</span>
-        <span class="dw-srow-arrow">↗</span>
-      </div>
-    </div>
-
-    <!-- 03 -->
-    <div class="dw-srow" onclick="dwComingSoon('KPIs')">
-      <div class="dw-srow-left">
-        <span class="dw-srow-num">03</span>
-        <div class="dw-srow-info">
-          <div class="dw-srow-name">KPIs</div>
-          <div class="dw-srow-desc">Delivery performance metrics — velocity, quality and team health</div>
-        </div>
-      </div>
-      <div class="dw-srow-right">
-        <span class="dw-srow-badge">Coming Soon</span>
-        <span class="dw-srow-arrow">↗</span>
-      </div>
-    </div>
-
-    <!-- 04 -->
-    <div class="dw-srow" onclick="dwComingSoon('Delivery Journey')">
-      <div class="dw-srow-left">
-        <span class="dw-srow-num">04</span>
-        <div class="dw-srow-info">
-          <div class="dw-srow-name">The Delivery Journey</div>
-          <div class="dw-srow-desc">A living record of every past implementation and what we learned</div>
-        </div>
-      </div>
-      <div class="dw-srow-right">
-        <span class="dw-srow-badge">Coming Soon</span>
-        <span class="dw-srow-arrow">↗</span>
-      </div>
-    </div>
-
-    <!-- 05 -->
-    <div class="dw-srow" onclick="dwGoProcessPuzzle()">
-      <div class="dw-srow-left">
-        <span class="dw-srow-num">05</span>
-        <div class="dw-srow-info">
-          <div class="dw-srow-name">Process Puzzle</div>
-          <div class="dw-srow-desc">Quizzes, puzzles and interactive challenges — learn by doing</div>
-        </div>
-      </div>
-      <div class="dw-srow-right">
-        <span class="dw-srow-badge">Coming Soon</span>
-        <span class="dw-srow-arrow">↗</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Footer -->
-  <footer class="dw-foot2">
-    <span class="dw-foot2-txt">Bluecopa · Delivery Wikipedia · 2026</span>
-  </footer>
-
-  <!-- ⚠ kept for JS compatibility but hidden -->
-  <div style="display:none">
+    <!-- Section cards -->
+    <div class="dw-cards-label">Explore Sections</div>
     <div class="dw-cards-grid">
 
       <!-- 01 Knowledge Articles -->
@@ -4886,9 +4686,15 @@ function switchAdminTab(tab, btn, noHistory) {
         <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
 
-    </div><!-- /dw-cards-grid (hidden compat) -->
-  </div><!-- /hidden compat wrapper -->
+    </div><!-- /dw-cards-grid -->
 
+    <div class="dw-bottom-row">
+      <div class="dw-bottom-line"></div>
+      <div class="dw-bottom-text">Bluecopa · Delivery Wikipedia · 2026</div>
+      <div class="dw-bottom-line"></div>
+    </div>
+
+  </div><!-- /dw-page -->
 </div><!-- /dwLanding -->
 
 <script>
@@ -5437,6 +5243,7 @@ let _dwNavFlag = false;
 function showLanding(){
   if(!_dwNavFlag) history.pushState({screen:'landing'}, '');
   document.getElementById('dwLanding').classList.remove('dw-hidden');
+  document.getElementById('dw-canvas').style.display='block';
   // hide other overlays
   const sm=document.getElementById('smOverlay');
   if(sm) sm.classList.remove('active');
@@ -5445,46 +5252,12 @@ function showLanding(){
   const rv=document.getElementById('roadmapView');
   if(rv) rv.classList.remove('active');
   document.querySelector('.main').style.display='';
+  // close any open tooltips
+  document.querySelectorAll('.dw-tooltip').forEach(t=>t.classList.remove('open'));
+  // restart canvas
+  dwCanvasRunning=true;
   // refresh live stats
   updateLandingStats();
-  // init custom cursor
-  dwInitCursor();
-}
-
-/* ── Custom cursor for landing ── */
-let _dwCursorInit = false;
-function dwInitCursor(){
-  if(_dwCursorInit) return;
-  _dwCursorInit = true;
-  const cur = document.getElementById('dwCur');
-  const ring = document.getElementById('dwCurRing');
-  if(!cur || !ring) return;
-  let rx=0,ry=0,cx=0,cy=0;
-  const landing = document.getElementById('dwLanding');
-  landing.addEventListener('mousemove', e=>{
-    cx=e.clientX; cy=e.clientY;
-    cur.style.left=cx+'px'; cur.style.top=cy+'px';
-  });
-  (function animRing(){
-    rx += (cx-rx)*0.1; ry += (cy-ry)*0.1;
-    ring.style.left=rx+'px'; ring.style.top=ry+'px';
-    requestAnimationFrame(animRing);
-  })();
-  // hover expand on interactive elements
-  landing.addEventListener('mouseover', e=>{
-    if(e.target.closest('button,a,.dw-srow,.dw-cta2')){
-      cur.style.width='16px'; cur.style.height='16px';
-      ring.style.width='56px'; ring.style.height='56px';
-      ring.style.borderColor='rgba(255,255,255,0.8)';
-    }
-  });
-  landing.addEventListener('mouseout', e=>{
-    if(e.target.closest('button,a,.dw-srow,.dw-cta2')){
-      cur.style.width='8px'; cur.style.height='8px';
-      ring.style.width='36px'; ring.style.height='36px';
-      ring.style.borderColor='rgba(255,255,255,0.5)';
-    }
-  });
 }
 
 function dwCountUp(el,target,dur){
