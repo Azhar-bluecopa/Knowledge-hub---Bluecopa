@@ -960,6 +960,51 @@ html{scroll-behavior:smooth;}
 /* Topbar bottom border with gradient glow */
 .topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,rgba(232,201,122,0.12) 50%,transparent 100%);}
 .topbar{position:sticky;top:0;z-index:50;}
+
+/* ══════════════════════════════════════════════════════════
+   SKILL MATRIX — premium upgrade
+   ══════════════════════════════════════════════════════════ */
+
+/* Topbar — glassmorphism to match main topbar */
+.sm-topbar{background:rgba(15,15,19,0.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid rgba(42,42,56,0.7);padding:12px 28px;position:relative;}
+.sm-topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(232,201,122,0.1),transparent);}
+.sm-topbar-title{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:.12em;}
+
+/* Table wrapper — depth shadow */
+.sm-table-wrap{overflow:auto;border-radius:14px;border:1px solid rgba(42,42,56,0.9);box-shadow:0 4px 24px rgba(0,0,0,0.3);}
+
+/* Table header — gradient bg */
+.sm-table thead tr{background:linear-gradient(155deg,rgba(26,26,40,1) 0%,rgba(30,30,40,1) 100%);}
+.sm-table thead th{padding:12px 14px;font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.09em;color:rgba(232,201,122,0.75);text-align:center;border-right:1px solid rgba(42,42,56,0.7);}
+.sm-table thead th:first-child{color:rgba(232,232,240,0.9);background:linear-gradient(155deg,rgba(26,26,40,1),rgba(30,30,40,1));}
+
+/* Table body — refined rows */
+.sm-table tbody tr{border-bottom:1px solid rgba(255,255,255,0.03);transition:background .15s;}
+.sm-table tbody tr:hover td{background:rgba(232,201,122,0.04)!important;}
+.sm-table tbody td{background:rgba(23,23,30,0.9);border-right:1px solid rgba(42,42,56,0.5);}
+.sm-table tbody td:first-child{background:rgba(20,20,28,0.95);font-size:13px;font-weight:500;}
+
+/* Footer rows */
+.sm-table tfoot td{background:rgba(15,15,20,0.95);border-right:1px solid rgba(42,42,56,0.5);}
+
+/* KPI cards on dashboard tab — match dash-kpi */
+.sm-kpi{background:linear-gradient(155deg,rgba(26,26,40,0.95) 0%,var(--surface) 100%);border:1px solid rgba(42,42,56,0.85);border-radius:14px;padding:20px;position:relative;overflow:hidden;transition:border-color .22s,box-shadow .22s,transform .22s;}
+.sm-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(232,201,122,0.2),transparent);}
+.sm-kpi:hover{border-color:rgba(232,201,122,0.18);box-shadow:0 6px 26px rgba(0,0,0,0.32);transform:translateY(-2px);}
+.sm-kpi-val{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--accent);line-height:1;}
+.sm-kpi-lbl{font-size:9.5px;color:rgba(122,122,150,0.7);margin-top:6px;text-transform:uppercase;letter-spacing:.12em;font-family:'DM Mono',monospace;}
+
+/* Chart cards on dashboard tab */
+.sm-chart-card{background:linear-gradient(155deg,rgba(26,26,40,0.95) 0%,var(--surface) 100%);border:1px solid rgba(42,42,56,0.85);border-radius:14px;padding:22px;position:relative;overflow:hidden;}
+.sm-chart-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(232,201,122,0.15),transparent);}
+.sm-chart-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px;}
+
+/* Capture snapshot button */
+.sm-capture-btn{background:linear-gradient(135deg,#e8c97a 0%,#d4b55a 100%);color:#0f0f13;border:none;border-radius:9px;padding:9px 22px;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.09em;cursor:pointer;box-shadow:0 4px 12px rgba(232,201,122,0.22);transition:transform .18s,box-shadow .18s;}
+.sm-capture-btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(232,201,122,0.32);}
+
+/* Tab active state — more glow */
+.sm-tab.active{border-color:rgba(232,201,122,0.5);color:var(--accent);background:rgba(232,201,122,0.08);box-shadow:0 0 0 1px rgba(232,201,122,0.08);}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
