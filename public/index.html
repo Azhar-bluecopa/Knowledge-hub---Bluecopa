@@ -607,7 +607,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dw-h-stat{padding:14px 24px;position:relative;text-align:center;min-width:120px;}
 .dw-h-stat+.dw-h-stat::before{content:'';position:absolute;left:0;top:20%;height:60%;width:1px;background:rgba(255,255,255,.08);}
 .dw-h-stat-n{font-family:'Playfair Display',serif;font-size:30px;font-weight:800;background:linear-gradient(135deg,#fff,#e8c97a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.dw-h-stat-sub{font-size:9px;font-family:'DM Mono',monospace;color:rgba(232,201,122,.5);letter-spacing:.04em;margin-top:2px;}
+.dw-h-stat-sub{font-size:9px;font-family:'DM Mono',monospace;color:rgba(232,201,122,.5);letter-spacing:.04em;margin-top:2px;min-height:14px;display:block;}
 .dw-h-stat-l{font-size:9.5px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(232,232,240,.3);margin-top:4px;}
 .dw-cards-label{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:rgba(232,232,240,.18);margin-bottom:18px;display:flex;align-items:center;gap:14px;align-self:flex-start;max-width:1200px;width:100%;}
 .dw-cards-label::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.04);}
@@ -4401,18 +4401,22 @@ function switchAdminTab(tab, btn, noHistory) {
         </div>
         <div class="dw-h-stat">
           <div class="dw-h-stat-n" id="dwStatSMPeople">—</div>
+          <div class="dw-h-stat-sub"></div>
           <div class="dw-h-stat-l">Team Members</div>
         </div>
         <div class="dw-h-stat">
           <div class="dw-h-stat-n">Soon</div>
+          <div class="dw-h-stat-sub"></div>
           <div class="dw-h-stat-l">KPIs</div>
         </div>
         <div class="dw-h-stat">
           <div class="dw-h-stat-n">Soon</div>
+          <div class="dw-h-stat-sub"></div>
           <div class="dw-h-stat-l">Delivery Journey</div>
         </div>
         <div class="dw-h-stat">
           <div class="dw-h-stat-n" id="dwStatGames">—</div>
+          <div class="dw-h-stat-sub"></div>
           <div class="dw-h-stat-l">Games Hosted</div>
         </div>
       </div>
