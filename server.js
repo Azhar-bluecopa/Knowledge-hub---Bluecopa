@@ -829,59 +829,84 @@ app.post('/api/puzzle/generate', async (req, res) => {
     fmt.id === 'riddle_round'? '"I travel between systems carrying data, transforming as I go, never seen but always felt. What am I?"' :
     '"Full question text here — written exactly as players will read it."';
 
-  const prompt = `You are creating a weekly game for a delivery team's "Process Puzzle" challenge.
+  // Build format-enforcement block
+  const formatEnforcement = [
+    fmt.id === 'fill_blank'   ? '⚠️ FILL_BLANK RULE: Every single question string MUST contain exactly one _____ (five underscores) blank. Do NOT write normal questions — every question is an incomplete sentence with a gap.' : '',
+    fmt.id === 'emoji_quiz'   ? '⚠️ EMOJI_QUIZ RULE: Every single question string MUST begin with 3–6 emojis separated by → (e.g. "📥 → 🔍 → ✅ — What process does this represent?"). Do NOT write text-only questions.' : '',
+    fmt.id === 'who_am_i'    ? '⚠️ WHO_AM_I RULE: Every single question string MUST follow this exact pattern: "Clue 1: [vague clue]. Clue 2: [more specific]. Clue 3: [most specific]. Who/What am I?" — no exceptions.' : '',
+    fmt.id === 'riddle_round' ? '⚠️ RIDDLE RULE: Every single question string MUST be written in first person as a metaphorical riddle starting with "I" (e.g. "I travel between systems..."). Do NOT write normal questions.' : '',
+    fmt.id === 'true_false'   ? '⚠️ TRUE_FALSE RULE: Every options array MUST be exactly ["True","False"] (2 items only). Never use 4 options. Every question must be a statement, not a question.' : '',
+    fmt.id === 'rapid_fire'   ? '⚠️ RAPID_FIRE RULE: Every question string MUST be 15 words or fewer. Short, punchy, recall-based. Generate exactly 10 questions.' : '',
+    fmt.id === 'spot_mistake' ? '⚠️ SPOT_MISTAKE RULE: Every question string MUST describe a process with one embedded factual error, formatted as a colleague\'s statement.' : '',
+    fmt.id === 'scenario'     ? '⚠️ SCENARIO RULE: Every question string MUST describe a realistic work situation with a dilemma or decision point.' : '',
+    fmt.id === 'what_next'    ? '⚠️ WHAT_NEXT RULE: Every question string MUST describe a process up to a step, then ask "What should happen next?"' : '',
+  ].filter(Boolean).join('\n');
+
+  const prompt = `You are generating a "${fmt.name}" format quiz for a delivery team's weekly "Process Puzzle" challenge.
+
+THIS IS A "${fmt.id.toUpperCase()}" FORMAT GAME — NOT A STANDARD MULTIPLE CHOICE QUIZ.
 
 KNOWLEDGE BASE (base all questions on this content):
 ${articles}
 
 PROCESS AREAS: ${processAreas}
 
-═══ GAME FORMAT: ${fmt.name.toUpperCase()} ═══
-Description: ${fmt.desc}
-
-QUESTION RULES — follow these exactly, they override defaults:
+═══ FORMAT RULES (MANDATORY) ═══
 ${fmt.rules}
 
-CRITICAL: Your questions MUST follow the format rules above, NOT generic MCQ.
-${fmt.id === 'fill_blank'   ? 'EVERY question MUST contain exactly one _____ blank in the question text.' : ''}
-${fmt.id === 'emoji_quiz'   ? 'EVERY question MUST start with an emoji sequence (3-6 emojis with →) before the text.' : ''}
-${fmt.id === 'who_am_i'    ? 'EVERY question MUST use the "Clue 1: ... Clue 2: ... Clue 3: ..." multi-clue format.' : ''}
-${fmt.id === 'riddle_round' ? 'EVERY question MUST be a metaphorical riddle written in first person ("I am...", "I do...").' : ''}
-${fmt.id === 'true_false'   ? 'EVERY question MUST have EXACTLY 2 options: ["True","False"] — never 4 options.' : ''}
-${fmt.id === 'rapid_fire'   ? 'ALL questions must be SHORT (max 15 words). Generate 10 questions, not 8.' : ''}
-${fmt.id === 'spot_mistake' ? 'EVERY question MUST embed one factual mistake in a colleague\'s description.' : ''}
+${formatEnforcement}
 
-Return ONLY valid JSON with no markdown, no code fences, no backticks:
+EXAMPLE QUESTION for this format:
+  "question": ${questionExample},
+  "options": ${optionsExample}
+
+VALIDATION: Before returning, mentally check every question matches the ${fmt.name} format. If any question looks like generic MCQ when it should be ${fmt.id}, rewrite it.
+
+Return ONLY valid JSON, no markdown, no code fences:
 {
   "type": "${fmt.id}",
-  "title": "Week ${week}: ${fmt.name.replace(' ⚡','').replace(' 🎯','').replace(' 🕵️','')}",
-  "instructions": "One sentence telling players exactly how THIS format works (not generic).",
+  "title": "Week ${week}: ${fmt.name.replace(/ [⚡🎯🕵️]/gu,'').trim()}",
+  "instructions": "One sentence telling players exactly how to answer ${fmt.name} questions.",
   "questions": [
     {
       "id": 1,
       "question": ${questionExample},
       "options": ${optionsExample},
       "correct": 0,
-      "explanation": "Why this answer is correct, with context from the knowledge base.",
+      "explanation": "Explain why this answer is correct using domain knowledge.",
       "difficulty": "easy"
     }
   ]
 }
 
-Generate exactly ${questionCount} questions. Every question MUST match the ${fmt.name} format. Return ONLY the JSON object, nothing else.`;
+Generate exactly ${questionCount} questions. Every question MUST be in ${fmt.name} format. Return ONLY the JSON object.`;
 
   try {
     let raw = '';
     if (useAnthropic) {
       const Anthropic = require('@anthropic-ai/sdk');
       const client = new Anthropic.default({ apiKey: anthropicKey });
-      const message = await client.messages.create({ model: 'claude-opus-4-7', max_tokens: 2500, messages: [{ role: 'user', content: prompt }] });
+      const message = await client.messages.create({
+        model: 'claude-opus-4-7',
+        max_tokens: 3000,
+        system: `You are a quiz generator that STRICTLY follows format instructions. You NEVER output standard multiple-choice questions unless the format is "knowledge_quiz". You always match the exact format specified (fill_blank, emoji_quiz, who_am_i, riddle_round, true_false, rapid_fire, etc.). Return ONLY valid JSON.`,
+        messages: [{ role: 'user', content: prompt }]
+      });
       raw = message.content[0].text.trim();
     } else {
       const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
-        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 2500, temperature: 0.7, stream: false }),
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: `You are a quiz generator that STRICTLY follows format instructions. You NEVER output standard multiple-choice questions unless the format is "knowledge_quiz". You always match the exact format specified. Return ONLY valid JSON.` },
+            { role: 'user', content: prompt }
+          ],
+          max_tokens: 3000,
+          temperature: 0.65,
+          stream: false
+        }),
       });
       if (!groqRes.ok) throw new Error(`Groq API error ${groqRes.status}: ${await groqRes.text()}`);
       const groqData = await groqRes.json();

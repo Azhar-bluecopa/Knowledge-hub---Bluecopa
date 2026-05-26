@@ -736,7 +736,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* Hide instructions and meta on landing — shown in game view only */
 #ppLandingView .pp-instructions-box{display:none!important;}
 #ppLandingView .pp-meta-row{display:none!important;}
-#ppLandingView #ppTypeBadge{display:none!important;}
+#ppLandingView #ppTypeBadge{display:inline-flex!important;}
 
 /* ── Badge variants ── */
 .pp-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;}
@@ -744,6 +744,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .pp-badge-ordering{background:rgba(34,211,238,.12);color:#22d3ee;border:1px solid rgba(34,211,238,.25);}
 .pp-badge-matching{background:rgba(232,201,122,.12);color:#e8c97a;border:1px solid rgba(232,201,122,.25);}
 .pp-badge-scenario{background:rgba(0,255,135,.1);color:#00ff87;border:1px solid rgba(0,255,135,.25);}
+.pp-badge-trivia{background:rgba(232,201,122,.12);color:#e8c97a;border:1px solid rgba(232,201,122,.25);}
 
 /* ── No game state ── */
 .pp-no-game{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:60px 20px;text-align:center;}
@@ -786,6 +787,25 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .pp-diff-badge{font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;padding:3px 10px;border-radius:20px;background:rgba(168,85,247,.12);color:rgba(168,85,247,.8);border:1px solid rgba(168,85,247,.2);}
 .pp-q-num{font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,.3);letter-spacing:.1em;}
 .pp-q-text{font-size:16px;font-weight:500;color:#fff;line-height:1.65;}
+/* Format-specific rendering */
+.pp-format-banner{display:flex;align-items:center;gap:7px;margin-bottom:16px;padding:7px 14px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.22);border-radius:10px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(200,160,255,.9);width:fit-content;}
+/* Fill-in-the-blank gap */
+.pp-blank{display:inline-block;min-width:88px;border-bottom:2.5px solid #a855f7;border-radius:4px 4px 0 0;background:rgba(168,85,247,.1);vertical-align:middle;margin:0 5px;padding:2px 10px;color:#a855f7;font-weight:700;letter-spacing:.05em;}
+/* Who Am I clue labels */
+.pp-clue-label{color:#22d3ee;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-right:4px;}
+.pp-q-text.who-am-i{background:rgba(34,211,238,.04);border-left:3px solid rgba(34,211,238,.35);padding-left:14px;border-radius:0 8px 8px 0;}
+.pp-q-text.riddle{font-style:italic;color:rgba(255,255,255,.92);line-height:1.75;}
+/* Emoji Decode */
+.pp-emoji-seq{font-size:30px;letter-spacing:6px;margin-bottom:14px;text-align:center;padding:12px;background:rgba(168,85,247,.06);border-radius:12px;border:1px solid rgba(168,85,247,.15);}
+.pp-emoji-q{font-size:14px;color:rgba(255,255,255,.75);text-align:center;margin-top:8px;}
+/* True/False big buttons */
+.pp-tf{flex-direction:row!important;gap:16px;}
+.pp-tf .pp-opt{flex:1;flex-direction:column;align-items:center;justify-content:center;padding:22px 16px;font-size:18px;font-weight:700;letter-spacing:.04em;text-align:center;min-height:80px;}
+.pp-tf .pp-opt-letter{display:none;}
+.pp-tf .pp-opt-text{font-size:20px;font-weight:800;text-align:center;}
+/* Rapid Fire compact */
+.pp-rapid .pp-opt{padding:10px 14px;}
+.pp-rapid .pp-q-text{font-size:15px;}
 .pp-options{display:flex;flex-direction:column;gap:10px;margin-bottom:24px;}
 .pp-opt{padding:14px 18px;border:1px solid rgba(255,255,255,.1);border-radius:12px;cursor:pointer;transition:all .18s;display:flex;align-items:flex-start;gap:12px;background:rgba(255,255,255,.03);}
 .pp-opt:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.2);}
@@ -4706,9 +4726,11 @@ function ppRenderLanding() {
   // Badge — use formatColor if available, fall back to type
   const colorKey = g.formatColor || g.type || 'quiz';
   const badgeEl = document.getElementById('ppTypeBadge');
+  const FMT_LABELS = {knowledge_quiz:'Multiple Choice',true_false:'True or False',fill_blank:'Fill in the Blank',riddle_round:'Riddle Round',emoji_quiz:'Emoji Decode',who_am_i:'Who Am I?',rapid_fire:'Rapid Fire',scenario:'Scenario Challenge',spot_mistake:'Spot the Mistake',term_buster:'Term Buster',what_next:'What Comes Next?',mixed_bag:'Mixed Bag'};
   badgeEl.className = `pp-badge pp-badge-${colorKey}`;
+  badgeEl.style.display = 'inline-flex';
   const icon = g.formatIcon || '🧩';
-  const label = (g.type||'quiz').replace(/_/g,' ').toUpperCase();
+  const label = FMT_LABELS[g.type] || (g.type||'quiz').replace(/_/g,' ');
   badgeEl.innerHTML = `${icon} ${label}`;
   document.getElementById('ppGameTitle').textContent = g.title;
   document.getElementById('ppWeekLabel').textContent = `Week ${g.week} · ${g.year}`;
@@ -4790,28 +4812,84 @@ function ppStopTimer() {
 function ppRenderQuestion() {
   const q = ppCurrentGame.questions[ppCurrentQ];
   const n = ppCurrentGame.questions.length;
+  const gameType = (ppCurrentGame.type || 'knowledge_quiz').trim();
+
   // Q counter
   document.getElementById('ppQCounter').textContent = `Q ${ppCurrentQ+1} / ${n}`;
   // Stepped progress
   const stepsEl = document.getElementById('ppSteps');
   stepsEl.innerHTML = Array.from({length:n},(_,i)=>`<div class="pp-step${i<ppCurrentQ?' done':i===ppCurrentQ?' current':''}"></div>`).join('');
-  // Difficulty
+  // Difficulty badge
   const diff = q.difficulty||'medium';
   const diffEl = document.getElementById('ppDiffBadge');
-  diffEl.className = `pp-diff-badge`;
+  diffEl.className = 'pp-diff-badge';
   diffEl.textContent = diff.charAt(0).toUpperCase()+diff.slice(1);
-  // Q number & text
   document.getElementById('ppQNumber').textContent = `Q ${ppCurrentQ+1} / ${n}`;
-  document.getElementById('ppQuestionText').textContent = q.question;
-  // Options — detect True/False (2 options) for special layout
-  const isTF = (q.options||[]).length === 2;
+
+  // ── Format banner ──────────────────────────────────────────
+  const FMT_META = {
+    knowledge_quiz: {icon:'📝', label:'Multiple Choice'},
+    true_false:     {icon:'⚖️', label:'True or False'},
+    fill_blank:     {icon:'✏️', label:'Fill in the Blank'},
+    riddle_round:   {icon:'🔮', label:'Riddle Round'},
+    emoji_quiz:     {icon:'🎯', label:'Emoji Decode'},
+    who_am_i:       {icon:'🕵️', label:'Who Am I?'},
+    rapid_fire:     {icon:'⚡', label:'Rapid Fire'},
+    scenario:       {icon:'🎭', label:'Scenario Challenge'},
+    spot_mistake:   {icon:'🔍', label:'Spot the Mistake'},
+    term_buster:    {icon:'📖', label:'Term Buster'},
+    what_next:      {icon:'⏭️', label:'What Comes Next?'},
+    mixed_bag:      {icon:'🎲', label:'Mixed Bag'},
+  };
+  const fmtMeta = FMT_META[gameType] || {icon:'🎮', label: gameType.replace(/_/g,' ')};
+  const bannerEl = document.getElementById('ppFormatBanner');
+  if (bannerEl) {
+    bannerEl.style.display = 'flex';
+    bannerEl.innerHTML = `<span>${fmtMeta.icon}</span><span>${fmtMeta.label}</span>`;
+  }
+
+  // ── Question text — format-aware rendering ──────────────────
+  const qTextEl = document.getElementById('ppQuestionText');
+  qTextEl.className = 'pp-q-text';
+  const qText = q.question || '';
+
+  if (gameType === 'fill_blank') {
+    // Highlight the blank with a styled gap
+    qTextEl.innerHTML = qText.replace(/_{3,}/g, '<span class="pp-blank">_ _ _ _</span>');
+  } else if (gameType === 'who_am_i') {
+    qTextEl.className = 'pp-q-text who-am-i';
+    // Style each clue label with colour
+    qTextEl.innerHTML = qText
+      .replace(/(Clue\s*\d+\s*:)/gi, '<span class="pp-clue-label">$1</span>')
+      .replace(/\n/g, '<br>');
+  } else if (gameType === 'emoji_quiz') {
+    // Split emoji sequence from question text at the dash/em-dash
+    const sepIdx = qText.search(/[—–-]\s*[A-Z]/);
+    if (sepIdx > 0) {
+      const emojiPart = qText.slice(0, sepIdx).replace(/[-–—]+$/, '').trim();
+      const textPart  = qText.slice(sepIdx).replace(/^[-–—\s]+/, '').trim();
+      qTextEl.innerHTML = `<div class="pp-emoji-seq">${emojiPart}</div><div class="pp-emoji-q">${textPart}</div>`;
+    } else {
+      qTextEl.textContent = qText;
+    }
+  } else if (gameType === 'riddle_round') {
+    qTextEl.className = 'pp-q-text riddle';
+    qTextEl.textContent = qText;
+  } else {
+    qTextEl.textContent = qText;
+  }
+
+  // ── Options — format-aware layout ──────────────────────────
+  const isTF = gameType === 'true_false' || (q.options||[]).length === 2;
+  const isRapid = gameType === 'rapid_fire';
   const letters = ['A','B','C','D','E'];
   const opts = document.getElementById('ppOptions');
-  opts.className = `pp-options${isTF?' pp-tf':''}`;
+  opts.className = `pp-options${isTF?' pp-tf':''}${isRapid?' pp-rapid':''}`;
   opts.innerHTML = (q.options||[]).map((opt,i) => {
     const sel = ppAnswers[ppCurrentQ]===i;
-    return `<button class="pp-opt${sel?' selected':''}" onclick="ppSelectOption(${i})"><span class="pp-opt-letter">${letters[i]||i+1}</span><span>${opt}</span></button>`;
+    return `<button class="pp-opt${sel?' selected':''}" onclick="ppSelectOption(${i})"><span class="pp-opt-letter">${letters[i]||i+1}</span><span class="pp-opt-text">${opt}</span></button>`;
   }).join('');
+
   // Nav buttons
   document.getElementById('ppPrevBtn').style.display = ppCurrentQ>0 ? 'inline-flex' : 'none';
   const isLast = ppCurrentQ===n-1;
@@ -5337,7 +5415,7 @@ document.querySelectorAll('.dw-card').forEach(card=>{
         <!-- Hero -->
         <div class="pp-dg-hero">
           <div class="pp-dg-eyebrow">Weekly Challenge</div>
-          <div id="ppTypeBadge" class="pp-badge" style="margin-bottom:18px;display:none;"></div>
+          <div id="ppTypeBadge" class="pp-badge" style="margin-bottom:18px;"></div>
           <div class="pp-dg-title" id="ppGameTitle">Process Puzzle</div>
           <div class="pp-dg-script" id="ppWeekLabel">Weekly Edition</div>
           <div class="pp-instructions-box" id="ppInstructions" style="display:none;">
@@ -5396,6 +5474,7 @@ document.querySelectorAll('.dw-card').forEach(card=>{
         <div class="pp-progress-wrap">
           <div class="pp-steps-row" id="ppSteps"></div>
         </div>
+        <div class="pp-format-banner" id="ppFormatBanner" style="display:none;"></div>
         <div class="pp-q-card">
           <div class="pp-q-card-top">
             <span class="pp-diff-badge" id="ppDiffBadge"></span>
