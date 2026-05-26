@@ -767,9 +767,10 @@ app.post('/api/puzzle/generate', async (req, res) => {
   ).join('\n\n---\n\n');
   const processAreas = (db.skillMatrix && db.skillMatrix.processAreas || []).join(', ') || 'Data Ingestion, Workflows, Portal Creation, Reconciliation, Exports';
   const now = new Date();
-  const week = getWeekNumber(now);
   const year = now.getFullYear();
-  const gameId = `week-${year}-${week}`;
+  const { weekNumber: weekOverride, formatId } = req.body || {};
+  const week = (weekOverride && !isNaN(parseInt(weekOverride))) ? parseInt(weekOverride) : getWeekNumber(now);
+  const gameId = `week-${year}-${week}-${Date.now()}`;
   if (db.processGame.currentGame) {
     db.processGame.gameHistory.push(db.processGame.currentGame);
     if (db.processGame.gameHistory.length > 20) db.processGame.gameHistory.shift();
@@ -800,11 +801,22 @@ app.post('/api/puzzle/generate', async (req, res) => {
     { id:'term_buster',    name:'Term Buster',        icon:'📖', color:'trivia',
       desc:'Match terms, acronyms, and definitions from the knowledge base',
       rules:`Generate 8 TERMINOLOGY questions about specific terms, acronyms, tools, or concepts from the knowledge base. Format questions as "What is [TERM]?", "What does [ACRONYM] stand for?", or "Which best describes [CONCEPT]?". Provide 4 options — one correct definition, 3 plausible but wrong. Include at least 2 acronym questions.` },
+    { id:'rapid_fire',     name:'Rapid Fire ⚡',       icon:'⚡', color:'scenario',
+      desc:'10 quick-fire questions — speed and accuracy both count!',
+      rules:`Generate 10 SHORT multiple-choice questions. Each question MUST be one concise sentence (max 20 words). Each has exactly 4 options, one correct. Focus on quick-recall facts: key terms, numbers, acronyms, and "who does what" knowledge. Mix difficulty: 4 easy, 4 medium, 2 hard. No long scenarios.` },
+    { id:'emoji_quiz',     name:'Emoji Decode 🎯',    icon:'🎯', color:'scenario',
+      desc:'Decode process workflows and concepts from emoji sequences!',
+      rules:`Generate 8 EMOJI-CLUE questions. Each question shows 3–6 emojis representing a process, workflow, tool, or concept from the knowledge base. Format: "🔢 → 📥 → 🔍 → ✅ — What process does this represent?" Provide 4 answer options (one correct). Be creative but make the emoji logic deducible by someone who knows the domain.` },
+    { id:'who_am_i',       name:'Who Am I? 🕵️',       icon:'🕵️', color:'trivia',
+      desc:'Guess the role, tool, or process from cryptic one-liners!',
+      rules:`Generate 8 "WHO/WHAT AM I?" questions. Each gives 3 progressive clues getting more specific (Clue 1 = vague, Clue 3 = obvious). Format: "Clue 1: I touch every dataset before it goes live. Clue 2: I check counts, types, and thresholds. Clue 3: Teams configure me with rules and tolerances. Who/what am I?" Provide 4 options. Make it feel like a puzzle to unravel.` },
     { id:'mixed_bag',      name:'Mixed Bag',          icon:'🎲', color:'quiz',
       desc:'A surprise mix of all question types — stay on your toes!',
       rules:`Generate 8 questions using a MIX of formats: 2 standard multiple-choice (4 options), 2 TRUE/FALSE (options MUST be exactly ["True","False"] — no other values), 2 fill-in-the-blank (sentence with _____ and 4 options), 2 riddles (metaphorical description, 4 options). For true/false, ALWAYS use exactly ["True","False"] as the options array.` },
   ];
-  const fmt = PP_FORMATS[Math.floor(Math.random() * PP_FORMATS.length)];
+  const fmt = (formatId && formatId !== 'random')
+    ? (PP_FORMATS.find(f => f.id === formatId) || PP_FORMATS[Math.floor(Math.random() * PP_FORMATS.length)])
+    : PP_FORMATS[Math.floor(Math.random() * PP_FORMATS.length)];
   const prompt = `You are creating a weekly game for a delivery team's "Process Puzzle" challenge.
 
 KNOWLEDGE BASE (base all questions on this content):
@@ -821,7 +833,7 @@ ${fmt.rules}
 Return ONLY valid JSON with no markdown, no code fences, no backticks:
 {
   "type": "${fmt.id}",
-  "title": "Week ${week}: ${fmt.name}",
+  "title": "Week ${week}: ${fmt.name.replace(' ⚡','').replace(' 🎯','').replace(' 🕵️','')}",
   "instructions": "One clear sentence telling players exactly how to play this specific format.",
   "questions": [
     {

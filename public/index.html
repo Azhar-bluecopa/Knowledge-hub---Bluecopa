@@ -4947,7 +4947,9 @@ async function ppGenerateGame() {
   btn.disabled=true; btn.textContent='⏳ Generating with AI…';
   status.textContent='This may take 10-15 seconds…';
   try {
-    const r=await fetch('/api/puzzle/generate',{method:'POST',headers:{'x-admin-password':getAdminPwd()}});
+    const weekNum = parseInt(document.getElementById('ppWeekNum')?.value) || 1;
+    const formatId = document.getElementById('ppFormatSelect')?.value || 'random';
+    const r=await fetch('/api/puzzle/generate',{method:'POST',headers:{'x-admin-password':getAdminPwd(),'content-type':'application/json'},body:JSON.stringify({weekNumber:weekNum,formatId})});
     const data=await r.json();
     if(data.success){
       ppCurrentGame=data.game;
@@ -5296,9 +5298,26 @@ document.querySelectorAll('.dw-card').forEach(card=>{
   </div>
   <!-- Admin bar -->
   <div class="pp-admin-bar" id="ppAdminBar" style="display:none;">
-    <span class="pp-admin-label">⚡ Admin Controls</span>
-    <button class="pp-generate-btn" id="ppGenerateBtn" onclick="ppGenerateGame()">🎲 Generate New Game</button>
-    <span class="pp-admin-label" id="ppAdminStatus" style="margin-left:6px;"></span>
+    <span class="pp-admin-label">⚡ Admin</span>
+    <select id="ppFormatSelect" style="background:#1a0a2e;color:rgba(255,255,255,.75);border:1px solid rgba(168,85,247,.3);border-radius:8px;padding:5px 10px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;outline:none;">
+      <option value="random">🎲 Random</option>
+      <option value="knowledge_quiz">📝 MCQ Only</option>
+      <option value="rapid_fire">⚡ Rapid Fire</option>
+      <option value="riddle_round">🔮 Riddle Round</option>
+      <option value="emoji_quiz">🎯 Emoji Decode</option>
+      <option value="who_am_i">🕵️ Who Am I?</option>
+      <option value="scenario">🎭 Scenario</option>
+      <option value="spot_mistake">🔍 Spot Mistake</option>
+      <option value="fill_blank">✏️ Fill Blank</option>
+      <option value="term_buster">📖 Term Buster</option>
+      <option value="what_next">⏭️ What Next?</option>
+      <option value="true_false">⚖️ True/False</option>
+      <option value="mixed_bag">🎲 Mixed Bag</option>
+    </select>
+    <input id="ppWeekNum" type="number" min="1" max="99" value="1" placeholder="Week #"
+      style="width:68px;background:#1a0a2e;color:rgba(255,255,255,.75);border:1px solid rgba(168,85,247,.3);border-radius:8px;padding:5px 8px;font-size:11px;font-family:'DM Mono',monospace;outline:none;text-align:center;"/>
+    <button class="pp-generate-btn" id="ppGenerateBtn" onclick="ppGenerateGame()">🎲 Generate</button>
+    <span class="pp-admin-label" id="ppAdminStatus" style="margin-left:4px;"></span>
   </div>
   <!-- Body -->
   <div class="pp-body" id="ppBody">
