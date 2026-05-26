@@ -770,6 +770,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .pp-game-view.active{display:flex;}
 .pp-game-container{width:100%;max-width:700px;}
 .pp-hud{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding:12px 18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;backdrop-filter:blur(12px);}
+.pp-hud-fmt{font-family:'DM Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(168,85,247,.9);background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.25);border-radius:8px;padding:4px 10px;}
 .pp-timer-wrap{display:flex;align-items:center;gap:8px;}
 .pp-timer-icon{font-size:15px;}
 .pp-timer{font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:#fff;letter-spacing:.06em;}
@@ -827,6 +828,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .pp-btn-submit:hover{box-shadow:0 0 30px rgba(0,255,135,.4);transform:translateY(-1px);}
 .pp-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
 
+/* ── Game format intro splash ── */
+.pp-fmt-splash{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:linear-gradient(160deg,rgba(10,4,20,.97),rgba(30,10,60,.97));border-radius:inherit;animation:pp-splash-in .3s ease;}
+@keyframes pp-splash-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+.pp-fmt-splash-icon{font-size:56px;line-height:1;filter:drop-shadow(0 0 24px rgba(168,85,247,.5));}
+.pp-fmt-splash-label{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:.12em;color:#fff;text-transform:uppercase;text-align:center;}
+.pp-fmt-splash-desc{font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,.4);letter-spacing:.1em;text-align:center;max-width:260px;}
 /* ── RESULTS VIEW ── */
 .pp-results-view{display:none;width:100%;flex:1;padding:32px 24px 60px;flex-direction:column;align-items:center;overflow-y:auto;scrollbar-width:thin;}
 .pp-results-view.active{display:flex;}
@@ -4790,8 +4797,46 @@ function ppStartGame() {
   ppTimerSeconds = 0;
   ppSubmitData = null;
   ppShowView('game');
-  ppStartTimer();
-  ppRenderQuestion();
+
+  // Show format splash for 1.8s before revealing the first question
+  const FMT_META = {
+    knowledge_quiz: {icon:'📝', label:'Multiple Choice',     desc:'Select the correct answer from 4 options'},
+    true_false:     {icon:'⚖️', label:'True or False',       desc:'Decide if each statement is true or false'},
+    fill_blank:     {icon:'✏️', label:'Fill in the Blank',   desc:'Pick the word that completes each sentence'},
+    riddle_round:   {icon:'🔮', label:'Riddle Round',        desc:'Solve metaphorical riddles using domain knowledge'},
+    emoji_quiz:     {icon:'🎯', label:'Emoji Decode',        desc:'Decode process workflows from emoji sequences'},
+    who_am_i:       {icon:'🕵️', label:'Who Am I?',           desc:'Identify the concept from 3 progressive clues'},
+    rapid_fire:     {icon:'⚡', label:'Rapid Fire',          desc:'10 quick questions — speed & accuracy count!'},
+    scenario:       {icon:'🎭', label:'Scenario Challenge',  desc:'Make the right call in real-world situations'},
+    spot_mistake:   {icon:'🔍', label:'Spot the Mistake',    desc:'Find the deliberate error in each description'},
+    term_buster:    {icon:'📖', label:'Term Buster',         desc:'Match terms, acronyms and definitions'},
+    what_next:      {icon:'⏭️', label:'What Comes Next?',    desc:'Identify the next correct step in the workflow'},
+    mixed_bag:      {icon:'🎲', label:'Mixed Bag',           desc:'A surprise mix of all question types'},
+  };
+  const gameType = (ppCurrentGame.type || 'knowledge_quiz').trim();
+  const meta = FMT_META[gameType] || {icon:'🎮', label: gameType.replace(/_/g,' '), desc:'Answer all questions'};
+
+  const gameContainer = document.querySelector('.pp-game-container');
+  const splash = document.createElement('div');
+  splash.className = 'pp-fmt-splash';
+  splash.innerHTML = `
+    <div class="pp-fmt-splash-icon">${meta.icon}</div>
+    <div class="pp-fmt-splash-label">${meta.label}</div>
+    <div class="pp-fmt-splash-desc">${meta.desc}</div>
+  `;
+  document.getElementById('ppGameView').style.position = 'relative';
+  document.getElementById('ppGameView').appendChild(splash);
+
+  setTimeout(() => {
+    splash.style.transition = 'opacity .4s, transform .4s';
+    splash.style.opacity = '0';
+    splash.style.transform = 'scale(1.04)';
+    setTimeout(() => {
+      splash.remove();
+      ppStartTimer();
+      ppRenderQuestion();
+    }, 400);
+  }, 1800);
 }
 
 function ppStartTimer() {
@@ -4847,6 +4892,9 @@ function ppRenderQuestion() {
     bannerEl.style.display = 'flex';
     bannerEl.innerHTML = `<span>${fmtMeta.icon}</span><span>${fmtMeta.label}</span>`;
   }
+  // HUD format chip
+  const hudFmt = document.getElementById('ppHudFmt');
+  if (hudFmt) hudFmt.textContent = `${fmtMeta.icon} ${fmtMeta.label}`;
 
   // ── Question text — format-aware rendering ──────────────────
   const qTextEl = document.getElementById('ppQuestionText');
@@ -5469,6 +5517,7 @@ document.querySelectorAll('.dw-card').forEach(card=>{
             <span class="pp-timer-icon">⏱</span>
             <span class="pp-timer" id="ppTimer">00:00</span>
           </div>
+          <span class="pp-hud-fmt" id="ppHudFmt"></span>
           <span class="pp-q-counter" id="ppQCounter">Q 1 / 8</span>
         </div>
         <div class="pp-progress-wrap">

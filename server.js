@@ -915,17 +915,84 @@ Generate exactly ${questionCount} questions. Every question MUST be in ${fmt.nam
     const js = raw.indexOf('{'), je = raw.lastIndexOf('}') + 1;
     if (js === -1 || je === 0) throw new Error('AI did not return valid JSON');
     const parsed = JSON.parse(raw.slice(js, je));
+
+    // ── Server-side format enforcement ────────────────────────────────────────
+    // Guarantee format compliance regardless of AI output
+    const rawQuestions = (parsed.questions || []);
+    const enforcedQuestions = rawQuestions.map((q, i) => {
+      let question = (q.question || '').trim();
+      let options   = Array.isArray(q.options) ? q.options : [];
+      let correct   = typeof q.correct === 'number' ? q.correct : 0;
+
+      switch (fmt.id) {
+        case 'true_false':
+          // Always force exactly ["True","False"] regardless of AI output
+          options = ['True', 'False'];
+          // Re-map correct: if AI said 0 or 1, keep it; anything else → 0
+          correct = (correct === 0 || correct === 1) ? correct : 0;
+          break;
+
+        case 'fill_blank':
+          // Ensure question has a _____ blank; inject one if missing
+          if (!question.includes('_____')) {
+            const correctOpt = (options[correct] || '').trim();
+            if (correctOpt && question.toLowerCase().includes(correctOpt.toLowerCase())) {
+              // Replace the correct answer text with _____
+              const re = new RegExp(correctOpt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+              question = question.replace(re, '_____');
+            } else {
+              // Append a fill-blank phrase
+              question = question.replace(/\?$/, '') + ' — teams call this _____.';
+            }
+          }
+          break;
+
+        case 'who_am_i':
+          // Ensure "Clue 1:" format
+          if (!/clue\s*1/i.test(question)) {
+            // Wrap the question as a 3-clue format
+            const parts = question.split(/[.!?]+/).filter(s => s.trim()).slice(0, 3);
+            if (parts.length >= 2) {
+              question = `Clue 1: ${parts[0].trim()}. Clue 2: ${parts[1].trim()}. ${parts[2] ? 'Clue 3: ' + parts[2].trim() + '. ' : ''}Who/What am I?`;
+            } else {
+              question = `Clue 1: ${question} Clue 2: I am a key concept in delivery processes. Clue 3: Delivery teams use me daily. Who/What am I?`;
+            }
+          }
+          break;
+
+        case 'emoji_quiz':
+          // Ensure question starts with emoji sequence
+          if (!/^\p{Emoji}/u.test(question)) {
+            const domainEmojis = ['📥', '🔍', '✅', '📊', '🔄', '📤', '⚙️', '🗂️', '📋', '🔗'];
+            const seq = domainEmojis.slice(0, 3).join(' → ');
+            question = `${seq} → ❓ — ${question}`;
+          }
+          break;
+
+        case 'rapid_fire':
+          // Trim overly long questions
+          if (question.split(/\s+/).length > 20) {
+            question = question.split(/\s+/).slice(0, 18).join(' ') + '…?';
+          }
+          break;
+      }
+
+      return { ...q, id: i + 1, question, options, correct };
+    });
+
+    console.log(`[PP] Format: ${fmt.id} | Questions: ${enforcedQuestions.length} | Q1 preview: ${(enforcedQuestions[0]?.question||'').slice(0,80)}`);
+
     const newGame = {
       id: gameId, week, year,
-      type: parsed.type || fmt.id,
+      type: fmt.id,  // always use requested fmt.id, not AI's returned type
       formatIcon: fmt.icon,
       formatColor: fmt.color,
       formatDesc: fmt.desc,
       title: parsed.title || `Week ${week}: ${fmt.name}`,
       instructions: parsed.instructions || fmt.desc,
-      questions: (parsed.questions || []).map((q, i) => ({ ...q, id: i + 1 })),
+      questions: enforcedQuestions,
       publishedAt: now.toISOString(),
-      totalQuestions: (parsed.questions || []).length
+      totalQuestions: enforcedQuestions.length
     };
     db.processGame.currentGame = newGame;
     saveDB(db);
