@@ -817,6 +817,18 @@ app.post('/api/puzzle/generate', async (req, res) => {
   const fmt = (formatId && formatId !== 'random')
     ? (PP_FORMATS.find(f => f.id === formatId) || PP_FORMATS[Math.floor(Math.random() * PP_FORMATS.length)])
     : PP_FORMATS[Math.floor(Math.random() * PP_FORMATS.length)];
+  // Format-specific prompt variables
+  const questionCount = fmt.id === 'rapid_fire' ? 10 : 8;
+  const optionsExample = fmt.id === 'true_false'
+    ? '["True","False"]'
+    : '["Option A","Option B","Option C","Option D"]';
+  const questionExample =
+    fmt.id === 'fill_blank'  ? '"Teams use _____ to verify that ingested data matches the source system counts."' :
+    fmt.id === 'emoji_quiz'  ? '"📥 → 🔍 → ✅ → 📊 — What process does this emoji sequence represent?"' :
+    fmt.id === 'who_am_i'   ? '"Clue 1: I am invisible until something breaks. Clue 2: I watch every data load silently. Clue 3: Teams set my thresholds to catch row-count mismatches. Who/What am I?"' :
+    fmt.id === 'riddle_round'? '"I travel between systems carrying data, transforming as I go, never seen but always felt. What am I?"' :
+    '"Full question text here — written exactly as players will read it."';
+
   const prompt = `You are creating a weekly game for a delivery team's "Process Puzzle" challenge.
 
 KNOWLEDGE BASE (base all questions on this content):
@@ -827,27 +839,36 @@ PROCESS AREAS: ${processAreas}
 ═══ GAME FORMAT: ${fmt.name.toUpperCase()} ═══
 Description: ${fmt.desc}
 
-QUESTION RULES:
+QUESTION RULES — follow these exactly, they override defaults:
 ${fmt.rules}
+
+CRITICAL: Your questions MUST follow the format rules above, NOT generic MCQ.
+${fmt.id === 'fill_blank'   ? 'EVERY question MUST contain exactly one _____ blank in the question text.' : ''}
+${fmt.id === 'emoji_quiz'   ? 'EVERY question MUST start with an emoji sequence (3-6 emojis with →) before the text.' : ''}
+${fmt.id === 'who_am_i'    ? 'EVERY question MUST use the "Clue 1: ... Clue 2: ... Clue 3: ..." multi-clue format.' : ''}
+${fmt.id === 'riddle_round' ? 'EVERY question MUST be a metaphorical riddle written in first person ("I am...", "I do...").' : ''}
+${fmt.id === 'true_false'   ? 'EVERY question MUST have EXACTLY 2 options: ["True","False"] — never 4 options.' : ''}
+${fmt.id === 'rapid_fire'   ? 'ALL questions must be SHORT (max 15 words). Generate 10 questions, not 8.' : ''}
+${fmt.id === 'spot_mistake' ? 'EVERY question MUST embed one factual mistake in a colleague\'s description.' : ''}
 
 Return ONLY valid JSON with no markdown, no code fences, no backticks:
 {
   "type": "${fmt.id}",
   "title": "Week ${week}: ${fmt.name.replace(' ⚡','').replace(' 🎯','').replace(' 🕵️','')}",
-  "instructions": "One clear sentence telling players exactly how to play this specific format.",
+  "instructions": "One sentence telling players exactly how THIS format works (not generic).",
   "questions": [
     {
       "id": 1,
-      "question": "Full question text here",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "question": ${questionExample},
+      "options": ${optionsExample},
       "correct": 0,
-      "explanation": "Why this is correct / what the right answer means",
+      "explanation": "Why this answer is correct, with context from the knowledge base.",
       "difficulty": "easy"
     }
   ]
 }
 
-Generate exactly 8 questions. Return ONLY the JSON object, nothing else.`;
+Generate exactly ${questionCount} questions. Every question MUST match the ${fmt.name} format. Return ONLY the JSON object, nothing else.`;
 
   try {
     let raw = '';
