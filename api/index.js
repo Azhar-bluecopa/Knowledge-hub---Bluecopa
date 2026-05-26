@@ -800,9 +800,10 @@ app.post('/api/puzzle/generate', async (req, res) => {
   ).join('\n\n---\n\n');
   const processAreas = (db.skillMatrix && db.skillMatrix.processAreas || []).join(', ') || 'Data Ingestion, Workflows, Portal Creation, Reconciliation, Exports';
   const now = new Date();
-  const week = getWeekNumber(now);
   const year = now.getFullYear();
-  const gameId = `week-${year}-${week}`;
+  const { weekNumber: weekOverride, formatId } = req.body || {};
+  const week = (weekOverride && !isNaN(parseInt(weekOverride))) ? parseInt(weekOverride) : getWeekNumber(now);
+  const gameId = `week-${year}-${week}-${Date.now()}`;
   if (db.processGame.currentGame) {
     db.processGame.gameHistory.push(db.processGame.currentGame);
     if (db.processGame.gameHistory.length > 20) db.processGame.gameHistory.shift();
@@ -811,77 +812,125 @@ app.post('/api/puzzle/generate', async (req, res) => {
   const PP_FORMATS = [
     { id:'knowledge_quiz', name:'Knowledge Quiz',     icon:'📝', color:'quiz',
       desc:'Test your knowledge of delivery processes and workflows',
-      rules:`Generate 8 multiple-choice KNOWLEDGE questions. Each must have exactly 4 options (A-D). Test understanding of processes, tools, and workflows. One option is clearly correct; the other 3 are plausible but wrong. Mix 2 easy, 4 medium, 2 hard.` },
+      rules:`Generate 8 multiple-choice KNOWLEDGE questions. Each must have exactly 4 options. Test understanding of processes, tools, and workflows. One option is clearly correct; the other 3 are plausible but wrong. Mix 2 easy, 4 medium, 2 hard.` },
     { id:'true_false',     name:'True or False',      icon:'⚖️', color:'trivia',
       desc:'Decide if each statement is true or false',
-      rules:`Generate 8 TRUE/FALSE questions. Each question MUST be a statement (not a question). Options MUST be exactly ["True","False"] — only 2 options. Set correct to 0 if statement is True, 1 if False. Mix ~4 true and ~4 false. Include one surprising fact.` },
+      rules:`Generate 8 TRUE/FALSE questions. Each question MUST be a statement (not a question). Options MUST be exactly ["True","False"] — only 2 options. Set correct to 0 if True, 1 if False. Mix ~4 true and ~4 false.` },
     { id:'riddle_round',   name:'Riddle Round',       icon:'🔮', color:'scenario',
       desc:'Solve creative riddles about delivery and data concepts',
-      rules:`Generate 8 RIDDLES where each answer is a process, tool, concept, or workflow term from the knowledge base. Write each riddle metaphorically (e.g. "I flow between systems carrying data, I transform and cleanse but never rest — what am I?"). Provide 4 answer options, one correct. Make riddles clever but solvable with domain knowledge.` },
+      rules:`Generate 8 RIDDLES. Each riddle is metaphorical, written in first person ("I flow between systems..."). Provide 4 answer options, one correct.` },
     { id:'fill_blank',     name:'Fill in the Blank',  icon:'✏️', color:'quiz',
       desc:'Complete the missing word or phrase in each statement',
-      rules:`Generate 8 FILL-IN-THE-BLANK questions. Each is a sentence with exactly ONE blank marked as _____. Provide 4 options to fill the blank — only one is correct. The correct answer must be a key term, acronym, or concept from the knowledge base. Make the blanks meaningful, not trivial.` },
+      rules:`Generate 8 FILL-IN-THE-BLANK questions. Each is a sentence with exactly ONE blank marked as _____. Provide 4 options to fill the blank — only one is correct.` },
     { id:'spot_mistake',   name:'Spot the Mistake',   icon:'🔍', color:'trivia',
       desc:'Find the deliberate error hidden in each description',
-      rules:`Generate 8 SPOT-THE-MISTAKE questions. Each describes a process or concept with ONE deliberate factual mistake. Format: "A colleague described [topic] as: [description with embedded mistake]. What is incorrect?" Provide 4 options — only one correctly identifies the mistake. Other 3 options point to things that were actually correct or are irrelevant.` },
+      rules:`Generate 8 SPOT-THE-MISTAKE questions. Each describes a process with ONE deliberate factual mistake. Ask "What is incorrect?" with 4 options.` },
     { id:'scenario',       name:'Scenario Challenge', icon:'🎯', color:'scenario',
       desc:'Make the right call in real-world delivery situations',
-      rules:`Generate 8 SCENARIO-BASED questions presenting realistic delivery team situations. Each presents a work situation with a problem or decision. Provide 4 possible actions — only one is clearly the best approach. Wrong options should be common mistakes or partial solutions, not obviously wrong.` },
+      rules:`Generate 8 SCENARIO-BASED questions. Each presents a work situation with a decision. Provide 4 possible actions — one is clearly best.` },
     { id:'what_next',      name:'What Comes Next?',   icon:'⏭️', color:'quiz',
       desc:'Identify the next correct step in a delivery workflow',
-      rules:`Generate 8 SEQUENCING questions. Each describes a process up to a certain step then asks "What should happen next?" Provide 4 options for the next step — one is correct. Draw from different process areas (ingestion, reconciliation, reporting, exports, etc.). Vary difficulty.` },
+      rules:`Generate 8 SEQUENCING questions. Each describes a process up to a step, then asks "What should happen next?" Provide 4 options.` },
     { id:'term_buster',    name:'Term Buster',        icon:'📖', color:'trivia',
       desc:'Match terms, acronyms, and definitions from the knowledge base',
-      rules:`Generate 8 TERMINOLOGY questions about specific terms, acronyms, tools, or concepts from the knowledge base. Format questions as "What is [TERM]?", "What does [ACRONYM] stand for?", or "Which best describes [CONCEPT]?". Provide 4 options — one correct definition, 3 plausible but wrong. Include at least 2 acronym questions.` },
+      rules:`Generate 8 TERMINOLOGY questions. Format: "What is [TERM]?", "What does [ACRONYM] stand for?". Provide 4 options — one correct definition.` },
+    { id:'rapid_fire',     name:'Rapid Fire',         icon:'⚡', color:'scenario',
+      desc:'10 quick-fire questions — speed and accuracy both count!',
+      rules:`Generate 10 SHORT multiple-choice questions. Each question MUST be one concise sentence (max 15 words). Each has 4 options, one correct. Focus on quick-recall facts.` },
+    { id:'emoji_quiz',     name:'Emoji Decode',       icon:'🎯', color:'scenario',
+      desc:'Decode process workflows and concepts from emoji sequences!',
+      rules:`Generate 8 EMOJI-CLUE questions. Each question shows 3–5 emojis representing a process or concept. Format: "📥 → 🔍 → ✅ — What process does this represent?" Provide 4 answer options.` },
+    { id:'who_am_i',       name:'Who Am I?',          icon:'🕵️', color:'trivia',
+      desc:'Guess the role, tool, or process from cryptic clues!',
+      rules:`Generate 8 "WHO/WHAT AM I?" questions with 3 progressive clues. Format: "Clue 1: [vague]. Clue 2: [more specific]. Clue 3: [most specific]. Who/What am I?" Provide 4 options.` },
     { id:'mixed_bag',      name:'Mixed Bag',          icon:'🎲', color:'quiz',
       desc:'A surprise mix of all question types — stay on your toes!',
-      rules:`Generate 8 questions using a MIX of formats: 2 standard multiple-choice (4 options), 2 TRUE/FALSE (options MUST be exactly ["True","False"] — no other values), 2 fill-in-the-blank (sentence with _____ and 4 options), 2 riddles (metaphorical description, 4 options). For true/false, ALWAYS use exactly ["True","False"] as the options array.` },
+      rules:`Generate 8 questions using a MIX: 2 standard MCQ, 2 TRUE/FALSE (options MUST be ["True","False"]), 2 fill-in-the-blank (with _____), 2 riddles (metaphorical, first person).` },
   ];
-  const fmt = PP_FORMATS[Math.floor(Math.random() * PP_FORMATS.length)];
-  const prompt = `You are creating a weekly game for a delivery team's "Process Puzzle" challenge.
 
-KNOWLEDGE BASE (base all questions on this content):
+  const fmt = (formatId && formatId !== 'random')
+    ? (PP_FORMATS.find(f => f.id === formatId) || PP_FORMATS[Math.floor(Math.random() * PP_FORMATS.length)])
+    : PP_FORMATS[Math.floor(Math.random() * PP_FORMATS.length)];
+
+  const questionCount = fmt.id === 'rapid_fire' ? 10 : 8;
+  const optionsExample = fmt.id === 'true_false' ? '["True","False"]' : '["Option A","Option B","Option C","Option D"]';
+  const questionExample =
+    fmt.id === 'fill_blank'  ? '"Teams use _____ to verify that ingested data matches source system counts."' :
+    fmt.id === 'emoji_quiz'  ? '"📥 → 🔍 → ✅ → 📊 — What process does this emoji sequence represent?"' :
+    fmt.id === 'who_am_i'   ? '"Clue 1: I am invisible until something breaks. Clue 2: I watch every data load. Clue 3: Teams set my thresholds. Who/What am I?"' :
+    fmt.id === 'riddle_round'? '"I travel between systems carrying data, transforming as I go. What am I?"' :
+    '"Full question text here."';
+
+  const formatEnforcement = [
+    fmt.id === 'fill_blank'   ? '⚠️ EVERY question MUST contain exactly one _____ blank in the sentence.' : '',
+    fmt.id === 'emoji_quiz'   ? '⚠️ EVERY question MUST start with 3-5 emojis separated by → then a dash and text.' : '',
+    fmt.id === 'who_am_i'    ? '⚠️ EVERY question MUST follow "Clue 1: ... Clue 2: ... Clue 3: ... Who/What am I?" format.' : '',
+    fmt.id === 'riddle_round' ? '⚠️ EVERY question MUST be first-person metaphorical riddle ("I am...", "I do...").' : '',
+    fmt.id === 'true_false'   ? '⚠️ options array MUST be exactly ["True","False"] for every question — no 4-option arrays.' : '',
+    fmt.id === 'rapid_fire'   ? '⚠️ EVERY question must be ≤15 words. Generate 10, not 8.' : '',
+  ].filter(Boolean).join('\n');
+
+  const prompt = `You are generating a "${fmt.name}" format quiz for a delivery team's weekly "Process Puzzle" challenge.
+
+THIS IS A "${fmt.id.toUpperCase()}" FORMAT — NOT STANDARD MULTIPLE CHOICE.
+
+KNOWLEDGE BASE:
 ${articles}
 
 PROCESS AREAS: ${processAreas}
 
-═══ GAME FORMAT: ${fmt.name.toUpperCase()} ═══
-Description: ${fmt.desc}
-
-QUESTION RULES:
+FORMAT RULES (MANDATORY):
 ${fmt.rules}
 
-Return ONLY valid JSON with no markdown, no code fences, no backticks:
+${formatEnforcement}
+
+EXAMPLE for this format:
+  "question": ${questionExample},
+  "options": ${optionsExample}
+
+Return ONLY valid JSON, no markdown, no code fences:
 {
   "type": "${fmt.id}",
   "title": "Week ${week}: ${fmt.name}",
-  "instructions": "One clear sentence telling players exactly how to play this specific format.",
+  "instructions": "One sentence explaining how to play ${fmt.name}.",
   "questions": [
     {
       "id": 1,
-      "question": "Full question text here",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "question": ${questionExample},
+      "options": ${optionsExample},
       "correct": 0,
-      "explanation": "Why this is correct / what the right answer means",
+      "explanation": "Why this answer is correct.",
       "difficulty": "easy"
     }
   ]
 }
 
-Generate exactly 8 questions. Return ONLY the JSON object, nothing else.`;
+Generate exactly ${questionCount} questions. Every question MUST match the ${fmt.name} format. Return ONLY the JSON object.`;
 
   try {
     let raw = '';
     if (useAnthropic) {
       const Anthropic = require('@anthropic-ai/sdk');
       const client = new Anthropic.default({ apiKey: anthropicKey });
-      const message = await client.messages.create({ model: 'claude-opus-4-7', max_tokens: 2500, messages: [{ role: 'user', content: prompt }] });
+      const message = await client.messages.create({
+        model: 'claude-opus-4-7',
+        max_tokens: 3000,
+        system: `You are a quiz generator that STRICTLY follows format instructions. You NEVER output standard MCQ unless the format is "knowledge_quiz". Match the exact format specified. Return ONLY valid JSON.`,
+        messages: [{ role: 'user', content: prompt }]
+      });
       raw = message.content[0].text.trim();
     } else {
       const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
-        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 2500, temperature: 0.7, stream: false }),
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: `You are a quiz generator that STRICTLY follows format instructions. You NEVER output standard MCQ unless the format is "knowledge_quiz". Return ONLY valid JSON.` },
+            { role: 'user', content: prompt }
+          ],
+          max_tokens: 3000, temperature: 0.65, stream: false
+        }),
       });
       if (!groqRes.ok) throw new Error(`Groq API error ${groqRes.status}: ${await groqRes.text()}`);
       const groqData = await groqRes.json();
@@ -890,17 +939,57 @@ Generate exactly 8 questions. Return ONLY the JSON object, nothing else.`;
     const js = raw.indexOf('{'), je = raw.lastIndexOf('}') + 1;
     if (js === -1 || je === 0) throw new Error('AI did not return valid JSON');
     const parsed = JSON.parse(raw.slice(js, je));
+
+    // ── Server-side format enforcement (guarantees compliance regardless of AI) ──
+    const enforcedQuestions = (parsed.questions || []).map((q, i) => {
+      let question = (q.question || '').trim();
+      let options   = Array.isArray(q.options) ? q.options : [];
+      let correct   = typeof q.correct === 'number' ? q.correct : 0;
+      switch (fmt.id) {
+        case 'true_false':
+          options = ['True', 'False'];
+          correct = (correct === 0 || correct === 1) ? correct : 0;
+          break;
+        case 'fill_blank':
+          if (!question.includes('_____')) {
+            const ans = (options[correct] || '').trim();
+            const re = ans ? new RegExp(ans.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : null;
+            question = re && re.test(question) ? question.replace(re, '_____') : question.replace(/\?$/, '') + ' — teams call this _____.';
+          }
+          break;
+        case 'who_am_i':
+          if (!/clue\s*1/i.test(question)) {
+            const parts = question.split(/[.!?]+/).filter(s => s.trim()).slice(0, 3);
+            question = parts.length >= 2
+              ? `Clue 1: ${parts[0].trim()}. Clue 2: ${parts[1].trim()}. ${parts[2]?'Clue 3: '+parts[2].trim()+'. ':''}Who/What am I?`
+              : `Clue 1: ${question} Who/What am I?`;
+          }
+          break;
+        case 'emoji_quiz':
+          if (!/^\p{Emoji}/u.test(question)) {
+            question = `📥 → 🔍 → ✅ → ❓ — ${question}`;
+          }
+          break;
+        case 'rapid_fire':
+          if (question.split(/\s+/).length > 20) question = question.split(/\s+/).slice(0, 17).join(' ') + '…?';
+          break;
+      }
+      return { ...q, id: i + 1, question, options, correct };
+    });
+
+    console.log(`[PP] fmt=${fmt.id} week=${week} qs=${enforcedQuestions.length} q1="${(enforcedQuestions[0]?.question||'').slice(0,60)}"`);
+
     const newGame = {
       id: gameId, week, year,
-      type: parsed.type || fmt.id,
+      type: fmt.id,
       formatIcon: fmt.icon,
       formatColor: fmt.color,
       formatDesc: fmt.desc,
       title: parsed.title || `Week ${week}: ${fmt.name}`,
       instructions: parsed.instructions || fmt.desc,
-      questions: (parsed.questions || []).map((q, i) => ({ ...q, id: i + 1 })),
+      questions: enforcedQuestions,
       publishedAt: now.toISOString(),
-      totalQuestions: (parsed.questions || []).length
+      totalQuestions: enforcedQuestions.length
     };
     db.processGame.currentGame = newGame;
     await saveDB(db);
