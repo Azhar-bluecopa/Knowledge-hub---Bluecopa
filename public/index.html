@@ -650,15 +650,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .pp-overlay{position:fixed;inset:0;z-index:200;display:none;flex-direction:column;background:#07070d;overflow:hidden;font-family:'DM Sans',sans-serif;}
 .pp-overlay.active{display:flex;}
 
-/* Animated bg grid */
+/* Animated bg */
 .pp-bg{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
-.pp-bg::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(168,85,247,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(168,85,247,.04) 1px,transparent 1px);background-size:60px 60px;animation:pp-grid-move 20s linear infinite;}
-.pp-bg::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(168,85,247,.12),transparent 70%),radial-gradient(ellipse 60% 40% at 80% 80%,rgba(34,211,238,.06),transparent 60%);}
-@keyframes pp-grid-move{0%{background-position:0 0,0 0;}100%{background-position:60px 60px,60px 60px;}}
-
-/* Floating particles */
-.pp-piece{position:absolute;pointer-events:none;font-size:18px;opacity:0.06;animation:pp-float-up linear infinite;user-select:none;}
-@keyframes pp-float-up{0%{transform:translateY(110vh) rotate(0deg);opacity:0;}5%{opacity:.06;}90%{opacity:.06;}100%{transform:translateY(-120px) rotate(360deg);opacity:0;}}
+#ppCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+.pp-piece{display:none;}
 
 /* ── TOPBAR ── */
 .pp-topbar{position:relative;z-index:10;height:64px;padding:0 28px;display:flex;align-items:center;justify-content:space-between;background:rgba(14,14,26,.9);backdrop-filter:blur(20px);border-bottom:1px solid rgba(168,85,247,.25);flex-shrink:0;}
@@ -4544,6 +4539,206 @@ let ppTimerInterval = null;
 let ppTimerSeconds = 0;
 let ppCurrentQ = 0;
 let ppSubmitData = null;
+let ppAnimFrame = null;
+let ppMouseX = 0, ppMouseY = 0;
+
+function ppInitCanvas() {
+  const overlay = document.getElementById('ppOverlay');
+  const canvas = document.getElementById('ppCanvas');
+  if (!canvas) return;
+  const W = canvas.width = overlay.offsetWidth || window.innerWidth;
+  const H = canvas.height = overlay.offsetHeight || window.innerHeight;
+  const ctx = canvas.getContext('2d');
+
+  // Mouse parallax tracking
+  ppMouseX = W / 2; ppMouseY = H / 2;
+  overlay.onmousemove = e => { ppMouseX = e.clientX; ppMouseY = e.clientY; };
+
+  // ── Aurora blobs ──────────────────────────────────────────
+  const blobs = [
+    {bx:W*.18, by:H*.28, rx:W*.52, ry:H*.42, c:[168,85,247],  ph:0,    spd:.00042},
+    {bx:W*.82, by:H*.55, rx:W*.44, ry:H*.38, c:[34,211,238],  ph:2.1,  spd:.00033},
+    {bx:W*.5,  by:H*.85, rx:W*.4,  ry:H*.32, c:[124,58,237],  ph:1.05, spd:.00038},
+    {bx:W*.12, by:H*.72, rx:W*.32, ry:H*.28, c:[139,92,246],  ph:3.2,  spd:.00055},
+    {bx:W*.88, by:H*.18, rx:W*.35, ry:H*.3,  c:[6,182,212],   ph:1.6,  spd:.00046},
+    {bx:W*.5,  by:H*.5,  rx:W*.28, ry:H*.22, c:[192,132,252], ph:0.7,  spd:.0005},
+  ];
+
+  // ── Particles ─────────────────────────────────────────────
+  const pts = Array.from({length:130}, () => ({
+    x:  Math.random() * W,
+    y:  Math.random() * H,
+    vx: (Math.random() - .5) * .45,
+    vy: (Math.random() - .5) * .45,
+    r:  Math.random() * 1.4 + .4,
+    c:  Math.random() < .65 ? [168,85,247] : [34,211,238],
+    a:  Math.random() * .55 + .25,
+  }));
+
+  // ── Pulsing rings ──────────────────────────────────────────
+  const rings = [];
+  let lastRing = 0;
+
+  // ── Shooting stars ─────────────────────────────────────────
+  const stars = [];
+  let lastStar = 0;
+
+  // ── Hex grid ───────────────────────────────────────────────
+  const HEX = 70;
+  function drawHexGrid() {
+    ctx.save();
+    ctx.globalAlpha = .022;
+    ctx.strokeStyle = '#a855f7';
+    ctx.lineWidth = .6;
+    const rows = Math.ceil(H / (HEX * 1.5)) + 2;
+    const cols = Math.ceil(W / (HEX * 1.732)) + 2;
+    for (let row = -1; row < rows; row++) {
+      for (let col = -1; col < cols; col++) {
+        const cx = col * HEX * 1.732 + (row & 1 ? HEX * .866 : 0);
+        const cy = row * HEX * 1.5;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const a = Math.PI / 3 * i - Math.PI / 6;
+          i ? ctx.lineTo(cx + HEX * Math.cos(a), cy + HEX * Math.sin(a))
+            : ctx.moveTo(cx + HEX * Math.cos(a), cy + HEX * Math.sin(a));
+        }
+        ctx.closePath(); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  // ── Scan beam ──────────────────────────────────────────────
+  let beamX = -W * .6, beamDir = 1;
+
+  // ── Main loop ──────────────────────────────────────────────
+  function tick(now) {
+    // Semi-transparent clear for motion trail
+    ctx.fillStyle = 'rgba(7,7,13,.22)';
+    ctx.fillRect(0, 0, W, H);
+
+    // Aurora blobs — drift with mouse parallax
+    const mx = ppMouseX, my = ppMouseY;
+    blobs.forEach(b => {
+      b.ph += b.spd;
+      const px = b.bx + (mx - W*.5)*.05 + Math.sin(b.ph) * W * .055;
+      const py = b.by + (my - H*.5)*.04 + Math.cos(b.ph * .73) * H * .055;
+      const [r,g,bc] = b.c;
+      const grad = ctx.createRadialGradient(px, py, 0, px, py, b.rx);
+      grad.addColorStop(0,   `rgba(${r},${g},${bc},.09)`);
+      grad.addColorStop(.45, `rgba(${r},${g},${bc},.045)`);
+      grad.addColorStop(1,   `rgba(${r},${g},${bc},0)`);
+      ctx.save();
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.ellipse(px, py, b.rx, b.ry, b.ph * .25, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    // Hex grid overlay
+    drawHexGrid();
+
+    // Scan beam (slow horizontal sweep)
+    beamX += beamDir * .6;
+    if (beamX > W * 1.2) beamDir = -1;
+    if (beamX < -W * .6) beamDir = 1;
+    const beam = ctx.createLinearGradient(beamX, 0, beamX + W * .55, 0);
+    beam.addColorStop(0,   'rgba(168,85,247,0)');
+    beam.addColorStop(.35, 'rgba(168,85,247,.022)');
+    beam.addColorStop(.5,  'rgba(34,211,238,.018)');
+    beam.addColorStop(.65, 'rgba(168,85,247,.022)');
+    beam.addColorStop(1,   'rgba(168,85,247,0)');
+    ctx.fillStyle = beam;
+    ctx.fillRect(beamX, 0, W * .55, H);
+
+    // Particles
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+      const [r,g,b] = p.c;
+      const gr = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 5);
+      gr.addColorStop(0, `rgba(${r},${g},${b},${p.a})`);
+      gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
+      ctx.fillStyle = gr;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 5, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Connection lines between nearby particles
+    ctx.lineWidth = .5;
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
+        const d2 = dx*dx + dy*dy;
+        if (d2 < 160*160) {
+          const al = (1 - Math.sqrt(d2)/160) * .16;
+          ctx.strokeStyle = `rgba(168,85,247,${al})`;
+          ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[j].x, pts[j].y); ctx.stroke();
+        }
+      }
+    }
+
+    // Pulsing rings (every ~2.8 s)
+    if (now - lastRing > 2800) {
+      rings.push({x: W*.5 + (Math.random()-.5)*W*.3, y: H*.5 + (Math.random()-.5)*H*.3, r:6, maxR:W*.28, spd:1.8});
+      lastRing = now;
+    }
+    for (let i = rings.length - 1; i >= 0; i--) {
+      const rg = rings[i];
+      rg.r += rg.spd;
+      const al = .45 * (1 - rg.r / rg.maxR);
+      if (al <= 0) { rings.splice(i, 1); continue; }
+      ctx.strokeStyle = `rgba(168,85,247,${al})`;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(rg.x, rg.y, rg.r, 0, Math.PI*2); ctx.stroke();
+    }
+
+    // Shooting stars (every 2–5 s)
+    if (now - lastStar > 2000 + Math.random() * 3000) {
+      stars.push({
+        x: Math.random() * W, y: -20,
+        vx: (Math.random()-.4) * 1.2,
+        vy: 3 + Math.random() * 4,
+        len: 90 + Math.random() * 130, life: 1
+      });
+      lastStar = now;
+    }
+    for (let i = stars.length - 1; i >= 0; i--) {
+      const s = stars[i];
+      s.x += s.vx; s.y += s.vy; s.life -= .007;
+      if (s.life <= 0 || s.y > H + 60) { stars.splice(i, 1); continue; }
+      const sg = ctx.createLinearGradient(s.x, s.y, s.x - s.vx * (s.len/s.vy), s.y - s.len);
+      sg.addColorStop(0,   `rgba(255,255,255,${s.life * .9})`);
+      sg.addColorStop(.4,  `rgba(34,211,238,${s.life * .5})`);
+      sg.addColorStop(1,   'rgba(168,85,247,0)');
+      ctx.strokeStyle = sg;
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y);
+      ctx.lineTo(s.x - s.vx * (s.len / s.vy), s.y - s.len);
+      ctx.stroke();
+    }
+
+    ppAnimFrame = requestAnimationFrame(tick);
+  }
+
+  if (ppAnimFrame) cancelAnimationFrame(ppAnimFrame);
+  ppAnimFrame = requestAnimationFrame(tick);
+
+  // Resize handling
+  overlay._ppResizeObs && overlay._ppResizeObs.disconnect();
+  overlay._ppResizeObs = new ResizeObserver(() => {
+    canvas.width  = overlay.offsetWidth  || window.innerWidth;
+    canvas.height = overlay.offsetHeight || window.innerHeight;
+  });
+  overlay._ppResizeObs.observe(overlay);
+}
+
+function ppStopCanvas() {
+  if (ppAnimFrame) { cancelAnimationFrame(ppAnimFrame); ppAnimFrame = null; }
+}
 
 async function dwGoProcessPuzzle() {
   hideLanding();
@@ -4551,22 +4746,8 @@ async function dwGoProcessPuzzle() {
   document.getElementById('ppOverlay').classList.add('active');
   document.querySelector('.main').style.display = 'none';
   document.getElementById('ppAdminBar').style.display = getAdminPwd() ? 'flex' : 'none';
-  // Spawn floating bg pieces
-  const bg = document.getElementById('ppBg');
-  if (bg && !bg.dataset.spawned) {
-    bg.dataset.spawned = '1';
-    const pieces = ['🧩','⚙️','🔧','📊','💡','🎯','⚡','🔍','📈','🏆'];
-    for (let i=0; i<18; i++) {
-      const el = document.createElement('span');
-      el.className = 'pp-piece';
-      el.textContent = pieces[i % pieces.length];
-      el.style.left = `${Math.random()*100}%`;
-      el.style.animationDuration = `${12+Math.random()*18}s`;
-      el.style.animationDelay = `${Math.random()*20}s`;
-      el.style.fontSize = `${28+Math.random()*36}px`;
-      bg.appendChild(el);
-    }
-  }
+  // Start canvas animation
+  ppInitCanvas();
   await ppLoad();
 }
 
@@ -4574,6 +4755,7 @@ function hidePP() {
   document.getElementById('ppOverlay').classList.remove('active');
   document.querySelector('.main').style.display = '';
   ppStopTimer();
+  ppStopCanvas();
 }
 
 async function ppLoad() {
@@ -5171,7 +5353,7 @@ document.querySelectorAll('.dw-card').forEach(card=>{
 ═══════════════════════════════════════════════════ -->
 <div class="pp-overlay" id="ppOverlay">
   <!-- Floating bg puzzle pieces -->
-  <div class="pp-bg" id="ppBg"></div>
+  <div class="pp-bg" id="ppBg"><canvas id="ppCanvas"></canvas></div>
   <!-- Topbar -->
   <div class="pp-topbar">
     <div class="pp-topbar-brand">
