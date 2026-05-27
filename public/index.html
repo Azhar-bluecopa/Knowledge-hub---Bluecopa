@@ -1003,6 +1003,29 @@ html{scroll-behavior:smooth;}
 .sm-chart-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(232,201,122,0.15),transparent);}
 .sm-chart-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px;}
 
+/* ── Landing decorative side panels ──────────────────────────────────────── */
+.dw-side-deco{position:absolute;top:50%;transform:translateY(-50%);z-index:15;width:21%;min-width:205px;max-width:275px;height:74vh;max-height:660px;}
+.dw-side-deco.sd-l{left:14px;}
+.dw-side-deco.sd-r{right:14px;}
+@media(max-width:1265px){.dw-side-deco{display:none;}}
+/* LEFT: scrolling knowledge stream */
+.dw-stream-shell{width:100%;height:100%;border-radius:14px;overflow:hidden;position:relative;background:rgba(13,13,18,.72);border:1px solid rgba(232,201,122,.09);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);mask-image:linear-gradient(to bottom,transparent 0%,#000 9%,#000 91%,transparent 100%);-webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 9%,#000 91%,transparent 100%);}
+.dw-stream-hdr{position:absolute;top:0;left:0;right:0;z-index:4;padding:14px 16px 6px;pointer-events:none;}
+.dw-stream-hdr-txt{font-size:8.5px;font-family:'DM Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:rgba(232,201,122,.3);display:flex;align-items:center;gap:7px;}
+.dw-stream-hdr-txt::before{content:'';width:3px;height:3px;border-radius:50%;background:rgba(232,201,122,.5);flex-shrink:0;animation:pulse 2.5s ease-in-out infinite;}
+.dw-stream-inner{display:flex;flex-direction:column;padding:44px 12px 12px;gap:7px;will-change:transform;}
+.dw-stream-inner.dw-si-run{animation:dw-stream-rise var(--sdur,60s) linear infinite;}
+@keyframes dw-stream-rise{from{transform:translateY(0);}to{transform:translateY(-50%);}}
+.dw-sc{background:rgba(255,255,255,.038);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:10px 12px;display:flex;gap:9px;align-items:flex-start;flex-shrink:0;}
+.dw-sc-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+.dw-sc-title{font-size:11.5px;font-weight:600;color:rgba(230,230,242,.8);line-height:1.44;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.dw-sc-meta{font-size:9px;font-family:'DM Mono',monospace;color:rgba(120,120,148,.55);margin-top:4px;letter-spacing:.03em;}
+/* RIGHT: particle constellation */
+.dw-constel-shell{width:100%;height:100%;border-radius:14px;overflow:hidden;position:relative;background:rgba(10,10,16,.74);border:1px solid rgba(122,180,255,.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
+#dwConstellCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+.dw-constel-hdr{position:absolute;top:14px;left:0;right:0;text-align:center;z-index:3;font-size:8.5px;font-family:'DM Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:rgba(122,180,255,.28);pointer-events:none;display:flex;align-items:center;justify-content:center;gap:7px;}
+.dw-constel-hdr::before{content:'';width:3px;height:3px;border-radius:50%;background:rgba(122,180,255,.45);animation:pulse 2s ease-in-out infinite;}
+.dw-constel-ftr{position:absolute;bottom:14px;left:0;right:0;text-align:center;z-index:3;font-size:8px;font-family:'DM Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:rgba(122,180,255,.18);pointer-events:none;}
 /* ── Coming-Soon page ─────────────────────────────────────────────────────── */
 .dw-cs-overlay{position:fixed;inset:0;z-index:220;background:#09090d;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;font-family:'DM Sans',sans-serif;transition:opacity .35s;}
 .dw-cs-overlay.dw-cs-hidden{display:none;}
@@ -1833,6 +1856,7 @@ async function loadAll() {
   applyFilters();
   document.getElementById('siteTitle').textContent = siteSettings.siteTitle || 'KnowledgeHub';
   if(typeof updateLandingStats==='function') updateLandingStats();
+  initDwStream(); // populate scrolling feed with real article data
 }
 
 function applyRestrictions() {
@@ -4782,6 +4806,26 @@ function switchAdminTab(tab, btn, noHistory) {
     </div>
 
   </div><!-- /dw-page -->
+
+  <!-- LEFT panel: live scrolling article feed -->
+  <div class="dw-side-deco sd-l">
+    <div class="dw-stream-shell">
+      <div class="dw-stream-hdr">
+        <div class="dw-stream-hdr-txt">Live Knowledge Feed</div>
+      </div>
+      <div class="dw-stream-inner" id="dwStreamInner"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT panel: particle constellation -->
+  <div class="dw-side-deco sd-r">
+    <div class="dw-constel-shell">
+      <div class="dw-constel-hdr">Knowledge Network</div>
+      <canvas id="dwConstellCanvas"></canvas>
+      <div class="dw-constel-ftr">Bluecopa · Delivery Ecosystem</div>
+    </div>
+  </div>
+
 </div><!-- /dwLanding -->
 
 <script>
@@ -5343,6 +5387,8 @@ function showLanding(){
   document.querySelectorAll('.dw-tooltip').forEach(t=>t.classList.remove('open'));
   // restart canvas
   dwCanvasRunning=true;
+  // restart constellation (needs visible DOM for sizing)
+  setTimeout(initDwConstellation, 60);
   // refresh live stats
   updateLandingStats();
 }
@@ -5383,6 +5429,7 @@ function hideLanding(){
   document.getElementById('dwLanding').classList.add('dw-hidden');
   document.getElementById('dw-canvas').style.display='none';
   dwCanvasRunning=false;
+  if(dwConstellRAF){ cancelAnimationFrame(dwConstellRAF); dwConstellRAF=null; }
 }
 
 function dwGoKnowledge(){
@@ -5396,6 +5443,100 @@ function dwGoSkillMatrix(){
   hideLanding();
   history.pushState({screen:'skillmatrix', tab:'assess'}, '');
   showSkillMatrix();
+}
+
+// ── Landing side panels: stream + constellation ───────────────────────────
+const DW_CAT_COL = {'Platform':'#00c8cc','Product':'#a78bfa','Onboarding':'#34d399','Finance & FP&A':'#f59e0b','Implementation stories – Unique scenarios':'#f87171'};
+let dwConstellRAF = null;
+
+function initDwStream() {
+  const inner = document.getElementById('dwStreamInner');
+  if (!inner || inner.classList.contains('dw-si-run')) return;
+  const arts = allArticles && allArticles.length ? allArticles : [];
+  if (!arts.length) return;
+  const shuffled = [...arts].sort(() => Math.random() - .5);
+  const doubled  = [...shuffled, ...shuffled]; // duplicate → seamless -50% loop
+  inner.innerHTML = doubled.map(a => {
+    const col = DW_CAT_COL[a.category] || '#e8c97a';
+    return `<div class="dw-sc">
+      <div class="dw-sc-dot" style="background:${col};box-shadow:0 0 7px ${col}55;"></div>
+      <div>
+        <div class="dw-sc-title">${a.title}</div>
+        <div class="dw-sc-meta">${a.category||'Article'} · ${a.author||'Team'}</div>
+      </div>
+    </div>`;
+  }).join('');
+  // ~3.8s per card → smooth continuous scroll
+  inner.style.setProperty('--sdur', `${Math.max(35, shuffled.length * 3.8)}s`);
+  inner.classList.add('dw-si-run');
+}
+
+function initDwConstellation() {
+  const canvas = document.getElementById('dwConstellCanvas');
+  if (!canvas) return;
+  if (dwConstellRAF) { cancelAnimationFrame(dwConstellRAF); dwConstellRAF = null; }
+  const shell = canvas.parentElement;
+  const W = canvas.width  = shell.offsetWidth  || 272;
+  const H = canvas.height = shell.offsetHeight || 660;
+  const ctx = canvas.getContext('2d');
+
+  const LABELS = ['Knowledge','Skill Matrix','KPIs','Process','Delivery','Team','Roadmap','Learning','Platform','Product','Finance','Onboarding'];
+  const nodes = Array.from({length:38}, (_,i) => ({
+    x: Math.random()*W, y: Math.random()*H,
+    vx:(Math.random()-.5)*.42, vy:(Math.random()-.5)*.42,
+    r: i<12 ? 2.8+Math.random() : Math.random()*1.6+.7,
+    label: i<LABELS.length ? LABELS[i] : null,
+    phase: Math.random()*Math.PI*2,
+    isKey: i<12,
+    col: i%3===0 ? '232,201,122' : i%3===1 ? '122,180,255' : '180,220,255',
+    bright: i<12 ? .9+Math.random()*.1 : Math.random()*.5+.25,
+  }));
+
+  function tick() {
+    ctx.clearRect(0,0,W,H);
+    // soft central glow
+    const bg = ctx.createRadialGradient(W/2,H*0.45,0,W/2,H*0.45,W*.65);
+    bg.addColorStop(0,'rgba(122,180,255,.045)'); bg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+    nodes.forEach(n => {
+      n.x+=n.vx; n.y+=n.vy;
+      if(n.x<-12)n.x=W+12; else if(n.x>W+12)n.x=-12;
+      if(n.y<-12)n.y=H+12; else if(n.y>H+12)n.y=-12;
+      n.phase+=.013;
+    });
+
+    // connections
+    for(let i=0;i<nodes.length;i++) for(let j=i+1;j<nodes.length;j++){
+      const dx=nodes[i].x-nodes[j].x, dy=nodes[i].y-nodes[j].y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<115){
+        const a=(1-d/115)*(nodes[i].isKey||nodes[j].isKey?.28:.15);
+        ctx.beginPath(); ctx.moveTo(nodes[i].x,nodes[i].y); ctx.lineTo(nodes[j].x,nodes[j].y);
+        ctx.strokeStyle=`rgba(${nodes[i].isKey||nodes[j].isKey?'232,201,122':'122,180,255'},${a})`;
+        ctx.lineWidth=nodes[i].isKey||nodes[j].isKey?.75:.35;
+        ctx.stroke();
+      }
+    }
+
+    // nodes
+    nodes.forEach(n => {
+      const pulse=Math.sin(n.phase)*.22+.78, a=n.bright*pulse;
+      const gr=n.isKey?10:5;
+      const g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r*gr);
+      g.addColorStop(0,`rgba(${n.col},${a*.38})`); g.addColorStop(1,`rgba(${n.col},0)`);
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(n.x,n.y,n.r*gr,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=`rgba(${n.col},${Math.min(1,a*1.3)})`;
+      ctx.beginPath(); ctx.arc(n.x,n.y,n.r*pulse,0,Math.PI*2); ctx.fill();
+      if(n.label){
+        ctx.save(); ctx.font=`600 7.5px 'DM Mono',monospace`;
+        ctx.fillStyle=`rgba(${n.col},${a*.5})`; ctx.textAlign='center';
+        ctx.fillText(n.label.toUpperCase(),n.x,n.y-n.r-7); ctx.restore();
+      }
+    });
+    dwConstellRAF=requestAnimationFrame(tick);
+  }
+  tick();
 }
 
 const DW_CS_CONFIG = {
