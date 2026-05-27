@@ -1003,6 +1003,44 @@ html{scroll-behavior:smooth;}
 .sm-chart-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(232,201,122,0.15),transparent);}
 .sm-chart-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px;}
 
+/* ── Coming-Soon page ─────────────────────────────────────────────────────── */
+.dw-cs-overlay{position:fixed;inset:0;z-index:220;background:#09090d;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;font-family:'DM Sans',sans-serif;transition:opacity .35s;}
+.dw-cs-overlay.dw-cs-hidden{display:none;}
+.dw-cs-bg-orb{position:absolute;width:800px;height:800px;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;animation:dw-cs-breathe 4s ease-in-out infinite;}
+@keyframes dw-cs-breathe{0%,100%{transform:translate(-50%,-50%) scale(1);}50%{transform:translate(-50%,-50%) scale(1.14);}}
+.dw-cs-grid{position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(circle,rgba(255,255,255,.05) 1px,transparent 1px);background-size:38px 38px;mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,black 20%,transparent 100%);-webkit-mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,black 20%,transparent 100%);}
+.dw-cs-vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 80% 70% at 50% 50%,transparent 35%,rgba(9,9,13,.85) 100%);}
+.dw-cs-particles{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+.dw-cs-p{position:absolute;border-radius:50%;animation:dw-cs-float linear infinite;}
+@keyframes dw-cs-float{0%{transform:translateY(110vh) rotate(0);opacity:0;}10%{opacity:.4;}85%{opacity:.4;}100%{transform:translateY(-80px) rotate(540deg);opacity:0;}}
+.dw-cs-back{position:absolute;top:26px;left:28px;z-index:10;background:transparent;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);border-radius:8px;padding:8px 18px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .22s;display:flex;align-items:center;gap:7px;}
+.dw-cs-back:hover{border-color:var(--accent);color:var(--accent);}
+/* rings + icon */
+.dw-cs-rings-wrap{position:relative;width:160px;height:160px;display:flex;align-items:center;justify-content:center;margin-bottom:44px;flex-shrink:0;}
+.dw-cs-ring{position:absolute;border-radius:50%;border:1px solid;border-color:rgba(255,255,255,.1);}
+.dw-cs-ring.r1{width:76px;height:76px;animation:dw-cs-spin 9s linear infinite;}
+.dw-cs-ring.r2{width:112px;height:112px;animation:dw-cs-spin 15s linear infinite reverse;}
+.dw-cs-ring.r3{width:152px;height:152px;animation:dw-cs-spin 22s linear infinite;opacity:.55;}
+.dw-cs-ring.r1::before,.dw-cs-ring.r2::after,.dw-cs-ring.r3::before{content:'';position:absolute;width:7px;height:7px;border-radius:50%;top:-3.5px;left:50%;margin-left:-3.5px;}
+@keyframes dw-cs-spin{to{transform:rotate(360deg);}}
+.dw-cs-icon-wrap{position:relative;z-index:2;width:72px;height:72px;border-radius:20px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);box-shadow:0 0 40px rgba(0,0,0,.5);animation:dw-cs-float-y 3.5s ease-in-out infinite;}
+@keyframes dw-cs-float-y{0%,100%{transform:translateY(0);}50%{transform:translateY(-9px);}}
+.dw-cs-icon{font-size:34px;line-height:1;}
+/* text */
+.dw-cs-content{position:relative;z-index:5;display:flex;flex-direction:column;align-items:center;text-align:center;}
+.dw-cs-tag{font-size:10.5px;font-family:'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase;opacity:.6;margin-bottom:18px;animation:dw-cs-up .6s .05s ease both;}
+.dw-cs-headline{font-family:'Playfair Display',serif;font-size:clamp(44px,7vw,90px);font-weight:700;color:var(--text);line-height:1.06;letter-spacing:-.025em;margin-bottom:22px;animation:dw-cs-up .65s .12s ease both;}
+.dw-cs-headline em{font-style:normal;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.dw-cs-sub{font-size:17px;color:var(--muted);font-weight:400;margin-bottom:16px;max-width:440px;line-height:1.6;animation:dw-cs-up .65s .22s ease both;}
+.dw-cs-desc{font-size:13.5px;color:rgba(122,122,150,.55);max-width:380px;line-height:1.75;animation:dw-cs-up .65s .32s ease both;}
+/* pulse bar */
+.dw-cs-bar-wrap{margin-top:44px;display:flex;flex-direction:column;align-items:center;gap:10px;animation:dw-cs-up .65s .42s ease both;}
+.dw-cs-bar{width:200px;height:3px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;position:relative;}
+.dw-cs-bar-fill{position:absolute;left:0;top:0;height:100%;border-radius:99px;animation:dw-cs-scan 2.8s ease-in-out infinite;}
+@keyframes dw-cs-scan{0%{left:-60%;width:60%;}100%{left:110%;width:60%;}}
+.dw-cs-bar-lbl{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.12em;color:rgba(122,122,150,.35);text-transform:uppercase;}
+@keyframes dw-cs-up{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+.dw-cs-footer{position:absolute;bottom:22px;font-size:10.5px;font-family:'DM Mono',monospace;letter-spacing:.13em;color:rgba(122,122,150,.28);text-transform:uppercase;}
 /* Progress badges inside skill matrix cells */
 .sm-arrow{font-size:13px;font-weight:900;min-width:14px;text-align:center;flex-shrink:0;transition:color .2s;line-height:1;}
 .sm-arr-up{color:#4ade80;}
@@ -5360,8 +5398,64 @@ function dwGoSkillMatrix(){
   showSkillMatrix();
 }
 
-function dwComingSoon(name){
-  showToast(name+' is coming soon! 🚀','success');
+const DW_CS_CONFIG = {
+  'KPIs': {
+    icon:'📊', tag:'// 03 · KPIs',
+    desc:'Delivery performance metrics — velocity, quality and team health — all in one live view.',
+    clr:'249,167,79', grad:'linear-gradient(135deg,#f9a74f,#e8873a)'
+  },
+  'Delivery Journey': {
+    icon:'🏛', tag:'// 04 · The Delivery Journey',
+    desc:'A living record of every past implementation — what we built, what we learned, and what comes next.',
+    clr:'122,232,180', grad:'linear-gradient(135deg,#7ae8b4,#3ec68a)'
+  }
+};
+
+function dwComingSoon(name) {
+  const cfg = DW_CS_CONFIG[name] || { icon:'🚀', tag:'// Coming Soon', desc:'', clr:'232,201,122', grad:'linear-gradient(135deg,#e8c97a,#d4b55a)' };
+  const ol = document.getElementById('dwComingSoonOverlay');
+
+  // Apply theme colours
+  const rgba12 = `rgba(${cfg.clr},.12)`;
+  const rgba08 = `rgba(${cfg.clr},.08)`;
+  const plain  = `rgb(${cfg.clr})`;
+  document.getElementById('dwCsBgOrb').style.background = `radial-gradient(circle,${rgba12},transparent 70%)`;
+  ['dwCsR1','dwCsR2','dwCsR3'].forEach(id => {
+    document.getElementById(id).style.borderColor = `rgba(${cfg.clr},.18)`;
+  });
+  ['dwCsR1','dwCsR2','dwCsR3'].forEach(id => {
+    const el = document.getElementById(id);
+    // set pseudo-element colour via CSS var trick
+    el.style.setProperty('--cs-dot', plain);
+  });
+  document.getElementById('dwCsBarFill').style.background = cfg.grad;
+  document.getElementById('dwCsTag').style.color = plain;
+  document.getElementById('dwCsHeadEm').style.backgroundImage = cfg.grad;
+
+  // Content
+  document.getElementById('dwCsIcon').textContent = cfg.icon;
+  document.getElementById('dwCsTag').textContent  = cfg.tag;
+  document.getElementById('dwCsDesc').textContent = cfg.desc;
+
+  // Spawn particles
+  const wrap = document.getElementById('dwCsParticles');
+  wrap.innerHTML = '';
+  for (let i = 0; i < 22; i++) {
+    const p = document.createElement('div');
+    p.className = 'dw-cs-p';
+    const sz = Math.random() * 3.5 + 1.5;
+    p.style.cssText = `width:${sz}px;height:${sz}px;background:rgba(${cfg.clr},.5);left:${Math.random()*100}%;animation-duration:${Math.random()*14+9}s;animation-delay:${Math.random()*10}s;`;
+    wrap.appendChild(p);
+  }
+
+  ol.classList.remove('dw-cs-hidden');
+  // push history so back-button works
+  history.pushState({ screen:'comingsoon', name }, '');
+}
+
+function hideDwComingSoon() {
+  document.getElementById('dwComingSoonOverlay').classList.add('dw-cs-hidden');
+  history.back();
 }
 
 function dwToggleTip(id){
@@ -5381,6 +5475,13 @@ history.replaceState({screen:'landing'}, '');
 window.addEventListener('popstate', function(e){
   _dwNavFlag = true;
   const scr = (e.state && e.state.screen) || 'landing';
+
+  // ── Coming-soon overlay: just close it ──
+  if(scr === 'comingsoon'){
+    document.getElementById('dwComingSoonOverlay').classList.add('dw-cs-hidden');
+    _dwNavFlag = false;
+    return;
+  }
 
   // ── Admin panel tabs: keep panel open, just switch tab ──
   if(scr === 'admin'){
@@ -5765,6 +5866,39 @@ document.querySelectorAll('.dw-card').forEach(card=>{
     </div>
 
   </div>
+</div>
+
+<!-- ── Coming Soon Overlay ────────────────────────────────────────────────── -->
+<div id="dwComingSoonOverlay" class="dw-cs-overlay dw-cs-hidden">
+  <div class="dw-cs-bg-orb" id="dwCsBgOrb"></div>
+  <div class="dw-cs-grid"></div>
+  <div class="dw-cs-vignette"></div>
+  <div class="dw-cs-particles" id="dwCsParticles"></div>
+
+  <button class="dw-cs-back" onclick="hideDwComingSoon()">← Back to Home</button>
+
+  <div class="dw-cs-content">
+    <div class="dw-cs-rings-wrap">
+      <div class="dw-cs-ring r1" id="dwCsR1"></div>
+      <div class="dw-cs-ring r2" id="dwCsR2"></div>
+      <div class="dw-cs-ring r3" id="dwCsR3"></div>
+      <div class="dw-cs-icon-wrap">
+        <div class="dw-cs-icon" id="dwCsIcon">📊</div>
+      </div>
+    </div>
+
+    <div class="dw-cs-tag" id="dwCsTag">// 03 · KPIs</div>
+    <div class="dw-cs-headline">Watch This <em id="dwCsHeadEm">Space.</em></div>
+    <div class="dw-cs-sub">Something exciting is on its way 🚀</div>
+    <div class="dw-cs-desc" id="dwCsDesc">Delivery performance metrics — velocity, quality and team health, all live.</div>
+
+    <div class="dw-cs-bar-wrap">
+      <div class="dw-cs-bar"><div class="dw-cs-bar-fill" id="dwCsBarFill"></div></div>
+      <div class="dw-cs-bar-lbl">In the works</div>
+    </div>
+  </div>
+
+  <div class="dw-cs-footer">Bluecopa · Delivery Wikipedia · 2026</div>
 </div>
 </body>
 </html>
