@@ -608,15 +608,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dw-brand-sep{height:1px;width:44px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12));}
 .dw-brand-sep.r{background:linear-gradient(90deg,rgba(255,255,255,.12),transparent);}
 .dw-brand-tagline{font-size:10px;color:rgba(232,232,240,.32);letter-spacing:.2em;text-transform:uppercase;font-family:'DM Mono',monospace;}
-.dw-hero{text-align:center;margin-bottom:56px;display:flex;flex-direction:column;align-items:center;}
-/* title-wrap sizes to the text width so the rule matches exactly */
-.dw-hero-title-wrap{display:flex;flex-direction:column;align-items:stretch;width:max-content;max-width:calc(100vw - 96px);}
-.dw-hero-title{font-family:'Playfair Display',serif;font-size:clamp(48px,7vw,88px);font-weight:900;line-height:1;letter-spacing:-.03em;margin-bottom:0;white-space:nowrap;background:linear-gradient(150deg,#ffffff 0%,rgba(255,248,215,1) 28%,rgba(232,201,122,1) 58%,rgba(195,148,44,1) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:dw-shimmer 6s ease-in-out infinite alternate;}
+.dw-hero{text-align:center;margin-bottom:56px;}
+.dw-hero-title{font-family:'Playfair Display',serif;font-size:clamp(58px,9vw,118px);font-weight:900;line-height:.95;letter-spacing:-.04em;margin-bottom:0;white-space:nowrap;background:linear-gradient(150deg,#ffffff 0%,rgba(255,248,215,1) 28%,rgba(232,201,122,1) 58%,rgba(195,148,44,1) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:dw-shimmer 6s ease-in-out infinite alternate;}
 @keyframes dw-shimmer{0%{filter:drop-shadow(0 0 40px rgba(232,201,122,.25));}100%{filter:drop-shadow(0 0 80px rgba(232,201,122,.55));}}
-/* Animated full-width gold rule */
-.dw-hero-rule{width:100%;height:2px;margin:16px 0 30px;border-radius:99px;background:rgba(232,201,122,.18);position:relative;overflow:hidden;box-shadow:0 0 10px rgba(232,201,122,.2);}
-.dw-hero-rule::after{content:'';position:absolute;top:0;left:0;height:100%;width:45%;background:linear-gradient(90deg,transparent 0%,rgba(232,201,122,.7) 30%,rgba(255,248,200,1) 50%,rgba(232,201,122,.7) 70%,transparent 100%);animation:dw-rule-sweep 2.4s ease-in-out infinite;}
-@keyframes dw-rule-sweep{0%{transform:translateX(-120%);}100%{transform:translateX(320%);}}
+/* Accent glow line below title */
+.dw-hero-rule{width:180px;height:1.5px;margin:22px auto 26px;background:linear-gradient(90deg,transparent 0%,rgba(232,201,122,.55) 30%,rgba(232,201,122,.8) 50%,rgba(232,201,122,.55) 70%,transparent 100%);border-radius:99px;box-shadow:0 0 12px rgba(232,201,122,.35);}
 @keyframes dw-blink{0%,100%{opacity:1;}50%{opacity:.3;}}
 .dw-hero-sub{font-size:16.5px;color:rgba(232,232,240,.52);max-width:540px;margin:0 auto 34px;line-height:1.85;font-weight:300;letter-spacing:.01em;}
 .dw-hero-stats{display:flex;justify-content:center;gap:0;}
@@ -4653,10 +4649,8 @@ function switchAdminTab(tab, btn, noHistory) {
 
     <!-- Hero -->
     <div class="dw-hero">
-      <div class="dw-hero-title-wrap">
-        <div class="dw-hero-title">Delivery Wikipedia</div>
-        <div class="dw-hero-rule"></div>
-      </div>
+      <div class="dw-hero-title">Delivery Wikipedia</div>
+      <div class="dw-hero-rule"></div>
       <div class="dw-hero-sub">The single source of truth for Bluecopa's delivery team — knowledge, skills, metrics, history, and learning, all in one place.</div>
       <div class="dw-hero-stats">
         <div class="dw-h-stat">
