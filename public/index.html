@@ -999,6 +999,12 @@ html{scroll-behavior:smooth;}
 .sm-chart-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(232,201,122,0.15),transparent);}
 .sm-chart-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px;}
 
+/* Progress badges inside skill matrix cells */
+.sm-prog{font-size:9px;font-family:'DM Mono',monospace;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:4px;margin-top:4px;display:block;text-align:center;white-space:nowrap;}
+.sm-prog-up{background:rgba(74,222,128,.14);color:#4ade80;border:1px solid rgba(74,222,128,.28);}
+.sm-prog-down{background:rgba(248,113,113,.14);color:#f87171;border:1px solid rgba(248,113,113,.28);}
+.sm-prog-same{background:rgba(156,163,175,.08);color:rgba(156,163,175,.55);border:1px solid rgba(156,163,175,.14);}
+
 /* Capture snapshot button */
 .sm-capture-btn{background:linear-gradient(135deg,#e8c97a 0%,#d4b55a 100%);color:#0f0f13;border:none;border-radius:9px;padding:9px 22px;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.09em;cursor:pointer;box-shadow:0 4px 12px rgba(232,201,122,0.22);transition:transform .18s,box-shadow .18s;}
 .sm-capture-btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(232,201,122,0.32);}
@@ -3786,12 +3792,17 @@ function smRender() {
 // ── Self-Assessment Grid ──────────────────────────────────────────────────────
 function smRenderGrid() {
   const wrap = document.getElementById('smAssessContent');
-  const { employees, processAreas, currentScores } = smData;
+  const { employees, processAreas, currentScores, snapshots } = smData;
 
   if (!employees.length || !processAreas.length) {
     wrap.innerHTML = '<div class="sm-empty">No employees or process areas configured yet.<br>Go to <strong>Admin Panel → 📈 Skill Matrix</strong> to add them.</div>';
     return;
   }
+
+  // Use the most recent snapshot as baseline for progress comparison
+  const prevSnap = snapshots && snapshots.length ? snapshots[snapshots.length - 1] : null;
+  const prevScores = prevSnap ? (prevSnap.scores || {}) : null;
+  const hasHistory = !!prevScores;
 
   let html = '<div class="sm-table-wrap"><table class="sm-table"><thead><tr>';
   html += '<th>Employee Name</th>';
@@ -3808,12 +3819,25 @@ function smRenderGrid() {
     html += `<tr><td>${emp}</td>`;
     processAreas.forEach(pa => {
       const v = scores[pa] || 0;
+      // Progress badge: compare current vs last snapshot
+      let badge = '';
+      if (hasHistory) {
+        const prev = (prevScores[emp] || {})[pa] || 0;
+        const diff = v - prev;
+        if (diff > 0) {
+          badge = `<div class="sm-prog sm-prog-up">↑ +${diff}</div>`;
+        } else if (diff < 0) {
+          badge = `<div class="sm-prog sm-prog-down">↓ ${diff}</div>`;
+        } else if (prev > 0 || v > 0) {
+          badge = `<div class="sm-prog sm-prog-same">━ no change</div>`;
+        }
+      }
       html += `<td><select class="sm-select lv-${v}" onchange="smSetScore('${emp.replace(/'/g,"\\'")}','${pa.replace(/'/g,"\\'")}',this.value,this)">`;
       html += `<option value="0"${v===0?' selected':''}>—</option>`;
       SM_LEVELS.slice(1).forEach((lv,i) => {
         html += `<option value="${i+1}"${v===i+1?' selected':''}>${lv}</option>`;
       });
-      html += `</select></td>`;
+      html += `</select>${badge}</td>`;
     });
     html += `<td class="${avg?'lv-'+(smScoreToStatus(avg).cls.slice(3)||'0'):'lv-0'}" style="font-weight:600;">${avg?avg.toFixed(1):'—'}</td>`;
     html += `<td class="${status.cls}">${status.label}</td></tr>`;
