@@ -1000,10 +1000,10 @@ html{scroll-behavior:smooth;}
 .sm-chart-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px;}
 
 /* Progress badges inside skill matrix cells */
-.sm-prog{font-size:9px;font-family:'DM Mono',monospace;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:4px;margin-top:4px;display:block;text-align:center;white-space:nowrap;}
-.sm-prog-up{background:rgba(74,222,128,.14);color:#4ade80;border:1px solid rgba(74,222,128,.28);}
-.sm-prog-down{background:rgba(248,113,113,.14);color:#f87171;border:1px solid rgba(248,113,113,.28);}
-.sm-prog-same{background:rgba(156,163,175,.08);color:rgba(156,163,175,.55);border:1px solid rgba(156,163,175,.14);}
+.sm-arrow{font-size:13px;font-weight:900;min-width:14px;text-align:center;flex-shrink:0;transition:color .2s;line-height:1;}
+.sm-arr-up{color:#4ade80;}
+.sm-arr-dn{color:#f87171;}
+.sm-arr-eq{color:rgba(156,163,175,.45);}
 
 /* Capture snapshot button */
 .sm-capture-btn{background:linear-gradient(135deg,#e8c97a 0%,#d4b55a 100%);color:#0f0f13;border:none;border-radius:9px;padding:9px 22px;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.09em;cursor:pointer;box-shadow:0 4px 12px rgba(232,201,122,0.22);transition:transform .18s,box-shadow .18s;}
@@ -3819,25 +3819,22 @@ function smRenderGrid() {
     html += `<tr><td>${emp}</td>`;
     processAreas.forEach(pa => {
       const v = scores[pa] || 0;
-      // Progress badge: compare current vs last snapshot
-      let badge = '';
+      // Progress arrow: compare current vs last snapshot
+      let arrowHtml = '<span class="sm-arrow"></span>';
       if (hasHistory) {
         const prev = (prevScores[emp] || {})[pa] || 0;
         const diff = v - prev;
-        if (diff > 0) {
-          badge = `<div class="sm-prog sm-prog-up">↑ +${diff}</div>`;
-        } else if (diff < 0) {
-          badge = `<div class="sm-prog sm-prog-down">↓ ${diff}</div>`;
-        } else if (prev > 0 || v > 0) {
-          badge = `<div class="sm-prog sm-prog-same">━ no change</div>`;
-        }
+        if (diff > 0)            arrowHtml = `<span class="sm-arrow sm-arr-up">↑</span>`;
+        else if (diff < 0)       arrowHtml = `<span class="sm-arrow sm-arr-dn">↓</span>`;
+        else if (prev>0||v>0)    arrowHtml = `<span class="sm-arrow sm-arr-eq">→</span>`;
       }
-      html += `<td><select class="sm-select lv-${v}" onchange="smSetScore('${emp.replace(/'/g,"\\'")}','${pa.replace(/'/g,"\\'")}',this.value,this)">`;
+      const empEsc = emp.replace(/'/g,"\\'"); const paEsc = pa.replace(/'/g,"\\'");
+      html += `<td><div style="display:flex;align-items:center;gap:4px;"><select class="sm-select lv-${v}" onchange="smSetScore('${empEsc}','${paEsc}',this.value,this)">`;
       html += `<option value="0"${v===0?' selected':''}>—</option>`;
       SM_LEVELS.slice(1).forEach((lv,i) => {
         html += `<option value="${i+1}"${v===i+1?' selected':''}>${lv}</option>`;
       });
-      html += `</select>${badge}</td>`;
+      html += `</select>${arrowHtml}</div></td>`;
     });
     html += `<td class="${avg?'lv-'+(smScoreToStatus(avg).cls.slice(3)||'0'):'lv-0'}" style="font-weight:600;">${avg?avg.toFixed(1):'—'}</td>`;
     html += `<td class="${status.cls}">${status.label}</td></tr>`;
@@ -3875,6 +3872,18 @@ function smSetScore(emp, pa, val, sel) {
   if (!smData.currentScores[emp]) smData.currentScores[emp] = {};
   smData.currentScores[emp][pa] = parseInt(val);
   sel.className = `sm-select lv-${val}`;
+  // Update progress arrow inline
+  const arrow = sel.parentElement && sel.parentElement.querySelector('.sm-arrow');
+  if (arrow && smData.snapshots && smData.snapshots.length) {
+    const prevSnap = smData.snapshots[smData.snapshots.length - 1];
+    const prev = ((prevSnap.scores || {})[emp] || {})[pa] || 0;
+    const cur = parseInt(val);
+    const diff = cur - prev;
+    if (diff > 0)           { arrow.className='sm-arrow sm-arr-up'; arrow.textContent='↑'; }
+    else if (diff < 0)      { arrow.className='sm-arrow sm-arr-dn'; arrow.textContent='↓'; }
+    else if (prev>0||cur>0) { arrow.className='sm-arrow sm-arr-eq'; arrow.textContent='→'; }
+    else                    { arrow.className='sm-arrow'; arrow.textContent=''; }
+  }
   // Recalculate avg & status for this row inline
   smUpdateRowStats(emp);
   smUpdateFooter();
@@ -3937,6 +3946,7 @@ async function smCaptureSnapshot() {
     });
     const snap = await r.json();
     smData.snapshots.push(snap);
+    smRenderGrid(); // refresh arrows against new baseline
     showToast(`Snapshot "${label}" captured!`);
   } catch(e) { showToast('Failed to capture snapshot'); }
 }
