@@ -1004,49 +1004,30 @@ html{scroll-behavior:smooth;}
 .sm-chart-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px;}
 
 /* ── Landing side-panel sliders ──────────────────────────────────────────── */
-.dw-sp-panel{position:absolute;z-index:15;top:50%;transform:translateY(-50%);width:calc(50% - 440px);min-width:190px;max-width:268px;}
-.dw-sp-panel.sp-l{left:18px;}
-.dw-sp-panel.sp-r{right:18px;}
-@media(max-width:1260px){.dw-sp-panel{display:none;}}
-.dw-sp-hdr{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase;display:flex;align-items:center;gap:8px;margin-bottom:10px;}
-.dw-sp-hdr::after{content:'';flex:1;height:1px;}
-.sp-l .dw-sp-hdr{color:rgba(232,201,122,.38);}
-.sp-l .dw-sp-hdr::after{background:rgba(232,201,122,.1);}
-.sp-r .dw-sp-hdr{color:rgba(122,180,255,.38);}
-.sp-r .dw-sp-hdr::after{background:rgba(122,180,255,.1);}
-.dw-sp-track{position:relative;height:252px;}
-.dw-sp-slide{position:absolute;inset:0;border-radius:14px;padding:16px 17px;background:rgba(255,255,255,.027);border:1px solid rgba(255,255,255,.055);backdrop-filter:blur(14px);display:flex;flex-direction:column;gap:8px;transition:opacity .55s ease,transform .55s ease;}
-.dw-sp-slide.sp-hidden{opacity:0;transform:translateY(9px);pointer-events:none;}
-.dw-sp-slide.sp-active{opacity:1;transform:translateY(0);}
-.dw-sp-cat-badge{display:inline-flex;align-items:center;gap:4px;font-size:8.5px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:99px;flex-shrink:0;align-self:flex-start;}
-.dw-sp-title{font-size:12.5px;font-weight:600;color:rgba(232,232,240,.9);line-height:1.44;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
-.dw-sp-excerpt{font-size:11px;color:rgba(122,122,150,.7);line-height:1.68;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;flex:1;}
-.dw-sp-foot{display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid rgba(255,255,255,.05);}
-.dw-sp-author{font-size:9px;font-family:'DM Mono',monospace;color:rgba(122,122,150,.5);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px;}
-.dw-sp-read{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.06em;cursor:pointer;transition:color .2s;flex-shrink:0;}
-.sp-l .dw-sp-read{color:rgba(232,201,122,.5);}
-.sp-l .dw-sp-read:hover{color:var(--accent);}
-.sp-r .dw-sp-read{color:rgba(122,180,255,.5);}
-.sp-r .dw-sp-read:hover{color:#7ab4ff;}
-/* category-summary slide */
-.dw-sp-cat-count{font-family:'Playfair Display',serif;font-size:40px;font-weight:700;line-height:1;}
-.dw-sp-cat-sub{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.15em;text-transform:uppercase;color:rgba(122,122,150,.5);margin-top:1px;}
-.dw-sp-art-list{display:flex;flex-direction:column;gap:5px;margin-top:4px;flex:1;}
-.dw-sp-art-row{font-size:11px;color:rgba(232,232,240,.65);line-height:1.38;display:flex;gap:6px;align-items:flex-start;}
-.dw-sp-art-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0;margin-top:5px;}
-/* stat slide */
-.dw-sp-stat-inner{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:5px;text-align:center;}
-.dw-sp-stat-icon{font-size:30px;line-height:1;margin-bottom:6px;}
-.dw-sp-stat-num{font-family:'Playfair Display',serif;font-size:44px;font-weight:700;line-height:1;}
-.sp-l .dw-sp-stat-num{color:var(--accent);}
-.sp-r .dw-sp-stat-num{color:#7ab4ff;}
-.dw-sp-stat-lbl{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:rgba(122,122,150,.5);margin-top:2px;}
-.dw-sp-stat-sub{font-size:11px;color:rgba(122,122,150,.55);line-height:1.65;max-width:190px;margin-top:7px;}
-/* dots */
-.dw-sp-dots{display:flex;gap:5px;justify-content:center;margin-top:8px;}
-.dw-sp-dot{width:4px;height:4px;border-radius:99px;background:rgba(255,255,255,.13);transition:all .35s;}
-.sp-l .dw-sp-dot.sp-dot-a{background:rgba(232,201,122,.5);width:14px;}
-.sp-r .dw-sp-dot.sp-dot-a{background:rgba(122,180,255,.5);width:14px;}
+/* ─── Landing gallery panels (full-bleed photo) ─── */
+.dw-sp-panel{position:absolute;z-index:15;top:50%;transform:translateY(-50%);width:21%;min-width:200px;max-width:275px;height:74vh;max-height:660px;border-radius:12px;overflow:hidden;}
+.dw-sp-panel.sp-l{left:14px;}
+.dw-sp-panel.sp-r{right:14px;}
+@media(max-width:1270px){.dw-sp-panel{display:none;}}
+.dw-sp-track{position:relative;width:100%;height:100%;}
+/* each slide = full-bleed photo */
+.dw-sp-slide{position:absolute;inset:0;background-size:cover;background-position:center;background-color:#0d0d10;transition:opacity 1.3s ease;}
+.dw-sp-slide.sp-hidden{opacity:0;pointer-events:none;}
+.dw-sp-slide.sp-active{opacity:1;}
+/* gradient overlays — heavy at top and bottom, clear in middle */
+.dw-sp-slide::before{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.62) 0%,rgba(0,0,0,.08) 28%,rgba(0,0,0,.08) 55%,rgba(0,0,0,.72) 78%,rgba(0,0,0,.93) 100%);z-index:1;}
+/* top chip label */
+.dw-sp-top{position:absolute;top:14px;left:14px;z-index:3;}
+.dw-sp-chip{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.15em;text-transform:uppercase;background:rgba(0,0,0,.42);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.13);border-radius:99px;padding:5px 12px;color:rgba(255,255,255,.7);}
+/* bottom caption */
+.dw-sp-cap{position:absolute;bottom:0;left:0;right:0;z-index:3;padding:16px 18px 20px;}
+.dw-sp-eyebrow{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:rgba(232,201,122,.72);margin-bottom:7px;}
+.dw-sp-caption-title{font-size:15px;font-weight:700;color:rgba(255,255,255,.92);line-height:1.38;margin-bottom:5px;font-family:'DM Sans',sans-serif;}
+.dw-sp-caption-sub{font-size:11.5px;color:rgba(255,255,255,.42);line-height:1.55;}
+/* dots — inside panel bottom-right */
+.dw-sp-dots{position:absolute;bottom:16px;right:16px;z-index:4;display:flex;gap:5px;}
+.dw-sp-dot{width:5px;height:5px;border-radius:99px;background:rgba(255,255,255,.28);transition:all .4s;cursor:pointer;}
+.dw-sp-dot.sp-dot-a{background:rgba(255,255,255,.92);width:18px;}
 /* ── Coming-Soon page ─────────────────────────────────────────────────────── */
 .dw-cs-overlay{position:fixed;inset:0;z-index:220;background:#09090d;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;font-family:'DM Sans',sans-serif;transition:opacity .35s;}
 .dw-cs-overlay.dw-cs-hidden{display:none;}
@@ -4830,24 +4811,18 @@ function switchAdminTab(tab, btn, noHistory) {
 
   </div><!-- /dw-page -->
 
-  <!-- Left panel: Knowledge Spotlight -->
+  <!-- Left gallery panel -->
   <div class="dw-sp-panel sp-l" id="dwSpLeft">
-    <div class="dw-sp-hdr">📚 Knowledge Spotlight</div>
     <div class="dw-sp-track" id="dwSpLeftTrack">
-      <div class="dw-sp-slide sp-active" style="align-items:center;justify-content:center;">
-        <div style="font-size:11px;color:rgba(122,122,150,.4);font-family:'DM Mono',monospace;">Loading articles…</div>
-      </div>
+      <div class="dw-sp-slide sp-active" style="background:#0d0d10;"></div>
     </div>
     <div class="dw-sp-dots" id="dwSpLeftDots"></div>
   </div>
 
-  <!-- Right panel: Explore Topics -->
+  <!-- Right gallery panel -->
   <div class="dw-sp-panel sp-r" id="dwSpRight">
-    <div class="dw-sp-hdr">🔍 Explore Topics</div>
     <div class="dw-sp-track" id="dwSpRightTrack">
-      <div class="dw-sp-slide sp-active" style="align-items:center;justify-content:center;">
-        <div style="font-size:11px;color:rgba(122,122,150,.4);font-family:'DM Mono',monospace;">Loading…</div>
-      </div>
+      <div class="dw-sp-slide sp-active" style="background:#0d0d10;"></div>
     </div>
     <div class="dw-sp-dots" id="dwSpRightDots"></div>
   </div>
@@ -5469,47 +5444,58 @@ function dwGoSkillMatrix(){
 }
 
 // ── Landing side-panel slideshows ────────────────────────────────────────
+// ── Landing gallery panels ─────────────────────────────────────────────────
 const DW_SP_TIMERS = {};
 let dwSpReady = false;
 
-const DW_SP_CAT_COLOR = { 'Platform':'#00c8cc','Product':'#a78bfa','Onboarding':'#34d399','Finance & FP&A':'#f59e0b','Implementation stories – Unique scenarios':'#f87171' };
-const DW_SP_CAT_ICON  = { 'Platform':'⚙️','Product':'📦','Onboarding':'🚀','Finance & FP&A':'💹','Implementation stories – Unique scenarios':'🏗️' };
-function dwSpCatColor(c){ return DW_SP_CAT_COLOR[c]||'#e8c97a'; }
-function dwSpCatIcon(c) { return DW_SP_CAT_ICON[c] ||'📝'; }
-function dwSpStrip(h){ return (h||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim(); }
+// Curated Unsplash photos — themed per section
+const DW_SP_LEFT = [
+  { img:'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=320&h=680&fit=crop&q=82',
+    chip:'📚 Knowledge Articles', eye:'Learn · Grow · Share',
+    title:'{artCount} Articles Published', sub:'Your team\'s single source of truth' },
+  { img:'https://images.unsplash.com/photo-1456324504439-367cee3b3c32?w=320&h=680&fit=crop&q=82',
+    chip:'📖 Guides & How-Tos', eye:'Step-by-step',
+    title:'Platform deep-dives', sub:'Covering every Bluecopa feature end-to-end' },
+  { img:'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=320&h=680&fit=crop&q=82',
+    chip:'🤝 Team Knowledge', eye:'Collaborative',
+    title:'Written by the team', sub:'For the team, by the team' },
+  { img:'https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=320&h=680&fit=crop&q=82',
+    chip:'📂 Categories', eye:'Organised',
+    title:'{catCount} Topic Categories', sub:'Platform · Product · Finance · Onboarding & more' },
+];
+
+const DW_SP_RIGHT = [
+  { img:'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=320&h=680&fit=crop&q=82',
+    chip:'📊 KPIs', eye:'Coming Soon',
+    title:'Live Performance Metrics', sub:'Velocity, quality & team health in one dashboard' },
+  { img:'https://images.unsplash.com/photo-1529699211952-734e80c4d42b?w=320&h=680&fit=crop&q=82',
+    chip:'🧩 Process Puzzle', eye:'Interactive Learning',
+    title:'Learn by Playing', sub:'Weekly process knowledge challenges for the team' },
+  { img:'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=320&h=680&fit=crop&q=82',
+    chip:'🧠 Skill Matrix', eye:'Track Progress',
+    title:'{teamCount} Team Members', sub:'Skills mapped across all process areas' },
+  { img:'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=320&h=680&fit=crop&q=82',
+    chip:'🏛 Delivery Journey', eye:'Coming Soon',
+    title:'Past Implementations', sub:'What we built, what we learned, what comes next' },
+];
 
 async function initDwSidePanels(){
   if(dwSpReady) return;
-  let arts = allArticles && allArticles.length ? allArticles : [];
-  if(!arts.length){
-    try{ const r=await fetch('/api/articles'); if(r.ok) arts=await r.json(); }catch(e){}
-  }
-  if(!arts.length) return;
   dwSpReady = true;
 
-  // ── Left: individual article cards (shuffled, up to 7) ──
-  const picked = [...arts].sort(()=>Math.random()-.5).slice(0,Math.min(7,arts.length));
-  dwSpBuildSlider('dwSpLeftTrack','dwSpLeftDots','left', picked.map(a=>({
-    kind:'article', cat:a.category||'Article', title:a.title||'Untitled',
-    excerpt:dwSpStrip(a.content||'').slice(0,115), author:a.author||'Team', id:a.id
-  })));
+  const artCount = allArticles ? allArticles.length : 0;
+  const cats = allArticles ? [...new Set(allArticles.map(a=>a.category).filter(Boolean))].length : 0;
+  let teamCount = 0;
+  try{ const r=await fetch('/api/skillmatrix'); if(r.ok){ const d=await r.json(); teamCount=d.employees?.length||0; } }catch(e){}
 
-  // ── Right: category summaries + optional stat slide ──
-  const catMap={};
-  arts.forEach(a=>{ const c=a.category||'General'; if(!catMap[c])catMap[c]=[]; catMap[c].push(a.title); });
-  const rightSlides = Object.entries(catMap)
-    .sort((a,b)=>b[1].length-a[1].length)
-    .map(([cat,titles])=>({ kind:'category', cat, count:titles.length, samples:titles.slice(0,3) }));
-  let smInfo=null;
-  try{ const r=await fetch('/api/skillmatrix'); if(r.ok) smInfo=await r.json(); }catch(e){}
-  if(smInfo&&smInfo.employees&&smInfo.employees.length){
-    rightSlides.push({ kind:'stat', icon:'🧠', num:smInfo.employees.length,
-      label:'Team Members', sub:`Tracking ${smInfo.processAreas?.length||0} process areas in the Skill Matrix` });
-  }
-  dwSpBuildSlider('dwSpRightTrack','dwSpRightDots','right', rightSlides);
+  const left  = DW_SP_LEFT.map(s=>({...s, title:s.title.replace('{artCount}',artCount||'—').replace('{catCount}',cats||'—')}));
+  const right = DW_SP_RIGHT.map(s=>({...s, title:s.title.replace('{teamCount}',teamCount||'—')}));
+
+  dwSpBuildSlider('dwSpLeftTrack','dwSpLeftDots', left);
+  dwSpBuildSlider('dwSpRightTrack','dwSpRightDots', right);
 }
 
-function dwSpBuildSlider(trackId, dotsId, side, slides){
+function dwSpBuildSlider(trackId, dotsId, slides){
   const track=document.getElementById(trackId);
   const dotsEl=document.getElementById(dotsId);
   if(!track||!slides.length) return;
@@ -5519,38 +5505,20 @@ function dwSpBuildSlider(trackId, dotsId, side, slides){
   slides.forEach((s,i)=>{
     const div=document.createElement('div');
     div.className='dw-sp-slide '+(i===0?'sp-active':'sp-hidden');
-
-    if(s.kind==='article'){
-      const col=dwSpCatColor(s.cat);
-      div.innerHTML=`
-        <div class="dw-sp-cat-badge" style="background:${col}1a;color:${col};border:1px solid ${col}2e;">● ${s.cat}</div>
-        <div class="dw-sp-title">${s.title}</div>
-        <div class="dw-sp-excerpt">${s.excerpt}…</div>
-        <div class="dw-sp-foot">
-          <span class="dw-sp-author">${s.author}</span>
-          <span class="dw-sp-read">Read →</span>
-        </div>`;
-      div.querySelector('.dw-sp-read').onclick=()=>{ dwGoKnowledge(); setTimeout(()=>viewArticle(s.id),60); };
-    } else if(s.kind==='category'){
-      const col=dwSpCatColor(s.cat); const ico=dwSpCatIcon(s.cat);
-      const rows=s.samples.map(t=>`<div class="dw-sp-art-row"><span class="dw-sp-art-dot" style="background:${col};"></span><span>${t}</span></div>`).join('');
-      div.innerHTML=`
-        <div class="dw-sp-cat-badge" style="background:${col}1a;color:${col};border:1px solid ${col}2e;">${ico} ${s.cat}</div>
-        <div class="dw-sp-cat-count" style="color:${col}">${s.count}</div>
-        <div class="dw-sp-cat-sub">Article${s.count>1?'s':''} published</div>
-        <div class="dw-sp-art-list">${rows}</div>`;
-    } else if(s.kind==='stat'){
-      div.innerHTML=`<div class="dw-sp-stat-inner">
-        <div class="dw-sp-stat-icon">${s.icon}</div>
-        <div class="dw-sp-stat-num">${s.num}</div>
-        <div class="dw-sp-stat-lbl">${s.label}</div>
-        <div class="dw-sp-stat-sub">${s.sub}</div>
+    div.style.backgroundImage=`url('${s.img}')`;
+    div.innerHTML=`
+      <div class="dw-sp-top">
+        <span class="dw-sp-chip">${s.chip}</span>
+      </div>
+      <div class="dw-sp-cap">
+        <div class="dw-sp-eyebrow">${s.eye}</div>
+        <div class="dw-sp-caption-title">${s.title}</div>
+        <div class="dw-sp-caption-sub">${s.sub}</div>
       </div>`;
-    }
     track.appendChild(div);
-
     const dot=document.createElement('div');
     dot.className='dw-sp-dot'+(i===0?' sp-dot-a':'');
+    dot.onclick=()=>dwSpGoTo(trackId,dotsId,slides.length,i);
     dotsEl.appendChild(dot);
   });
 
@@ -5565,9 +5533,21 @@ function dwSpBuildSlider(trackId, dotsId, side, slides){
     allS[cur].classList.replace('sp-hidden','sp-active');
     allD[cur].classList.add('sp-dot-a');
   }
-  DW_SP_TIMERS[trackId]=setInterval(advance,5000);
+  DW_SP_TIMERS[trackId]=setInterval(advance,5800);
   track.addEventListener('mouseenter',()=>clearInterval(DW_SP_TIMERS[trackId]));
-  track.addEventListener('mouseleave',()=>{ DW_SP_TIMERS[trackId]=setInterval(advance,5000); });
+  track.addEventListener('mouseleave',()=>{ DW_SP_TIMERS[trackId]=setInterval(advance,5800); });
+}
+
+function dwSpGoTo(trackId,dotsId,total,idx){
+  clearInterval(DW_SP_TIMERS[trackId]);
+  const track=document.getElementById(trackId);
+  const dotsEl=document.getElementById(dotsId);
+  if(!track) return;
+  track.querySelectorAll('.dw-sp-slide').forEach((s,i)=>{
+    s.classList.toggle('sp-active',i===idx);
+    s.classList.toggle('sp-hidden',i!==idx);
+  });
+  dotsEl.querySelectorAll('.dw-sp-dot').forEach((d,i)=>d.classList.toggle('sp-dot-a',i===idx));
 }
 
 const DW_CS_CONFIG = {
