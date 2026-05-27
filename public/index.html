@@ -1008,18 +1008,18 @@ html{scroll-behavior:smooth;}
 .dw-side-deco.sd-l{left:14px;}
 .dw-side-deco.sd-r{right:14px;}
 @media(max-width:1265px){.dw-side-deco{display:none;}}
-/* LEFT: scrolling knowledge stream */
-.dw-stream-shell{width:100%;height:100%;border-radius:14px;overflow:hidden;position:relative;background:rgba(13,13,18,.72);border:1px solid rgba(232,201,122,.09);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);mask-image:linear-gradient(to bottom,transparent 0%,#000 9%,#000 91%,transparent 100%);-webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 9%,#000 91%,transparent 100%);}
-.dw-stream-hdr{position:absolute;top:0;left:0;right:0;z-index:4;padding:14px 16px 6px;pointer-events:none;}
-.dw-stream-hdr-txt{font-size:8.5px;font-family:'DM Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:rgba(232,201,122,.3);display:flex;align-items:center;gap:7px;}
-.dw-stream-hdr-txt::before{content:'';width:3px;height:3px;border-radius:50%;background:rgba(232,201,122,.5);flex-shrink:0;animation:pulse 2.5s ease-in-out infinite;}
-.dw-stream-inner{display:flex;flex-direction:column;padding:44px 12px 12px;gap:7px;will-change:transform;}
-.dw-stream-inner.dw-si-run{animation:dw-stream-rise var(--sdur,60s) linear infinite;}
+/* LEFT: scrolling icon tiles */
+.dw-stream-shell{width:100%;height:100%;border-radius:14px;overflow:hidden;position:relative;background:rgba(13,13,18,.72);border:1px solid rgba(232,201,122,.09);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);mask-image:linear-gradient(to bottom,transparent 0%,#000 11%,#000 89%,transparent 100%);-webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 11%,#000 89%,transparent 100%);}
+.dw-stream-inner{display:flex;flex-direction:column;padding:10px 12px;gap:10px;will-change:transform;}
+.dw-stream-inner.dw-si-run{animation:dw-stream-rise var(--sdur,48s) linear infinite;}
 @keyframes dw-stream-rise{from{transform:translateY(0);}to{transform:translateY(-50%);}}
-.dw-sc{background:rgba(255,255,255,.038);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:10px 12px;display:flex;gap:9px;align-items:flex-start;flex-shrink:0;}
-.dw-sc-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:3px;}
-.dw-sc-title{font-size:11.5px;font-weight:600;color:rgba(230,230,242,.8);line-height:1.44;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.dw-sc-meta{font-size:9px;font-family:'DM Mono',monospace;color:rgba(120,120,148,.55);margin-top:4px;letter-spacing:.03em;}
+/* icon tile card */
+.dw-itile{border-radius:14px;padding:22px 16px 18px;display:flex;flex-direction:column;align-items:center;gap:11px;flex-shrink:0;text-align:center;border:1px solid;position:relative;overflow:hidden;}
+.dw-itile::before{content:'';position:absolute;inset:0;opacity:.07;background:radial-gradient(circle at 50% 30%,var(--tc,#e8c97a),transparent 70%);}
+.dw-itile-icon{font-size:54px;line-height:1;position:relative;z-index:1;filter:drop-shadow(0 0 14px var(--tc,#e8c97a));}
+.dw-itile-img{width:60px;height:60px;object-fit:contain;position:relative;z-index:1;filter:drop-shadow(0 0 14px rgba(232,201,122,.55)) brightness(1.1);}
+.dw-itile-name{font-size:13.5px;font-weight:700;color:rgba(235,235,245,.9);font-family:'DM Sans',sans-serif;letter-spacing:.01em;position:relative;z-index:1;}
+.dw-itile-sub{font-size:9.5px;font-family:'DM Mono',monospace;letter-spacing:.07em;color:rgba(120,120,148,.62);position:relative;z-index:1;margin-top:-4px;}
 /* RIGHT: particle constellation */
 .dw-constel-shell{width:100%;height:100%;border-radius:14px;overflow:hidden;position:relative;background:rgba(10,10,16,.74);border:1px solid rgba(122,180,255,.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
 #dwConstellCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
@@ -1856,7 +1856,7 @@ async function loadAll() {
   applyFilters();
   document.getElementById('siteTitle').textContent = siteSettings.siteTitle || 'KnowledgeHub';
   if(typeof updateLandingStats==='function') updateLandingStats();
-  initDwStream(); // populate scrolling feed with real article data
+  initDwStream(); // icon tile stream (static tiles, no article data needed)
 }
 
 function applyRestrictions() {
@@ -4807,12 +4807,9 @@ function switchAdminTab(tab, btn, noHistory) {
 
   </div><!-- /dw-page -->
 
-  <!-- LEFT panel: live scrolling article feed -->
+  <!-- LEFT panel: scrolling icon tiles -->
   <div class="dw-side-deco sd-l">
     <div class="dw-stream-shell">
-      <div class="dw-stream-hdr">
-        <div class="dw-stream-hdr-txt">Live Knowledge Feed</div>
-      </div>
       <div class="dw-stream-inner" id="dwStreamInner"></div>
     </div>
   </div>
@@ -5449,25 +5446,33 @@ function dwGoSkillMatrix(){
 const DW_CAT_COL = {'Platform':'#00c8cc','Product':'#a78bfa','Onboarding':'#34d399','Finance & FP&A':'#f59e0b','Implementation stories – Unique scenarios':'#f87171'};
 let dwConstellRAF = null;
 
+// Icon tiles for the left scrolling panel
+const DW_STREAM_TILES = [
+  { type:'img',  src:'/bluecopa-logo.png', name:'Bluecopa',        sub:'Delivery Platform',      col:'#e8c97a' },
+  { type:'emoji',icon:'📚',               name:'Knowledge Hub',   sub:'Articles & Guides',       col:'#00c8cc' },
+  { type:'emoji',icon:'🧠',               name:'Skill Matrix',    sub:'Track Team Skills',        col:'#a78bfa' },
+  { type:'emoji',icon:'🏆',               name:'Leaderboard',     sub:'Process Puzzle Scores',    col:'#f59e0b' },
+  { type:'emoji',icon:'🏛',               name:'Delivery Stories',sub:'Implementation History',   col:'#34d399' },
+  { type:'emoji',icon:'🧩',               name:'Process Puzzle',  sub:'Learn by Playing',         col:'#f87171' },
+];
+
 function initDwStream() {
   const inner = document.getElementById('dwStreamInner');
   if (!inner || inner.classList.contains('dw-si-run')) return;
-  const arts = allArticles && allArticles.length ? allArticles : [];
-  if (!arts.length) return;
-  const shuffled = [...arts].sort(() => Math.random() - .5);
-  const doubled  = [...shuffled, ...shuffled]; // duplicate → seamless -50% loop
-  inner.innerHTML = doubled.map(a => {
-    const col = DW_CAT_COL[a.category] || '#e8c97a';
-    return `<div class="dw-sc">
-      <div class="dw-sc-dot" style="background:${col};box-shadow:0 0 7px ${col}55;"></div>
-      <div>
-        <div class="dw-sc-title">${a.title}</div>
-        <div class="dw-sc-meta">${a.category||'Article'} · ${a.author||'Team'}</div>
-      </div>
+  // duplicate tiles for seamless -50% loop
+  const doubled = [...DW_STREAM_TILES, ...DW_STREAM_TILES];
+  inner.innerHTML = doubled.map(t => {
+    const iconHtml = t.type === 'img'
+      ? `<img class="dw-itile-img" src="${t.src}" alt="${t.name}">`
+      : `<div class="dw-itile-icon">${t.icon}</div>`;
+    return `<div class="dw-itile" style="--tc:${t.col};background:rgba(255,255,255,.032);border-color:${t.col}18;">
+      ${iconHtml}
+      <div class="dw-itile-name">${t.name}</div>
+      <div class="dw-itile-sub">${t.sub}</div>
     </div>`;
   }).join('');
-  // ~3.8s per card → smooth continuous scroll
-  inner.style.setProperty('--sdur', `${Math.max(35, shuffled.length * 3.8)}s`);
+  // 7.5s per tile × 6 tiles = 45s for one full cycle
+  inner.style.setProperty('--sdur', `${DW_STREAM_TILES.length * 7.5}s`);
   inner.classList.add('dw-si-run');
 }
 
