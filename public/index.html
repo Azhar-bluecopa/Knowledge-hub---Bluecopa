@@ -595,6 +595,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 @keyframes dw-sweep-anim{0%{left:-60%;}100%{left:140%;}}
 .dw-vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse 90% 80% at 50% 40%,transparent 30%,rgba(15,15,19,.7) 100%);}
 .dw-page{position:relative;z-index:10;width:100%;display:flex;flex-direction:column;align-items:center;padding:52px 48px 80px;}
+/* Landing admin button — top-right corner */
+.dw-admin-fab{position:absolute;top:22px;right:28px;z-index:20;display:none;align-items:center;gap:7px;background:rgba(232,201,122,.08);border:1px solid rgba(232,201,122,.25);color:rgba(232,201,122,.75);border-radius:9px;padding:9px 20px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:all .2s;}
+.dw-admin-fab:hover{background:rgba(232,201,122,.16);border-color:rgba(232,201,122,.55);color:var(--accent);box-shadow:0 0 18px rgba(232,201,122,.12);transform:translateY(-1px);}
+.dw-admin-fab .dw-afab-dot{width:7px;height:7px;border-radius:50%;background:#f87171;border:1.5px solid #0f0f13;display:none;animation:pulse 2s infinite;}
 .dw-brand-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:44px;}
 .dw-brand-ring{width:100px;height:100px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(232,201,122,.04);border:1px solid rgba(232,201,122,.2);box-shadow:0 0 0 10px rgba(232,201,122,.03),0 0 0 20px rgba(232,201,122,.015),0 0 36px rgba(232,201,122,.12);margin-bottom:16px;animation:dw-ring-pulse 3s ease-in-out infinite;}
 @keyframes dw-ring-pulse{0%,100%{box-shadow:0 0 0 10px rgba(232,201,122,.03),0 0 0 20px rgba(232,201,122,.015),0 0 36px rgba(232,201,122,.12);}50%{box-shadow:0 0 0 14px rgba(232,201,122,.06),0 0 0 28px rgba(232,201,122,.025),0 0 55px rgba(232,201,122,.22);}}
@@ -1053,7 +1057,6 @@ html{scroll-behavior:smooth;}
       <div style="margin-top:2px"><span class="online-dot"></span><span id="onlineStatus">connecting…</span></div>
     </div>
     <div class="admin-btn-wrap">
-      <button class="admin-btn" onclick="openAdminPanel()" title="Admin Panel">⚙ Admin</button>
       <span class="admin-btn-dot" id="adminBtnDot"></span>
     </div>
   </div>
@@ -1669,6 +1672,9 @@ function renderUserInfo() {
   const isAdm = !!getAdminPwd();
   document.getElementById('adminBadge').style.display = isAdm ? 'inline-flex' : 'none';
   document.getElementById('exportBtn').style.display  = isAdm ? 'inline-flex' : 'none';
+  // Show Admin button on landing page
+  const fab = document.getElementById('dwAdminFab');
+  if (fab) fab.style.display = isAdm ? 'flex' : 'none';
 }
 function openIdentityModal() {
   const u = getUser();
@@ -3007,11 +3013,14 @@ function updateRequestBadge(requests) {
   // update tab badge
   const existing = tab.querySelector('.tab-badge');
   if (existing) existing.remove();
+  const fabDot = document.getElementById('dwAdminFabDot');
   if (pending > 0) {
     tab.insertAdjacentHTML('beforeend', `<span class="tab-badge">${pending}</span>`);
     if (dot) dot.style.display = 'block';
+    if (fabDot) fabDot.style.display = 'block';
   } else {
     if (dot) dot.style.display = 'none';
+    if (fabDot) fabDot.style.display = 'none';
   }
 }
 
@@ -4568,6 +4577,12 @@ function switchAdminTab(tab, btn, noHistory) {
 ═══════════════════════════════════════════ -->
 <canvas id="dw-canvas"></canvas>
 <div id="dwLanding">
+  <!-- Admin shortcut — top-right, visible only when logged in as admin -->
+  <button class="dw-admin-fab" id="dwAdminFab" onclick="openAdminPanel()">
+    ⚙ Admin Panel
+    <span class="dw-afab-dot" id="dwAdminFabDot"></span>
+  </button>
+
   <div class="dw-orbs">
     <div class="dw-orb dw-orb1"></div>
     <div class="dw-orb dw-orb2"></div>
