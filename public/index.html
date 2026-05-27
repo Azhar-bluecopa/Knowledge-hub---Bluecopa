@@ -608,9 +608,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dw-brand-sep{height:1px;width:44px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12));}
 .dw-brand-sep.r{background:linear-gradient(90deg,rgba(255,255,255,.12),transparent);}
 .dw-brand-tagline{font-size:10px;color:rgba(232,232,240,.32);letter-spacing:.2em;text-transform:uppercase;font-family:'DM Mono',monospace;}
-.dw-hero{text-align:center;margin-bottom:56px;}
-/* title-wrap constrains the rule width to match the text */
-.dw-hero-title-wrap{display:inline-flex;flex-direction:column;align-items:stretch;max-width:calc(100vw - 96px);}
+.dw-hero{text-align:center;margin-bottom:56px;display:flex;flex-direction:column;align-items:center;}
+/* title-wrap sizes to the text width so the rule matches exactly */
+.dw-hero-title-wrap{display:flex;flex-direction:column;align-items:stretch;width:max-content;max-width:calc(100vw - 96px);}
 .dw-hero-title{font-family:'Playfair Display',serif;font-size:clamp(48px,7vw,88px);font-weight:900;line-height:1;letter-spacing:-.03em;margin-bottom:0;white-space:nowrap;background:linear-gradient(150deg,#ffffff 0%,rgba(255,248,215,1) 28%,rgba(232,201,122,1) 58%,rgba(195,148,44,1) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:dw-shimmer 6s ease-in-out infinite alternate;}
 @keyframes dw-shimmer{0%{filter:drop-shadow(0 0 40px rgba(232,201,122,.25));}100%{filter:drop-shadow(0 0 80px rgba(232,201,122,.55));}}
 /* Animated full-width gold rule */
