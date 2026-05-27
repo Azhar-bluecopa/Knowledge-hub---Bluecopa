@@ -1003,29 +1003,6 @@ html{scroll-behavior:smooth;}
 .sm-chart-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(232,201,122,0.15),transparent);}
 .sm-chart-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px;}
 
-/* ── Landing decorative side panels ──────────────────────────────────────── */
-.dw-side-deco{position:absolute;top:50%;transform:translateY(-50%);z-index:15;width:21%;min-width:205px;max-width:275px;height:74vh;max-height:660px;}
-.dw-side-deco.sd-l{left:14px;}
-.dw-side-deco.sd-r{right:14px;}
-@media(max-width:1265px){.dw-side-deco{display:none;}}
-/* LEFT: scrolling icon tiles */
-.dw-stream-shell{width:100%;height:100%;border-radius:14px;overflow:hidden;position:relative;background:rgba(13,13,18,.72);border:1px solid rgba(232,201,122,.09);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);mask-image:linear-gradient(to bottom,transparent 0%,#000 11%,#000 89%,transparent 100%);-webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 11%,#000 89%,transparent 100%);}
-.dw-stream-inner{display:flex;flex-direction:column;padding:10px 12px;gap:10px;will-change:transform;}
-.dw-stream-inner.dw-si-run{animation:dw-stream-rise var(--sdur,48s) linear infinite;}
-@keyframes dw-stream-rise{from{transform:translateY(0);}to{transform:translateY(-50%);}}
-/* icon tile card */
-.dw-itile{border-radius:14px;padding:22px 16px 18px;display:flex;flex-direction:column;align-items:center;gap:11px;flex-shrink:0;text-align:center;border:1px solid;position:relative;overflow:hidden;}
-.dw-itile::before{content:'';position:absolute;inset:0;opacity:.07;background:radial-gradient(circle at 50% 30%,var(--tc,#e8c97a),transparent 70%);}
-.dw-itile-icon{font-size:54px;line-height:1;position:relative;z-index:1;filter:drop-shadow(0 0 14px var(--tc,#e8c97a));}
-.dw-itile-img{width:60px;height:60px;object-fit:contain;position:relative;z-index:1;filter:drop-shadow(0 0 14px rgba(232,201,122,.55)) brightness(1.1);}
-.dw-itile-name{font-size:13.5px;font-weight:700;color:rgba(235,235,245,.9);font-family:'DM Sans',sans-serif;letter-spacing:.01em;position:relative;z-index:1;}
-.dw-itile-sub{font-size:9.5px;font-family:'DM Mono',monospace;letter-spacing:.07em;color:rgba(120,120,148,.62);position:relative;z-index:1;margin-top:-4px;}
-/* RIGHT: particle constellation */
-.dw-constel-shell{width:100%;height:100%;border-radius:14px;overflow:hidden;position:relative;background:rgba(10,10,16,.74);border:1px solid rgba(122,180,255,.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
-#dwConstellCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
-.dw-constel-hdr{position:absolute;top:14px;left:0;right:0;text-align:center;z-index:3;font-size:8.5px;font-family:'DM Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:rgba(122,180,255,.28);pointer-events:none;display:flex;align-items:center;justify-content:center;gap:7px;}
-.dw-constel-hdr::before{content:'';width:3px;height:3px;border-radius:50%;background:rgba(122,180,255,.45);animation:pulse 2s ease-in-out infinite;}
-.dw-constel-ftr{position:absolute;bottom:14px;left:0;right:0;text-align:center;z-index:3;font-size:8px;font-family:'DM Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:rgba(122,180,255,.18);pointer-events:none;}
 /* ── Coming-Soon page ─────────────────────────────────────────────────────── */
 .dw-cs-overlay{position:fixed;inset:0;z-index:220;background:#09090d;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;font-family:'DM Sans',sans-serif;transition:opacity .35s;}
 .dw-cs-overlay.dw-cs-hidden{display:none;}
@@ -1856,7 +1833,6 @@ async function loadAll() {
   applyFilters();
   document.getElementById('siteTitle').textContent = siteSettings.siteTitle || 'KnowledgeHub';
   if(typeof updateLandingStats==='function') updateLandingStats();
-  initDwStream(); // icon tile stream (static tiles, no article data needed)
 }
 
 function applyRestrictions() {
@@ -4808,13 +4784,6 @@ function switchAdminTab(tab, btn, noHistory) {
   </div><!-- /dw-page -->
 
   <!-- LEFT panel: scrolling icon tiles -->
-  <div class="dw-side-deco sd-l">
-    <div class="dw-stream-shell">
-      <div class="dw-stream-inner" id="dwStreamInner"></div>
-    </div>
-  </div>
-
-  <!-- RIGHT panel: particle constellation -->
 
 </div><!-- /dwLanding -->
 
@@ -5377,8 +5346,6 @@ function showLanding(){
   document.querySelectorAll('.dw-tooltip').forEach(t=>t.classList.remove('open'));
   // restart canvas
   dwCanvasRunning=true;
-  // restart constellation (needs visible DOM for sizing)
-  setTimeout(initDwConstellation, 60);
   // refresh live stats
   updateLandingStats();
 }
@@ -5419,7 +5386,6 @@ function hideLanding(){
   document.getElementById('dwLanding').classList.add('dw-hidden');
   document.getElementById('dw-canvas').style.display='none';
   dwCanvasRunning=false;
-  if(dwConstellRAF){ cancelAnimationFrame(dwConstellRAF); dwConstellRAF=null; }
 }
 
 function dwGoKnowledge(){
@@ -5435,107 +5401,6 @@ function dwGoSkillMatrix(){
   showSkillMatrix();
 }
 
-// ── Landing side panels: stream + constellation ───────────────────────────
-const DW_CAT_COL = {'Platform':'#00c8cc','Product':'#a78bfa','Onboarding':'#34d399','Finance & FP&A':'#f59e0b','Implementation stories – Unique scenarios':'#f87171'};
-let dwConstellRAF = null;
-
-// Icon tiles for the left scrolling panel
-const DW_STREAM_TILES = [
-  { type:'img',  src:'/bluecopa-logo.png', name:'Bluecopa',        sub:'Delivery Platform',      col:'#e8c97a' },
-  { type:'emoji',icon:'📚',               name:'Knowledge Hub',   sub:'Articles & Guides',       col:'#00c8cc' },
-  { type:'emoji',icon:'🧠',               name:'Skill Matrix',    sub:'Track Team Skills',        col:'#a78bfa' },
-  { type:'emoji',icon:'🏆',               name:'Leaderboard',     sub:'Process Puzzle Scores',    col:'#f59e0b' },
-  { type:'emoji',icon:'🏛',               name:'Delivery Stories',sub:'Implementation History',   col:'#34d399' },
-  { type:'emoji',icon:'🧩',               name:'Process Puzzle',  sub:'Learn by Playing',         col:'#f87171' },
-];
-
-function initDwStream() {
-  const inner = document.getElementById('dwStreamInner');
-  if (!inner || inner.classList.contains('dw-si-run')) return;
-  // duplicate tiles for seamless -50% loop
-  const doubled = [...DW_STREAM_TILES, ...DW_STREAM_TILES];
-  inner.innerHTML = doubled.map(t => {
-    const iconHtml = t.type === 'img'
-      ? `<img class="dw-itile-img" src="${t.src}" alt="${t.name}">`
-      : `<div class="dw-itile-icon">${t.icon}</div>`;
-    return `<div class="dw-itile" style="--tc:${t.col};background:rgba(255,255,255,.032);border-color:${t.col}18;">
-      ${iconHtml}
-      <div class="dw-itile-name">${t.name}</div>
-      <div class="dw-itile-sub">${t.sub}</div>
-    </div>`;
-  }).join('');
-  // 7.5s per tile × 6 tiles = 45s for one full cycle
-  inner.style.setProperty('--sdur', `${DW_STREAM_TILES.length * 7.5}s`);
-  inner.classList.add('dw-si-run');
-}
-
-function initDwConstellation() {
-  const canvas = document.getElementById('dwConstellCanvas');
-  if (!canvas) return;
-  if (dwConstellRAF) { cancelAnimationFrame(dwConstellRAF); dwConstellRAF = null; }
-  const shell = canvas.parentElement;
-  const W = canvas.width  = shell.offsetWidth  || 272;
-  const H = canvas.height = shell.offsetHeight || 660;
-  const ctx = canvas.getContext('2d');
-
-  const LABELS = ['Knowledge','Skill Matrix','KPIs','Process','Delivery','Team','Roadmap','Learning','Platform','Product','Finance','Onboarding'];
-  const nodes = Array.from({length:38}, (_,i) => ({
-    x: Math.random()*W, y: Math.random()*H,
-    vx:(Math.random()-.5)*.42, vy:(Math.random()-.5)*.42,
-    r: i<12 ? 2.8+Math.random() : Math.random()*1.6+.7,
-    label: i<LABELS.length ? LABELS[i] : null,
-    phase: Math.random()*Math.PI*2,
-    isKey: i<12,
-    col: i%3===0 ? '232,201,122' : i%3===1 ? '122,180,255' : '180,220,255',
-    bright: i<12 ? .9+Math.random()*.1 : Math.random()*.5+.25,
-  }));
-
-  function tick() {
-    ctx.clearRect(0,0,W,H);
-    // soft central glow
-    const bg = ctx.createRadialGradient(W/2,H*0.45,0,W/2,H*0.45,W*.65);
-    bg.addColorStop(0,'rgba(122,180,255,.045)'); bg.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
-
-    nodes.forEach(n => {
-      n.x+=n.vx; n.y+=n.vy;
-      if(n.x<-12)n.x=W+12; else if(n.x>W+12)n.x=-12;
-      if(n.y<-12)n.y=H+12; else if(n.y>H+12)n.y=-12;
-      n.phase+=.013;
-    });
-
-    // connections
-    for(let i=0;i<nodes.length;i++) for(let j=i+1;j<nodes.length;j++){
-      const dx=nodes[i].x-nodes[j].x, dy=nodes[i].y-nodes[j].y;
-      const d=Math.sqrt(dx*dx+dy*dy);
-      if(d<115){
-        const a=(1-d/115)*(nodes[i].isKey||nodes[j].isKey?.28:.15);
-        ctx.beginPath(); ctx.moveTo(nodes[i].x,nodes[i].y); ctx.lineTo(nodes[j].x,nodes[j].y);
-        ctx.strokeStyle=`rgba(${nodes[i].isKey||nodes[j].isKey?'232,201,122':'122,180,255'},${a})`;
-        ctx.lineWidth=nodes[i].isKey||nodes[j].isKey?.75:.35;
-        ctx.stroke();
-      }
-    }
-
-    // nodes
-    nodes.forEach(n => {
-      const pulse=Math.sin(n.phase)*.22+.78, a=n.bright*pulse;
-      const gr=n.isKey?10:5;
-      const g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r*gr);
-      g.addColorStop(0,`rgba(${n.col},${a*.38})`); g.addColorStop(1,`rgba(${n.col},0)`);
-      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(n.x,n.y,n.r*gr,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle=`rgba(${n.col},${Math.min(1,a*1.3)})`;
-      ctx.beginPath(); ctx.arc(n.x,n.y,n.r*pulse,0,Math.PI*2); ctx.fill();
-      if(n.label){
-        ctx.save(); ctx.font=`600 7.5px 'DM Mono',monospace`;
-        ctx.fillStyle=`rgba(${n.col},${a*.5})`; ctx.textAlign='center';
-        ctx.fillText(n.label.toUpperCase(),n.x,n.y-n.r-7); ctx.restore();
-      }
-    });
-    dwConstellRAF=requestAnimationFrame(tick);
-  }
-  tick();
-}
 
 const DW_CS_CONFIG = {
   'KPIs': {
