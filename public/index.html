@@ -1003,50 +1003,6 @@ html{scroll-behavior:smooth;}
 .sm-chart-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(232,201,122,0.15),transparent);}
 .sm-chart-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px;}
 
-/* ── Landing side-panel sliders ──────────────────────────────────────────── */
-.dw-sp-panel{position:absolute;z-index:15;top:50%;transform:translateY(-50%);width:calc(50% - 440px);min-width:190px;max-width:268px;}
-.dw-sp-panel.sp-l{left:18px;}
-.dw-sp-panel.sp-r{right:18px;}
-@media(max-width:1260px){.dw-sp-panel{display:none;}}
-.dw-sp-hdr{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase;display:flex;align-items:center;gap:8px;margin-bottom:10px;}
-.dw-sp-hdr::after{content:'';flex:1;height:1px;}
-.sp-l .dw-sp-hdr{color:rgba(232,201,122,.38);}
-.sp-l .dw-sp-hdr::after{background:rgba(232,201,122,.1);}
-.sp-r .dw-sp-hdr{color:rgba(122,180,255,.38);}
-.sp-r .dw-sp-hdr::after{background:rgba(122,180,255,.1);}
-.dw-sp-track{position:relative;height:252px;}
-.dw-sp-slide{position:absolute;inset:0;border-radius:14px;padding:16px 17px;background:rgba(255,255,255,.027);border:1px solid rgba(255,255,255,.055);backdrop-filter:blur(14px);display:flex;flex-direction:column;gap:8px;transition:opacity .55s ease,transform .55s ease;}
-.dw-sp-slide.sp-hidden{opacity:0;transform:translateY(9px);pointer-events:none;}
-.dw-sp-slide.sp-active{opacity:1;transform:translateY(0);}
-.dw-sp-cat-badge{display:inline-flex;align-items:center;gap:4px;font-size:8.5px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:99px;flex-shrink:0;align-self:flex-start;}
-.dw-sp-title{font-size:12.5px;font-weight:600;color:rgba(232,232,240,.9);line-height:1.44;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
-.dw-sp-excerpt{font-size:11px;color:rgba(122,122,150,.7);line-height:1.68;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;flex:1;}
-.dw-sp-foot{display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid rgba(255,255,255,.05);}
-.dw-sp-author{font-size:9px;font-family:'DM Mono',monospace;color:rgba(122,122,150,.5);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px;}
-.dw-sp-read{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.06em;cursor:pointer;transition:color .2s;flex-shrink:0;}
-.sp-l .dw-sp-read{color:rgba(232,201,122,.5);}
-.sp-l .dw-sp-read:hover{color:var(--accent);}
-.sp-r .dw-sp-read{color:rgba(122,180,255,.5);}
-.sp-r .dw-sp-read:hover{color:#7ab4ff;}
-/* category-summary slide */
-.dw-sp-cat-count{font-family:'Playfair Display',serif;font-size:40px;font-weight:700;line-height:1;}
-.dw-sp-cat-sub{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.15em;text-transform:uppercase;color:rgba(122,122,150,.5);margin-top:1px;}
-.dw-sp-art-list{display:flex;flex-direction:column;gap:5px;margin-top:4px;flex:1;}
-.dw-sp-art-row{font-size:11px;color:rgba(232,232,240,.65);line-height:1.38;display:flex;gap:6px;align-items:flex-start;}
-.dw-sp-art-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0;margin-top:5px;}
-/* stat slide */
-.dw-sp-stat-inner{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:5px;text-align:center;}
-.dw-sp-stat-icon{font-size:30px;line-height:1;margin-bottom:6px;}
-.dw-sp-stat-num{font-family:'Playfair Display',serif;font-size:44px;font-weight:700;line-height:1;}
-.sp-l .dw-sp-stat-num{color:var(--accent);}
-.sp-r .dw-sp-stat-num{color:#7ab4ff;}
-.dw-sp-stat-lbl{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:rgba(122,122,150,.5);margin-top:2px;}
-.dw-sp-stat-sub{font-size:11px;color:rgba(122,122,150,.55);line-height:1.65;max-width:190px;margin-top:7px;}
-/* dots */
-.dw-sp-dots{display:flex;gap:5px;justify-content:center;margin-top:8px;}
-.dw-sp-dot{width:4px;height:4px;border-radius:99px;background:rgba(255,255,255,.13);transition:all .35s;}
-.sp-l .dw-sp-dot.sp-dot-a{background:rgba(232,201,122,.5);width:14px;}
-.sp-r .dw-sp-dot.sp-dot-a{background:rgba(122,180,255,.5);width:14px;}
 /* ── Coming-Soon page ─────────────────────────────────────────────────────── */
 .dw-cs-overlay{position:fixed;inset:0;z-index:220;background:#09090d;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;font-family:'DM Sans',sans-serif;transition:opacity .35s;}
 .dw-cs-overlay.dw-cs-hidden{display:none;}
@@ -1877,9 +1833,6 @@ async function loadAll() {
   applyFilters();
   document.getElementById('siteTitle').textContent = siteSettings.siteTitle || 'KnowledgeHub';
   if(typeof updateLandingStats==='function') updateLandingStats();
-  // populate landing side panels with real article data
-  dwSpReady = false; // allow refresh when articles reload
-  initDwSidePanels();
 }
 
 function applyRestrictions() {
@@ -4829,29 +4782,6 @@ function switchAdminTab(tab, btn, noHistory) {
     </div>
 
   </div><!-- /dw-page -->
-
-  <!-- Left panel: Knowledge Spotlight -->
-  <div class="dw-sp-panel sp-l" id="dwSpLeft">
-    <div class="dw-sp-hdr">📚 Knowledge Spotlight</div>
-    <div class="dw-sp-track" id="dwSpLeftTrack">
-      <div class="dw-sp-slide sp-active" style="align-items:center;justify-content:center;">
-        <div style="font-size:11px;color:rgba(122,122,150,.4);font-family:'DM Mono',monospace;">Loading articles…</div>
-      </div>
-    </div>
-    <div class="dw-sp-dots" id="dwSpLeftDots"></div>
-  </div>
-
-  <!-- Right panel: Explore Topics -->
-  <div class="dw-sp-panel sp-r" id="dwSpRight">
-    <div class="dw-sp-hdr">🔍 Explore Topics</div>
-    <div class="dw-sp-track" id="dwSpRightTrack">
-      <div class="dw-sp-slide sp-active" style="align-items:center;justify-content:center;">
-        <div style="font-size:11px;color:rgba(122,122,150,.4);font-family:'DM Mono',monospace;">Loading…</div>
-      </div>
-    </div>
-    <div class="dw-sp-dots" id="dwSpRightDots"></div>
-  </div>
-
 </div><!-- /dwLanding -->
 
 <script>
@@ -5466,108 +5396,6 @@ function dwGoSkillMatrix(){
   hideLanding();
   history.pushState({screen:'skillmatrix', tab:'assess'}, '');
   showSkillMatrix();
-}
-
-// ── Landing side-panel slideshows ────────────────────────────────────────
-const DW_SP_TIMERS = {};
-let dwSpReady = false;
-
-const DW_SP_CAT_COLOR = { 'Platform':'#00c8cc','Product':'#a78bfa','Onboarding':'#34d399','Finance & FP&A':'#f59e0b','Implementation stories – Unique scenarios':'#f87171' };
-const DW_SP_CAT_ICON  = { 'Platform':'⚙️','Product':'📦','Onboarding':'🚀','Finance & FP&A':'💹','Implementation stories – Unique scenarios':'🏗️' };
-function dwSpCatColor(c){ return DW_SP_CAT_COLOR[c]||'#e8c97a'; }
-function dwSpCatIcon(c) { return DW_SP_CAT_ICON[c] ||'📝'; }
-function dwSpStrip(h){ return (h||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim(); }
-
-async function initDwSidePanels(){
-  if(dwSpReady) return;
-  let arts = allArticles && allArticles.length ? allArticles : [];
-  if(!arts.length){
-    try{ const r=await fetch('/api/articles'); if(r.ok) arts=await r.json(); }catch(e){}
-  }
-  if(!arts.length) return;
-  dwSpReady = true;
-
-  // ── Left: individual article cards (shuffled, up to 7) ──
-  const picked = [...arts].sort(()=>Math.random()-.5).slice(0,Math.min(7,arts.length));
-  dwSpBuildSlider('dwSpLeftTrack','dwSpLeftDots','left', picked.map(a=>({
-    kind:'article', cat:a.category||'Article', title:a.title||'Untitled',
-    excerpt:dwSpStrip(a.content||'').slice(0,115), author:a.author||'Team', id:a.id
-  })));
-
-  // ── Right: category summaries + optional stat slide ──
-  const catMap={};
-  arts.forEach(a=>{ const c=a.category||'General'; if(!catMap[c])catMap[c]=[]; catMap[c].push(a.title); });
-  const rightSlides = Object.entries(catMap)
-    .sort((a,b)=>b[1].length-a[1].length)
-    .map(([cat,titles])=>({ kind:'category', cat, count:titles.length, samples:titles.slice(0,3) }));
-  let smInfo=null;
-  try{ const r=await fetch('/api/skillmatrix'); if(r.ok) smInfo=await r.json(); }catch(e){}
-  if(smInfo&&smInfo.employees&&smInfo.employees.length){
-    rightSlides.push({ kind:'stat', icon:'🧠', num:smInfo.employees.length,
-      label:'Team Members', sub:`Tracking ${smInfo.processAreas?.length||0} process areas in the Skill Matrix` });
-  }
-  dwSpBuildSlider('dwSpRightTrack','dwSpRightDots','right', rightSlides);
-}
-
-function dwSpBuildSlider(trackId, dotsId, side, slides){
-  const track=document.getElementById(trackId);
-  const dotsEl=document.getElementById(dotsId);
-  if(!track||!slides.length) return;
-  if(DW_SP_TIMERS[trackId]) clearInterval(DW_SP_TIMERS[trackId]);
-  track.innerHTML=''; dotsEl.innerHTML='';
-
-  slides.forEach((s,i)=>{
-    const div=document.createElement('div');
-    div.className='dw-sp-slide '+(i===0?'sp-active':'sp-hidden');
-
-    if(s.kind==='article'){
-      const col=dwSpCatColor(s.cat);
-      div.innerHTML=`
-        <div class="dw-sp-cat-badge" style="background:${col}1a;color:${col};border:1px solid ${col}2e;">● ${s.cat}</div>
-        <div class="dw-sp-title">${s.title}</div>
-        <div class="dw-sp-excerpt">${s.excerpt}…</div>
-        <div class="dw-sp-foot">
-          <span class="dw-sp-author">${s.author}</span>
-          <span class="dw-sp-read">Read →</span>
-        </div>`;
-      div.querySelector('.dw-sp-read').onclick=()=>{ dwGoKnowledge(); setTimeout(()=>viewArticle(s.id),60); };
-    } else if(s.kind==='category'){
-      const col=dwSpCatColor(s.cat); const ico=dwSpCatIcon(s.cat);
-      const rows=s.samples.map(t=>`<div class="dw-sp-art-row"><span class="dw-sp-art-dot" style="background:${col};"></span><span>${t}</span></div>`).join('');
-      div.innerHTML=`
-        <div class="dw-sp-cat-badge" style="background:${col}1a;color:${col};border:1px solid ${col}2e;">${ico} ${s.cat}</div>
-        <div class="dw-sp-cat-count" style="color:${col}">${s.count}</div>
-        <div class="dw-sp-cat-sub">Article${s.count>1?'s':''} published</div>
-        <div class="dw-sp-art-list">${rows}</div>`;
-    } else if(s.kind==='stat'){
-      div.innerHTML=`<div class="dw-sp-stat-inner">
-        <div class="dw-sp-stat-icon">${s.icon}</div>
-        <div class="dw-sp-stat-num">${s.num}</div>
-        <div class="dw-sp-stat-lbl">${s.label}</div>
-        <div class="dw-sp-stat-sub">${s.sub}</div>
-      </div>`;
-    }
-    track.appendChild(div);
-
-    const dot=document.createElement('div');
-    dot.className='dw-sp-dot'+(i===0?' sp-dot-a':'');
-    dotsEl.appendChild(dot);
-  });
-
-  if(slides.length<=1) return;
-  let cur=0;
-  function advance(){
-    const allS=track.querySelectorAll('.dw-sp-slide');
-    const allD=dotsEl.querySelectorAll('.dw-sp-dot');
-    allS[cur].classList.replace('sp-active','sp-hidden');
-    allD[cur].classList.remove('sp-dot-a');
-    cur=(cur+1)%slides.length;
-    allS[cur].classList.replace('sp-hidden','sp-active');
-    allD[cur].classList.add('sp-dot-a');
-  }
-  DW_SP_TIMERS[trackId]=setInterval(advance,5000);
-  track.addEventListener('mouseenter',()=>clearInterval(DW_SP_TIMERS[trackId]));
-  track.addEventListener('mouseleave',()=>{ DW_SP_TIMERS[trackId]=setInterval(advance,5000); });
 }
 
 const DW_CS_CONFIG = {
