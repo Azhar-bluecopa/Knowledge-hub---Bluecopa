@@ -394,18 +394,16 @@ app.get('/api/analytics', (req, res) => {
   });
 });
 
-// ── AI Ask (supports Anthropic Claude or Groq) ────────────────────────────────
+// ── AI Ask (Claude / Anthropic) ───────────────────────────────────────────────
 app.post('/api/ask', async (req, res) => {
   const { question, articleId, history, roadmap, skillMatrix } = req.body;
   if (!question?.trim()) return res.status(400).json({ error: 'Question is required.' });
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  const groqKey      = process.env.GROQ_API_KEY;
   const useAnthropic = anthropicKey && anthropicKey !== 'your-anthropic-api-key-here';
-  const useGroq      = groqKey      && groqKey      !== 'your-groq-api-key-here';
 
-  if (!useAnthropic && !useGroq) {
-    return res.status(503).json({ error: 'AI assistant is not configured. Add ANTHROPIC_API_KEY or GROQ_API_KEY.' });
+  if (!useAnthropic) {
+    return res.status(503).json({ error: 'AI assistant is not configured. Add ANTHROPIC_API_KEY to Vercel env vars.' });
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -586,63 +584,17 @@ ${roadmap.map(t => `Topic: ${t.topic}\n${t.articles.map(a => `  • "${a.title}"
   res.flushHeaders();
 
   try {
-    let responded = false;
-
-    // Try Groq first (free/fast). On any error (incl. 429 rate-limit) fall back to Anthropic.
-    if (useGroq) {
-      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [{ role: 'system', content: systemPrompt }, ...messages],
-          max_tokens: 1024, temperature: 0.2, stream: true,
-        }),
-      });
-      if (groqRes.ok) {
-        responded = true;
-        const reader = groqRes.body.getReader();
-        const decoder = new TextDecoder();
-        let buf = '';
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buf += decoder.decode(value, { stream: true });
-          const lines = buf.split('\n'); buf = lines.pop();
-          for (const line of lines) {
-            const l = line.trim();
-            if (!l || l === 'data: [DONE]') continue;
-            if (l.startsWith('data: ')) {
-              try {
-                const json = JSON.parse(l.slice(6));
-                const text = json.choices?.[0]?.delta?.content;
-                if (text) res.write(`data: ${JSON.stringify({ type: 'text', text })}\n\n`);
-              } catch { /* skip */ }
-            }
-          }
-        }
-      } else {
-        const errText = await groqRes.text();
-        console.warn('[Ask] Groq failed:', groqRes.status, errText.substring(0, 120), '— trying Anthropic fallback');
+    const Anthropic = require('@anthropic-ai/sdk');
+    const client = new Anthropic.default({ apiKey: anthropicKey });
+    const stream = await client.messages.stream({
+      model: 'claude-opus-4-5', max_tokens: 2048,
+      system: systemPrompt, messages,
+    });
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+        res.write(`data: ${JSON.stringify({ type: 'text', text: event.delta.text })}\n\n`);
       }
     }
-
-    if (!responded && useAnthropic) {
-      const Anthropic = require('@anthropic-ai/sdk');
-      const client = new Anthropic.default({ apiKey: anthropicKey });
-      const stream = await client.messages.stream({
-        model: 'claude-opus-4-7', max_tokens: 2048,
-        thinking: { type: 'adaptive' }, system: systemPrompt, messages,
-      });
-      for await (const event of stream) {
-        if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
-          res.write(`data: ${JSON.stringify({ type: 'text', text: event.delta.text })}\n\n`);
-        }
-      }
-      responded = true;
-    }
-
-    if (!responded) throw new Error('No AI provider available or all providers failed');
     res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
     res.end();
   } catch (err) {
@@ -801,11 +753,9 @@ app.post('/api/puzzle/generate', async (req, res) => {
   if (!db.processGame) db.processGame = { currentGame: null, attempts: [], gameHistory: [] };
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  const groqKey      = process.env.GROQ_API_KEY;
   const useAnthropic = anthropicKey && anthropicKey !== 'your-anthropic-api-key-here';
-  const useGroq      = groqKey      && groqKey      !== 'your-groq-api-key-here';
-  if (!useAnthropic && !useGroq) {
-    return res.status(503).json({ error: 'AI not configured. Add ANTHROPIC_API_KEY or GROQ_API_KEY to Vercel env vars.' });
+  if (!useAnthropic) {
+    return res.status(503).json({ error: 'AI not configured. Add ANTHROPIC_API_KEY to Vercel env vars.' });
   }
 
   const articles = (db.articles || []).slice(0, 12).map(a =>
@@ -921,45 +871,16 @@ Return ONLY valid JSON, no markdown, no code fences:
 Generate exactly ${questionCount} questions. Every question MUST match the ${fmt.name} format. Return ONLY the JSON object.`;
 
   try {
-    let raw = '';
-
-    // Try Groq first (free/fast). On any error (incl. 429 rate-limit) fall back to Anthropic.
-    if (useGroq) {
-      try {
-        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
-          body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
-            messages: [
-              { role: 'system', content: `You are a quiz generator that STRICTLY follows format instructions. You NEVER output standard MCQ unless the format is "knowledge_quiz". Return ONLY valid JSON.` },
-              { role: 'user', content: prompt }
-            ],
-            max_tokens: 3000, temperature: 0.65, stream: false
-          }),
-        });
-        if (!groqRes.ok) throw new Error(`Groq API error ${groqRes.status}: ${await groqRes.text()}`);
-        const groqData = await groqRes.json();
-        raw = (groqData.choices[0].message.content || '').trim();
-      } catch (groqErr) {
-        console.warn('[PP] Groq failed:', groqErr.message.substring(0, 150), '— trying Anthropic fallback');
-        if (!useAnthropic) throw groqErr; // no fallback available, re-throw
-      }
-    }
-
-    if (!raw && useAnthropic) {
-      const Anthropic = require('@anthropic-ai/sdk');
-      const client = new Anthropic.default({ apiKey: anthropicKey });
-      const message = await client.messages.create({
-        model: 'claude-opus-4-7',
-        max_tokens: 3000,
-        system: `You are a quiz generator that STRICTLY follows format instructions. You NEVER output standard MCQ unless the format is "knowledge_quiz". Match the exact format specified. Return ONLY valid JSON.`,
-        messages: [{ role: 'user', content: prompt }]
-      });
-      raw = message.content[0].text.trim();
-    }
-
-    if (!raw) throw new Error('No AI provider available');
+    const Anthropic = require('@anthropic-ai/sdk');
+    const client = new Anthropic.default({ apiKey: anthropicKey });
+    const message = await client.messages.create({
+      model: 'claude-opus-4-5',
+      max_tokens: 3000,
+      system: `You are a quiz generator that STRICTLY follows format instructions. You NEVER output standard MCQ unless the format is "knowledge_quiz". Match the exact format specified. Return ONLY valid JSON.`,
+      messages: [{ role: 'user', content: prompt }]
+    });
+    let raw = message.content[0].text.trim();
+    if (!raw) throw new Error('Claude returned empty response');
     const js = raw.indexOf('{'), je = raw.lastIndexOf('}') + 1;
     if (js === -1 || je === 0) throw new Error('AI did not return valid JSON');
     const parsed = JSON.parse(raw.slice(js, je));
