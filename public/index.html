@@ -1046,6 +1046,30 @@ html{scroll-behavior:smooth;}
 .sm-arr-up{color:#4ade80;}
 .sm-arr-dn{color:#f87171;}
 .sm-arr-eq{color:rgba(156,163,175,.45);}
+/* ── Audit Log panel ─────────────────────────────────────────────────────── */
+.sm-audit-bar{display:flex;align-items:center;gap:10px;padding:14px 24px 10px;flex-wrap:wrap;border-bottom:1px solid rgba(42,42,56,.6);}
+.sm-audit-filter{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 10px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;}
+.sm-audit-clear{background:transparent;border:1px solid rgba(255,255,255,.08);color:var(--muted);border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer;transition:all .15s;}
+.sm-audit-clear:hover{border-color:rgba(255,255,255,.2);color:var(--text);}
+.sm-audit-dl-btn{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);color:#34d399;border-radius:8px;padding:7px 18px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:6px;margin-left:auto;}
+.sm-audit-dl-btn:hover{background:rgba(52,211,153,.18);box-shadow:0 0 16px rgba(52,211,153,.12);}
+.sm-audit-stats{display:flex;gap:12px;padding:12px 24px 10px;flex-wrap:wrap;}
+.sm-audit-stat{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 16px;min-width:100px;}
+.sm-audit-stat strong{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--accent);display:block;line-height:1;}
+.sm-audit-stat span{font-size:9.5px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:4px;display:block;}
+.sm-audit-table-wrap{overflow:auto;padding:0 24px 24px;flex:1;}
+.sm-audit-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.sm-audit-table th{background:rgba(15,15,20,.95);color:rgba(232,201,122,.7);font-size:9.5px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;padding:10px 12px;text-align:left;position:sticky;top:0;z-index:2;border-bottom:1px solid rgba(42,42,56,.8);white-space:nowrap;}
+.sm-audit-table td{padding:9px 12px;border-bottom:1px solid rgba(42,42,56,.35);color:var(--text);vertical-align:middle;}
+.sm-audit-table tr:hover td{background:rgba(232,201,122,.03);}
+.sm-audit-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;letter-spacing:.04em;white-space:nowrap;}
+.sm-audit-badge.up{background:rgba(74,222,128,.1);color:#4ade80;border:1px solid rgba(74,222,128,.22);}
+.sm-audit-badge.dn{background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.22);}
+.sm-audit-badge.eq{background:rgba(156,163,175,.08);color:#9ca3af;border:1px solid rgba(156,163,175,.15);}
+.sm-audit-badge.snap{background:rgba(232,201,122,.1);color:#e8c97a;border:1px solid rgba(232,201,122,.22);}
+.sm-audit-empty{text-align:center;padding:72px 20px;color:var(--muted);}
+.sm-audit-empty-icon{font-size:40px;margin-bottom:12px;}
+.sm-audit-mono{font-family:'DM Mono',monospace;font-size:11px;}
 
 /* Capture snapshot button */
 .sm-capture-btn{background:linear-gradient(135deg,#e8c97a 0%,#d4b55a 100%);color:#0f0f13;border:none;border-radius:9px;padding:9px 22px;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.09em;cursor:pointer;box-shadow:0 4px 12px rgba(232,201,122,0.22);transition:transform .18s,box-shadow .18s;}
@@ -1294,6 +1318,7 @@ html{scroll-behavior:smooth;}
     <div class="sm-tabs">
       <button class="sm-tab active" id="smTabAssess" onclick="smSwitchTab('assess')">📝 Self-Assessment</button>
       <button class="sm-tab" id="smTabDash" onclick="smSwitchTab('dashboard')">📊 Dashboard</button>
+      <button class="sm-tab" id="smTabAudit" onclick="smSwitchTab('audit')" style="display:none;">📋 Audit Log</button>
     </div>
     <button class="btn-home" onclick="hideSkillMatrix();showLanding();" title="Home">🏠 <span>Home</span></button>
   </div>
@@ -1310,6 +1335,11 @@ html{scroll-behavior:smooth;}
   <!-- Dashboard Panel -->
   <div class="sm-panel" id="smPanelDash">
     <div id="smDashContent"><div class="sm-empty">Loading…</div></div>
+  </div>
+
+  <!-- Audit Log Panel (admin only) -->
+  <div class="sm-panel" id="smPanelAudit" style="display:flex;flex-direction:column;overflow:hidden;">
+    <div id="smAuditContent"></div>
   </div>
 </div>
 
@@ -3814,9 +3844,14 @@ function smSwitchTab(tab, noHistory) {
   if(!noHistory && !_dwNavFlag) history.pushState({screen:'skillmatrix', tab}, '');
   document.getElementById('smPanelAssess').classList.toggle('active', tab==='assess');
   document.getElementById('smPanelDash').classList.toggle('active', tab==='dashboard');
+  const auditPanel = document.getElementById('smPanelAudit');
+  if (auditPanel) auditPanel.classList.toggle('active', tab==='audit');
   document.getElementById('smTabAssess').classList.toggle('active', tab==='assess');
   document.getElementById('smTabDash').classList.toggle('active', tab==='dashboard');
+  const auditTabEl = document.getElementById('smTabAudit');
+  if (auditTabEl) auditTabEl.classList.toggle('active', tab==='audit');
   if (tab==='dashboard') smRenderDashboard();
+  if (tab==='audit') smRenderAuditLog();
 }
 
 // ── Load & Render ─────────────────────────────────────────────────────────────
@@ -3833,6 +3868,8 @@ async function smLoad() {
 function smRender() {
   const isAdmin = !!getAdminPwd();
   document.getElementById('smCaptureBtn').style.display = isAdmin ? '' : 'none';
+  const auditTab = document.getElementById('smTabAudit');
+  if (auditTab) auditTab.style.display = isAdmin ? '' : 'none';
   smRenderGrid();
 }
 
@@ -3917,7 +3954,10 @@ function smRenderGrid() {
 
 function smSetScore(emp, pa, val, sel) {
   if (!smData.currentScores[emp]) smData.currentScores[emp] = {};
-  smData.currentScores[emp][pa] = parseInt(val);
+  const oldVal = smData.currentScores[emp][pa] || 0;
+  const newVal = parseInt(val);
+  smData.currentScores[emp][pa] = newVal;
+  smLogScoreChange(emp, pa, oldVal, newVal);
   sel.className = `sm-select lv-${val}`;
   // Update progress arrow inline
   const arrow = sel.parentElement && sel.parentElement.querySelector('.sm-arrow');
@@ -3993,9 +4033,186 @@ async function smCaptureSnapshot() {
     });
     const snap = await r.json();
     smData.snapshots.push(snap);
+    smLogSnapshot(label, smData.employees.length, smData.processAreas.length);
     smRenderGrid(); // refresh arrows against new baseline
     showToast(`Snapshot "${label}" captured!`);
   } catch(e) { showToast('Failed to capture snapshot'); }
+}
+
+// ── Audit Log ─────────────────────────────────────────────────────────────────
+const SM_LEVEL_LABELS = {0:'None',1:'Beginner',2:'Intermediate',3:'Advanced',4:'Expert'};
+const SM_AUDIT_KEY = 'kb_sm_audit_log';
+const SM_AUDIT_MAX = 2000;
+
+function smAuditGet() {
+  try { return JSON.parse(localStorage.getItem(SM_AUDIT_KEY)||'[]'); } catch(e) { return []; }
+}
+
+function smAuditPush(entry) {
+  const log = smAuditGet();
+  log.push({ id: Date.now() + Math.random(), ...entry });
+  if (log.length > SM_AUDIT_MAX) log.splice(0, log.length - SM_AUDIT_MAX);
+  localStorage.setItem(SM_AUDIT_KEY, JSON.stringify(log));
+}
+
+function smLogScoreChange(emp, pa, oldVal, newVal) {
+  const u = getUser();
+  const diff = newVal - oldVal;
+  smAuditPush({
+    ts: new Date().toISOString(),
+    action: 'SCORE_UPDATE',
+    changedBy: u?.name || 'Unknown',
+    isAdmin: !!getAdminPwd(),
+    employee: emp,
+    processArea: pa,
+    oldScore: oldVal,
+    oldLevel: SM_LEVEL_LABELS[oldVal] || 'None',
+    newScore: newVal,
+    newLevel: SM_LEVEL_LABELS[newVal] || 'None',
+    direction: diff > 0 ? 'IMPROVED' : diff < 0 ? 'DECLINED' : 'NO CHANGE',
+    notes: ''
+  });
+}
+
+function smLogSnapshot(label, numEmployees, numPAs) {
+  const u = getUser();
+  smAuditPush({
+    ts: new Date().toISOString(),
+    action: 'SNAPSHOT',
+    changedBy: u?.name || 'Unknown',
+    isAdmin: true,
+    employee: '—',
+    processArea: '—',
+    oldScore: null, oldLevel: '—',
+    newScore: null, newLevel: '—',
+    direction: '—',
+    notes: `"${label}" — ${numEmployees} members, ${numPAs} process areas`
+  });
+}
+
+function smRenderAuditLog() {
+  const wrap = document.getElementById('smAuditContent');
+  if (!wrap) return;
+  const fullLog = smAuditGet().slice().reverse();
+
+  const fEmp    = document.getElementById('smAuFEmp')?.value    || '';
+  const fAction = document.getElementById('smAuFAction')?.value || '';
+  const fDate   = document.getElementById('smAuFDate')?.value   || '';
+
+  let filtered = fullLog;
+  if (fEmp)    filtered = filtered.filter(e => e.employee === fEmp);
+  if (fAction) filtered = filtered.filter(e => e.action   === fAction);
+  if (fDate)   filtered = filtered.filter(e => e.ts && e.ts.startsWith(fDate));
+
+  const today   = new Date().toISOString().slice(0,10);
+  const weekAgo = new Date(Date.now() - 7*24*3600*1000).toISOString();
+  const todayCnt  = fullLog.filter(e => e.ts?.startsWith(today)).length;
+  const weekCnt   = fullLog.filter(e => e.ts > weekAgo).length;
+  const editors   = [...new Set(fullLog.map(e => e.changedBy))].length;
+  const snapsCnt  = fullLog.filter(e => e.action === 'SNAPSHOT').length;
+  const employees = smData?.employees || [];
+  const hasFilter = fEmp || fAction || fDate;
+
+  wrap.innerHTML = `
+  <div class="sm-audit-bar">
+    <select class="sm-audit-filter" id="smAuFEmp" onchange="smRenderAuditLog()">
+      <option value="">All Employees</option>
+      ${employees.map(e=>`<option value="${e}" ${fEmp===e?'selected':''}>${e}</option>`).join('')}
+    </select>
+    <select class="sm-audit-filter" id="smAuFAction" onchange="smRenderAuditLog()">
+      <option value="">All Actions</option>
+      <option value="SCORE_UPDATE" ${fAction==='SCORE_UPDATE'?'selected':''}>Score Updates</option>
+      <option value="SNAPSHOT"     ${fAction==='SNAPSHOT'?'selected':''}>Snapshots</option>
+    </select>
+    <input type="date" class="sm-audit-filter" id="smAuFDate" value="${fDate}" onchange="smRenderAuditLog()" style="cursor:pointer;">
+    ${hasFilter ? `<button class="sm-audit-clear" onclick="smAuditClearFilters()">✕ Clear filters</button>` : ''}
+    <button class="sm-audit-dl-btn" onclick="smDownloadAuditCSV()">⬇ Download CSV</button>
+  </div>
+  <div class="sm-audit-stats">
+    <div class="sm-audit-stat"><strong>${fullLog.length}</strong><span>Total Entries</span></div>
+    <div class="sm-audit-stat"><strong>${todayCnt}</strong><span>Today</span></div>
+    <div class="sm-audit-stat"><strong>${weekCnt}</strong><span>This Week</span></div>
+    <div class="sm-audit-stat"><strong>${editors}</strong><span>Contributors</span></div>
+    <div class="sm-audit-stat"><strong>${snapsCnt}</strong><span>Snapshots</span></div>
+    ${hasFilter ? `<div class="sm-audit-stat" style="border-color:rgba(232,201,122,.3);"><strong style="color:#e8c97a;">${filtered.length}</strong><span>Filtered</span></div>` : ''}
+  </div>
+  <div class="sm-audit-table-wrap">
+    ${filtered.length === 0
+      ? `<div class="sm-audit-empty">
+           <div class="sm-audit-empty-icon">📋</div>
+           <div style="font-size:15px;font-weight:600;margin-bottom:8px;">${hasFilter ? 'No entries match your filters' : 'No audit entries yet'}</div>
+           <div style="font-size:13px;opacity:.5;">${hasFilter ? 'Try adjusting or clearing your filters.' : 'Score changes and snapshot captures will appear here automatically.'}</div>
+         </div>`
+      : `<table class="sm-audit-table">
+          <thead><tr>
+            <th>#</th><th>Timestamp</th><th>Action</th><th>Changed By</th><th>Role</th>
+            <th>Employee</th><th>Process Area</th><th>Old Level</th><th>New Level</th><th>Change</th><th>Notes</th>
+          </tr></thead>
+          <tbody>${filtered.map((e,i) => {
+            const dt = new Date(e.ts);
+            const dateStr = dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+            const timeStr = dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+            const dc = e.action==='SNAPSHOT'?'snap':e.direction==='IMPROVED'?'up':e.direction==='DECLINED'?'dn':'eq';
+            const dl = e.action==='SNAPSHOT'?'📸 SNAPSHOT':e.direction==='IMPROVED'?'↑ IMPROVED':e.direction==='DECLINED'?'↓ DECLINED':'→ NO CHANGE';
+            const lvColour = lv => lv==='Expert'?'#e8c97a':lv==='Advanced'?'#a78bfa':lv==='Intermediate'?'#f59e0b':lv==='Beginner'?'rgba(232,232,240,.55)':'rgba(232,232,240,.25)';
+            return `<tr>
+              <td class="sm-audit-mono" style="color:var(--muted);">${filtered.length-i}</td>
+              <td class="sm-audit-mono" style="white-space:nowrap;"><div>${dateStr}</div><div style="opacity:.4;">${timeStr}</div></td>
+              <td><span class="sm-audit-badge ${dc}" style="font-size:9px;">${e.action}</span></td>
+              <td style="font-weight:600;">${e.changedBy||'—'}</td>
+              <td>${e.isAdmin?`<span style="color:#e8c97a;font-family:'DM Mono',monospace;font-size:10px;">⚙ ADMIN</span>`:`<span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;">👤 USER</span>`}</td>
+              <td style="font-weight:500;">${e.employee||'—'}</td>
+              <td style="color:rgba(232,232,240,.55);font-size:12px;">${e.processArea||'—'}</td>
+              <td><span style="color:${lvColour(e.oldLevel)};font-weight:600;">${e.oldLevel||'—'}</span></td>
+              <td><span style="color:${lvColour(e.newLevel)};font-weight:600;">${e.newLevel||'—'}</span></td>
+              <td><span class="sm-audit-badge ${dc}">${dl}</span></td>
+              <td style="font-size:11px;color:var(--muted);max-width:180px;">${e.notes||'—'}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>`
+    }
+  </div>`;
+}
+
+function smAuditClearFilters() {
+  const e = document.getElementById('smAuFEmp');
+  const a = document.getElementById('smAuFAction');
+  const d = document.getElementById('smAuFDate');
+  if (e) e.value=''; if (a) a.value=''; if (d) d.value='';
+  smRenderAuditLog();
+}
+
+function smDownloadAuditCSV() {
+  const log = smAuditGet().slice().reverse();
+  if (!log.length) { showToast('No audit log entries to download', 'info'); return; }
+  const HEADERS = [
+    'Entry #','Timestamp (ISO)','Date','Time (Local)',
+    'Action','Changed By','Role',
+    'Employee','Process Area',
+    'Old Score','Old Level','New Score','New Level',
+    'Change Direction','Notes'
+  ];
+  const cell = v => '"' + String(v==null?'':v).replace(/"/g,'""') + '"';
+  const rows = log.map((e,i) => {
+    const dt = new Date(e.ts);
+    return [
+      log.length-i, e.ts||'',
+      dt.toLocaleDateString('en-GB'), dt.toLocaleTimeString('en-GB'),
+      e.action||'', e.changedBy||'', e.isAdmin?'Admin':'User',
+      e.employee!=='—'?e.employee:'', e.processArea!=='—'?e.processArea:'',
+      e.oldScore!=null?e.oldScore:'', e.oldLevel!=='—'?e.oldLevel:'',
+      e.newScore!=null?e.newScore:'', e.newLevel!=='—'?e.newLevel:'',
+      e.direction!=='—'?e.direction:'', e.notes||''
+    ].map(cell).join(',');
+  });
+  const csv = [HEADERS.join(','), ...rows].join('\r\n');
+  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'}); // BOM for Google Sheets / Excel
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=`skill_matrix_audit_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Audit log downloaded ✓ — open in Google Sheets or Excel', 'success');
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
