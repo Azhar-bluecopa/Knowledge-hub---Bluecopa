@@ -571,144 +571,54 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .sm-snap-name{font-size:13px;font-weight:500;color:var(--text);}
 .sm-snap-date{font-size:11px;color:var(--muted);margin-top:2px;}
 /* ════════════════════ DELIVERY WIKIPEDIA LANDING ════════════════════ */
-/* ══════════════ LANDING — FRAMER WORKSHOP STYLE ══════════════════════ */
-#dwLanding{position:fixed;inset:0;z-index:150;background:#000;display:flex;flex-direction:column;align-items:center;overflow-y:auto;font-family:'DM Sans',sans-serif;}
+#dwLanding{position:fixed;inset:0;z-index:150;background:#0f0f13;display:flex;flex-direction:column;align-items:center;overflow-y:auto;font-family:'DM Sans',sans-serif;}
 #dwLanding.dw-hidden{display:none;}
-#dw-canvas{display:none;}
-
-/* ── Framer-style NAV ─── */
-.dw-nav{position:fixed;top:0;left:0;right:0;z-index:100;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:rgba(0,0,0,0);}
-.dw-nav-brand{display:flex;align-items:center;gap:9px;}
-.dw-nav-logo-img{height:24px;filter:brightness(1.1);}
-.dw-nav-logo-text{font-size:13px;font-weight:600;color:rgba(255,255,255,.85);letter-spacing:-.01em;}
-
-/* Admin FAB — Framer pill style */
-.dw-admin-fab{display:none;align-items:center;gap:7px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.75);border-radius:99px;padding:8px 18px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:.01em;cursor:pointer;transition:all .2s;backdrop-filter:blur(12px);}
-.dw-admin-fab:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.25);color:#fff;}
-.dw-admin-fab .dw-afab-dot{width:6px;height:6px;border-radius:50%;background:#f87171;border:1.5px solid #000;display:none;animation:pulse 2s infinite;}
-
-/* ── Background — central PURPLE glow (Framer signature) ─── */
+#dw-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
 .dw-orbs{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden;}
-.dw-orb{position:absolute;border-radius:50%;}
-/* Primary: massive central purple glow */
-.dw-orb1{width:1100px;height:900px;background:radial-gradient(ellipse,rgba(110,50,255,.38) 0%,rgba(80,20,200,.18) 35%,rgba(60,10,150,.08) 60%,transparent 75%);top:-280px;left:50%;transform:translateX(-50%);filter:blur(60px);animation:dw-d1 18s ease-in-out infinite alternate;}
-/* Secondary: subtle amber accent bottom-left */
-.dw-orb2{width:500px;height:500px;background:radial-gradient(circle,rgba(232,201,122,.09),transparent 70%);bottom:0;left:-80px;filter:blur(80px);animation:dw-d2 24s ease-in-out infinite alternate;}
-/* Tertiary: teal hint bottom-right */
-.dw-orb3{width:420px;height:420px;background:radial-gradient(circle,rgba(0,180,200,.06),transparent 70%);bottom:0;right:-60px;filter:blur(80px);animation:dw-d3 20s ease-in-out infinite alternate;}
-.dw-orb4{display:none;}
-@keyframes dw-d1{0%{opacity:.75;transform:translateX(-50%) scale(1);}100%{opacity:1;transform:translateX(-50%) scale(1.12);}}
-@keyframes dw-d2{0%{transform:translate(0,0);}100%{transform:translate(50px,-80px);}}
-@keyframes dw-d3{0%{transform:translate(0,0);}100%{transform:translate(-50px,-60px);}}
-@keyframes dw-d4{}
-
-/* Dot grid — white dots, Framer subtle */
-.dw-dot-grid{position:fixed;inset:0;z-index:1;pointer-events:none;background-image:radial-gradient(circle,rgba(255,255,255,.055) 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(ellipse 90% 90% at 50% 40%,black 20%,transparent 100%);-webkit-mask-image:radial-gradient(ellipse 90% 90% at 50% 40%,black 20%,transparent 100%);}
-
-/* Grain — minimal */
-.dw-grain{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.02;}
+.dw-orb{position:absolute;border-radius:50%;filter:blur(90px);}
+.dw-orb1{width:1000px;height:1000px;background:radial-gradient(circle,rgba(232,201,122,.11),transparent 70%);top:-280px;left:-220px;animation:dw-d1 22s ease-in-out infinite alternate;}
+.dw-orb2{width:750px;height:750px;background:radial-gradient(circle,rgba(130,100,255,.08),transparent 70%);top:-120px;right:-220px;animation:dw-d2 28s ease-in-out infinite alternate;}
+.dw-orb3{width:650px;height:650px;background:radial-gradient(circle,rgba(232,201,122,.07),transparent 70%);bottom:-180px;left:12%;animation:dw-d3 20s ease-in-out infinite alternate;}
+.dw-orb4{width:550px;height:550px;background:radial-gradient(circle,rgba(0,200,204,.05),transparent 70%);bottom:-120px;right:8%;animation:dw-d4 25s ease-in-out infinite alternate;}
+@keyframes dw-d1{0%{transform:translate(0,0);}100%{transform:translate(80px,60px);}}
+@keyframes dw-d2{0%{transform:translate(0,0);}100%{transform:translate(-70px,80px);}}
+@keyframes dw-d3{0%{transform:translate(0,0);}100%{transform:translate(60px,-80px);}}
+@keyframes dw-d4{0%{transform:translate(0,0);}100%{transform:translate(-50px,-60px);}}
+/* Dot grid pattern */
+.dw-dot-grid{position:fixed;inset:0;z-index:1;pointer-events:none;background-image:radial-gradient(circle,rgba(232,201,122,.08) 1px,transparent 1px);background-size:40px 40px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 40%,transparent 100%);-webkit-mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 40%,transparent 100%);}
+/* Grain / noise overlay */
+.dw-grain{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.028;}
 .dw-grain::after{content:'';position:absolute;inset:-50%;width:200%;height:200%;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");background-repeat:repeat;background-size:180px 180px;animation:dw-grain-shift 0.8s steps(1) infinite;}
 @keyframes dw-grain-shift{0%{transform:translate(0,0);}10%{transform:translate(-5%,-5%);}20%{transform:translate(-10%,5%);}30%{transform:translate(5%,-10%);}40%{transform:translate(-5%,15%);}50%{transform:translate(-10%,5%);}60%{transform:translate(15%,0);}70%{transform:translate(0,10%);}80%{transform:translate(-15%,0);}90%{transform:translate(10%,5%);}100%{transform:translate(5%,0);}}
-
-/* Sweep — hidden */
-.dw-sweep{display:none;}
-.dw-vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse 85% 65% at 50% 30%,transparent 30%,rgba(0,0,0,.55) 100%);}
-
-/* ── Page ─── */
-.dw-page{position:relative;z-index:10;width:100%;display:flex;flex-direction:column;align-items:center;padding:120px 48px 100px;}
-
-/* ── Brand section — slim, minimal ─── */
-.dw-brand-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:36px;}
-.dw-brand-ring{width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);margin-bottom:14px;animation:dw-ring-pulse 4s ease-in-out infinite;}
-@keyframes dw-ring-pulse{0%,100%{box-shadow:0 0 0 0 rgba(110,50,255,.2);}50%{box-shadow:0 0 0 12px rgba(110,50,255,.05);}}
-.dw-brand-logo{height:34px;filter:brightness(1.1);}
-.dw-brand-name{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:4px;}
-.dw-brand-tagline-row{display:flex;align-items:center;gap:10px;}
-.dw-brand-sep{height:1px;width:32px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1));}
-.dw-brand-sep.r{background:linear-gradient(90deg,rgba(255,255,255,.1),transparent);}
-.dw-brand-tagline{font-size:9.5px;color:rgba(255,255,255,.2);letter-spacing:.2em;text-transform:uppercase;font-family:'DM Mono',monospace;}
-
-/* ── HERO — Framer style ─── */
-.dw-hero{text-align:center;margin-bottom:80px;display:flex;flex-direction:column;align-items:center;}
-/* Eyebrow pill tag */
-.dw-hero-eyebrow{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:32px;padding:6px 16px;border:1px solid rgba(255,255,255,.08);border-radius:99px;background:rgba(255,255,255,.04);display:inline-block;}
-/* Title wrapper — constrains rule to text width */
+/* Glow sweep — horizontal light beam */
+.dw-sweep{position:fixed;top:0;left:-100%;width:60%;height:100%;z-index:1;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(232,201,122,.018),transparent);animation:dw-sweep-anim 8s ease-in-out infinite;}
+@keyframes dw-sweep-anim{0%{left:-60%;}100%{left:140%;}}
+.dw-vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse 90% 80% at 50% 40%,transparent 30%,rgba(15,15,19,.7) 100%);}
+.dw-page{position:relative;z-index:10;width:100%;display:flex;flex-direction:column;align-items:center;padding:56px 48px 88px;}
+/* Landing admin button — top-right corner */
+.dw-admin-fab{position:absolute;top:22px;right:28px;z-index:20;display:none;align-items:center;gap:7px;background:rgba(232,201,122,.08);border:1px solid rgba(232,201,122,.25);color:rgba(232,201,122,.75);border-radius:9px;padding:9px 20px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:all .2s;}
+.dw-admin-fab:hover{background:rgba(232,201,122,.16);border-color:rgba(232,201,122,.55);color:var(--accent);box-shadow:0 0 18px rgba(232,201,122,.12);transform:translateY(-1px);}
+.dw-admin-fab .dw-afab-dot{width:7px;height:7px;border-radius:50%;background:#f87171;border:1.5px solid #0f0f13;display:none;animation:pulse 2s infinite;}
+.dw-brand-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:48px;}
+.dw-brand-ring{width:108px;height:108px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,rgba(232,201,122,.07) 0%,rgba(232,201,122,.02) 100%);border:1px solid rgba(232,201,122,.25);box-shadow:0 0 0 10px rgba(232,201,122,.035),0 0 0 22px rgba(232,201,122,.018),0 0 48px rgba(232,201,122,.18),inset 0 0 24px rgba(232,201,122,.05);margin-bottom:18px;animation:dw-ring-pulse 3s ease-in-out infinite;}
+@keyframes dw-ring-pulse{0%,100%{box-shadow:0 0 0 10px rgba(232,201,122,.035),0 0 0 22px rgba(232,201,122,.018),0 0 48px rgba(232,201,122,.18),inset 0 0 24px rgba(232,201,122,.05);}50%{box-shadow:0 0 0 16px rgba(232,201,122,.07),0 0 0 32px rgba(232,201,122,.03),0 0 72px rgba(232,201,122,.32),inset 0 0 32px rgba(232,201,122,.08);}}
+.dw-brand-logo{height:50px;filter:brightness(1.15) drop-shadow(0 0 20px rgba(232,201,122,.5));}
+.dw-brand-name{font-size:12px;font-family:'DM Mono',monospace;letter-spacing:.25em;text-transform:uppercase;color:rgba(232,201,122,.7);margin-bottom:6px;}
+.dw-brand-tagline-row{display:flex;align-items:center;gap:12px;}
+.dw-brand-sep{height:1px;width:44px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12));}
+.dw-brand-sep.r{background:linear-gradient(90deg,rgba(255,255,255,.12),transparent);}
+.dw-brand-tagline{font-size:10px;color:rgba(232,232,240,.32);letter-spacing:.2em;text-transform:uppercase;font-family:'DM Mono',monospace;}
+.dw-hero{text-align:center;margin-bottom:64px;display:flex;flex-direction:column;align-items:center;}
+/* Wrapper sizes to the natural text width so the rule matches exactly */
 .dw-hero-title-wrap{display:flex;flex-direction:column;align-items:stretch;width:max-content;max-width:calc(100vw - 96px);}
-/* Title — Framer: clean white, medium weight, tight tracking */
-.dw-hero-title{font-family:'DM Sans',sans-serif;font-size:clamp(48px,7vw,85px);font-weight:500;line-height:.96;letter-spacing:-.05em;margin-bottom:0;white-space:nowrap;color:#fff;background:none;-webkit-text-fill-color:#fff;}
-@keyframes dw-shimmer{}
-/* Animated gold rule under title */
-.dw-hero-rule{width:100%;height:1.5px;margin:18px 0 26px;border-radius:99px;background:rgba(232,201,122,.18);position:relative;overflow:hidden;}
-.dw-hero-rule::after{content:'';position:absolute;top:0;left:0;height:100%;width:42%;background:linear-gradient(90deg,transparent 0%,rgba(232,201,122,.65) 30%,rgba(255,248,200,1) 50%,rgba(232,201,122,.65) 70%,transparent 100%);animation:dw-rule-sweep 2.6s ease-in-out infinite;}
+.dw-hero-title{font-family:'Playfair Display',serif;font-size:clamp(48px,7vw,88px);font-weight:900;line-height:.96;letter-spacing:-.03em;margin-bottom:0;white-space:nowrap;background:linear-gradient(150deg,#ffffff 0%,rgba(255,248,215,1) 25%,rgba(232,201,122,1) 55%,rgba(195,148,44,1) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:dw-shimmer 6s ease-in-out infinite alternate;}
+@keyframes dw-shimmer{0%{filter:drop-shadow(0 0 40px rgba(232,201,122,.25));}100%{filter:drop-shadow(0 0 80px rgba(232,201,122,.55));}}
+/* Animated gold rule — spans exact title width */
+.dw-hero-rule{width:100%;height:2px;margin:18px 0 30px;border-radius:99px;background:rgba(232,201,122,.15);position:relative;overflow:hidden;}
+.dw-hero-rule::after{content:'';position:absolute;top:0;left:0;height:100%;width:42%;background:linear-gradient(90deg,transparent 0%,rgba(232,201,122,.6) 30%,rgba(255,248,200,1) 50%,rgba(232,201,122,.6) 70%,transparent 100%);animation:dw-rule-sweep 2.6s ease-in-out infinite;}
 @keyframes dw-rule-sweep{0%{transform:translateX(-130%);}100%{transform:translateX(330%);}}
 @keyframes dw-blink{0%,100%{opacity:1;}50%{opacity:.3;}}
-/* Subtitle */
-.dw-hero-sub{font-size:16px;color:rgba(255,255,255,.45);max-width:460px;margin:0 auto 32px;line-height:1.75;font-weight:400;letter-spacing:-.005em;}
-/* CTA buttons — Framer pill style */
-.dw-hero-ctas{display:flex;align-items:center;gap:10px;margin-bottom:48px;flex-wrap:wrap;justify-content:center;}
-.dw-cta-primary{background:#fff;color:#000;border:none;border-radius:99px;padding:12px 26px;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:-.01em;line-height:1;}
-.dw-cta-primary:hover{background:rgba(255,255,255,.88);transform:translateY(-1px);box-shadow:0 8px 24px rgba(255,255,255,.15);}
-.dw-cta-secondary{background:rgba(255,255,255,.09);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.12);border-radius:99px;padding:12px 26px;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .2s;backdrop-filter:blur(10px);letter-spacing:-.01em;line-height:1;}
-.dw-cta-secondary:hover{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.22);transform:translateY(-1px);}
-
-/* ── Stats bar ─── */
-.dw-hero-stats{display:flex;justify-content:center;gap:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;backdrop-filter:blur(20px);}
-.dw-h-stat{padding:18px 28px;position:relative;text-align:center;min-width:118px;}
-.dw-h-stat+.dw-h-stat::before{content:'';position:absolute;left:0;top:18%;height:64%;width:1px;background:rgba(255,255,255,.08);}
-.dw-h-stat-n{font-family:'DM Sans',sans-serif;font-size:28px;font-weight:600;color:#fff;line-height:1;}
-.dw-h-stat-sub{font-size:9px;font-family:'DM Mono',monospace;color:rgba(232,201,122,.65);letter-spacing:.04em;margin-top:3px;min-height:14px;display:block;}
-.dw-h-stat-l{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-top:5px;}
-
-/* ── Sections header ─── */
-.dw-sections-header-block{width:100%;max-width:1200px;text-align:center;margin-bottom:32px;}
-.dw-sections-heading{font-family:'DM Sans',sans-serif;font-size:clamp(32px,4.5vw,52px);font-weight:500;color:#fff;letter-spacing:-.04em;margin-bottom:10px;line-height:1.1;}
-.dw-sections-sub-text{font-size:15px;color:rgba(255,255,255,.38);font-weight:400;line-height:1.65;max-width:420px;margin:0 auto;}
-/* Hide old label/sub elements */
-.dw-cards-label,.dw-cards-sub{display:none;}
-
-/* ── CARDS GRID — 2-column Framer layout ─── */
-.dw-cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;width:100%;max-width:1200px;border-radius:20px;overflow:hidden;}
-
-/* ── CARDS — Framer dark flat style ─── */
-.dw-card{position:relative;cursor:pointer;overflow:hidden;padding:48px 40px 36px;background:#0d0d0d;border:none;outline:none;backdrop-filter:none;transition:background .22s;animation:none;display:flex;flex-direction:column;min-height:380px;border-radius:0;}
-/* Corner rounding on grid edges */
-.dw-card:nth-child(1){border-radius:20px 0 0 0;}
-.dw-card:nth-child(2){border-radius:0 20px 0 0;}
-.dw-card:nth-child(3){border-radius:0 0 0 20px;}
-.dw-card:nth-child(4){border-radius:0 0 20px 0;}
-/* Last card spans full width — horizontal layout */
-.dw-card:nth-child(5){grid-column:1/-1;min-height:200px;flex-direction:row;align-items:center;gap:48px;padding:40px 56px;border-radius:0 0 20px 20px;border-top:1px solid rgba(255,255,255,.05);}
-.dw-card:hover{background:#111;}
-
-/* ✦ Sparkle icon */
-.dw-card-sparkle{position:absolute;top:22px;right:22px;font-size:14px;color:rgba(255,255,255,.2);transition:color .22s,transform .3s;line-height:1;pointer-events:none;}
-.dw-card:hover .dw-card-sparkle{color:rgba(255,255,255,.5);transform:rotate(15deg);}
-
-/* Hide old decorative elements */
-.dw-card-spin,.dw-card-orb,.dw-card-line,.dw-info-btn{display:none;}
-.dw-card::after{display:none;}
-
-/* Icon */
-.dw-card-icon{font-size:52px;display:block;line-height:1;filter:none;transition:transform .3s;margin-bottom:auto;padding-bottom:28px;flex-shrink:0;}
-.dw-card:hover .dw-card-icon{transform:scale(1.07) translateY(-3px);}
-.dw-card:nth-child(5) .dw-card-icon{font-size:58px;margin-bottom:0;padding:0;}
-
-/* Number */
-.dw-card-num{font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,.2);letter-spacing:.2em;margin-bottom:10px;}
-/* Name */
-.dw-card-name{font-family:'DM Sans',sans-serif;font-size:22px;font-weight:600;color:#fff;margin-bottom:8px;line-height:1.2;letter-spacing:-.02em;}
-/* Description */
-.dw-card-desc{font-size:13px;color:rgba(255,255,255,.38);line-height:1.65;font-weight:400;}
-/* Badge — muted pill */
-.dw-card-badge{font-size:9.5px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.1);letter-spacing:.07em;display:inline-flex;align-items:center;gap:4px;margin-bottom:10px;}
-/* Live badge gets green */
-.dw-card[data-live="true"] .dw-card-badge{background:rgba(74,222,128,.06);color:rgba(74,222,128,.8);border-color:rgba(74,222,128,.15);}
-/* Footer */
-.dw-card-footer{margin-top:18px;}
-.dw-card-arrow{width:30px;height:30px;border-radius:99px;border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:13px;color:rgba(255,255,255,.4);background:rgba(255,255,255,.04);opacity:0;transform:translateX(-6px);transition:all .22s;flex-shrink:0;}
-.dw-card:hover .dw-card-arrow{opacity:1;transform:translateX(0);}
-/* Tooltip hidden */
-.dw-tooltip{display:none!important;}
+.dw-hero-sub{font-size:16px;color:rgba(232,232,240,.48);max-width:520px;margin:0 auto 36px;line-height:1.9;font-weight:300;letter-spacing:.01em;}
 .dw-hero-stats{display:flex;justify-content:center;gap:0;background:linear-gradient(135deg,rgba(232,201,122,.05) 0%,rgba(255,255,255,.02) 100%);border:1px solid rgba(232,201,122,.14);border-radius:20px;overflow:hidden;backdrop-filter:blur(18px);box-shadow:0 0 50px rgba(232,201,122,.06),inset 0 1px 0 rgba(255,255,255,.05);}
 .dw-h-stat{padding:20px 32px;position:relative;text-align:center;min-width:130px;}
 .dw-h-stat+.dw-h-stat::before{content:'';position:absolute;left:0;top:18%;height:64%;width:1px;background:rgba(232,201,122,.12);}
@@ -4935,43 +4845,45 @@ function switchAdminTab(tab, btn, noHistory) {
 ═══════════════════════════════════════════ -->
 <canvas id="dw-canvas"></canvas>
 <div id="dwLanding">
+  <!-- Admin shortcut — top-right, visible only when logged in as admin -->
+  <button class="dw-admin-fab" id="dwAdminFab" onclick="openAdminPanel()">
+    ⚙ Admin Panel
+    <span class="dw-afab-dot" id="dwAdminFabDot"></span>
+  </button>
 
-  <!-- Framer-style nav bar -->
-  <div class="dw-nav">
-    <div class="dw-nav-brand">
-      <img src="/bluecopa-logo.png" alt="Bluecopa" class="dw-nav-logo-img">
-      <span class="dw-nav-logo-text">Bluecopa</span>
-    </div>
-    <button class="dw-admin-fab" id="dwAdminFab" onclick="openAdminPanel()">
-      ⚙ Admin Panel
-      <span class="dw-afab-dot" id="dwAdminFabDot"></span>
-    </button>
-  </div>
-
-  <!-- Background layers -->
   <div class="dw-orbs">
     <div class="dw-orb dw-orb1"></div>
     <div class="dw-orb dw-orb2"></div>
     <div class="dw-orb dw-orb3"></div>
+    <div class="dw-orb dw-orb4"></div>
   </div>
   <div class="dw-vignette"></div>
   <div class="dw-dot-grid"></div>
   <div class="dw-grain"></div>
+  <div class="dw-sweep"></div>
 
   <div class="dw-page">
 
-    <!-- Hero — Framer style -->
+    <!-- Brand -->
+    <div class="dw-brand-wrap">
+      <div class="dw-brand-ring">
+        <img src="/bluecopa-logo.png" alt="Bluecopa" class="dw-brand-logo">
+      </div>
+      <div class="dw-brand-name">Bluecopa</div>
+      <div class="dw-brand-tagline-row">
+        <div class="dw-brand-sep"></div>
+        <div class="dw-brand-tagline">Delivery Team's Go-To Place</div>
+        <div class="dw-brand-sep r"></div>
+      </div>
+    </div>
+
+    <!-- Hero -->
     <div class="dw-hero">
-      <div class="dw-hero-eyebrow">Bluecopa · Delivery Team's Go-To Place</div>
       <div class="dw-hero-title-wrap">
         <div class="dw-hero-title">Delivery Wikipedia</div>
         <div class="dw-hero-rule"></div>
       </div>
       <div class="dw-hero-sub">The single source of truth for Bluecopa's delivery team — knowledge, skills, metrics, history, and learning, all in one place.</div>
-      <div class="dw-hero-ctas">
-        <button class="dw-cta-primary" onclick="dwGoKnowledge()">Explore Knowledge</button>
-        <button class="dw-cta-secondary" onclick="dwGoSkillMatrix()">View Skill Matrix</button>
-      </div>
       <div class="dw-hero-stats">
         <div class="dw-h-stat">
           <div class="dw-h-stat-n" id="dwStatArticles">—</div>
@@ -5001,70 +4913,94 @@ function switchAdminTab(tab, btn, noHistory) {
       </div>
     </div>
 
-    <!-- Sections header — Framer "Generate in seconds" style -->
-    <div class="dw-sections-header-block">
-      <div class="dw-sections-heading">Knowledge Areas</div>
-      <div class="dw-sections-sub-text">Access every section of your delivery team's knowledge base</div>
-    </div>
-
-    <!-- Cards — 2-column Framer grid -->
+    <!-- Section cards -->
+    <div class="dw-cards-label">Explore Sections</div>
+    <div class="dw-cards-sub">Everything your delivery team needs — in one place</div>
     <div class="dw-cards-grid">
 
       <!-- 01 Knowledge Articles -->
-      <div class="dw-card" onclick="dwGoKnowledge()">
-        <span class="dw-card-sparkle">✦</span>
+      <div class="dw-card" style="--cr:0,200,204;--fdur:4.2s;--fdel:0s;" onclick="dwGoKnowledge()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip01')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip01">
+          <div class="dw-tooltip-title">Knowledge Articles</div>
+          <div class="dw-tooltip-text">Step-by-step guides, how-tos, deep technical docs and best practices covering every Bluecopa feature — written by the team, for the team. Browse by category or search.</div>
+        </div>
         <div class="dw-card-badge">● Live</div>
         <span class="dw-card-icon">📚</span>
         <div class="dw-card-num">// 01</div>
         <div class="dw-card-name">Knowledge Articles</div>
-        <div class="dw-card-desc">Step-by-step guides, how-tos and deep technical docs covering every Bluecopa feature — written by the team, for the team.</div>
-        <div class="dw-card-footer"><div class="dw-card-arrow">→</div></div>
+        <div class="dw-card-desc">Step-by-step guides, how-tos and deep technical docs covering every Bluecopa feature.</div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
 
       <!-- 02 Skill Matrix -->
-      <div class="dw-card" onclick="dwGoSkillMatrix()">
-        <span class="dw-card-sparkle">✦</span>
+      <div class="dw-card" style="--cr:129,140,248;--fdur:3.8s;--fdel:.5s;" onclick="dwGoSkillMatrix()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip02')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip02">
+          <div class="dw-tooltip-title">Skill Matrix</div>
+          <div class="dw-tooltip-text">See where every team member stands across all process areas. Track growth over time, spot skill gaps, and celebrate expertise — with live data snapshots and visual dashboards.</div>
+        </div>
         <div class="dw-card-badge">● Live</div>
         <span class="dw-card-icon">🧠</span>
         <div class="dw-card-num">// 02</div>
         <div class="dw-card-name">Skill Matrix</div>
-        <div class="dw-card-desc">Track every team member's skills across all process areas with live snapshots and visual dashboards.</div>
-        <div class="dw-card-footer"><div class="dw-card-arrow">→</div></div>
+        <div class="dw-card-desc">Track every team member's skills across all process areas with live data.</div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
 
       <!-- 03 KPIs -->
-      <div class="dw-card" onclick="dwComingSoon('KPIs')">
-        <span class="dw-card-sparkle">✦</span>
+      <div class="dw-card" style="--cr:249,167,79;--fdur:4.5s;--fdel:1s;" onclick="dwComingSoon('KPIs')">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip03')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip03">
+          <div class="dw-tooltip-title">KPIs</div>
+          <div class="dw-tooltip-text">Delivery performance metrics that actually matter — velocity, quality, efficiency and team health indicators, all in one live dashboard. Compare period-over-period trends.</div>
+        </div>
         <div class="dw-card-badge">◌ Coming Soon</div>
         <span class="dw-card-icon">📊</span>
         <div class="dw-card-num">// 03</div>
         <div class="dw-card-name">KPIs</div>
-        <div class="dw-card-desc">Delivery performance metrics — velocity, quality and team health — all in one live dashboard.</div>
-        <div class="dw-card-footer"><div class="dw-card-arrow">→</div></div>
+        <div class="dw-card-desc">Delivery performance metrics — velocity, quality and team health, all live.</div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
 
       <!-- 04 Delivery Journey -->
-      <div class="dw-card" onclick="dwComingSoon('Delivery Journey')">
-        <span class="dw-card-sparkle">✦</span>
+      <div class="dw-card" style="--cr:122,232,180;--fdur:4s;--fdel:1.5s;" onclick="dwComingSoon('Delivery Journey')">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip04')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip04">
+          <div class="dw-tooltip-title">The Delivery Journey</div>
+          <div class="dw-tooltip-text">A living record of every past implementation — what was built, what was learned, and how each project shaped the team we are today. Project stories, timelines and retrospectives.</div>
+        </div>
         <div class="dw-card-badge">◌ Coming Soon</div>
         <span class="dw-card-icon">🏛️</span>
         <div class="dw-card-num">// 04</div>
         <div class="dw-card-name">The Delivery Journey</div>
-        <div class="dw-card-desc">A living record of every past implementation — what was built, what was learned, and how each project shaped the team.</div>
-        <div class="dw-card-footer"><div class="dw-card-arrow">→</div></div>
+        <div class="dw-card-desc">A living record of every past implementation and what we learned.</div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
 
-      <!-- 05 Process Puzzle — spans full width -->
-      <div class="dw-card" onclick="dwGoProcessPuzzle()">
-        <span class="dw-card-sparkle">✦</span>
-        <span class="dw-card-icon">🧩</span>
-        <div>
-          <div class="dw-card-badge" style="margin-bottom:8px;">◌ Coming Soon</div>
-          <div class="dw-card-num">// 05</div>
-          <div class="dw-card-name">Process Puzzle</div>
-          <div class="dw-card-desc">Quizzes, puzzles and interactive challenges built around real Bluecopa processes — learn by doing and level up your knowledge.</div>
-          <div class="dw-card-footer"><div class="dw-card-arrow">→</div></div>
+      <!-- 05 Process Puzzle -->
+      <div class="dw-card" style="--cr:232,122,122;--fdur:3.6s;--fdel:2s;" onclick="dwGoProcessPuzzle()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip05')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip05">
+          <div class="dw-tooltip-title">Process Puzzle</div>
+          <div class="dw-tooltip-text">Quizzes, puzzles and interactive challenges built around real Bluecopa processes — learn by doing and level up your knowledge. Fun, gamified learning for the delivery team.</div>
         </div>
+        <div class="dw-card-badge">◌ Coming Soon</div>
+        <span class="dw-card-icon">🧩</span>
+        <div class="dw-card-num">// 05</div>
+        <div class="dw-card-name">Process Puzzle</div>
+        <div class="dw-card-desc">Quizzes, puzzles and interactive challenges — learn by doing and level up.</div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
 
     </div><!-- /dw-cards-grid -->
@@ -5076,6 +5012,8 @@ function switchAdminTab(tab, btn, noHistory) {
     </div>
 
   </div><!-- /dw-page -->
+
+  <!-- LEFT panel: scrolling icon tiles -->
 
 </div><!-- /dwLanding -->
 
