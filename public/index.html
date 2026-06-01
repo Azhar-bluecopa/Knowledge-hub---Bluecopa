@@ -870,6 +870,60 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .pp-gl-empty-icon{font-size:46px;margin-bottom:14px;display:block;}
 .pp-gl-empty-title{font-size:16px;font-weight:600;color:rgba(255,255,255,.5);margin-bottom:8px;font-family:'DM Sans',sans-serif;}
 .pp-gl-loading{text-align:center;padding:44px;color:rgba(168,85,247,.45);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;}
+
+/* ── GAMING ANIMATIONS ──────────────────────────────────────────────────── */
+/* Entrance keyframes */
+@keyframes ppGlRise   {from{opacity:0;transform:translateY(28px);}to{opacity:1;transform:translateY(0);}}
+@keyframes ppGlPop    {from{opacity:0;transform:scale(.72);}to{opacity:1;transform:scale(1);}}
+@keyframes ppGlSlideR {from{opacity:0;transform:translateX(22px);}to{opacity:1;transform:translateX(0);}}
+@keyframes ppGlFadeIn {from{opacity:0;}to{opacity:1;}}
+@keyframes ppGlContentIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+/* Title glow pulse */
+@keyframes ppGlTitleGlow{0%,100%{text-shadow:0 0 20px rgba(168,85,247,.3),0 0 50px rgba(168,85,247,.1);}50%{text-shadow:0 0 50px rgba(168,85,247,.7),0 0 100px rgba(168,85,247,.25),0 0 150px rgba(168,85,247,.1);}}
+/* Score pop */
+@keyframes ppGlScorePop{0%{transform:scale(1.5);color:#fbbf24;}100%{transform:scale(1);}}
+/* Particle rise */
+@keyframes ppGlPtcl{0%{transform:translateY(0) scale(1);opacity:.8;}80%{opacity:.4;}100%{transform:translateY(-140px) scale(.2);opacity:0;}}
+/* Sparkle orbit around #1 */
+@keyframes ppGlOrbit{0%{transform:rotate(0deg) translateX(38px);}100%{transform:rotate(360deg) translateX(38px);}}
+@keyframes ppGlSparkle{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.1;transform:scale(.2);}}
+/* Platform scan line */
+@keyframes ppGlScan{0%{top:100%;}100%{top:-10%;}}
+/* Podium base shimmer */
+@keyframes ppGlBaseShimmer{0%,100%{opacity:.5;}50%{opacity:1;}}
+/* YOU strip pulse */
+@keyframes ppGlYouPulse{0%,100%{box-shadow:0 0 18px rgba(168,85,247,.08);}50%{box-shadow:0 0 36px rgba(168,85,247,.22),inset 0 0 20px rgba(168,85,247,.06);}}
+/* Tab active glow */
+@keyframes ppGlTabGlow{0%,100%{box-shadow:0 0 14px rgba(168,85,247,.12);}50%{box-shadow:0 0 28px rgba(168,85,247,.32);}}
+/* Row hover lift */
+.pp-gl-trow{transition:transform .2s,background .18s,border-color .18s;}
+.pp-gl-trow:hover{transform:translateX(4px);}
+/* Animations applied */
+.pp-gl-main-title{animation:ppGlTitleGlow 3s ease-in-out infinite,ppGlRise .6s cubic-bezier(.16,1,.3,1) both;}
+.pp-gl-main-sub{animation:ppGlRise .6s .1s cubic-bezier(.16,1,.3,1) both;}
+.pp-gl-meta{animation:ppGlRise .6s .18s cubic-bezier(.16,1,.3,1) both;}
+.pp-gl-tabs{animation:ppGlRise .6s .25s cubic-bezier(.16,1,.3,1) both;}
+.pp-gl-tab.active{animation:ppGlTabGlow 2.4s ease-in-out infinite;}
+.pp-gl-you{animation:ppGlYouPulse 2.8s ease-in-out infinite;}
+/* Podium spring entrances */
+.pp-gl-p2{animation:ppGlPop .55s .05s cubic-bezier(.16,1,.3,1) both;}
+.pp-gl-p1{animation:ppGlPop .55s .15s cubic-bezier(.16,1,.3,1) both;}
+.pp-gl-p3{animation:ppGlPop .55s .25s cubic-bezier(.16,1,.3,1) both;}
+/* Score pop */
+.pp-gl-pscore{animation:ppGlScorePop .5s .6s cubic-bezier(.16,1,.3,1) both;}
+/* Platform scan line */
+.pp-gl-block::after{content:'';position:absolute;left:0;right:0;height:30%;background:linear-gradient(180deg,transparent,rgba(255,255,255,.06),transparent);animation:ppGlScan 2.2s ease-in-out infinite;pointer-events:none;}
+/* Sparkle dots orbiting #1 avatar */
+.pp-gl-sparkle-ring{position:absolute;inset:0;pointer-events:none;}
+.pp-gl-sparkle-ring span{position:absolute;top:50%;left:50%;width:5px;height:5px;border-radius:50%;margin:-2.5px;animation:ppGlOrbit linear infinite,ppGlSparkle 1.4s ease-in-out infinite;}
+.pp-gl-sparkle-ring span:nth-child(1){background:#fbbf24;animation-duration:3.2s,1.4s;animation-delay:0s,0s;}
+.pp-gl-sparkle-ring span:nth-child(2){background:#fff;animation-duration:3.2s,1.4s;animation-delay:.8s,.5s;}
+.pp-gl-sparkle-ring span:nth-child(3){background:#fbbf24;animation-duration:3.2s,1.4s;animation-delay:1.6s,1s;}
+.pp-gl-sparkle-ring span:nth-child(4){background:#f0abfc;animation-duration:3.2s,1.4s;animation-delay:2.4s,.3s;}
+/* Floating particles */
+.pp-gl-particle{position:absolute;border-radius:50%;pointer-events:none;animation:ppGlPtcl linear infinite;}
+/* Content area transition */
+#ppGLContent{animation:ppGlContentIn .4s ease both;}
 .pp-lb-name{flex:1;font-size:13px;font-weight:600;color:rgba(255,255,255,.8);}
 .pp-lb-score{font-family:'DM Mono',monospace;font-size:11px;color:rgba(168,85,247,.8);}
 .pp-lb-time{font-size:10px;color:rgba(255,255,255,.3);font-family:'DM Mono',monospace;}
@@ -5312,9 +5366,43 @@ async function ppGLSwitchTab(period, btn) {
   await ppGLLoad(period);
 }
 
+function ppGLSpawnParticles() {
+  const wrap = document.getElementById('ppGLWrap');
+  if (!wrap || wrap.querySelector('.pp-gl-particle')) return; // already spawned
+  const colors = ['#a855f7','#c084fc','#7dd3fc','#fbbf24','#f0abfc','#818cf8'];
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    const size = 2 + Math.random() * 3;
+    const dur  = 4 + Math.random() * 6;
+    const del  = Math.random() * 5;
+    p.className = 'pp-gl-particle';
+    p.style.cssText = `width:${size}px;height:${size}px;background:${colors[i%colors.length]};left:${5+Math.random()*90}%;bottom:${Math.random()*15}%;animation-duration:${dur}s;animation-delay:${del}s;opacity:.55;`;
+    wrap.appendChild(p);
+  }
+}
+
+function ppGLAnimateScores() {
+  document.querySelectorAll('.pp-gl-score-val').forEach(el => {
+    const target = parseInt(el.dataset.target || '0');
+    const start = performance.now();
+    const dur = 900;
+    const tick = now => {
+      const t = Math.min((now - start) / dur, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
+      el.textContent = Math.round(target * ease);
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
 async function ppGLLoad(period) {
   const content = document.getElementById('ppGLContent');
   if (!content) return;
+  // Retrigger content entrance animation
+  content.style.animation = 'none';
+  content.offsetHeight; // reflow
+  content.style.animation = '';
   content.innerHTML = '<div class="pp-gl-loading">⏳ Loading…</div>';
   try {
     const r = await fetch(`/api/puzzle/leaderboard?period=${period || 'weekly'}`);
@@ -5325,6 +5413,9 @@ async function ppGLLoad(period) {
     if (wl && data.game) wl.textContent = `Week ${data.game.week||'—'} · ${new Date().getFullYear()}`;
     const pc = document.getElementById('ppGLPlayerCount');
     if (pc) pc.textContent = `${data.totalPlayers || 0} player${data.totalPlayers !== 1 ? 's' : ''}`;
+    // Spawn particles once + animate score numbers
+    ppGLSpawnParticles();
+    setTimeout(ppGLAnimateScores, 300);
   } catch(e) {
     content.innerHTML = '<div class="pp-gl-empty"><span class="pp-gl-empty-icon">⚡</span><div class="pp-gl-empty-title">Could not load leaderboard</div></div>';
   }
@@ -5378,14 +5469,19 @@ function ppGLRender(data, period) {
     if (!p) { html += '<div style="width:96px;"></div>'; return; }
     const isMe = me && p.playerName.toLowerCase() === me.toLowerCase();
     const placeNum = i === 1 ? 1 : i === 0 ? 2 : 3;
+    // Sparkle ring only for 1st place
+    const sparkleRing = placeNum === 1
+      ? `<div class="pp-gl-sparkle-ring"><span></span><span></span><span></span><span></span></div>`
+      : '';
     html += `<div class="pp-gl-pplace ${podClass[i]}">
-      <div class="pp-gl-av-wrap">
+      <div class="pp-gl-av-wrap" style="position:relative;">
         ${placeNum === 1 ? '<div class="pp-gl-crown">👑</div>' : ''}
+        ${sparkleRing}
         <div class="pp-gl-av-ring"></div>
         <div class="pp-gl-av">${p.playerInitials||p.playerName.slice(0,2).toUpperCase()}</div>
       </div>
       <div class="pp-gl-pname">${p.playerName}${isMe?' ★':''}</div>
-      <div class="pp-gl-pscore">${p.totalScore}<span style="opacity:.4;">/${p.totalPossible}</span></div>
+      <div class="pp-gl-pscore"><span class="pp-gl-score-val" data-target="${p.totalScore}">0</span><span style="opacity:.4;">/${p.totalPossible}</span></div>
       <div class="pp-gl-block"><div class="pp-gl-block-n">${placeNum}</div></div>
     </div>`;
   });
@@ -5394,11 +5490,12 @@ function ppGLRender(data, period) {
   // Table 4th+
   if (lb.length > 3) {
     html += `<div><div class="pp-gl-tbl-hdr"><div>#</div><div>Player</div><div>Badge</div><div style="text-align:right;">Score</div><div style="text-align:right;">Time</div></div>`;
-    lb.slice(3).forEach(p => {
+    lb.slice(3).forEach((p, rowIdx) => {
       const isMe = me && p.playerName.toLowerCase() === me.toLowerCase();
       const b = p.badge;
       const grad = avatarGrads[(p.rank - 1) % avatarGrads.length];
-      html += `<div class="pp-gl-trow${isMe?' pp-gl-me':''}">
+      const delay = (rowIdx * 0.045).toFixed(3);
+      html += `<div class="pp-gl-trow${isMe?' pp-gl-me':''}" style="animation:ppGlSlideR .4s ${delay}s cubic-bezier(.16,1,.3,1) both;">
         <div class="pp-gl-c-rank${p.rank<=10?' top':''}">${p.rank}</div>
         <div class="pp-gl-c-player">
           <div class="pp-gl-rav" style="background:linear-gradient(135deg,${grad});">${p.playerInitials||p.playerName.slice(0,2).toUpperCase()}</div>
@@ -5406,7 +5503,7 @@ function ppGLRender(data, period) {
           ${isMe ? '<span class="pp-gl-you-tag">YOU</span>' : ''}
         </div>
         <div><span class="pp-tier pp-tier-${b.name.toLowerCase()}">${b.icon} ${b.name}</span></div>
-        <div class="pp-gl-c-score">${p.totalScore}<span style="font-size:9px;opacity:.4;">/${p.totalPossible}</span></div>
+        <div class="pp-gl-c-score"><span class="pp-gl-score-val" data-target="${p.totalScore}">0</span><span style="font-size:9px;opacity:.4;">/${p.totalPossible}</span></div>
         <div class="pp-gl-c-time">${ppFmtTime(p.totalTime)}</div>
       </div>`;
     });
