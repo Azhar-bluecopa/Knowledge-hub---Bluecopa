@@ -974,15 +974,64 @@ app.post('/api/puzzle/attempt', async (req, res) => {
   res.json({ success: true, attempt, questionResults, gameTitle: game.title });
 });
 
+// Badge tier based on lifetime total score
+function ppBadgeTier(lifetimeScore) {
+  if (lifetimeScore >= 250) return { name:'Legend',  icon:'👑', level:5 };
+  if (lifetimeScore >= 150) return { name:'Platinum', icon:'💎', level:4 };
+  if (lifetimeScore >=  80) return { name:'Gold',     icon:'🥇', level:3 };
+  if (lifetimeScore >=  40) return { name:'Silver',   icon:'🥈', level:2 };
+  return                           { name:'Bronze',   icon:'🥉', level:1 };
+}
+
 app.get('/api/puzzle/leaderboard', (req, res) => {
-  if (!db.processGame || !db.processGame.currentGame) return res.json({ leaderboard: [], game: null });
-  const game = db.processGame.currentGame;
-  const lb = db.processGame.attempts
-    .filter(a => a.gameId === game.id && a.isFirstAttempt)
-    .sort((a, b) => b.accuracy - a.accuracy || a.timeTaken - b.timeTaken)
-    .slice(0, 20)
-    .map((a, i) => ({ rank: i + 1, playerName: a.playerName, playerInitials: a.playerInitials, score: a.score, total: a.total, accuracy: a.accuracy, timeTaken: a.timeTaken }));
-  res.json({ leaderboard: lb, game: { id: game.id, title: game.title, week: game.week, type: game.type } });
+  if (!db.processGame) db.processGame = { currentGame: null, attempts: [], gameHistory: [] };
+  const period  = req.query.period || 'weekly';
+  const allAttempts = db.processGame.attempts || [];
+  const allGames = [...(db.processGame.gameHistory || []), ...(db.processGame.currentGame ? [db.processGame.currentGame] : [])];
+
+  // Lifetime score per player (for badge calculation)
+  const lifetime = {};
+  allAttempts.filter(a => a.isFirstAttempt).forEach(a => {
+    const k = a.playerName.toLowerCase();
+    if (!lifetime[k]) lifetime[k] = 0;
+    lifetime[k] += a.score;
+  });
+
+  // Determine which game IDs fall in the requested period
+  let filteredIds;
+  if (period === 'weekly') {
+    filteredIds = new Set(db.processGame.currentGame ? [db.processGame.currentGame.id] : []);
+  } else {
+    const now = new Date();
+    let start;
+    if      (period === 'monthly')   start = new Date(now.getFullYear(), now.getMonth(), 1);
+    else if (period === 'quarterly') start = new Date(now.getFullYear(), Math.floor(now.getMonth()/3)*3, 1);
+    else                              start = new Date(now.getFullYear(), 0, 1);
+    filteredIds = new Set(
+      allGames.filter(g => { const d = new Date(g.createdAt || g.date || 0); return d >= start; }).map(g => g.id)
+    );
+    if (db.processGame.currentGame) filteredIds.add(db.processGame.currentGame.id);
+  }
+
+  // Aggregate first-attempt scores for the period
+  const playerMap = {};
+  allAttempts.filter(a => a.isFirstAttempt && filteredIds.has(a.gameId)).forEach(a => {
+    const k = a.playerName.toLowerCase();
+    if (!playerMap[k]) playerMap[k] = { playerName: a.playerName, playerInitials: a.playerInitials || a.playerName.slice(0,2).toUpperCase(), totalScore:0, totalPossible:0, totalTime:0, weeksPlayed:0 };
+    playerMap[k].totalScore    += a.score;
+    playerMap[k].totalPossible += a.total;
+    playerMap[k].totalTime     += (a.timeTaken || 0);
+    playerMap[k].weeksPlayed   += 1;
+  });
+
+  const lb = Object.values(playerMap)
+    .map(p => ({ ...p, accuracy: p.totalPossible ? Math.round(p.totalScore/p.totalPossible*100) : 0, badge: ppBadgeTier(lifetime[p.playerName.toLowerCase()]||0) }))
+    .sort((a,b) => b.totalScore - a.totalScore || a.totalTime - b.totalTime)
+    .map((p,i) => ({ ...p, rank: i+1 }));
+
+  const cg = db.processGame.currentGame;
+  res.json({ leaderboard: lb, period, gamesInPeriod: filteredIds.size, totalPlayers: lb.length,
+    game: cg ? { id:cg.id, title:cg.title, week:cg.week, type:cg.type, formatIcon:cg.formatIcon } : null });
 });
 
 app.get('/api/puzzle/analytics', (req, res) => {

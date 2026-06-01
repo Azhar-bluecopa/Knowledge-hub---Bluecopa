@@ -791,6 +791,85 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .pp-lb-rank.gold{color:#e8c97a;}
 .pp-lb-rank.silver{color:#b0b8c8;}
 .pp-lb-rank.bronze{color:#cd8b6a;}
+/* ══════════════ GAMING LEADERBOARD ══════════════════════════════════════ */
+.pp-gl-wrap{width:100%;max-width:740px;margin:0 auto;padding:0 20px 80px;}
+/* Header */
+.pp-gl-header{text-align:center;margin-bottom:28px;padding-top:8px;}
+.pp-gl-main-title{font-family:'Bebas Neue',sans-serif;font-size:44px;font-weight:400;letter-spacing:.1em;color:#fff;text-transform:uppercase;line-height:1;text-shadow:0 0 40px rgba(168,85,247,.4);}
+.pp-gl-main-sub{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase;color:rgba(168,85,247,.55);margin-top:6px;}
+.pp-gl-meta{font-size:10.5px;color:rgba(255,255,255,.28);font-family:'DM Mono',monospace;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:12px;}
+.pp-gl-dot{width:5px;height:5px;border-radius:50%;background:#a855f7;display:inline-block;animation:pulse 2s ease-in-out infinite;}
+/* Period tabs */
+.pp-gl-tabs{display:flex;align-items:center;justify-content:center;gap:3px;margin-bottom:28px;background:rgba(255,255,255,.04);border-radius:99px;padding:4px;border:1px solid rgba(255,255,255,.07);width:fit-content;margin-left:auto;margin-right:auto;}
+.pp-gl-tab{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:8px 16px;border-radius:99px;border:none;cursor:pointer;transition:all .22s;color:rgba(255,255,255,.38);background:transparent;font-weight:700;}
+.pp-gl-tab.active{background:rgba(168,85,247,.22);color:#c084fc;border:1px solid rgba(168,85,247,.35);box-shadow:0 0 18px rgba(168,85,247,.15);}
+.pp-gl-tab:hover:not(.active){color:rgba(255,255,255,.65);}
+/* Info strip */
+.pp-gl-info{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;background:rgba(168,85,247,.05);border:1px solid rgba(168,85,247,.12);border-radius:10px;margin-bottom:20px;font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.08em;}
+.pp-gl-info strong{color:rgba(168,85,247,.85);}
+/* You strip */
+.pp-gl-you{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:rgba(168,85,247,.09);border:1px solid rgba(168,85,247,.28);border-radius:12px;margin-bottom:18px;box-shadow:0 0 24px rgba(168,85,247,.07);}
+.pp-gl-you-left{display:flex;align-items:center;gap:12px;}
+.pp-gl-you-rank{font-family:'Bebas Neue',sans-serif;font-size:28px;color:#a855f7;letter-spacing:.05em;line-height:1;}
+.pp-gl-you-info{display:flex;flex-direction:column;gap:2px;}
+.pp-gl-you-lbl{font-size:9px;font-family:'DM Mono',monospace;color:rgba(168,85,247,.55);letter-spacing:.14em;text-transform:uppercase;}
+.pp-gl-you-name{font-size:14px;font-weight:700;color:#fff;font-family:'DM Sans',sans-serif;}
+.pp-gl-you-score{font-family:'DM Mono',monospace;font-size:15px;color:#a855f7;font-weight:700;}
+/* PODIUM */
+.pp-gl-podium{display:flex;align-items:flex-end;justify-content:center;gap:6px;margin-bottom:28px;padding-top:48px;}
+.pp-gl-pplace{display:flex;flex-direction:column;align-items:center;position:relative;}
+/* Avatar */
+.pp-gl-av-wrap{position:relative;margin-bottom:10px;}
+.pp-gl-av{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;font-family:'DM Sans',sans-serif;position:relative;z-index:2;}
+.pp-gl-av-ring{position:absolute;inset:-4px;border-radius:50%;animation:pp-gl-spin 3.5s linear infinite;z-index:1;}
+@keyframes pp-gl-spin{to{transform:rotate(360deg);}}
+.pp-gl-p1 .pp-gl-av{background:linear-gradient(135deg,#fbbf24,#d97706);color:#000;box-shadow:0 0 32px rgba(251,191,36,.55);}
+.pp-gl-p1 .pp-gl-av-ring{background:conic-gradient(from 0deg,#fbbf24 0%,#fff 25%,#fbbf24 50%,#d97706 75%,#fbbf24 100%);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 0);mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 0);}
+.pp-gl-p2 .pp-gl-av{background:linear-gradient(135deg,#94a3b8,#64748b);color:#fff;box-shadow:0 0 22px rgba(148,163,184,.35);}
+.pp-gl-p2 .pp-gl-av-ring{background:conic-gradient(from 0deg,#94a3b8 0%,#e2e8f0 40%,#94a3b8 100%);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 0);mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 0);}
+.pp-gl-p3 .pp-gl-av{background:linear-gradient(135deg,#cd7f32,#a0522d);color:#fff;box-shadow:0 0 18px rgba(205,127,50,.35);}
+.pp-gl-p3 .pp-gl-av-ring{background:conic-gradient(from 0deg,#cd7f32 0%,#f0a060 40%,#cd7f32 100%);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 0);mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 0);}
+/* Crown on #1 */
+.pp-gl-crown{position:absolute;top:-28px;left:50%;transform:translateX(-50%);font-size:22px;animation:pp-gl-float 2.2s ease-in-out infinite;filter:drop-shadow(0 0 8px rgba(251,191,36,.8));}
+@keyframes pp-gl-float{0%,100%{transform:translateX(-50%) translateY(0);}50%{transform:translateX(-50%) translateY(-6px);}}
+/* Podium name/score */
+.pp-gl-pname{font-size:11.5px;font-weight:700;color:rgba(255,255,255,.88);text-align:center;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'DM Sans',sans-serif;margin-bottom:2px;}
+.pp-gl-pscore{font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,.38);text-align:center;}
+/* Podium block */
+.pp-gl-block{width:96px;border-radius:8px 8px 0 0;margin-top:8px;position:relative;overflow:hidden;}
+.pp-gl-p1 .pp-gl-block{height:84px;background:linear-gradient(180deg,rgba(251,191,36,.28),rgba(251,191,36,.08));border:1px solid rgba(251,191,36,.2);border-bottom:none;}
+.pp-gl-p2 .pp-gl-block{height:62px;background:linear-gradient(180deg,rgba(148,163,184,.18),rgba(148,163,184,.06));border:1px solid rgba(148,163,184,.15);border-bottom:none;}
+.pp-gl-p3 .pp-gl-block{height:46px;background:linear-gradient(180deg,rgba(205,127,50,.18),rgba(205,127,50,.06));border:1px solid rgba(205,127,50,.15);border-bottom:none;}
+.pp-gl-block::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;}
+.pp-gl-p1 .pp-gl-block::before{background:linear-gradient(90deg,transparent,rgba(251,191,36,.8),transparent);}
+.pp-gl-p2 .pp-gl-block::before{background:linear-gradient(90deg,transparent,rgba(148,163,184,.6),transparent);}
+.pp-gl-p3 .pp-gl-block::before{background:linear-gradient(90deg,transparent,rgba(205,127,50,.6),transparent);}
+.pp-gl-block-n{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-family:'Bebas Neue',sans-serif;font-size:22px;color:rgba(255,255,255,.12);letter-spacing:.04em;}
+/* BADGE TIERS */
+.pp-tier{display:inline-flex;align-items:center;gap:4px;font-family:'DM Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 9px;border-radius:99px;border:1px solid;white-space:nowrap;}
+.pp-tier-bronze  {color:#cd7f32;background:rgba(205,127,50,.1);border-color:rgba(205,127,50,.28);}
+.pp-tier-silver  {color:#94a3b8;background:rgba(148,163,184,.1);border-color:rgba(148,163,184,.28);}
+.pp-tier-gold    {color:#fbbf24;background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.28);}
+.pp-tier-platinum{color:#7dd3fc;background:rgba(125,211,252,.08);border-color:rgba(125,211,252,.25);}
+.pp-tier-legend  {color:#c084fc;background:rgba(168,85,247,.12);border-color:rgba(168,85,247,.35);box-shadow:0 0 10px rgba(168,85,247,.18);}
+/* TABLE */
+.pp-gl-tbl-hdr{display:grid;grid-template-columns:42px 1fr 96px 72px 64px;gap:0;padding:7px 14px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.2);border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:4px;}
+.pp-gl-trow{display:grid;grid-template-columns:42px 1fr 96px 72px 64px;gap:0;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);margin-bottom:3px;align-items:center;transition:background .16s,border-color .16s;}
+.pp-gl-trow:hover{background:rgba(168,85,247,.055);border-color:rgba(168,85,247,.14);}
+.pp-gl-trow.pp-gl-me{background:rgba(168,85,247,.1);border-color:rgba(168,85,247,.32);box-shadow:0 0 18px rgba(168,85,247,.08);}
+.pp-gl-c-rank{font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:rgba(255,255,255,.28);text-align:center;}
+.pp-gl-c-rank.top{color:rgba(168,85,247,.75);}
+.pp-gl-c-player{display:flex;align-items:center;gap:9px;min-width:0;}
+.pp-gl-rav{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif;flex-shrink:0;}
+.pp-gl-rname{font-size:13px;font-weight:600;color:rgba(255,255,255,.85);font-family:'DM Sans',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pp-gl-you-tag{font-size:8.5px;font-family:'DM Mono',monospace;color:#a855f7;background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.25);border-radius:99px;padding:1px 6px;margin-left:5px;flex-shrink:0;}
+.pp-gl-c-score{font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:#a855f7;text-align:right;}
+.pp-gl-c-time{font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,.28);text-align:right;}
+/* Empty / loading */
+.pp-gl-empty{text-align:center;padding:64px 20px;color:rgba(255,255,255,.25);}
+.pp-gl-empty-icon{font-size:46px;margin-bottom:14px;display:block;}
+.pp-gl-empty-title{font-size:16px;font-weight:600;color:rgba(255,255,255,.5);margin-bottom:8px;font-family:'DM Sans',sans-serif;}
+.pp-gl-loading{text-align:center;padding:44px;color:rgba(168,85,247,.45);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;}
 .pp-lb-name{flex:1;font-size:13px;font-weight:600;color:rgba(255,255,255,.8);}
 .pp-lb-score{font-family:'DM Mono',monospace;font-size:11px;color:rgba(168,85,247,.8);}
 .pp-lb-time{font-size:10px;color:rgba(255,255,255,.3);font-family:'DM Mono',monospace;}
@@ -5215,30 +5294,126 @@ function ppRenderLanding() {
   document.getElementById('ppQCount').textContent = g.totalQuestions || (g.questions||[]).length;
   document.getElementById('ppParticipants').textContent = g.participantCount || 0;
   ppLoadLandingLb();
-  const lbSec = document.getElementById('ppLbSection');
-  if (lbSec) lbSec.style.display = 'block';
+  const glWrap = document.getElementById('ppGLWrap');
+  if (glWrap) glWrap.style.display = 'block';
 }
 
 async function ppLoadLandingLb() {
+  await ppGLLoad('weekly');
+}
+
+// ── Gaming Leaderboard ────────────────────────────────────────────────────────
+let ppGLCurrentPeriod = 'weekly';
+
+async function ppGLSwitchTab(period, btn) {
+  ppGLCurrentPeriod = period;
+  document.querySelectorAll('.pp-gl-tab').forEach(t => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  await ppGLLoad(period);
+}
+
+async function ppGLLoad(period) {
+  const content = document.getElementById('ppGLContent');
+  if (!content) return;
+  content.innerHTML = '<div class="pp-gl-loading">⏳ Loading…</div>';
   try {
-    const r = await fetch('/api/puzzle/leaderboard');
+    const r = await fetch(`/api/puzzle/leaderboard?period=${period || 'weekly'}`);
     const data = await r.json();
-    const lb = data.leaderboard || [];
-    const ppLandingLbEl = document.getElementById('ppLandingLb');
-    if (lb.length === 0) {
-      ppLandingLbEl.innerHTML = '<p style="color:rgba(100,116,139,.7);font-size:13px;text-align:center;padding:20px 0;">No attempts yet — be the first to play!</p>';
-      return;
-    }
-    const medals=['🥇','🥈','🥉'];
-    ppLandingLbEl.innerHTML = lb.slice(0,5).map((p,i)=>`
-  <div class="pp-lb-row">
-    <span class="pp-lb-rank pp-lb-rank-${i+1}">${medals[i]||'#'+(i+1)}</span>
-    <div class="pp-lb-avatar">${p.playerInitials||p.playerName.slice(0,2).toUpperCase()}</div>
-    <span class="pp-lb-name${p.isYou?' pp-lb-you':''}">${p.playerName}${p.isYou?' ★':''}</span>
-    <span class="pp-lb-score">${p.score}/${p.total}</span>
-    <span class="pp-lb-time">${ppFmtTime(p.timeTaken)}</span>
-  </div>`).join('');
-  } catch(e) {}
+    ppGLRender(data, period || 'weekly');
+    // Update header
+    const wl = document.getElementById('ppGLWeekLabel');
+    if (wl && data.game) wl.textContent = `Week ${data.game.week||'—'} · ${new Date().getFullYear()}`;
+    const pc = document.getElementById('ppGLPlayerCount');
+    if (pc) pc.textContent = `${data.totalPlayers || 0} player${data.totalPlayers !== 1 ? 's' : ''}`;
+  } catch(e) {
+    content.innerHTML = '<div class="pp-gl-empty"><span class="pp-gl-empty-icon">⚡</span><div class="pp-gl-empty-title">Could not load leaderboard</div></div>';
+  }
+}
+
+function ppGLRender(data, period) {
+  const content = document.getElementById('ppGLContent');
+  const lb = data.leaderboard || [];
+  const me = (getUser() || {}).name;
+  const periodLabels = { weekly:'This week\'s scores', monthly:'Accumulated this month', quarterly:'Accumulated this quarter', yearly:'Accumulated this year' };
+
+  if (!lb.length) {
+    content.innerHTML = `<div class="pp-gl-empty"><span class="pp-gl-empty-icon">🏆</span><div class="pp-gl-empty-title">No entries yet</div><div style="font-size:13px;margin-top:6px;">Be the first to complete this week\'s puzzle!</div></div>`;
+    return;
+  }
+
+  const myEntry = me ? lb.find(p => p.playerName.toLowerCase() === me.toLowerCase()) : null;
+  const top3 = lb.slice(0, 3);
+  // Podium order: 2nd left, 1st centre, 3rd right
+  const podOrder = [top3[1], top3[0], top3[2]];
+  const podClass = ['pp-gl-p2','pp-gl-p1','pp-gl-p3'];
+
+  const avatarGrads = ['#a855f7,#7c3aed','#06b6d4,#0e7490','#10b981,#047857','#f59e0b,#b45309','#ef4444,#b91c1c','#ec4899,#be185d'];
+
+  let html = '';
+
+  // Info strip
+  html += `<div class="pp-gl-info"><span>${periodLabels[period]}</span><span><strong>${data.gamesInPeriod||1}</strong> game${(data.gamesInPeriod||1)>1?'s':''} · <strong>${lb.length}</strong> player${lb.length!==1?'s':''}</span></div>`;
+
+  // "You" strip if outside top 3
+  if (myEntry && myEntry.rank > 3) {
+    const b = myEntry.badge;
+    html += `<div class="pp-gl-you">
+      <div class="pp-gl-you-left">
+        <div class="pp-gl-you-rank">#${myEntry.rank}</div>
+        <div class="pp-gl-you-info">
+          <span class="pp-gl-you-lbl">Your position</span>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
+            <span class="pp-gl-you-name">${myEntry.playerName}</span>
+            <span class="pp-tier pp-tier-${b.name.toLowerCase()}">${b.icon} ${b.name}</span>
+          </div>
+        </div>
+      </div>
+      <div class="pp-gl-you-score">${myEntry.totalScore}<span style="font-size:10px;opacity:.4;font-weight:400;">/${myEntry.totalPossible}</span></div>
+    </div>`;
+  }
+
+  // Podium
+  html += '<div class="pp-gl-podium">';
+  podOrder.forEach((p, i) => {
+    if (!p) { html += '<div style="width:96px;"></div>'; return; }
+    const isMe = me && p.playerName.toLowerCase() === me.toLowerCase();
+    const placeNum = i === 1 ? 1 : i === 0 ? 2 : 3;
+    html += `<div class="pp-gl-pplace ${podClass[i]}">
+      <div class="pp-gl-av-wrap">
+        ${placeNum === 1 ? '<div class="pp-gl-crown">👑</div>' : ''}
+        <div class="pp-gl-av-ring"></div>
+        <div class="pp-gl-av">${p.playerInitials||p.playerName.slice(0,2).toUpperCase()}</div>
+      </div>
+      <div class="pp-gl-pname">${p.playerName}${isMe?' ★':''}</div>
+      <div class="pp-gl-pscore">${p.totalScore}<span style="opacity:.4;">/${p.totalPossible}</span></div>
+      <div class="pp-gl-block"><div class="pp-gl-block-n">${placeNum}</div></div>
+    </div>`;
+  });
+  html += '</div>';
+
+  // Table 4th+
+  if (lb.length > 3) {
+    html += `<div><div class="pp-gl-tbl-hdr"><div>#</div><div>Player</div><div>Badge</div><div style="text-align:right;">Score</div><div style="text-align:right;">Time</div></div>`;
+    lb.slice(3).forEach(p => {
+      const isMe = me && p.playerName.toLowerCase() === me.toLowerCase();
+      const b = p.badge;
+      const grad = avatarGrads[(p.rank - 1) % avatarGrads.length];
+      html += `<div class="pp-gl-trow${isMe?' pp-gl-me':''}">
+        <div class="pp-gl-c-rank${p.rank<=10?' top':''}">${p.rank}</div>
+        <div class="pp-gl-c-player">
+          <div class="pp-gl-rav" style="background:linear-gradient(135deg,${grad});">${p.playerInitials||p.playerName.slice(0,2).toUpperCase()}</div>
+          <span class="pp-gl-rname">${p.playerName}</span>
+          ${isMe ? '<span class="pp-gl-you-tag">YOU</span>' : ''}
+        </div>
+        <div><span class="pp-tier pp-tier-${b.name.toLowerCase()}">${b.icon} ${b.name}</span></div>
+        <div class="pp-gl-c-score">${p.totalScore}<span style="font-size:9px;opacity:.4;">/${p.totalPossible}</span></div>
+        <div class="pp-gl-c-time">${ppFmtTime(p.totalTime)}</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  content.innerHTML = html;
 }
 
 function ppShowView(view) {
@@ -6025,10 +6200,28 @@ document.querySelectorAll('.dw-card').forEach(card=>{
         </div>
       </div>
 
-      <!-- Leaderboard -->
-      <div class="pp-lb-section" id="ppLbSection" style="padding:32px 24px 60px;width:100%;max-width:560px;margin:0 auto;display:none;">
-        <div class="pp-lb-title">Current Leaderboard</div>
-        <div id="ppLandingLb"></div>
+      <!-- Gaming Leaderboard -->
+      <div id="ppGLWrap" class="pp-gl-wrap" style="display:none;">
+        <!-- Header -->
+        <div class="pp-gl-header">
+          <div class="pp-gl-main-title">Leaderboard</div>
+          <div class="pp-gl-main-sub">Process Puzzle Championship</div>
+          <div class="pp-gl-meta">
+            <span class="pp-gl-dot"></span>
+            <span id="ppGLWeekLabel">Week —</span>
+            <span>·</span>
+            <span id="ppGLPlayerCount">— players</span>
+          </div>
+        </div>
+        <!-- Period Tabs -->
+        <div class="pp-gl-tabs">
+          <button class="pp-gl-tab active" onclick="ppGLSwitchTab('weekly',this)">⚡ Weekly</button>
+          <button class="pp-gl-tab" onclick="ppGLSwitchTab('monthly',this)">📅 Monthly</button>
+          <button class="pp-gl-tab" onclick="ppGLSwitchTab('quarterly',this)">🌙 Quarterly</button>
+          <button class="pp-gl-tab" onclick="ppGLSwitchTab('yearly',this)">🏆 Yearly</button>
+        </div>
+        <!-- Dynamic content -->
+        <div id="ppGLContent"><div class="pp-gl-loading">Loading…</div></div>
       </div>
 
     </div>
