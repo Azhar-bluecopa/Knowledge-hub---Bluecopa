@@ -791,60 +791,88 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .pp-lb-rank.gold{color:#e8c97a;}
 .pp-lb-rank.silver{color:#b0b8c8;}
 .pp-lb-rank.bronze{color:#cd8b6a;}
-/* ══════════════ GAMING LEADERBOARD ══════════════════════════════════════ */
-.pp-gl-wrap{width:100%;max-width:740px;margin:0 auto;padding:0 20px 80px;}
+/* ══════════════ GAMING LEADERBOARD v2 — NEXRISE INSPIRED ════════════════ */
+/* Outer wrap — properly contains particles */
+.pp-gl-wrap{position:relative;width:100%;max-width:800px;margin:0 auto;padding:0 0 80px;overflow:hidden;}
+/* Stage light cone from top (like Nexrise) */
+.pp-gl-wrap::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:700px;height:500px;background:radial-gradient(ellipse 55% 45% at 50% 0%,rgba(100,80,255,.14) 0%,rgba(80,60,200,.06) 40%,transparent 70%);pointer-events:none;z-index:0;}
+/* Inner content container */
+.pp-gl-inner{position:relative;z-index:1;padding:0 24px;}
+/* Back button */
+.pp-gl-back-btn{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.55);border-radius:99px;padding:9px 20px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .22s;margin:4px 0 20px;}
+.pp-gl-back-btn:hover{background:rgba(168,85,247,.15);border-color:rgba(168,85,247,.4);color:#c084fc;box-shadow:0 0 20px rgba(168,85,247,.12);}
 /* Header */
-.pp-gl-header{text-align:center;margin-bottom:28px;padding-top:8px;}
-.pp-gl-main-title{font-family:'Bebas Neue',sans-serif;font-size:44px;font-weight:400;letter-spacing:.1em;color:#fff;text-transform:uppercase;line-height:1;text-shadow:0 0 40px rgba(168,85,247,.4);}
-.pp-gl-main-sub{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase;color:rgba(168,85,247,.55);margin-top:6px;}
+.pp-gl-header{text-align:center;margin-bottom:20px;padding-top:4px;}
+.pp-gl-main-title{font-family:'Bebas Neue',sans-serif;font-size:58px;font-weight:400;letter-spacing:.14em;color:#fff;text-transform:uppercase;line-height:1;}
+.pp-gl-main-sub{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:rgba(168,85,247,.55);margin-top:5px;}
 .pp-gl-meta{font-size:10.5px;color:rgba(255,255,255,.28);font-family:'DM Mono',monospace;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:12px;}
 .pp-gl-dot{width:5px;height:5px;border-radius:50%;background:#a855f7;display:inline-block;animation:pulse 2s ease-in-out infinite;}
 /* Period tabs */
-.pp-gl-tabs{display:flex;align-items:center;justify-content:center;gap:3px;margin-bottom:28px;background:rgba(255,255,255,.04);border-radius:99px;padding:4px;border:1px solid rgba(255,255,255,.07);width:fit-content;margin-left:auto;margin-right:auto;}
-.pp-gl-tab{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:8px 16px;border-radius:99px;border:none;cursor:pointer;transition:all .22s;color:rgba(255,255,255,.38);background:transparent;font-weight:700;}
-.pp-gl-tab.active{background:rgba(168,85,247,.22);color:#c084fc;border:1px solid rgba(168,85,247,.35);box-shadow:0 0 18px rgba(168,85,247,.15);}
+.pp-gl-tabs{display:flex;align-items:center;justify-content:center;gap:3px;margin-bottom:32px;background:rgba(255,255,255,.04);border-radius:99px;padding:4px;border:1px solid rgba(255,255,255,.07);width:fit-content;margin-left:auto;margin-right:auto;}
+.pp-gl-tab{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:8px 18px;border-radius:99px;border:1px solid transparent;cursor:pointer;transition:all .22s;color:rgba(255,255,255,.38);background:transparent;font-weight:700;}
+.pp-gl-tab.active{background:rgba(168,85,247,.22);color:#c084fc;border-color:rgba(168,85,247,.35);box-shadow:0 0 22px rgba(168,85,247,.2);}
 .pp-gl-tab:hover:not(.active){color:rgba(255,255,255,.65);}
 /* Info strip */
-.pp-gl-info{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;background:rgba(168,85,247,.05);border:1px solid rgba(168,85,247,.12);border-radius:10px;margin-bottom:20px;font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.08em;}
+.pp-gl-info{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;background:rgba(168,85,247,.05);border:1px solid rgba(168,85,247,.12);border-radius:10px;margin-bottom:18px;font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.08em;}
 .pp-gl-info strong{color:rgba(168,85,247,.85);}
-/* You strip */
-.pp-gl-you{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:rgba(168,85,247,.09);border:1px solid rgba(168,85,247,.28);border-radius:12px;margin-bottom:18px;box-shadow:0 0 24px rgba(168,85,247,.07);}
-.pp-gl-you-left{display:flex;align-items:center;gap:12px;}
-.pp-gl-you-rank{font-family:'Bebas Neue',sans-serif;font-size:28px;color:#a855f7;letter-spacing:.05em;line-height:1;}
-.pp-gl-you-info{display:flex;flex-direction:column;gap:2px;}
+/* YOU banner (Nexrise style) */
+.pp-gl-you{display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 24px;background:rgba(168,85,247,.09);border:1px solid rgba(168,85,247,.28);border-radius:14px;margin-bottom:24px;text-align:center;}
+.pp-gl-you-rank{font-family:'Bebas Neue',sans-serif;font-size:30px;color:#a855f7;letter-spacing:.06em;line-height:1;}
+.pp-gl-you-info{display:flex;flex-direction:column;gap:2px;align-items:flex-start;}
 .pp-gl-you-lbl{font-size:9px;font-family:'DM Mono',monospace;color:rgba(168,85,247,.55);letter-spacing:.14em;text-transform:uppercase;}
 .pp-gl-you-name{font-size:14px;font-weight:700;color:#fff;font-family:'DM Sans',sans-serif;}
-.pp-gl-you-score{font-family:'DM Mono',monospace;font-size:15px;color:#a855f7;font-weight:700;}
-/* PODIUM */
-.pp-gl-podium{display:flex;align-items:flex-end;justify-content:center;gap:6px;margin-bottom:28px;padding-top:48px;}
+.pp-gl-you-score{font-family:'DM Mono',monospace;font-size:16px;color:#a855f7;font-weight:700;margin-left:auto;}
+
+/* ═══ PODIUM (Nexrise style — large square avatar cards) ═══ */
+.pp-gl-podium{display:flex;align-items:flex-end;justify-content:center;gap:12px;margin-bottom:32px;padding-top:60px;position:relative;}
 .pp-gl-pplace{display:flex;flex-direction:column;align-items:center;position:relative;}
-/* Avatar */
-.pp-gl-av-wrap{position:relative;margin-bottom:10px;}
-.pp-gl-av{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;font-family:'DM Sans',sans-serif;position:relative;z-index:2;}
-.pp-gl-av-ring{position:absolute;inset:-4px;border-radius:50%;animation:pp-gl-spin 3.5s linear infinite;z-index:1;}
-@keyframes pp-gl-spin{to{transform:rotate(360deg);}}
-.pp-gl-p1 .pp-gl-av{background:linear-gradient(135deg,#fbbf24,#d97706);color:#000;box-shadow:0 0 32px rgba(251,191,36,.55);}
-.pp-gl-p1 .pp-gl-av-ring{background:conic-gradient(from 0deg,#fbbf24 0%,#fff 25%,#fbbf24 50%,#d97706 75%,#fbbf24 100%);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 0);mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 0);}
-.pp-gl-p2 .pp-gl-av{background:linear-gradient(135deg,#94a3b8,#64748b);color:#fff;box-shadow:0 0 22px rgba(148,163,184,.35);}
-.pp-gl-p2 .pp-gl-av-ring{background:conic-gradient(from 0deg,#94a3b8 0%,#e2e8f0 40%,#94a3b8 100%);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 0);mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 0);}
-.pp-gl-p3 .pp-gl-av{background:linear-gradient(135deg,#cd7f32,#a0522d);color:#fff;box-shadow:0 0 18px rgba(205,127,50,.35);}
-.pp-gl-p3 .pp-gl-av-ring{background:conic-gradient(from 0deg,#cd7f32 0%,#f0a060 40%,#cd7f32 100%);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 0);mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 0);}
-/* Crown on #1 */
-.pp-gl-crown{position:absolute;top:-28px;left:50%;transform:translateX(-50%);font-size:22px;animation:pp-gl-float 2.2s ease-in-out infinite;filter:drop-shadow(0 0 8px rgba(251,191,36,.8));}
-@keyframes pp-gl-float{0%,100%{transform:translateX(-50%) translateY(0);}50%{transform:translateX(-50%) translateY(-6px);}}
-/* Podium name/score */
-.pp-gl-pname{font-size:11.5px;font-weight:700;color:rgba(255,255,255,.88);text-align:center;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'DM Sans',sans-serif;margin-bottom:2px;}
-.pp-gl-pscore{font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,.38);text-align:center;}
-/* Podium block */
-.pp-gl-block{width:96px;border-radius:8px 8px 0 0;margin-top:8px;position:relative;overflow:hidden;}
-.pp-gl-p1 .pp-gl-block{height:84px;background:linear-gradient(180deg,rgba(251,191,36,.28),rgba(251,191,36,.08));border:1px solid rgba(251,191,36,.2);border-bottom:none;}
-.pp-gl-p2 .pp-gl-block{height:62px;background:linear-gradient(180deg,rgba(148,163,184,.18),rgba(148,163,184,.06));border:1px solid rgba(148,163,184,.15);border-bottom:none;}
-.pp-gl-p3 .pp-gl-block{height:46px;background:linear-gradient(180deg,rgba(205,127,50,.18),rgba(205,127,50,.06));border:1px solid rgba(205,127,50,.15);border-bottom:none;}
-.pp-gl-block::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;}
-.pp-gl-p1 .pp-gl-block::before{background:linear-gradient(90deg,transparent,rgba(251,191,36,.8),transparent);}
-.pp-gl-p2 .pp-gl-block::before{background:linear-gradient(90deg,transparent,rgba(148,163,184,.6),transparent);}
-.pp-gl-p3 .pp-gl-block::before{background:linear-gradient(90deg,transparent,rgba(205,127,50,.6),transparent);}
-.pp-gl-block-n{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-family:'Bebas Neue',sans-serif;font-size:22px;color:rgba(255,255,255,.12);letter-spacing:.04em;}
+
+/* Large square avatar card */
+.pp-gl-av-card{position:relative;border-radius:18px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:800;font-family:'DM Sans',sans-serif;flex-shrink:0;}
+.pp-gl-p1 .pp-gl-av-card{width:110px;height:110px;font-size:36px;background:linear-gradient(145deg,#fbbf24,#b45309);box-shadow:0 0 50px rgba(251,191,36,.5),0 0 100px rgba(251,191,36,.2);border:2px solid rgba(251,191,36,.5);}
+.pp-gl-p2 .pp-gl-av-card{width:90px;height:90px;font-size:28px;background:linear-gradient(145deg,#94a3b8,#475569);box-shadow:0 0 30px rgba(148,163,184,.35);border:2px solid rgba(148,163,184,.4);}
+.pp-gl-p3 .pp-gl-av-card{width:80px;height:80px;font-size:24px;background:linear-gradient(145deg,#cd7f32,#92400e);box-shadow:0 0 24px rgba(205,127,50,.35);border:2px solid rgba(205,127,50,.4);}
+/* Shine overlay on avatar card */
+.pp-gl-av-card::after{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.18) 50%,transparent 65%);animation:ppGlAvatarShine 3s ease-in-out infinite;}
+/* Avatar color for non-1st */
+.pp-gl-p1 .pp-gl-av-card{color:#000;}
+.pp-gl-p2 .pp-gl-av-card,.pp-gl-p3 .pp-gl-av-card{color:#fff;}
+
+/* Crown */
+.pp-gl-crown{position:absolute;top:-36px;left:50%;transform:translateX(-50%);font-size:26px;filter:drop-shadow(0 0 12px rgba(251,191,36,.9));}
+
+/* Name & score above block */
+.pp-gl-pname{font-size:13px;font-weight:700;color:#fff;text-align:center;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'DM Sans',sans-serif;margin-top:10px;margin-bottom:2px;}
+.pp-gl-pbadge{font-size:9px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.38);letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px;}
+
+/* Platform blocks */
+.pp-gl-block{width:100%;border-radius:10px 10px 0 0;margin-top:0;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
+.pp-gl-p1 .pp-gl-block{height:100px;min-width:130px;background:linear-gradient(180deg,rgba(251,191,36,.22) 0%,rgba(251,191,36,.06) 100%);border:1px solid rgba(251,191,36,.25);border-bottom:none;box-shadow:0 -20px 60px rgba(251,191,36,.1) inset;}
+.pp-gl-p2 .pp-gl-block{height:76px;min-width:110px;background:linear-gradient(180deg,rgba(148,163,184,.18) 0%,rgba(148,163,184,.06) 100%);border:1px solid rgba(148,163,184,.2);border-bottom:none;box-shadow:0 -16px 40px rgba(148,163,184,.08) inset;}
+.pp-gl-p3 .pp-gl-block{height:58px;min-width:100px;background:linear-gradient(180deg,rgba(205,127,50,.18) 0%,rgba(205,127,50,.06) 100%);border:1px solid rgba(205,127,50,.2);border-bottom:none;box-shadow:0 -12px 30px rgba(205,127,50,.07) inset;}
+/* Top accent line */
+.pp-gl-block::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1.5px;border-radius:99px;}
+.pp-gl-p1 .pp-gl-block::before{background:linear-gradient(90deg,transparent,rgba(251,191,36,.9),transparent);}
+.pp-gl-p2 .pp-gl-block::before{background:linear-gradient(90deg,transparent,rgba(148,163,184,.7),transparent);}
+.pp-gl-p3 .pp-gl-block::before{background:linear-gradient(90deg,transparent,rgba(205,127,50,.7),transparent);}
+/* Scan sweep */
+.pp-gl-block::after{content:'';position:absolute;left:0;right:0;height:28%;background:linear-gradient(180deg,transparent,rgba(255,255,255,.05),transparent);animation:ppGlScan 2.5s ease-in-out infinite;pointer-events:none;}
+/* Trophy icon + number in block */
+.pp-gl-block-trophy{font-size:18px;line-height:1;margin-top:10px;}
+.pp-gl-block-score{font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:rgba(255,255,255,.7);}
+.pp-gl-block-n{font-family:'Bebas Neue',sans-serif;font-size:13px;color:rgba(255,255,255,.18);letter-spacing:.04em;}
+/* Ground glow */
+.pp-gl-podium-ground{width:100%;height:2px;background:linear-gradient(90deg,transparent 0%,rgba(168,85,247,.3) 20%,rgba(251,191,36,.4) 50%,rgba(168,85,247,.3) 80%,transparent 100%);margin-bottom:28px;position:relative;}
+.pp-gl-podium-ground::after{content:'';position:absolute;top:-20px;left:20%;right:20%;height:40px;background:radial-gradient(ellipse,rgba(168,85,247,.12),transparent 70%);pointer-events:none;}
+
+/* Sparkle orbit */
+.pp-gl-sparkle-ring{position:absolute;inset:0;pointer-events:none;z-index:3;}
+.pp-gl-sparkle-ring span{position:absolute;top:50%;left:50%;width:6px;height:6px;border-radius:50%;margin:-3px;}
+.pp-gl-sparkle-ring span:nth-child(1){background:#fbbf24;animation:ppGlOrbit 3.2s 0s linear infinite,ppGlSparkle 1.4s 0s ease-in-out infinite;}
+.pp-gl-sparkle-ring span:nth-child(2){background:#fff;animation:ppGlOrbit 3.2s .8s linear infinite,ppGlSparkle 1.4s .5s ease-in-out infinite;}
+.pp-gl-sparkle-ring span:nth-child(3){background:#fbbf24;animation:ppGlOrbit 3.2s 1.6s linear infinite,ppGlSparkle 1.4s 1s ease-in-out infinite;}
+.pp-gl-sparkle-ring span:nth-child(4){background:#f0abfc;animation:ppGlOrbit 3.2s 2.4s linear infinite,ppGlSparkle 1.4s .3s ease-in-out infinite;}
+
 /* BADGE TIERS */
 .pp-tier{display:inline-flex;align-items:center;gap:4px;font-family:'DM Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 9px;border-radius:99px;border:1px solid;white-space:nowrap;}
 .pp-tier-bronze  {color:#cd7f32;background:rgba(205,127,50,.1);border-color:rgba(205,127,50,.28);}
@@ -852,78 +880,59 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .pp-tier-gold    {color:#fbbf24;background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.28);}
 .pp-tier-platinum{color:#7dd3fc;background:rgba(125,211,252,.08);border-color:rgba(125,211,252,.25);}
 .pp-tier-legend  {color:#c084fc;background:rgba(168,85,247,.12);border-color:rgba(168,85,247,.35);box-shadow:0 0 10px rgba(168,85,247,.18);}
+
 /* TABLE */
-.pp-gl-tbl-hdr{display:grid;grid-template-columns:42px 1fr 96px 72px 64px;gap:0;padding:7px 14px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.2);border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:4px;}
-.pp-gl-trow{display:grid;grid-template-columns:42px 1fr 96px 72px 64px;gap:0;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);margin-bottom:3px;align-items:center;transition:background .16s,border-color .16s;}
-.pp-gl-trow:hover{background:rgba(168,85,247,.055);border-color:rgba(168,85,247,.14);}
-.pp-gl-trow.pp-gl-me{background:rgba(168,85,247,.1);border-color:rgba(168,85,247,.32);box-shadow:0 0 18px rgba(168,85,247,.08);}
-.pp-gl-c-rank{font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:rgba(255,255,255,.28);text-align:center;}
+.pp-gl-tbl-hdr{display:grid;grid-template-columns:50px 1fr 100px 80px 70px;gap:0;padding:10px 18px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.2);border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:6px;}
+.pp-gl-trow{display:grid;grid-template-columns:50px 1fr 100px 80px 70px;gap:0;padding:13px 18px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);margin-bottom:4px;align-items:center;}
+.pp-gl-trow:hover{background:rgba(168,85,247,.06);border-color:rgba(168,85,247,.18);transform:translateX(4px);}
+.pp-gl-trow.pp-gl-me{background:rgba(168,85,247,.1);border-color:rgba(168,85,247,.32);box-shadow:0 0 20px rgba(168,85,247,.08);}
+.pp-gl-c-rank{font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:rgba(255,255,255,.25);text-align:center;}
 .pp-gl-c-rank.top{color:rgba(168,85,247,.75);}
-.pp-gl-c-player{display:flex;align-items:center;gap:9px;min-width:0;}
-.pp-gl-rav{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif;flex-shrink:0;}
-.pp-gl-rname{font-size:13px;font-weight:600;color:rgba(255,255,255,.85);font-family:'DM Sans',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.pp-gl-you-tag{font-size:8.5px;font-family:'DM Mono',monospace;color:#a855f7;background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.25);border-radius:99px;padding:1px 6px;margin-left:5px;flex-shrink:0;}
-.pp-gl-c-score{font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:#a855f7;text-align:right;}
+.pp-gl-c-player{display:flex;align-items:center;gap:10px;min-width:0;}
+.pp-gl-rav{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;flex-shrink:0;}
+.pp-gl-rname{font-size:13.5px;font-weight:600;color:rgba(255,255,255,.88);font-family:'DM Sans',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pp-gl-you-tag{font-size:8.5px;font-family:'DM Mono',monospace;color:#a855f7;background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.25);border-radius:99px;padding:1px 6px;margin-left:6px;flex-shrink:0;}
+.pp-gl-c-score{font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:#a855f7;text-align:right;}
 .pp-gl-c-time{font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,.28);text-align:right;}
+
 /* Empty / loading */
 .pp-gl-empty{text-align:center;padding:64px 20px;color:rgba(255,255,255,.25);}
 .pp-gl-empty-icon{font-size:46px;margin-bottom:14px;display:block;}
 .pp-gl-empty-title{font-size:16px;font-weight:600;color:rgba(255,255,255,.5);margin-bottom:8px;font-family:'DM Sans',sans-serif;}
 .pp-gl-loading{text-align:center;padding:44px;color:rgba(168,85,247,.45);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;}
+/* Floating particle */
+.pp-gl-particle{position:absolute;border-radius:50%;pointer-events:none;}
 
-/* ── GAMING ANIMATIONS ──────────────────────────────────────────────────── */
-/* Entrance keyframes */
-@keyframes ppGlRise   {from{opacity:0;transform:translateY(28px);}to{opacity:1;transform:translateY(0);}}
-@keyframes ppGlPop    {from{opacity:0;transform:scale(.72);}to{opacity:1;transform:scale(1);}}
-@keyframes ppGlSlideR {from{opacity:0;transform:translateX(22px);}to{opacity:1;transform:translateX(0);}}
-@keyframes ppGlFadeIn {from{opacity:0;}to{opacity:1;}}
-@keyframes ppGlContentIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-/* Title glow pulse */
-@keyframes ppGlTitleGlow{0%,100%{text-shadow:0 0 20px rgba(168,85,247,.3),0 0 50px rgba(168,85,247,.1);}50%{text-shadow:0 0 50px rgba(168,85,247,.7),0 0 100px rgba(168,85,247,.25),0 0 150px rgba(168,85,247,.1);}}
-/* Score pop */
-@keyframes ppGlScorePop{0%{transform:scale(1.5);color:#fbbf24;}100%{transform:scale(1);}}
-/* Particle rise */
-@keyframes ppGlPtcl{0%{transform:translateY(0) scale(1);opacity:.8;}80%{opacity:.4;}100%{transform:translateY(-140px) scale(.2);opacity:0;}}
-/* Sparkle orbit around #1 */
-@keyframes ppGlOrbit{0%{transform:rotate(0deg) translateX(38px);}100%{transform:rotate(360deg) translateX(38px);}}
-@keyframes ppGlSparkle{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.1;transform:scale(.2);}}
-/* Platform scan line */
-@keyframes ppGlScan{0%{top:100%;}100%{top:-10%;}}
-/* Podium base shimmer */
-@keyframes ppGlBaseShimmer{0%,100%{opacity:.5;}50%{opacity:1;}}
-/* YOU strip pulse */
-@keyframes ppGlYouPulse{0%,100%{box-shadow:0 0 18px rgba(168,85,247,.08);}50%{box-shadow:0 0 36px rgba(168,85,247,.22),inset 0 0 20px rgba(168,85,247,.06);}}
-/* Tab active glow */
-@keyframes ppGlTabGlow{0%,100%{box-shadow:0 0 14px rgba(168,85,247,.12);}50%{box-shadow:0 0 28px rgba(168,85,247,.32);}}
-/* Row hover lift */
-.pp-gl-trow{transition:transform .2s,background .18s,border-color .18s;}
-.pp-gl-trow:hover{transform:translateX(4px);}
-/* Animations applied */
-.pp-gl-main-title{animation:ppGlTitleGlow 3s ease-in-out infinite,ppGlRise .6s cubic-bezier(.16,1,.3,1) both;}
-.pp-gl-main-sub{animation:ppGlRise .6s .1s cubic-bezier(.16,1,.3,1) both;}
-.pp-gl-meta{animation:ppGlRise .6s .18s cubic-bezier(.16,1,.3,1) both;}
-.pp-gl-tabs{animation:ppGlRise .6s .25s cubic-bezier(.16,1,.3,1) both;}
+/* ── ANIMATIONS ─────────────────────────────────────────────────────────── */
+@keyframes ppGlRise   {from{opacity:0;transform:translateY(32px);}to{opacity:1;transform:translateY(0);}}
+@keyframes ppGlPop    {0%{opacity:0;transform:scale(.65) translateY(20px);}70%{transform:scale(1.04);}100%{opacity:1;transform:scale(1) translateY(0);}}
+@keyframes ppGlSlideR {from{opacity:0;transform:translateX(24px);}to{opacity:1;transform:translateX(0);}}
+@keyframes ppGlContentIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+@keyframes ppGlTitleGlow{0%,100%{text-shadow:0 0 30px rgba(168,85,247,.4),0 0 60px rgba(168,85,247,.15);}50%{text-shadow:0 0 60px rgba(168,85,247,.8),0 0 120px rgba(168,85,247,.3);}}
+@keyframes ppGlScorePop{0%{transform:scale(1.6);}60%{transform:scale(.96);}100%{transform:scale(1);}}
+@keyframes ppGlPtcl{0%{transform:translateY(0);opacity:.7;}100%{transform:translateY(-160px);opacity:0;}}
+@keyframes ppGlOrbit{0%{transform:rotate(0deg) translateX(48px);}100%{transform:rotate(360deg) translateX(48px);}}
+@keyframes ppGlSparkle{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.08;transform:scale(.15);}}
+@keyframes ppGlScan{0%{top:100%;}100%{top:-30%;}}
+@keyframes ppGlAvatarShine{0%{transform:translateX(-100%) rotate(25deg);}40%,100%{transform:translateX(100%) rotate(25deg);}}
+@keyframes ppGlCrownFloat{0%,100%{transform:translateX(-50%) translateY(0) rotate(-5deg);}50%{transform:translateX(-50%) translateY(-8px) rotate(5deg);}}
+@keyframes ppGlYouPulse{0%,100%{box-shadow:0 0 16px rgba(168,85,247,.06);}50%{box-shadow:0 0 40px rgba(168,85,247,.2),inset 0 0 24px rgba(168,85,247,.05);}}
+@keyframes ppGlTabGlow{0%,100%{box-shadow:0 0 12px rgba(168,85,247,.1);}50%{box-shadow:0 0 30px rgba(168,85,247,.35);}}
+@keyframes ppGlGroundPulse{0%,100%{opacity:.6;}50%{opacity:1;}}
+/* Applied */
+.pp-gl-main-title{animation:ppGlTitleGlow 3s ease-in-out infinite,ppGlRise .7s cubic-bezier(.16,1,.3,1) both;}
+.pp-gl-main-sub{animation:ppGlRise .7s .08s cubic-bezier(.16,1,.3,1) both;}
+.pp-gl-meta{animation:ppGlRise .7s .15s cubic-bezier(.16,1,.3,1) both;}
+.pp-gl-tabs{animation:ppGlRise .7s .22s cubic-bezier(.16,1,.3,1) both;}
 .pp-gl-tab.active{animation:ppGlTabGlow 2.4s ease-in-out infinite;}
 .pp-gl-you{animation:ppGlYouPulse 2.8s ease-in-out infinite;}
-/* Podium spring entrances */
-.pp-gl-p2{animation:ppGlPop .55s .05s cubic-bezier(.16,1,.3,1) both;}
-.pp-gl-p1{animation:ppGlPop .55s .15s cubic-bezier(.16,1,.3,1) both;}
-.pp-gl-p3{animation:ppGlPop .55s .25s cubic-bezier(.16,1,.3,1) both;}
-/* Score pop */
-.pp-gl-pscore{animation:ppGlScorePop .5s .6s cubic-bezier(.16,1,.3,1) both;}
-/* Platform scan line */
-.pp-gl-block::after{content:'';position:absolute;left:0;right:0;height:30%;background:linear-gradient(180deg,transparent,rgba(255,255,255,.06),transparent);animation:ppGlScan 2.2s ease-in-out infinite;pointer-events:none;}
-/* Sparkle dots orbiting #1 avatar */
-.pp-gl-sparkle-ring{position:absolute;inset:0;pointer-events:none;}
-.pp-gl-sparkle-ring span{position:absolute;top:50%;left:50%;width:5px;height:5px;border-radius:50%;margin:-2.5px;animation:ppGlOrbit linear infinite,ppGlSparkle 1.4s ease-in-out infinite;}
-.pp-gl-sparkle-ring span:nth-child(1){background:#fbbf24;animation-duration:3.2s,1.4s;animation-delay:0s,0s;}
-.pp-gl-sparkle-ring span:nth-child(2){background:#fff;animation-duration:3.2s,1.4s;animation-delay:.8s,.5s;}
-.pp-gl-sparkle-ring span:nth-child(3){background:#fbbf24;animation-duration:3.2s,1.4s;animation-delay:1.6s,1s;}
-.pp-gl-sparkle-ring span:nth-child(4){background:#f0abfc;animation-duration:3.2s,1.4s;animation-delay:2.4s,.3s;}
-/* Floating particles */
-.pp-gl-particle{position:absolute;border-radius:50%;pointer-events:none;animation:ppGlPtcl linear infinite;}
-/* Content area transition */
-#ppGLContent{animation:ppGlContentIn .4s ease both;}
+.pp-gl-p2{animation:ppGlPop .65s .05s cubic-bezier(.16,1,.3,1) both;}
+.pp-gl-p1{animation:ppGlPop .65s .2s cubic-bezier(.16,1,.3,1) both;}
+.pp-gl-p3{animation:ppGlPop .65s .1s cubic-bezier(.16,1,.3,1) both;}
+.pp-gl-crown{animation:ppGlCrownFloat 2.8s ease-in-out infinite;position:absolute;top:-44px;left:50%;transform-origin:center bottom;}
+.pp-gl-podium-ground{animation:ppGlGroundPulse 2.5s ease-in-out infinite;}
+.pp-gl-trow{transition:transform .2s,background .18s,border-color .18s;}
+#ppGLContent{animation:ppGlContentIn .4s cubic-bezier(.16,1,.3,1) both;}
 .pp-lb-name{flex:1;font-size:13px;font-weight:600;color:rgba(255,255,255,.8);}
 .pp-lb-score{font-family:'DM Mono',monospace;font-size:11px;color:rgba(168,85,247,.8);}
 .pp-lb-time{font-size:10px;color:rgba(255,255,255,.3);font-family:'DM Mono',monospace;}
@@ -5368,16 +5377,16 @@ async function ppGLSwitchTab(period, btn) {
 
 function ppGLSpawnParticles() {
   const wrap = document.getElementById('ppGLWrap');
-  if (!wrap || wrap.querySelector('.pp-gl-particle')) return; // already spawned
-  const colors = ['#a855f7','#c084fc','#7dd3fc','#fbbf24','#f0abfc','#818cf8'];
-  for (let i = 0; i < 18; i++) {
+  if (!wrap || wrap.querySelector('.pp-gl-particle')) return;
+  const colors = ['#a855f7','#c084fc','#7dd3fc','#fbbf24','#f0abfc','#818cf8','#6366f1'];
+  for (let i = 0; i < 22; i++) {
     const p = document.createElement('div');
-    const size = 2 + Math.random() * 3;
-    const dur  = 4 + Math.random() * 6;
-    const del  = Math.random() * 5;
+    const size = 1.5 + Math.random() * 3.5;
+    const dur  = 5 + Math.random() * 7;
+    const del  = Math.random() * 6;
     p.className = 'pp-gl-particle';
-    p.style.cssText = `width:${size}px;height:${size}px;background:${colors[i%colors.length]};left:${5+Math.random()*90}%;bottom:${Math.random()*15}%;animation-duration:${dur}s;animation-delay:${del}s;opacity:.55;`;
-    wrap.appendChild(p);
+    p.style.cssText = `width:${size}px;height:${size}px;background:${colors[i%colors.length]};left:${3+Math.random()*94}%;bottom:${Math.random()*20}%;animation:ppGlPtcl ${dur}s ${del}s linear infinite;opacity:.6;`;
+    wrap.appendChild(p); // append to wrap (position:relative) so they're contained
   }
 }
 
@@ -5464,28 +5473,32 @@ function ppGLRender(data, period) {
   }
 
   // Podium
+  const podTrophies = ['🥈','🏆','🥉'];
+  const podTrophyLabels = ['2nd','CHAMPION','3rd'];
   html += '<div class="pp-gl-podium">';
   podOrder.forEach((p, i) => {
-    if (!p) { html += '<div style="width:96px;"></div>'; return; }
+    if (!p) { html += '<div style="min-width:100px;"></div>'; return; }
     const isMe = me && p.playerName.toLowerCase() === me.toLowerCase();
     const placeNum = i === 1 ? 1 : i === 0 ? 2 : 3;
-    // Sparkle ring only for 1st place
-    const sparkleRing = placeNum === 1
-      ? `<div class="pp-gl-sparkle-ring"><span></span><span></span><span></span><span></span></div>`
-      : '';
+    const sparkle = placeNum === 1 ? `<div class="pp-gl-sparkle-ring"><span></span><span></span><span></span><span></span></div>` : '';
     html += `<div class="pp-gl-pplace ${podClass[i]}">
-      <div class="pp-gl-av-wrap" style="position:relative;">
-        ${placeNum === 1 ? '<div class="pp-gl-crown">👑</div>' : ''}
-        ${sparkleRing}
-        <div class="pp-gl-av-ring"></div>
-        <div class="pp-gl-av">${p.playerInitials||p.playerName.slice(0,2).toUpperCase()}</div>
+      ${placeNum === 1 ? '<div class="pp-gl-crown">👑</div>' : ''}
+      <div class="pp-gl-av-card" style="position:relative;">
+        ${sparkle}
+        ${p.playerInitials||p.playerName.slice(0,2).toUpperCase()}
       </div>
       <div class="pp-gl-pname">${p.playerName}${isMe?' ★':''}</div>
-      <div class="pp-gl-pscore"><span class="pp-gl-score-val" data-target="${p.totalScore}">0</span><span style="opacity:.4;">/${p.totalPossible}</span></div>
-      <div class="pp-gl-block"><div class="pp-gl-block-n">${placeNum}</div></div>
+      <div class="pp-gl-pbadge">${podTrophyLabels[i]}</div>
+      <div class="pp-gl-block">
+        <div class="pp-gl-block-trophy">${podTrophies[i]}</div>
+        <div class="pp-gl-block-score"><span class="pp-gl-score-val" data-target="${p.totalScore}">0</span> pts</div>
+        <div class="pp-gl-block-n">${placeNum}</div>
+      </div>
     </div>`;
   });
   html += '</div>';
+  // Ground glow line
+  html += '<div class="pp-gl-podium-ground"></div>';
 
   // Table 4th+
   if (lb.length > 3) {
@@ -6297,32 +6310,32 @@ document.querySelectorAll('.dw-card').forEach(card=>{
         </div>
       </div>
 
-      <!-- Gaming Leaderboard -->
+      <!-- Gaming Leaderboard v2 -->
       <div id="ppGLWrap" class="pp-gl-wrap" style="display:none;">
-        <!-- Back button -->
-        <button onclick="document.getElementById('ppGameInfo').scrollIntoView({behavior:'smooth'})" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);border-radius:99px;padding:9px 20px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .2s;margin-bottom:24px;" onmouseover="this.style.background='rgba(168,85,247,.15)';this.style.borderColor='rgba(168,85,247,.35)';this.style.color='#c084fc';" onmouseout="this.style.background='rgba(255,255,255,.06)';this.style.borderColor='rgba(255,255,255,.1)';this.style.color='rgba(255,255,255,.6)';">
-          ← Back to Game
-        </button>
-        <!-- Header -->
-        <div class="pp-gl-header">
-          <div class="pp-gl-main-title">Leaderboard</div>
-          <div class="pp-gl-main-sub">Process Puzzle Championship</div>
-          <div class="pp-gl-meta">
-            <span class="pp-gl-dot"></span>
-            <span id="ppGLWeekLabel">Week —</span>
-            <span>·</span>
-            <span id="ppGLPlayerCount">— players</span>
+        <div class="pp-gl-inner">
+          <!-- Back button -->
+          <button class="pp-gl-back-btn" onclick="document.getElementById('ppGameInfo').scrollIntoView({behavior:'smooth'})">← Back to Game</button>
+          <!-- Header -->
+          <div class="pp-gl-header">
+            <div class="pp-gl-main-title">Leaderboard</div>
+            <div class="pp-gl-main-sub">Process Puzzle Championship</div>
+            <div class="pp-gl-meta">
+              <span class="pp-gl-dot"></span>
+              <span id="ppGLWeekLabel">Week —</span>
+              <span>·</span>
+              <span id="ppGLPlayerCount">— players</span>
+            </div>
           </div>
+          <!-- Period Tabs -->
+          <div class="pp-gl-tabs">
+            <button class="pp-gl-tab active" onclick="ppGLSwitchTab('weekly',this)">⚡ Weekly</button>
+            <button class="pp-gl-tab" onclick="ppGLSwitchTab('monthly',this)">📅 Monthly</button>
+            <button class="pp-gl-tab" onclick="ppGLSwitchTab('quarterly',this)">🌙 Quarterly</button>
+            <button class="pp-gl-tab" onclick="ppGLSwitchTab('yearly',this)">🏆 Yearly</button>
+          </div>
+          <!-- Dynamic content -->
+          <div id="ppGLContent"><div class="pp-gl-loading">Loading…</div></div>
         </div>
-        <!-- Period Tabs -->
-        <div class="pp-gl-tabs">
-          <button class="pp-gl-tab active" onclick="ppGLSwitchTab('weekly',this)">⚡ Weekly</button>
-          <button class="pp-gl-tab" onclick="ppGLSwitchTab('monthly',this)">📅 Monthly</button>
-          <button class="pp-gl-tab" onclick="ppGLSwitchTab('quarterly',this)">🌙 Quarterly</button>
-          <button class="pp-gl-tab" onclick="ppGLSwitchTab('yearly',this)">🏆 Yearly</button>
-        </div>
-        <!-- Dynamic content -->
-        <div id="ppGLContent"><div class="pp-gl-loading">Loading…</div></div>
       </div>
 
     </div>
