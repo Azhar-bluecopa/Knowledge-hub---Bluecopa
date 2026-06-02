@@ -1158,6 +1158,64 @@ html{scroll-behavior:smooth;}
 .sm-chart-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(232,201,122,0.15),transparent);}
 .sm-chart-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px;}
 
+/* ══════════════ ABOUT VIDEO OVERLAY ════════════════════════════════════ */
+#dwAboutOverlay{position:fixed;inset:0;z-index:190;background:#080810;display:none;flex-direction:column;font-family:'DM Sans',sans-serif;overflow:hidden;}
+#dwAboutOverlay.active{display:flex;}
+/* Topbar */
+.dw-av-bar{position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:18px 28px;background:linear-gradient(180deg,rgba(0,0,0,.85) 0%,transparent 100%);}
+.dw-av-bar-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.35);}
+.dw-av-close{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);border-radius:99px;padding:8px 20px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .2s;}
+.dw-av-close:hover{background:rgba(232,201,122,.12);border-color:rgba(232,201,122,.4);color:#e8c97a;}
+/* Slides area */
+.dw-av-slides{flex:1;position:relative;overflow:hidden;}
+.dw-av-slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:88px 60px 120px;text-align:center;opacity:0;pointer-events:none;}
+.dw-av-slide.active{opacity:1;pointer-events:all;}
+.dw-av-slide.entering{animation:dvSlideIn .55s cubic-bezier(.16,1,.3,1) forwards;}
+.dw-av-slide.leaving {animation:dvSlideOut .4s ease forwards;}
+@keyframes dvSlideIn {from{opacity:0;transform:translateY(36px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+@keyframes dvSlideOut{from{opacity:1;transform:translateY(0) scale(1);}to{opacity:0;transform:translateY(-36px) scale(.97);}}
+/* Slide bg glow */
+.dv-bg{position:absolute;inset:0;pointer-events:none;z-index:0;}
+/* Slide elements */
+.dv-slide-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;max-width:680px;}
+.dv-icon{font-size:68px;margin-bottom:20px;line-height:1;animation:dvIconFloat 3s ease-in-out infinite;}
+@keyframes dvIconFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+.dv-eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:rgba(232,201,122,.5);margin-bottom:14px;}
+.dv-title{font-family:'Playfair Display',serif;font-size:clamp(28px,5vw,54px);font-weight:700;color:#fff;line-height:1.12;letter-spacing:-.02em;margin-bottom:14px;}
+.dv-title em{font-style:normal;background:linear-gradient(135deg,#fff 0%,#e8c97a 60%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.dv-sub{font-size:16px;color:rgba(255,255,255,.5);line-height:1.8;font-weight:300;max-width:560px;margin-bottom:26px;}
+/* Bullets */
+.dv-bullets{display:flex;flex-direction:column;gap:10px;text-align:left;width:100%;max-width:520px;}
+.dv-bullet{display:flex;align-items:center;gap:12px;font-size:13.5px;color:rgba(255,255,255,.72);padding:10px 14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;animation:dvBulletIn .4s ease both;}
+.dv-bullet-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;box-shadow:0 0 8px currentColor;}
+@keyframes dvBulletIn{from{opacity:0;transform:translateX(-16px);}to{opacity:1;transform:translateX(0);}}
+/* Final grid */
+.dv-final-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:100%;max-width:520px;margin-top:8px;}
+.dv-final-item{display:flex;align-items:center;gap:10px;background:rgba(232,201,122,.05);border:1px solid rgba(232,201,122,.12);border-radius:10px;padding:11px 14px;font-size:13px;color:rgba(255,255,255,.75);animation:dvBulletIn .4s ease both;}
+/* Hero logo ring */
+.dv-logo-ring{width:90px;height:90px;border-radius:50%;border:1px solid rgba(232,201,122,.3);display:flex;align-items:center;justify-content:center;margin-bottom:24px;box-shadow:0 0 0 14px rgba(232,201,122,.05),0 0 50px rgba(232,201,122,.2);animation:dvRingPulse 3s ease-in-out infinite;}
+@keyframes dvRingPulse{0%,100%{box-shadow:0 0 0 14px rgba(232,201,122,.05),0 0 50px rgba(232,201,122,.2);}50%{box-shadow:0 0 0 22px rgba(232,201,122,.08),0 0 80px rgba(232,201,122,.38);}}
+/* Bottom controls */
+.dw-av-bottom{position:absolute;bottom:0;left:0;right:0;z-index:20;padding:0 28px 22px;background:linear-gradient(0deg,rgba(0,0,0,.85) 0%,transparent 100%);}
+/* Chapter dots */
+.dw-av-chapters{display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:12px;}
+.dw-av-chap{width:7px;height:7px;border-radius:99px;background:rgba(255,255,255,.18);cursor:pointer;transition:all .28s;position:relative;}
+.dw-av-chap.active{background:#e8c97a;width:22px;box-shadow:0 0 10px rgba(232,201,122,.5);}
+.dw-av-chap.done{background:rgba(232,201,122,.38);}
+.dw-av-chap:hover:not(.active){background:rgba(255,255,255,.4);}
+/* Progress bar */
+.dw-av-prog-track{height:2px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;margin-bottom:14px;}
+.dw-av-prog-fill{height:100%;background:linear-gradient(90deg,#e8c97a,rgba(232,201,122,.55));border-radius:99px;transition:width .08s linear;width:0%;}
+/* Control buttons */
+.dw-av-controls{display:flex;align-items:center;justify-content:center;gap:14px;}
+.dw-av-ctrl{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;transition:all .2s;flex-shrink:0;}
+.dw-av-ctrl:hover{background:rgba(232,201,122,.14);border-color:rgba(232,201,122,.4);color:#e8c97a;box-shadow:0 0 14px rgba(232,201,122,.12);}
+.dw-av-ctrl.big{width:46px;height:46px;font-size:17px;}
+.dw-av-ctrl-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.22);min-width:80px;text-align:center;}
+/* About button on homepage */
+.dw-about-btn-wrap{margin-top:20px;text-align:center;}
+.dw-about-btn{display:inline-flex;align-items:center;gap:8px;background:transparent;border:1px solid rgba(232,201,122,.22);color:rgba(232,201,122,.65);border-radius:99px;padding:9px 22px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .22s;letter-spacing:.02em;}
+.dw-about-btn:hover{background:rgba(232,201,122,.07);border-color:rgba(232,201,122,.48);color:#e8c97a;box-shadow:0 0 18px rgba(232,201,122,.08);}
 /* ── Coming-Soon page ─────────────────────────────────────────────────────── */
 .dw-cs-overlay{position:fixed;inset:0;z-index:220;background:#09090d;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;font-family:'DM Sans',sans-serif;transition:opacity .35s;}
 .dw-cs-overlay.dw-cs-hidden{display:none;}
@@ -5026,6 +5084,9 @@ function switchAdminTab(tab, btn, noHistory) {
         <div class="dw-hero-rule"></div>
       </div>
       <div class="dw-hero-sub">The single source of truth for Bluecopa's delivery team — knowledge, skills, metrics, history, and learning, all in one place.</div>
+      <div class="dw-about-btn-wrap">
+        <button class="dw-about-btn" onclick="dwOpenAbout()">▶ Watch — About This Platform</button>
+      </div>
       <div class="dw-hero-stats">
         <div class="dw-h-stat">
           <div class="dw-h-stat-n" id="dwStatArticles">—</div>
@@ -6208,6 +6269,126 @@ document.querySelectorAll('.dw-card').forEach(card=>{
   });
   card.addEventListener('mouseleave',()=>{card.style.transform='';});
 });
+
+// ══ ABOUT VIDEO PLAYER ═══════════════════════════════════════════════════════
+const DW_AV_SLIDES = 7;
+const DW_AV_DURATION = 8000; // ms per slide
+const DW_AV_CHAPTER_LABELS = ['Introduction','Knowledge Hub','Skill Matrix','KPI Dashboard','Project Stories','Process Puzzle','Why It Matters'];
+
+let dwAvIdx = 0;
+let dwAvPlaying = true;
+let dwAvProgInterval = null;
+let dwAvProgElapsed = 0;
+
+function dwOpenAbout() {
+  document.getElementById('dwAboutOverlay').classList.add('active');
+  dwAvIdx = 0;
+  dwAvPlaying = true;
+  _dwAvBuildChapters();
+  _dwAvShow(0);
+  _dwAvStartTimer();
+}
+
+function dwCloseAbout() {
+  document.getElementById('dwAboutOverlay').classList.remove('active');
+  _dwAvStopTimer();
+}
+
+function _dwAvBuildChapters() {
+  document.getElementById('dwAvChapters').innerHTML =
+    DW_AV_CHAPTER_LABELS.map((l,i)=>`<div class="dw-av-chap${i===0?' active':''}" onclick="dwAvGoTo(${i})" title="${l}"></div>`).join('');
+}
+
+function _dwAvShow(idx) {
+  const slides = document.querySelectorAll('.dw-av-slide');
+  const chaps  = document.querySelectorAll('.dw-av-chap');
+
+  // Remove entering/leaving from all
+  slides.forEach(s => { s.classList.remove('active','entering','leaving'); });
+
+  slides[idx].classList.add('active','entering');
+
+  chaps.forEach((c,i) => {
+    c.className = 'dw-av-chap' + (i===idx?' active':i<idx?' done':'');
+  });
+
+  document.getElementById('dwAvBarTitle').textContent = DW_AV_CHAPTER_LABELS[idx];
+  document.getElementById('dwAvSlideNum').textContent = `${idx+1} / ${DW_AV_SLIDES}`;
+  document.getElementById('dwAvPlayBtn').textContent = dwAvPlaying ? '⏸' : '▶';
+  _dwAvResetProg();
+}
+
+function _dwAvResetProg() {
+  dwAvProgElapsed = 0;
+  document.getElementById('dwAvProgFill').style.width = '0%';
+}
+
+function _dwAvStartTimer() {
+  _dwAvStopTimer();
+  if (!dwAvPlaying) return;
+  const tick = 50;
+  dwAvProgInterval = setInterval(() => {
+    dwAvProgElapsed += tick;
+    const pct = Math.min(dwAvProgElapsed / DW_AV_DURATION * 100, 100);
+    document.getElementById('dwAvProgFill').style.width = pct + '%';
+    if (dwAvProgElapsed >= DW_AV_DURATION) dwAvNext();
+  }, tick);
+}
+
+function _dwAvStopTimer() {
+  if (dwAvProgInterval) { clearInterval(dwAvProgInterval); dwAvProgInterval = null; }
+}
+
+function dwAvNext() {
+  _dwAvStopTimer();
+  if (dwAvIdx < DW_AV_SLIDES - 1) {
+    dwAvIdx++;
+    _dwAvShow(dwAvIdx);
+    if (dwAvPlaying) _dwAvStartTimer();
+  } else {
+    // End of all slides
+    dwAvPlaying = false;
+    document.getElementById('dwAvPlayBtn').textContent = '↺';
+    document.getElementById('dwAvProgFill').style.width = '100%';
+  }
+}
+
+function dwAvPrev() {
+  _dwAvStopTimer();
+  if (dwAvIdx > 0) {
+    dwAvIdx--;
+    _dwAvShow(dwAvIdx);
+    if (dwAvPlaying) _dwAvStartTimer();
+  }
+}
+
+function dwAvGoTo(idx) {
+  _dwAvStopTimer();
+  dwAvIdx = idx;
+  _dwAvShow(idx);
+  if (dwAvPlaying) _dwAvStartTimer();
+}
+
+function dwAvTogglePlay() {
+  dwAvPlaying = !dwAvPlaying;
+  if (dwAvPlaying) {
+    // Restart from beginning if at end
+    if (dwAvIdx >= DW_AV_SLIDES - 1) { dwAvIdx = 0; _dwAvShow(0); }
+    _dwAvStartTimer();
+  } else {
+    _dwAvStopTimer();
+  }
+  document.getElementById('dwAvPlayBtn').textContent = dwAvPlaying ? '⏸' : '▶';
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('dwAboutOverlay').classList.contains('active')) return;
+  if (e.key === 'ArrowRight') { e.preventDefault(); dwAvNext(); }
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); dwAvPrev(); }
+  if (e.key === ' ')          { e.preventDefault(); dwAvTogglePlay(); }
+  if (e.key === 'Escape')     { dwCloseAbout(); }
+});
 </script>
 
 <!-- ═══════════════════════════════════════════════════
@@ -6440,6 +6621,149 @@ document.querySelectorAll('.dw-card').forEach(card=>{
   </div>
 
   <div class="dw-cs-footer">Bluecopa · Delivery Wikipedia · 2026</div>
+</div>
+
+<!-- ══════════════ ABOUT VIDEO OVERLAY ════════════════════════════════════ -->
+<div id="dwAboutOverlay">
+  <!-- Topbar -->
+  <div class="dw-av-bar">
+    <div class="dw-av-bar-title" id="dwAvBarTitle">Introduction</div>
+    <button class="dw-av-close" onclick="dwCloseAbout()">✕ Close</button>
+  </div>
+
+  <!-- Slides -->
+  <div class="dw-av-slides">
+
+    <!-- Slide 1: Hero -->
+    <div class="dw-av-slide" data-idx="0">
+      <div class="dv-bg" style="background:radial-gradient(ellipse 65% 55% at 50% 30%,rgba(232,201,122,.09),transparent 70%);"></div>
+      <div class="dv-slide-content">
+        <div class="dv-logo-ring"><img src="/bluecopa-logo.png" style="height:42px;filter:brightness(1.1);"></div>
+        <div class="dv-eyebrow">Bluecopa · Delivery Team's Go-To Place</div>
+        <div class="dv-title">Your Team's Central Hub<br>for <em>Delivery Excellence</em></div>
+        <div class="dv-sub">One platform. Every resource. Designed for every team member — from day one to seasoned expert. Discover how Delivery Wikipedia helps you learn faster, deliver better, and grow continuously.</div>
+      </div>
+    </div>
+
+    <!-- Slide 2: Knowledge Hub -->
+    <div class="dw-av-slide" data-idx="1">
+      <div class="dv-bg" style="background:radial-gradient(ellipse 55% 45% at 50% 25%,rgba(0,200,204,.07),transparent 70%);"></div>
+      <div class="dv-slide-content">
+        <div class="dv-icon" style="filter:drop-shadow(0 0 20px rgba(0,200,204,.6));">📚</div>
+        <div class="dv-eyebrow">// 01 · Feature</div>
+        <div class="dv-title"><em>Knowledge Hub</em></div>
+        <div class="dv-sub">Stop reinventing the wheel. Access proven processes, best practices, and lessons learned from every project — all in one searchable, structured repository.</div>
+        <div class="dv-bullets">
+          <div class="dv-bullet" style="animation-delay:.08s"><div class="dv-bullet-dot" style="color:#00c8cc;background:#00c8cc;"></div>Structured articles covering every process area and workflow</div>
+          <div class="dv-bullet" style="animation-delay:.16s"><div class="dv-bullet-dot" style="color:#00c8cc;background:#00c8cc;"></div>Eliminates knowledge silos and redundant problem-solving</div>
+          <div class="dv-bullet" style="animation-delay:.24s"><div class="dv-bullet-dot" style="color:#00c8cc;background:#00c8cc;"></div>Reduces learning curves and accelerates delivery timelines</div>
+          <div class="dv-bullet" style="animation-delay:.32s"><div class="dv-bullet-dot" style="color:#00c8cc;background:#00c8cc;"></div>Built by the team, for the team — always current and relevant</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 3: Skill Matrix -->
+    <div class="dw-av-slide" data-idx="2">
+      <div class="dv-bg" style="background:radial-gradient(ellipse 55% 45% at 50% 25%,rgba(129,140,248,.07),transparent 70%);"></div>
+      <div class="dv-slide-content">
+        <div class="dv-icon" style="filter:drop-shadow(0 0 20px rgba(129,140,248,.7));">🧠</div>
+        <div class="dv-eyebrow">// 02 · Feature</div>
+        <div class="dv-title"><em>Skill Matrix</em><br>&amp; Learning Journey</div>
+        <div class="dv-sub">Know where you stand. Plan where to go. A structured framework for measuring skills, identifying growth opportunities, and tracking your journey to expertise.</div>
+        <div class="dv-bullets">
+          <div class="dv-bullet" style="animation-delay:.08s"><div class="dv-bullet-dot" style="color:#818cf8;background:#818cf8;"></div>Self-assessments across all process areas with SME guidance</div>
+          <div class="dv-bullet" style="animation-delay:.16s"><div class="dv-bullet-dot" style="color:#818cf8;background:#818cf8;"></div>Track skill growth with visual progress snapshots over time</div>
+          <div class="dv-bullet" style="animation-delay:.24s"><div class="dv-bullet-dot" style="color:#818cf8;background:#818cf8;"></div>Personalised learning plans tailored to your career goals</div>
+          <div class="dv-bullet" style="animation-delay:.32s"><div class="dv-bullet-dot" style="color:#818cf8;background:#818cf8;"></div>Gives the org visibility to put the right expertise on every project</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 4: KPI Dashboard -->
+    <div class="dw-av-slide" data-idx="3">
+      <div class="dv-bg" style="background:radial-gradient(ellipse 55% 45% at 50% 25%,rgba(249,167,79,.07),transparent 70%);"></div>
+      <div class="dv-slide-content">
+        <div class="dv-icon" style="filter:drop-shadow(0 0 20px rgba(249,167,79,.7));">📊</div>
+        <div class="dv-eyebrow">// 03 · Feature</div>
+        <div class="dv-title"><em>KPI Dashboard</em></div>
+        <div class="dv-sub">Own your performance. Real-time visibility into your delivery metrics — no more waiting for periodic reviews to understand how you're doing.</div>
+        <div class="dv-bullets">
+          <div class="dv-bullet" style="animation-delay:.08s"><div class="dv-bullet-dot" style="color:#f9a74f;background:#f9a74f;"></div>Live delivery performance metrics and key indicators</div>
+          <div class="dv-bullet" style="animation-delay:.16s"><div class="dv-bullet-dot" style="color:#f9a74f;background:#f9a74f;"></div>Proactively monitor and take ownership of your progress</div>
+          <div class="dv-bullet" style="animation-delay:.24s"><div class="dv-bullet-dot" style="color:#f9a74f;background:#f9a74f;"></div>Encourages accountability and continuous self-improvement</div>
+          <div class="dv-bullet" style="animation-delay:.32s"><div class="dv-bullet-dot" style="color:#f9a74f;background:#f9a74f;"></div>Align personal effort with team and organisational goals</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 5: Project Stories -->
+    <div class="dw-av-slide" data-idx="4">
+      <div class="dv-bg" style="background:radial-gradient(ellipse 55% 45% at 50% 25%,rgba(52,211,153,.07),transparent 70%);"></div>
+      <div class="dv-slide-content">
+        <div class="dv-icon" style="filter:drop-shadow(0 0 20px rgba(52,211,153,.7));">🏛️</div>
+        <div class="dv-eyebrow">// 04 · Feature</div>
+        <div class="dv-title">The <em>Delivery Journey</em></div>
+        <div class="dv-sub">Every project tells a story worth preserving. Capture, share, and build on implementation experiences, innovative solutions, and lessons that shape how the team delivers.</div>
+        <div class="dv-bullets">
+          <div class="dv-bullet" style="animation-delay:.08s"><div class="dv-bullet-dot" style="color:#34d399;background:#34d399;"></div>Browse past deliveries, timelines, and business impacts</div>
+          <div class="dv-bullet" style="animation-delay:.16s"><div class="dv-bullet-dot" style="color:#34d399;background:#34d399;"></div>Access proven solution approaches and project artefacts</div>
+          <div class="dv-bullet" style="animation-delay:.24s"><div class="dv-bullet-dot" style="color:#34d399;background:#34d399;"></div>Reduce implementation risk with real-world precedent</div>
+          <div class="dv-bullet" style="animation-delay:.32s"><div class="dv-bullet-dot" style="color:#34d399;background:#34d399;"></div>Celebrate team achievements and recognise contributions</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 6: Process Puzzle -->
+    <div class="dw-av-slide" data-idx="5">
+      <div class="dv-bg" style="background:radial-gradient(ellipse 55% 45% at 50% 25%,rgba(248,113,113,.07),transparent 70%);"></div>
+      <div class="dv-slide-content">
+        <div class="dv-icon" style="filter:drop-shadow(0 0 20px rgba(248,113,113,.7));">🧩</div>
+        <div class="dv-eyebrow">// 05 · Feature</div>
+        <div class="dv-title"><em>Process Puzzle</em><br>Challenges</div>
+        <div class="dv-sub">Learning becomes powerful when it's engaging. Weekly gamified challenges that inspire healthy competition, recognise expertise, and build a culture of continuous growth.</div>
+        <div class="dv-bullets">
+          <div class="dv-bullet" style="animation-delay:.08s"><div class="dv-bullet-dot" style="color:#f87171;background:#f87171;"></div>Interactive weekly knowledge challenges for the whole team</div>
+          <div class="dv-bullet" style="animation-delay:.16s"><div class="dv-bullet-dot" style="color:#f87171;background:#f87171;"></div>Weekly, monthly, quarterly, and yearly leaderboards</div>
+          <div class="dv-bullet" style="animation-delay:.24s"><div class="dv-bullet-dot" style="color:#f87171;background:#f87171;"></div>Earn recognition through Bronze → Silver → Gold → Legend ranks</div>
+          <div class="dv-bullet" style="animation-delay:.32s"><div class="dv-bullet-dot" style="color:#f87171;background:#f87171;"></div>Builds a vibrant, knowledge-sharing team culture</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 7: Why It Matters -->
+    <div class="dw-av-slide" data-idx="6">
+      <div class="dv-bg" style="background:radial-gradient(ellipse 65% 55% at 50% 30%,rgba(232,201,122,.1),transparent 70%);"></div>
+      <div class="dv-slide-content">
+        <div class="dv-eyebrow">Why it matters</div>
+        <div class="dv-title" style="margin-bottom:10px;">More Than a Website —<br>A <em>Foundation for Excellence</em></div>
+        <div class="dv-sub" style="margin-bottom:20px;">Empowering every team member to learn faster, deliver better, and grow continuously — transforming individual expertise into organisational capability.</div>
+        <div class="dv-final-grid">
+          <div class="dv-final-item" style="animation-delay:.04s">🚀 Learn faster</div>
+          <div class="dv-final-item" style="animation-delay:.08s">📦 Deliver better</div>
+          <div class="dv-final-item" style="animation-delay:.12s">⬆️ Grow continuously</div>
+          <div class="dv-final-item" style="animation-delay:.16s">🤝 Collaborate effectively</div>
+          <div class="dv-final-item" style="animation-delay:.20s">🏆 Track performance</div>
+          <div class="dv-final-item" style="animation-delay:.24s">💡 Share knowledge</div>
+          <div class="dv-final-item" style="animation-delay:.28s">⚡ Improve quality</div>
+          <div class="dv-final-item" style="animation-delay:.32s">🌟 Build capability</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /dw-av-slides -->
+
+  <!-- Bottom controls -->
+  <div class="dw-av-bottom">
+    <div class="dw-av-chapters" id="dwAvChapters"></div>
+    <div class="dw-av-prog-track"><div class="dw-av-prog-fill" id="dwAvProgFill"></div></div>
+    <div class="dw-av-controls">
+      <span class="dw-av-ctrl-label" id="dwAvSlideNum">1 / 7</span>
+      <button class="dw-av-ctrl" onclick="dwAvPrev()" title="Previous (←)">◀</button>
+      <button class="dw-av-ctrl big" id="dwAvPlayBtn" onclick="dwAvTogglePlay()" title="Play / Pause (Space)">⏸</button>
+      <button class="dw-av-ctrl" onclick="dwAvNext()" title="Next (→)">▶</button>
+      <span class="dw-av-ctrl-label" style="text-align:right;">Space · ← →</span>
+    </div>
+  </div>
 </div>
 </body>
 </html>
