@@ -571,22 +571,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .sm-snap-name{font-size:13px;font-weight:500;color:var(--text);}
 .sm-snap-date{font-size:11px;color:var(--muted);margin-top:2px;}
 /* ════════════════════ DELIVERY WIKIPEDIA LANDING ════════════════════ */
-/* ── FRAMER-STYLE BACKGROUND ─────────────────────────────────────────── */
-#dwLanding{position:fixed;inset:0;z-index:150;background:#060412;display:flex;flex-direction:column;align-items:center;overflow-y:auto;font-family:'DM Sans',sans-serif;}
+#dwLanding{position:fixed;inset:0;z-index:150;background:#0f0f13;display:flex;flex-direction:column;align-items:center;overflow-y:auto;font-family:'DM Sans',sans-serif;}
 #dwLanding.dw-hidden{display:none;}
-#dw-canvas{display:none;}
+#dw-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
 .dw-orbs{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden;}
-.dw-orb{position:absolute;border-radius:50%;}
-/* Large central purple blob — Framer signature */
-.dw-orb1{width:1200px;height:1100px;background:radial-gradient(ellipse,rgba(110,40,255,.58) 0%,rgba(75,15,200,.35) 40%,transparent 70%);top:-320px;left:50%;transform:translateX(-50%);filter:blur(72px);animation:dwOrbMain 10s ease-in-out infinite alternate;}
-/* Left purple accent blob */
-.dw-orb2{width:700px;height:700px;background:radial-gradient(circle,rgba(140,20,240,.42) 0%,transparent 70%);top:-80px;left:-140px;filter:blur(80px);animation:dwOrbLeft 14s ease-in-out infinite alternate;}
-/* Right deep blue hint */
-.dw-orb3{width:500px;height:500px;background:radial-gradient(circle,rgba(40,20,180,.3) 0%,transparent 70%);top:-60px;right:-100px;filter:blur(80px);animation:dwOrbRight 12s ease-in-out infinite alternate;}
-.dw-orb4{display:none;}
-@keyframes dwOrbMain{0%{transform:translateX(-50%) scale(1);opacity:.75;}50%{transform:translateX(-52%) scale(1.07);opacity:.92;}100%{transform:translateX(-48%) scale(.94);opacity:.75;}}
-@keyframes dwOrbLeft{0%{transform:translate(0,0) scale(1);opacity:.55;}100%{transform:translate(80px,100px) scale(1.18);opacity:.72;}}
-@keyframes dwOrbRight{0%{transform:translate(0,0) scale(1);}100%{transform:translate(-60px,80px) scale(1.12);}}
+.dw-orb{position:absolute;border-radius:50%;filter:blur(90px);}
+.dw-orb1{width:1000px;height:1000px;background:radial-gradient(circle,rgba(232,201,122,.11),transparent 70%);top:-280px;left:-220px;animation:dw-d1 22s ease-in-out infinite alternate;}
+.dw-orb2{width:750px;height:750px;background:radial-gradient(circle,rgba(130,100,255,.08),transparent 70%);top:-120px;right:-220px;animation:dw-d2 28s ease-in-out infinite alternate;}
+.dw-orb3{width:650px;height:650px;background:radial-gradient(circle,rgba(232,201,122,.07),transparent 70%);bottom:-180px;left:12%;animation:dw-d3 20s ease-in-out infinite alternate;}
+.dw-orb4{width:550px;height:550px;background:radial-gradient(circle,rgba(0,200,204,.05),transparent 70%);bottom:-120px;right:8%;animation:dw-d4 25s ease-in-out infinite alternate;}
+@keyframes dw-d1{0%{transform:translate(0,0);}100%{transform:translate(80px,60px);}}
+@keyframes dw-d2{0%{transform:translate(0,0);}100%{transform:translate(-70px,80px);}}
+@keyframes dw-d3{0%{transform:translate(0,0);}100%{transform:translate(60px,-80px);}}
+@keyframes dw-d4{0%{transform:translate(0,0);}100%{transform:translate(-50px,-60px);}}
 /* Dot grid pattern */
 .dw-dot-grid{position:fixed;inset:0;z-index:1;pointer-events:none;background-image:radial-gradient(circle,rgba(232,201,122,.08) 1px,transparent 1px);background-size:40px 40px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 40%,transparent 100%);-webkit-mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 40%,transparent 100%);}
 /* Grain / noise overlay */
@@ -1219,38 +1216,6 @@ html{scroll-behavior:smooth;}
 .dw-about-btn-wrap{margin-top:20px;text-align:center;}
 .dw-about-btn{display:inline-flex;align-items:center;gap:8px;background:transparent;border:1px solid rgba(232,201,122,.22);color:rgba(232,201,122,.65);border-radius:99px;padding:9px 22px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .22s;letter-spacing:.02em;}
 .dw-about-btn:hover{background:rgba(232,201,122,.07);border-color:rgba(232,201,122,.48);color:#e8c97a;box-shadow:0 0 18px rgba(232,201,122,.08);}
-/* ══ FLOATING PREVIEW CARDS (Framer-style) ════════════════════════════════ */
-.dw-preview-row{display:flex;align-items:flex-end;justify-content:center;gap:14px;width:100%;max-width:760px;margin-top:36px;padding-bottom:4px;}
-/* Base card */
-.dw-prev-card{background:rgba(10,6,22,.85);border:1px solid rgba(255,255,255,.1);border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.65),0 0 40px rgba(100,40,255,.18);backdrop-filter:blur(16px);transition:box-shadow .3s;cursor:default;}
-.dw-prev-card:hover{box-shadow:0 28px 80px rgba(0,0,0,.75),0 0 60px rgba(100,40,255,.3);}
-/* Floating animation — different timing per card */
-.dw-prev-l{animation:dwPrevFloat1 4.2s ease-in-out infinite;}
-.dw-prev-c{animation:dwPrevFloat2 3.6s ease-in-out infinite;}
-.dw-prev-r{animation:dwPrevFloat3 4.8s ease-in-out infinite;}
-@keyframes dwPrevFloat1{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
-@keyframes dwPrevFloat2{0%,100%{transform:translateY(-4px);}50%{transform:translateY(-14px);}}
-@keyframes dwPrevFloat3{0%,100%{transform:translateY(-2px);}50%{transform:translateY(-12px);}}
-/* Label above number */
-.dw-prev-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:10px;}
-/* COUNTER card */
-.dw-prev-counter-card{width:172px;padding:22px 22px 18px;}
-.dw-prev-num{font-family:'Playfair Display',serif;font-size:56px;font-weight:700;color:#fff;line-height:1;letter-spacing:-.03em;}
-.dw-prev-unit{font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.28);letter-spacing:.1em;margin-top:6px;text-transform:uppercase;}
-/* PLATFORM card (center, taller) */
-.dw-prev-platform-card{width:220px;}
-.dw-prev-ph{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.07);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;color:rgba(255,255,255,.45);}
-.dw-prev-ph-dot{width:6px;height:6px;border-radius:50%;background:#4ade80;flex-shrink:0;animation:pulse 2s ease-in-out infinite;box-shadow:0 0 6px rgba(74,222,128,.5);}
-.dw-prev-pb{padding:14px;}
-.dw-prev-pt{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;}
-.dw-prev-ps{font-size:10px;color:rgba(255,255,255,.32);line-height:1.55;margin-bottom:10px;}
-.dw-prev-pills{display:flex;flex-wrap:wrap;gap:4px;}
-.dw-prev-pill{font-family:'DM Mono',monospace;font-size:7.5px;letter-spacing:.06em;padding:2px 8px;border-radius:99px;border:1px solid;text-transform:uppercase;}
-.dw-prev-pill-gold{background:rgba(232,201,122,.08);color:rgba(232,201,122,.65);border-color:rgba(232,201,122,.2);}
-.dw-prev-pill-teal{background:rgba(0,200,204,.06);color:rgba(0,200,204,.65);border-color:rgba(0,200,204,.18);}
-.dw-prev-pill-purple{background:rgba(129,140,248,.08);color:rgba(129,140,248,.65);border-color:rgba(129,140,248,.18);}
-/* CLOCK card */
-.dw-prev-clock-card{width:160px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:10px;}
 /* ══ TECH LAYER ANIMATIONS ════════════════════════════════════════════════ */
 /* Floating character rain */
 .dw-tech-layer{position:fixed;inset:0;z-index:3;pointer-events:none;overflow:hidden;}
@@ -5184,38 +5149,6 @@ function switchAdminTab(tab, btn, noHistory) {
       </div>
     </div>
 
-    <!-- Framer-style floating preview cards -->
-    <div class="dw-preview-row">
-      <!-- Left: Live counter -->
-      <div class="dw-prev-card dw-prev-counter-card dw-prev-l">
-        <div class="dw-prev-lbl">Knowledge Articles</div>
-        <div class="dw-prev-num" id="dwLiveCounter">0</div>
-        <div class="dw-prev-unit">● Live · Always growing</div>
-      </div>
-      <!-- Center: Platform preview -->
-      <div class="dw-prev-card dw-prev-platform-card dw-prev-c">
-        <div class="dw-prev-ph">
-          <span class="dw-prev-ph-dot"></span>
-          <img src="/bluecopa-logo.png" style="height:13px;filter:brightness(1.1);flex-shrink:0;">
-          <span>Delivery Wikipedia</span>
-        </div>
-        <div class="dw-prev-pb">
-          <div class="dw-prev-pt">Your team's single source of truth</div>
-          <div class="dw-prev-ps">Knowledge · Skills · KPIs · Stories · Challenges</div>
-          <div class="dw-prev-pills">
-            <span class="dw-prev-pill dw-prev-pill-gold">Knowledge Hub</span>
-            <span class="dw-prev-pill dw-prev-pill-teal">Skill Matrix</span>
-            <span class="dw-prev-pill dw-prev-pill-purple">Process Puzzle</span>
-          </div>
-        </div>
-      </div>
-      <!-- Right: Analog clock -->
-      <div class="dw-prev-card dw-prev-clock-card dw-prev-r">
-        <div class="dw-prev-lbl">Live Clock</div>
-        <canvas id="dwLiveClock" width="116" height="116"></canvas>
-      </div>
-    </div>
-
     <!-- Section cards -->
     <div class="dw-cards-label">Explore Sections</div>
     <div class="dw-cards-sub">Everything your delivery team needs — in one place</div>
@@ -6024,9 +5957,8 @@ function showLanding(){
   dwCanvasRunning=true;
   // refresh live stats
   updateLandingStats();
-  // tech animations + preview cards
+  // tech animations
   setTimeout(dwInitTechEffects, 200);
-  setTimeout(dwStartPreviewCards, 300);
 }
 
 function dwCountUp(el,target,dur){
@@ -6066,7 +5998,6 @@ function hideLanding(){
   document.getElementById('dw-canvas').style.display='none';
   dwCanvasRunning=false;
   dwHideTechEffects();
-  dwStopPreviewCards();
 }
 
 function dwGoKnowledge(){
@@ -6374,92 +6305,6 @@ document.querySelectorAll('.dw-card').forEach(card=>{
   });
   card.addEventListener('mouseleave',()=>{card.style.transform='';});
 });
-
-// ══ PREVIEW CARDS — counter + analog clock ═══════════════════════════════════
-let _dwClockRAF = null;
-let _dwCounterVal = 0;
-let _dwCounterTimer = null;
-
-function dwStartPreviewCards() {
-  // ── Analog clock ────────────────────────────────────────────────────────────
-  const canvas = document.getElementById('dwLiveClock');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const cx = canvas.width / 2, cy = canvas.height / 2, r = cx - 6;
-
-  function drawClock() {
-    const now = new Date();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Face
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
-    ctx.fillStyle = '#08050f'; ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,.1)'; ctx.lineWidth = 1.2; ctx.stroke();
-
-    // Hour ticks
-    for (let i = 0; i < 12; i++) {
-      const a = (i * Math.PI) / 6;
-      ctx.beginPath();
-      ctx.moveTo(cx + (r-4)*Math.sin(a), cy - (r-4)*Math.cos(a));
-      ctx.lineTo(cx + (r-10)*Math.sin(a), cy - (r-10)*Math.cos(a));
-      ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.lineWidth = 1.5; ctx.stroke();
-    }
-
-    // Hands helper
-    const hand = (angle, len, width, color) => {
-      ctx.beginPath(); ctx.moveTo(cx, cy);
-      ctx.lineTo(cx + len*Math.sin(angle), cy - len*Math.cos(angle));
-      ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.stroke();
-    };
-
-    // Hour
-    const h = (now.getHours()%12 + now.getMinutes()/60) * Math.PI / 6;
-    hand(h, r*0.52, 2.8, '#e8c97a');
-    // Minute
-    const m = (now.getMinutes() + now.getSeconds()/60) * Math.PI / 30;
-    hand(m, r*0.76, 2, '#ffffff');
-    // Second
-    const s = now.getSeconds() * Math.PI / 30;
-    hand(s, r*0.84, 1.2, '#00c8cc');
-
-    // Centre dot
-    ctx.beginPath(); ctx.arc(cx, cy, 3.5, 0, Math.PI*2);
-    ctx.fillStyle = '#e8c97a'; ctx.fill();
-
-    _dwClockRAF = requestAnimationFrame(drawClock);
-  }
-  drawClock();
-
-  // ── Article counter ─────────────────────────────────────────────────────────
-  const counterEl = document.getElementById('dwLiveCounter');
-  if (!counterEl) return;
-
-  // Count up from 0 to actual article count
-  const target = parseInt(document.getElementById('dwStatArticles')?.textContent) || 12;
-  _dwCounterVal = 0;
-  clearInterval(_dwCounterTimer);
-
-  _dwCounterTimer = setInterval(() => {
-    if (_dwCounterVal < target) {
-      _dwCounterVal++;
-      counterEl.textContent = _dwCounterVal;
-    } else {
-      clearInterval(_dwCounterTimer);
-      // After reaching target, slowly increment to show it's "live"
-      _dwCounterTimer = setInterval(() => {
-        _dwCounterVal++;
-        counterEl.textContent = _dwCounterVal;
-        // Reset back every 20 increments to keep it looping
-        if (_dwCounterVal >= target + 20) _dwCounterVal = target;
-      }, 1800);
-    }
-  }, 80);
-}
-
-function dwStopPreviewCards() {
-  if (_dwClockRAF) { cancelAnimationFrame(_dwClockRAF); _dwClockRAF = null; }
-  clearInterval(_dwCounterTimer); _dwCounterTimer = null;
-}
 
 // ══ TECH ANIMATIONS ══════════════════════════════════════════════════════════
 let _dwTechInitDone = false;
