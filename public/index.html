@@ -1216,6 +1216,29 @@ html{scroll-behavior:smooth;}
 .dw-about-btn-wrap{margin-top:20px;text-align:center;}
 .dw-about-btn{display:inline-flex;align-items:center;gap:8px;background:transparent;border:1px solid rgba(232,201,122,.22);color:rgba(232,201,122,.65);border-radius:99px;padding:9px 22px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .22s;letter-spacing:.02em;}
 .dw-about-btn:hover{background:rgba(232,201,122,.07);border-color:rgba(232,201,122,.48);color:#e8c97a;box-shadow:0 0 18px rgba(232,201,122,.08);}
+/* ══ TECH LAYER ANIMATIONS ════════════════════════════════════════════════ */
+/* Floating character rain */
+.dw-tech-layer{position:fixed;inset:0;z-index:3;pointer-events:none;overflow:hidden;}
+.dw-tc{position:absolute;font-family:'DM Mono',monospace;line-height:1;user-select:none;animation:dwTcRise linear infinite;}
+@keyframes dwTcRise{0%{transform:translateY(0) rotate(0deg);opacity:0;}7%{opacity:1;}88%{opacity:.65;}100%{transform:translateY(-115vh) rotate(8deg);opacity:0;}}
+/* Scan line */
+.dw-scan-line{position:fixed;left:0;right:0;height:1.5px;z-index:4;pointer-events:none;background:linear-gradient(90deg,transparent 0%,rgba(232,201,122,.07) 25%,rgba(232,201,122,.05) 50%,rgba(232,201,122,.07) 75%,transparent 100%);animation:dwScanMove 10s linear infinite;}
+@keyframes dwScanMove{0%{top:-2%;opacity:0;}5%{opacity:1;}93%{opacity:.4;}100%{top:102%;opacity:0;}}
+/* Typewriter cursor */
+.dw-cursor{display:inline-block;width:2px;height:.82em;background:rgba(232,201,122,.75);vertical-align:middle;margin-left:2px;border-radius:1px;animation:dwCursorBlink .75s step-end infinite;}
+@keyframes dwCursorBlink{0%,100%{opacity:1;}50%{opacity:0;}}
+/* Tech corner brackets on stats */
+.dw-hero-stats{position:relative;}
+.dw-hero-stats::before,.dw-hero-stats::after{content:'';position:absolute;width:16px;height:16px;border-color:rgba(232,201,122,.22);border-style:solid;border-width:0;transition:border-color .3s;}
+.dw-hero-stats::before{top:-6px;left:-6px;border-top-width:1.5px;border-left-width:1.5px;}
+.dw-hero-stats::after{bottom:-6px;right:-6px;border-bottom-width:1.5px;border-right-width:1.5px;}
+.dw-hero-stats:hover::before,.dw-hero-stats:hover::after{border-color:rgba(232,201,122,.5);}
+/* System status bar */
+.dw-sys-status{position:fixed;bottom:22px;left:28px;z-index:15;display:none;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(232,201,122,.28);pointer-events:none;}
+.dw-sys-dot{width:5px;height:5px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px rgba(74,222,128,.6);animation:pulse 2s ease-in-out infinite;}
+/* Data node flash */
+.dw-data-flash{position:absolute;font-family:'DM Mono',monospace;color:rgba(232,201,122,.12);font-size:8px;pointer-events:none;animation:dwDataFlash ease-in-out infinite;}
+@keyframes dwDataFlash{0%,100%{opacity:0;}50%{opacity:1;}}
 /* ── Coming-Soon page ─────────────────────────────────────────────────────── */
 .dw-cs-overlay{position:fixed;inset:0;z-index:220;background:#09090d;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;font-family:'DM Sans',sans-serif;transition:opacity .35s;}
 .dw-cs-overlay.dw-cs-hidden{display:none;}
@@ -5051,6 +5074,16 @@ function switchAdminTab(tab, btn, noHistory) {
     <span class="dw-afab-dot" id="dwAdminFabDot"></span>
   </button>
 
+  <!-- Tech character rain layer -->
+  <div class="dw-tech-layer" id="dwTechLayer"></div>
+  <!-- Page scan line -->
+  <div class="dw-scan-line" id="dwScanLine"></div>
+  <!-- System status -->
+  <div class="dw-sys-status" id="dwSysStatus">
+    <span class="dw-sys-dot"></span>
+    <span>SYS ONLINE · v2.0.26 · DELIVERY WIKIPEDIA</span>
+  </div>
+
   <div class="dw-orbs">
     <div class="dw-orb dw-orb1"></div>
     <div class="dw-orb dw-orb2"></div>
@@ -5924,6 +5957,8 @@ function showLanding(){
   dwCanvasRunning=true;
   // refresh live stats
   updateLandingStats();
+  // tech animations
+  setTimeout(dwInitTechEffects, 200);
 }
 
 function dwCountUp(el,target,dur){
@@ -5962,6 +5997,7 @@ function hideLanding(){
   document.getElementById('dwLanding').classList.add('dw-hidden');
   document.getElementById('dw-canvas').style.display='none';
   dwCanvasRunning=false;
+  dwHideTechEffects();
 }
 
 function dwGoKnowledge(){
@@ -6269,6 +6305,108 @@ document.querySelectorAll('.dw-card').forEach(card=>{
   });
   card.addEventListener('mouseleave',()=>{card.style.transform='';});
 });
+
+// ══ TECH ANIMATIONS ══════════════════════════════════════════════════════════
+let _dwTechInitDone = false;
+
+function dwInitTechEffects() {
+  if (_dwTechInitDone) {
+    // Just show system status again
+    const s = document.getElementById('dwSysStatus');
+    if (s) s.style.display = 'flex';
+    return;
+  }
+  _dwTechInitDone = true;
+
+  // ── 1. Tech character rain ─────────────────────────────────────────────────
+  const layer = document.getElementById('dwTechLayer');
+  if (layer) {
+    const CHARS = ['0','1','A','B','C','D','E','F','0x','FF','00','01','10',
+                   '</>', '{  }', '[ ]', '::', '>>', '<<', '&&', '||',
+                   '≈','∑','∞','∂','Δ','π','λ','∇','⊕','⊗'];
+    for (let i = 0; i < 28; i++) {
+      const el = document.createElement('span');
+      el.className = 'dw-tc';
+      el.textContent = CHARS[Math.floor(Math.random() * CHARS.length)];
+      const size = 9 + Math.random() * 6;
+      const opacity = 0.035 + Math.random() * 0.07;
+      const dur = 10 + Math.random() * 18;
+      const del = Math.random() * 12;
+      el.style.cssText = `left:${1 + Math.random() * 98}%;bottom:${Math.random() * 100}%;font-size:${size}px;color:rgba(232,201,122,${opacity});animation-duration:${dur}s;animation-delay:${del}s;`;
+      layer.appendChild(el);
+      // Periodically swap character
+      setInterval(() => {
+        el.textContent = CHARS[Math.floor(Math.random() * CHARS.length)];
+      }, 2000 + Math.random() * 4000);
+    }
+  }
+
+  // ── 2. System status indicator ─────────────────────────────────────────────
+  const status = document.getElementById('dwSysStatus');
+  if (status) status.style.display = 'flex';
+
+  // ── 3. Typewriter on subtitle (plays once) ─────────────────────────────────
+  const sub = document.querySelector('.dw-hero-sub');
+  if (sub && !sub.dataset.typed) {
+    sub.dataset.typed = '1';
+    const fullText = sub.textContent.trim();
+    sub.innerHTML = '';
+    const cursor = document.createElement('span');
+    cursor.className = 'dw-cursor';
+    sub.appendChild(cursor);
+
+    let i = 0;
+    setTimeout(() => {
+      const tw = setInterval(() => {
+        if (i < fullText.length) {
+          sub.insertBefore(document.createTextNode(fullText[i]), cursor);
+          i++;
+        } else {
+          clearInterval(tw);
+          setTimeout(() => { if (cursor.parentNode) cursor.remove(); }, 2200);
+        }
+      }, 18);
+    }, 600);
+  }
+
+  // ── 4. Occasional title glitch ─────────────────────────────────────────────
+  const title = document.querySelector('.dw-hero-title');
+  if (title) {
+    const glitch = () => {
+      const steps = [
+        () => { title.style.transform = 'skewX(-2deg) translateX(-3px)'; title.style.filter = 'hue-rotate(15deg) brightness(1.2)'; },
+        () => { title.style.transform = 'skewX(1.5deg) translateX(2px)'; title.style.filter = 'hue-rotate(-10deg)'; },
+        () => { title.style.transform = 'translateX(-1px)'; title.style.filter = ''; },
+        () => { title.style.transform = ''; title.style.filter = ''; }
+      ];
+      steps.forEach((fn, i) => setTimeout(fn, i * 70));
+    };
+    // First glitch after 4s, then random intervals 8-15s
+    setTimeout(function scheduleGlitch() {
+      glitch();
+      setTimeout(scheduleGlitch, 8000 + Math.random() * 7000);
+    }, 4000);
+  }
+
+  // ── 5. Floating data badges ────────────────────────────────────────────────
+  const landing = document.getElementById('dwLanding');
+  if (landing) {
+    const dataSnippets = ['SYS::OK','NODE_12','PROC:OK','AUTH::1','KB:LIVE','SKL:ACT','API::UP'];
+    dataSnippets.forEach((txt, i) => {
+      const badge = document.createElement('div');
+      badge.className = 'dw-data-flash';
+      badge.textContent = txt;
+      const dur = 4 + Math.random() * 4;
+      badge.style.cssText = `left:${3+Math.random()*94}%;top:${10+Math.random()*80}%;animation-duration:${dur}s;animation-delay:${Math.random()*8}s;`;
+      landing.appendChild(badge);
+    });
+  }
+}
+
+function dwHideTechEffects() {
+  const s = document.getElementById('dwSysStatus');
+  if (s) s.style.display = 'none';
+}
 
 // ══ ABOUT VIDEO PLAYER ═══════════════════════════════════════════════════════
 const DW_AV_SLIDES = 7;
