@@ -6,21 +6,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>KnowledgeHub — Team Wiki</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
 :root{
   --bg:#0f0f13;--surface:#17171e;--surface2:#1e1e28;--border:#2a2a38;
   --accent:#e8c97a;--accent2:#7a9ee8;--accent3:#e87a9e;
   --text:#e8e8f0;--muted:#7a7a96;--success:#7ae8b4;--danger:#e87a7a;
-  /* Bluecopa brand */
-  --bc-blue:#3548FF;--bc-blue-dim:rgba(53,72,255,.15);--bc-blue-border:rgba(53,72,255,.28);
-  --bc-font:'Instrument Sans','Inter','DM Sans',sans-serif;
 }
-/* ── Bluecopa Global Brand ──────────────────────────────────────────────── */
-.bc-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--bc-font);font-size:9.5px;font-weight:700;letter-spacing:.06em;color:rgba(53,72,255,.9);background:rgba(53,72,255,.1);border:1px solid rgba(53,72,255,.22);border-radius:99px;padding:3px 10px;white-space:nowrap;}
-.bc-badge-img{height:10px;width:auto;vertical-align:middle;}
-.bc-powered{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(53,72,255,.45);}
-/* Thin brand bar at top of every sub-page panel */
-.bc-bar{position:absolute;top:0;left:0;right:0;height:2.5px;background:linear-gradient(90deg,#3548FF 0%,#5568FF 50%,#3548FF 100%);z-index:10;border-radius:0;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden;}
 
@@ -1330,11 +1321,9 @@ html{scroll-behavior:smooth;}
 
 <!-- ── Sidebar ── -->
 <aside class="sidebar">
-  <div class="sidebar-logo" style="position:relative;">
-    <div class="bc-bar"></div>
-    <img src="/bluecopa-logo.png" alt="Bluecopa" class="sidebar-logo-brand-img" style="margin-top:4px;"/>
+  <div class="sidebar-logo">
+    <img src="/bluecopa-logo.png" alt="Bluecopa" class="sidebar-logo-brand-img"/>
     <h1 id="siteTitle">KnowledgeHub</h1>
-    <div style="margin-top:6px;"><span class="bc-powered">Powered by Bluecopa</span></div>
   </div>
   <div class="sidebar-search" style="display:none"></div>
   <div class="sidebar-scroll">
@@ -1395,7 +1384,6 @@ html{scroll-behavior:smooth;}
       <button class="btn-ghost" id="topbarDashBtn" onclick="showDashboard()" title="Dashboard" style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;">
         📊 <span>Dashboard</span>
       </button>
-      <span class="bc-badge"><img src="/bluecopa-logo.png" class="bc-badge-img" alt="">Bluecopa</span>
       <button class="btn-about" onclick="openAbout()">ℹ️ About</button>
       <button id="exportBtn" class="btn-ghost" onclick="exportArticles()" style="display:none;">↑ Export</button>
     </div>
@@ -1561,13 +1549,8 @@ html{scroll-behavior:smooth;}
 <!-- ── Skill Matrix Overlay ── -->
 <div class="sm-overlay" id="smOverlay">
   <!-- Top bar -->
-  <div class="sm-topbar" style="position:relative;">
-    <div class="bc-bar"></div>
-    <div style="display:flex;align-items:center;gap:12px;">
-      <img src="/bluecopa-logo.png" style="height:22px;filter:brightness(1.1);flex-shrink:0;" alt="Bluecopa">
-      <span style="width:1px;height:18px;background:rgba(255,255,255,.12);display:block;flex-shrink:0;"></span>
-      <span class="sm-topbar-title">📈 SKILL MATRIX</span>
-    </div>
+  <div class="sm-topbar">
+    <span class="sm-topbar-title">📈 SKILL MATRIX</span>
     <div class="sm-tabs">
       <button class="sm-tab active" id="smTabAssess" onclick="smSwitchTab('assess')">📝 Self-Assessment</button>
       <button class="sm-tab" id="smTabDash" onclick="smSwitchTab('dashboard')">📊 Dashboard</button>
@@ -6558,11 +6541,8 @@ document.addEventListener('keydown', e => {
   <!-- Animated grain overlay -->
   <div class="pp-grain"></div>
   <!-- Topbar -->
-  <div class="pp-topbar" style="position:relative;">
-    <div class="bc-bar" style="background:linear-gradient(90deg,#3548FF,#5568FF,#3548FF);"></div>
+  <div class="pp-topbar">
     <div class="pp-topbar-brand">
-      <img src="/bluecopa-logo.png" style="height:20px;filter:brightness(1.1);flex-shrink:0;" alt="Bluecopa">
-      <span style="width:1px;height:16px;background:rgba(255,255,255,.15);display:block;flex-shrink:0;"></span>
       <div class="pp-topbar-icon">🧩</div>
       <span class="pp-topbar-title">Process Puzzle</span>
     </div>
@@ -6750,17 +6730,10 @@ document.addEventListener('keydown', e => {
 
 <!-- ── Coming Soon Overlay ────────────────────────────────────────────────── -->
 <div id="dwComingSoonOverlay" class="dw-cs-overlay dw-cs-hidden">
-  <div class="bc-bar" style="position:absolute;top:0;left:0;right:0;height:3px;z-index:30;background:linear-gradient(90deg,#3548FF,#5568FF,#3548FF);"></div>
   <div class="dw-cs-bg-orb" id="dwCsBgOrb"></div>
   <div class="dw-cs-grid"></div>
   <div class="dw-cs-vignette"></div>
   <div class="dw-cs-particles" id="dwCsParticles"></div>
-
-  <!-- Bluecopa brand top-left -->
-  <div style="position:absolute;top:22px;left:28px;z-index:30;display:flex;align-items:center;gap:8px;">
-    <img src="/bluecopa-logo.png" style="height:20px;filter:brightness(1.1);" alt="Bluecopa">
-    <span style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);">Delivery Wikipedia</span>
-  </div>
 
   <button class="dw-cs-back" onclick="hideDwComingSoon()">← Back to Home</button>
 
@@ -6785,10 +6758,7 @@ document.addEventListener('keydown', e => {
     </div>
   </div>
 
-  <div class="dw-cs-footer" style="display:flex;align-items:center;gap:10px;">
-    <img src="/bluecopa-logo.png" style="height:14px;opacity:.4;filter:brightness(1.1);" alt="Bluecopa">
-    <span>Bluecopa · Delivery Wikipedia · 2026</span>
-  </div>
+  <div class="dw-cs-footer">Bluecopa · Delivery Wikipedia · 2026</div>
 </div>
 
 <!-- ══════════════ ABOUT VIDEO OVERLAY ════════════════════════════════════ -->
