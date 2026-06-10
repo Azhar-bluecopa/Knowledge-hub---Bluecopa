@@ -1118,4 +1118,46 @@ app.delete('/api/audit', async (req, res) => {
   }
 });
 
+// ══ LEADERSHIP INSIGHTS — Access Control ═════════════════════════════════════
+
+// GET /api/leadership/check?user=Name — check if user has access (public endpoint)
+app.get('/api/leadership/check', (req, res) => {
+  const userName = (req.query.user || '').trim().toLowerCase();
+  if (!userName) return res.json({ access: false });
+  const list = (db.leadership && db.leadership.approvedUsers) || [];
+  const access = list.some(u => u.toLowerCase() === userName);
+  res.json({ access, role: access ? 'leader' : 'none' });
+});
+
+// GET /api/leadership/users — get full access list (admin only)
+app.get('/api/leadership/users', (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Admin only' });
+  if (!db.leadership) db.leadership = { approvedUsers: [] };
+  res.json({ users: db.leadership.approvedUsers || [] });
+});
+
+// POST /api/leadership/users — add user to access list (admin only)
+app.post('/api/leadership/users', async (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Admin only' });
+  const { userName } = req.body;
+  if (!userName || !userName.trim()) return res.status(400).json({ error: 'userName required' });
+  if (!db.leadership) db.leadership = { approvedUsers: [] };
+  const name = userName.trim();
+  if (!db.leadership.approvedUsers.includes(name)) {
+    db.leadership.approvedUsers.push(name);
+    await saveDB(db);
+  }
+  res.json({ success: true, users: db.leadership.approvedUsers });
+});
+
+// DELETE /api/leadership/users — remove user from access list (admin only)
+app.delete('/api/leadership/users', async (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Admin only' });
+  const { userName } = req.body;
+  if (!db.leadership) db.leadership = { approvedUsers: [] };
+  db.leadership.approvedUsers = (db.leadership.approvedUsers || []).filter(u => u !== userName);
+  await saveDB(db);
+  res.json({ success: true, users: db.leadership.approvedUsers });
+});
+
 module.exports = app;
