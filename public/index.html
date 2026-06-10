@@ -597,10 +597,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dw-page{position:relative;z-index:10;width:100%;display:flex;flex-direction:column;align-items:center;padding:56px 48px 88px;}
 /* Landing admin button — top-right corner */
 /* ══ MASTERCLASS-STYLE NAV ════════════════════════════════════════════════ */
-.mc-nav{position:relative;z-index:20;height:64px;display:flex;align-items:center;padding:0 32px;gap:0;background:transparent;border-bottom:1px solid rgba(255,255,255,.06);width:100%;}
+.mc-nav{position:relative;z-index:20;height:60px;display:flex;align-items:center;padding:0 0;gap:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;width:100%;max-width:1200px;margin:0 auto 40px;backdrop-filter:blur(12px);}
 /* Logo zone */
-.mc-nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;margin-right:4px;}
-.mc-nav-logo img{height:28px;filter:brightness(1.1);}
+.mc-nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;margin-right:4px;padding:0 16px;}
+.mc-nav-logo img{height:42px;filter:brightness(1.1);}
 /* Browse button */
 .mc-browse-btn{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:8px;padding:9px 16px;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap;flex-shrink:0;margin-right:12px;position:relative;}
 .mc-browse-btn:hover{background:rgba(255,255,255,.14);}
@@ -645,7 +645,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .mc-nav-btn-primary{background:var(--accent,#e8c97a);color:#0f0f13;border:none;border-radius:7px;padding:8px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:700;cursor:pointer;transition:all .18s;white-space:nowrap;display:none;}
 .mc-nav-btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px);}
 /* Push landing page content down */
-#dwLanding .dw-page{padding-top:24px!important;}
+#dwLanding .dw-page{padding-top:52px!important;}
 /* Admin FAB hidden — replaced by nav */
 .dw-admin-fab{display:none!important;}
 
@@ -5124,7 +5124,48 @@ function switchAdminTab(tab, btn, noHistory) {
 <canvas id="dw-canvas"></canvas>
 <div id="dwLanding">
 
-  <!-- ── Nav: blended into landing page ── -->
+
+
+
+  <!-- Admin shortcut for JS compat -->
+  <button class="dw-admin-fab" id="dwAdminFab" onclick="openAdminPanel()" style="display:none!important;">
+    ⚙ Admin Panel<span class="dw-afab-dot" id="dwAdminFabDot"></span>
+  </button>
+
+  <!-- Tech character rain layer -->
+  <div class="dw-tech-layer" id="dwTechLayer"></div>
+  <div class="dw-scan-line" id="dwScanLine"></div>
+  <div class="dw-sys-status" id="dwSysStatus">
+    <span class="dw-sys-dot"></span>
+    <span>SYS ONLINE · v2.0.26 · DELIVERY WIKIPEDIA</span>
+  </div>
+  <div class="dw-orbs">
+    <div class="dw-orb dw-orb1"></div>
+    <div class="dw-orb dw-orb2"></div>
+    <div class="dw-orb dw-orb3"></div>
+    <div class="dw-orb dw-orb4"></div>
+  </div>
+  <div class="dw-vignette"></div>
+  <div class="dw-dot-grid"></div>
+  <div class="dw-grain"></div>
+  <div class="dw-sweep"></div>
+
+<div class="dw-page">
+
+    <!-- Brand -->
+    <div class="dw-brand-wrap">
+      <div class="dw-brand-ring">
+        <img src="/bluecopa-logo.png" alt="Bluecopa" class="dw-brand-logo">
+      </div>
+      <div class="dw-brand-name">Bluecopa</div>
+      <div class="dw-brand-tagline-row">
+        <div class="dw-brand-sep"></div>
+        <div class="dw-brand-tagline">Delivery Team's Go-To Place</div>
+        <div class="dw-brand-sep r"></div>
+      </div>
+    </div>
+
+    <!-- ── Nav: blended into landing page ── -->
   <nav class="mc-nav" id="mcNav">
     <a class="mc-nav-logo" onclick="void(0)">
       <img src="/bluecopa-logo.png" alt="Bluecopa">
@@ -5172,47 +5213,8 @@ function switchAdminTab(tab, btn, noHistory) {
     </div>
     <div class="mc-nav-right">
       <button class="mc-nav-btn" id="mcAdminBtn" onclick="openAdminPanel()" style="display:none;">⚙ Admin</button>
-      <button class="mc-nav-btn-primary" id="mcGetStartedBtn" onclick="mcGoTo('knowledge')">Explore Knowledge</button>
     </div>
   </nav>
-
-  <!-- Admin shortcut for JS compat -->
-  <button class="dw-admin-fab" id="dwAdminFab" onclick="openAdminPanel()" style="display:none!important;">
-    ⚙ Admin Panel<span class="dw-afab-dot" id="dwAdminFabDot"></span>
-  </button>
-
-  <!-- Tech character rain layer -->
-  <div class="dw-tech-layer" id="dwTechLayer"></div>
-  <div class="dw-scan-line" id="dwScanLine"></div>
-  <div class="dw-sys-status" id="dwSysStatus">
-    <span class="dw-sys-dot"></span>
-    <span>SYS ONLINE · v2.0.26 · DELIVERY WIKIPEDIA</span>
-  </div>
-  <div class="dw-orbs">
-    <div class="dw-orb dw-orb1"></div>
-    <div class="dw-orb dw-orb2"></div>
-    <div class="dw-orb dw-orb3"></div>
-    <div class="dw-orb dw-orb4"></div>
-  </div>
-  <div class="dw-vignette"></div>
-  <div class="dw-dot-grid"></div>
-  <div class="dw-grain"></div>
-  <div class="dw-sweep"></div>
-
-<div class="dw-page">
-
-    <!-- Brand -->
-    <div class="dw-brand-wrap">
-      <div class="dw-brand-ring">
-        <img src="/bluecopa-logo.png" alt="Bluecopa" class="dw-brand-logo">
-      </div>
-      <div class="dw-brand-name">Bluecopa</div>
-      <div class="dw-brand-tagline-row">
-        <div class="dw-brand-sep"></div>
-        <div class="dw-brand-tagline">Delivery Team's Go-To Place</div>
-        <div class="dw-brand-sep r"></div>
-      </div>
-    </div>
 
     <!-- Hero -->
     <div class="dw-hero">
