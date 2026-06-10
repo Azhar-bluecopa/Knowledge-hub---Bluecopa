@@ -1045,4 +1045,43 @@ app.get('/api/puzzle/analytics', (req, res) => {
   res.json({ analytics: { totalParticipants: first.length, totalAttempts: all.length, avgAccuracy: avgAcc, avgTime, topScore: first.length ? Math.max(...first.map(a => a.accuracy)) : 0, gameTitle: game.title, week: game.week } });
 });
 
+// ══ AUDIT LOG ════════════════════════════════════════════════════════════════
+const AUDIT_MAX = 50000; // keep last 50k events (~6 months for active team)
+
+// POST /api/audit — record a tracking event (no auth, anyone can log)
+app.post('/api/audit', async (req, res) => {
+  if (!db.auditLog) db.auditLog = [];
+  const { sessionId, userId, userName, userInitials, action, page, pageTitle, duration, metadata } = req.body;
+  if (!sessionId || !action) return res.status(400).json({ error: 'Missing fields' });
+  const entry = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    sessionId, userId: userId || 'Anonymous', userName: userName || 'Anonymous',
+    userInitials: userInitials || '?', action, page, pageTitle,
+    duration: duration || 0, metadata: metadata || {},
+    timestamp: new Date().toISOString()
+  };
+  db.auditLog.push(entry);
+  if (db.auditLog.length > AUDIT_MAX) db.auditLog = db.auditLog.slice(-AUDIT_MAX);
+  await saveDB(db);
+  res.json({ success: true });
+});
+
+// GET /api/audit — retrieve audit log (admin only)
+app.get('/api/audit', (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Admin only' });
+  if (!db.auditLog) db.auditLog = [];
+  const days = parseInt(req.query.days) || 30;
+  const cutoff = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
+  const filtered = db.auditLog.filter(e => e.timestamp >= cutoff);
+  res.json({ log: filtered, total: db.auditLog.length });
+});
+
+// DELETE /api/audit — clear audit log (admin only)
+app.delete('/api/audit', async (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Admin only' });
+  db.auditLog = [];
+  await saveDB(db);
+  res.json({ success: true });
+});
+
 module.exports = app;

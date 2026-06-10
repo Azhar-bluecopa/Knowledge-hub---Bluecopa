@@ -1902,6 +1902,7 @@ html{scroll-behavior:smooth;}
       <button class="admin-tab" onclick="switchAdminTab('settings',this)">⚙ Site Settings</button>
       <button class="admin-tab" onclick="switchAdminTab('password',this)">🔑 Password</button>
       <button class="admin-tab" onclick="switchAdminTab('skillmatrix',this)">📈 Skill Matrix</button>
+      <button class="admin-tab" onclick="switchAdminTab('auditlog',this)" id="auditLogTab">🔍 Audit Log</button>
     </div>
 
     <!-- Tab: Categories -->
@@ -1996,6 +1997,41 @@ html{scroll-behavior:smooth;}
         </div>
       </div>
     </div>
+
+    <!-- ── Audit Log Panel ── -->
+    <div class="admin-tab-panel" id="tab-auditlog">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <select id="alDaysFilter" onchange="alLoad()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 12px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;outline:none;">
+            <option value="7">Last 7 days</option>
+            <option value="14">Last 14 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+          <select id="alUserFilter" onchange="alRender()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 12px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;outline:none;">
+            <option value="">All Users</option>
+          </select>
+          <select id="alPageFilter" onchange="alRender()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 12px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;outline:none;">
+            <option value="">All Pages</option>
+            <option value="landing">Home</option>
+            <option value="articles">Knowledge Articles</option>
+            <option value="skill_matrix">Skill Matrix</option>
+            <option value="process_puzzle">Process Puzzle</option>
+            <option value="dashboard">Dashboard</option>
+            <option value="roadmap">Roadmap</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="alDownloadCSV()" style="background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.25);color:#4ade80;border-radius:7px;padding:7px 14px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">⬇ Export CSV</button>
+          <button onclick="alClear()" style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);color:#f87171;border-radius:7px;padding:7px 14px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">🗑 Clear Log</button>
+        </div>
+      </div>
+      <!-- Stats row -->
+      <div id="alStats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;"></div>
+      <!-- Sessions table -->
+      <div id="alContent" style="font-size:13px;color:var(--muted);text-align:center;padding:32px;">Loading…</div>
+    </div>
+
   </div>
 </div>
 
@@ -2862,6 +2898,7 @@ const ROADMAP_DATA = [
 ];
 
 function showRoadmap() {
+  if(typeof auditTrackPage==='function') auditTrackPage('roadmap','Roadmap');
   if(!_dwNavFlag) history.pushState({screen:'roadmap'}, '');
   document.getElementById('roadmapView').classList.add('active');
   document.getElementById('dashboardView').classList.remove('active');
@@ -2966,6 +3003,7 @@ function renderRoadmap() {
 }
 
 function showDashboard() {
+  if(typeof auditTrackPage==='function') auditTrackPage('dashboard','Dashboard');
   if(!_dwNavFlag) history.pushState({screen:'dashboard'}, '');
   document.getElementById('dashboardView').classList.add('active');
   document.querySelector('.main').style.display = 'none';
@@ -5498,6 +5536,7 @@ function ppStopCanvas() {
 }
 
 async function dwGoProcessPuzzle() {
+  if(typeof auditTrackPage==='function') auditTrackPage('process_puzzle','Process Puzzle');
   hideLanding();
   if(!_dwNavFlag) history.pushState({screen:'processpuzzle'}, '');
   document.getElementById('ppOverlay').classList.add('active');
@@ -6087,6 +6126,8 @@ function showLanding(){
   updateLandingStats();
   // tech animations
   setTimeout(dwInitTechEffects, 200);
+  // audit tracking
+  if(typeof auditTrackPage==='function') auditTrackPage('landing','Home');
 }
 
 function dwCountUp(el,target,dur){
@@ -6434,6 +6475,231 @@ document.querySelectorAll('.dw-card').forEach(card=>{
   });
   card.addEventListener('mouseleave',()=>{card.style.transform='';});
 });
+
+// ══ AUDIT LOG TRACKING ═══════════════════════════════════════════════════════
+(function(){
+  // Generate/restore session ID per browser session
+  const _sid = sessionStorage.getItem('_al_sid') ||
+    (Date.now().toString(36) + Math.random().toString(36).slice(2,8));
+  sessionStorage.setItem('_al_sid', _sid);
+
+  let _curPage = null, _curTitle = null, _pageStart = null;
+
+  function _send(action, page, pageTitle, duration) {
+    const u = getUser ? getUser() : null;
+    const entry = {
+      sessionId: _sid,
+      userId:        u ? u.name     : 'Anonymous',
+      userName:      u ? u.name     : 'Anonymous',
+      userInitials:  u ? u.initials : '?',
+      action, page, pageTitle,
+      duration: duration || 0
+    };
+    fetch('/api/audit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry)
+    }).catch(() => {});
+  }
+
+  // Public tracker — call whenever a page opens
+  window.auditTrackPage = function(page, pageTitle) {
+    const now = Date.now();
+    // Log time on previous page
+    if (_curPage && _pageStart) {
+      const dur = Math.round((now - _pageStart) / 1000);
+      if (dur >= 2) _send('page_exit', _curPage, _curTitle, dur);
+    }
+    _curPage  = page;
+    _curTitle = pageTitle;
+    _pageStart = now;
+    _send('page_view', page, pageTitle, 0);
+  };
+
+  // Log on tab close / navigation away
+  window.addEventListener('pagehide', () => {
+    if (_curPage && _pageStart) {
+      const dur = Math.round((Date.now() - _pageStart) / 1000);
+      if (dur >= 2) {
+        const u = getUser ? getUser() : null;
+        const entry = JSON.stringify({
+          sessionId: _sid,
+          userId: u ? u.name : 'Anonymous',
+          userName: u ? u.name : 'Anonymous',
+          userInitials: u ? u.initials : '?',
+          action: 'page_exit', page: _curPage,
+          pageTitle: _curTitle, duration: dur
+        });
+        navigator.sendBeacon('/api/audit', new Blob([entry], { type: 'application/json' }));
+      }
+    }
+  });
+})();
+
+// ══ AUDIT LOG ADMIN DASHBOARD ═════════════════════════════════════════════════
+let _alRawLog = [];
+
+async function alLoad() {
+  const days = document.getElementById('alDaysFilter')?.value || 30;
+  document.getElementById('alContent').innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">⏳ Loading…</div>';
+  try {
+    const r = await fetch(`/api/audit?days=${days}`, { headers: adminHeaders() });
+    if (!r.ok) { document.getElementById('alContent').innerHTML = '<div style="color:var(--danger);padding:20px;">Failed to load audit log.</div>'; return; }
+    const data = await r.json();
+    _alRawLog = data.log || [];
+    alPopulateFilters();
+    alRender();
+  } catch(e) {
+    document.getElementById('alContent').innerHTML = '<div style="color:var(--danger);padding:20px;">Error loading audit log.</div>';
+  }
+}
+
+function alPopulateFilters() {
+  const users = [...new Set(_alRawLog.map(e => e.userName).filter(Boolean))].sort();
+  const sel = document.getElementById('alUserFilter');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All Users</option>' +
+    users.map(u => `<option value="${u}" ${cur===u?'selected':''}>${u}</option>`).join('');
+}
+
+function alRender() {
+  const userF = document.getElementById('alUserFilter')?.value || '';
+  const pageF = document.getElementById('alPageFilter')?.value || '';
+
+  let log = _alRawLog;
+  if (userF) log = log.filter(e => e.userName === userF);
+  if (pageF) log = log.filter(e => e.page === pageF);
+
+  // ── Stats ──────────────────────────────────────────────────────────────────
+  const PAGE_VIEWS  = log.filter(e => e.action === 'page_view');
+  const PAGE_EXITS  = log.filter(e => e.action === 'page_exit');
+  const uniqueUsers = [...new Set(log.map(e => e.userId))].length;
+  const uniqueSess  = [...new Set(log.map(e => e.sessionId))].length;
+  const totalTime   = PAGE_EXITS.reduce((s, e) => s + (e.duration || 0), 0);
+  const avgSession  = uniqueSess > 0 ? Math.round(totalTime / uniqueSess) : 0;
+
+  const statCard = (val, lbl, color) =>
+    `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+      <div style="font-size:24px;font-weight:800;color:${color};letter-spacing:-.02em;">${val}</div>
+      <div style="font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:4px;">${lbl}</div>
+    </div>`;
+
+  document.getElementById('alStats').innerHTML =
+    statCard(uniqueUsers, 'Unique Users', 'var(--accent)') +
+    statCard(uniqueSess, 'Sessions', '#60a5fa') +
+    statCard(PAGE_VIEWS.length, 'Page Views', '#4ade80') +
+    statCard(fmtDur(avgSession), 'Avg Session', '#f59e0b');
+
+  if (!log.length) {
+    document.getElementById('alContent').innerHTML =
+      '<div style="text-align:center;padding:48px;color:var(--muted);">No activity data for this period.</div>';
+    return;
+  }
+
+  // ── Group into sessions ────────────────────────────────────────────────────
+  const sessMap = {};
+  log.forEach(e => {
+    if (!sessMap[e.sessionId]) sessMap[e.sessionId] = {
+      sessionId: e.sessionId, userName: e.userName, userInitials: e.userInitials,
+      start: e.timestamp, end: e.timestamp, pages: [], totalDuration: 0, events: []
+    };
+    const s = sessMap[e.sessionId];
+    if (e.timestamp < s.start) s.start = e.timestamp;
+    if (e.timestamp > s.end)   s.end   = e.timestamp;
+    if (e.action === 'page_view') s.pages.push({ page: e.page, title: e.pageTitle, time: e.timestamp });
+    if (e.action === 'page_exit') s.totalDuration += (e.duration || 0);
+    s.events.push(e);
+  });
+
+  const sessions = Object.values(sessMap)
+    .sort((a, b) => b.start.localeCompare(a.start));
+
+  // ── Render table ───────────────────────────────────────────────────────────
+  const PAGE_ICONS = { landing:'🏠', articles:'📚', skill_matrix:'🧠', process_puzzle:'🧩',
+    dashboard:'📊', roadmap:'🗺', about:'ℹ️', kpi:'📈', delivery_journey:'🏛️' };
+  const PAGE_COLORS = { landing:'#e8c97a', articles:'#00c8cc', skill_matrix:'#a78bfa',
+    process_puzzle:'#f87171', dashboard:'#f59e0b', roadmap:'#34d399' };
+
+  let html = `<table style="width:100%;border-collapse:collapse;">
+    <thead>
+      <tr style="border-bottom:2px solid var(--border);">
+        <th style="padding:10px 14px;text-align:left;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);">User</th>
+        <th style="padding:10px 14px;text-align:left;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);">Date & Time</th>
+        <th style="padding:10px 14px;text-align:left;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);">Pages Visited</th>
+        <th style="padding:10px 14px;text-align:left;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);">Time Spent</th>
+        <th style="padding:10px 14px;text-align:left;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);">Session</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  sessions.forEach(s => {
+    const dt = new Date(s.start);
+    const dateStr = dt.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+    const timeStr = dt.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+    const uniquePages = [...new Map(s.pages.map(p => [p.page, p])).values()];
+
+    html += `<tr style="border-bottom:1px solid var(--border);transition:background .12s;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
+      <td style="padding:12px 14px;">
+        <div style="display:flex;align-items:center;gap:9px;">
+          <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;">${s.userInitials||'?'}</div>
+          <span style="font-weight:600;color:var(--text);font-size:13.5px;">${s.userName||'Anonymous'}</span>
+        </div>
+      </td>
+      <td style="padding:12px 14px;color:var(--text-secondary);font-size:12.5px;">
+        <div style="font-weight:600;">${dateStr}</div>
+        <div style="color:var(--muted);font-size:11px;margin-top:1px;">${timeStr}</div>
+      </td>
+      <td style="padding:12px 14px;">
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+          ${uniquePages.map(p => {
+            const col = PAGE_COLORS[p.page] || '#9ca3af';
+            const icon = PAGE_ICONS[p.page] || '📄';
+            return `<span style="display:inline-flex;align-items:center;gap:4px;background:${col}15;border:1px solid ${col}30;color:${col};border-radius:99px;padding:2px 9px;font-size:11px;font-weight:600;">${icon} ${p.title||p.page}</span>`;
+          }).join('')}
+        </div>
+      </td>
+      <td style="padding:12px 14px;">
+        <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--text);">${fmtDur(s.totalDuration)}</span>
+      </td>
+      <td style="padding:12px 14px;">
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">${s.sessionId.slice(-6)}</span>
+      </td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('alContent').innerHTML = html;
+}
+
+function fmtDur(s) {
+  if (!s) return '—';
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s/60), sec = s%60;
+  if (m < 60) return `${m}m ${sec}s`;
+  return `${Math.floor(m/60)}h ${m%60}m`;
+}
+
+function alDownloadCSV() {
+  if (!_alRawLog.length) { showToast('No data to export', 'info'); return; }
+  const headers = ['Timestamp','User','Session ID','Action','Page','Page Title','Duration (s)'];
+  const rows = _alRawLog.map(e => [
+    e.timestamp, e.userName, e.sessionId, e.action, e.page, e.pageTitle, e.duration
+  ].map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(','));
+  const csv = [headers.join(','), ...rows].join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8;' }));
+  a.download = `audit_log_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  showToast('Audit log exported ✓', 'success');
+}
+
+async function alClear() {
+  if (!confirm('Clear all audit log data? This cannot be undone.')) return;
+  await fetch('/api/audit', { method:'DELETE', headers: adminHeaders() });
+  _alRawLog = [];
+  alRender();
+  showToast('Audit log cleared', 'success');
+}
 
 // ══ TECH ANIMATIONS ══════════════════════════════════════════════════════════
 let _dwTechInitDone = false;
