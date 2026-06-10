@@ -6263,10 +6263,8 @@ window.addEventListener('popstate', function(e){
 
   // ── Activate the target screen ──
   if(scr === 'landing'){
-    document.getElementById('dwLanding').classList.remove('dw-hidden');
-    document.getElementById('dw-canvas').style.display = 'block';
-    dwCanvasRunning = true;
-    document.querySelectorAll('.dw-tooltip').forEach(t=>t.classList.remove('open'));
+    // Use showLanding() so nav, admin button, and all UI elements are properly restored
+    showLanding();
   } else if(scr === 'skillmatrix'){
     const tab  = (e.state && e.state.tab)  || 'assess';
     const view = (e.state && e.state.view) || 'team';
