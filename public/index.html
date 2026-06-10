@@ -6068,6 +6068,21 @@ function showLanding(){
   document.querySelectorAll('.dw-tooltip').forEach(t=>t.classList.remove('open'));
   // restart canvas
   dwCanvasRunning=true;
+  // ── Restore nav and admin button (hidden when leaving landing) ──
+  const mcNav = document.getElementById('mcNav');
+  if(mcNav) mcNav.style.display = 'flex';
+  const adminFab = document.getElementById('dwAdminFab');
+  if(adminFab) adminFab.style.display = !!getAdminPwd() ? 'flex' : 'none';
+  // Restore admin btn in nav
+  const mcAdminBtn = document.getElementById('mcAdminBtn');
+  if(mcAdminBtn) mcAdminBtn.style.display = 'none';
+  // Close any open Browse dropdown
+  mcCloseBrowse();
+  // Clear search
+  const searchInput = document.getElementById('mcSearchInput');
+  if(searchInput) searchInput.value = '';
+  const searchResults = document.getElementById('mcSearchResults');
+  if(searchResults) { searchResults.innerHTML = ''; searchResults.classList.remove('open'); }
   // refresh live stats
   updateLandingStats();
   // tech animations
