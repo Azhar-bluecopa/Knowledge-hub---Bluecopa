@@ -596,6 +596,59 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dw-vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse 90% 80% at 50% 40%,transparent 30%,rgba(15,15,19,.7) 100%);}
 .dw-page{position:relative;z-index:10;width:100%;display:flex;flex-direction:column;align-items:center;padding:56px 48px 88px;}
 /* Landing admin button — top-right corner */
+/* ══ MASTERCLASS-STYLE NAV ════════════════════════════════════════════════ */
+.mc-nav{position:fixed;top:0;left:0;right:0;z-index:200;height:64px;display:flex;align-items:center;padding:0 24px;gap:0;background:#0f0f13;border-bottom:1px solid rgba(255,255,255,.08);}
+/* Logo zone */
+.mc-nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;margin-right:4px;}
+.mc-nav-logo img{height:28px;filter:brightness(1.1);}
+/* Browse button */
+.mc-browse-btn{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#fff;border-radius:7px;padding:9px 16px;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap;flex-shrink:0;margin-right:12px;position:relative;}
+.mc-browse-btn:hover{background:rgba(255,255,255,.14);}
+.mc-browse-chevron{font-size:10px;transition:transform .2s;display:inline-block;}
+.mc-browse-btn.open .mc-browse-chevron{transform:rotate(180deg);}
+/* Browse dropdown */
+.mc-dropdown{position:absolute;top:calc(100% + 8px);left:0;background:#1a1a22;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:8px;min-width:260px;box-shadow:0 16px 48px rgba(0,0,0,.5);display:none;z-index:300;animation:mcDropIn .18s ease;}
+.mc-browse-btn.open .mc-dropdown{display:block;}
+@keyframes mcDropIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+.mc-drop-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background .14s;color:rgba(255,255,255,.85);font-size:13.5px;font-weight:500;}
+.mc-drop-item:hover{background:rgba(255,255,255,.08);}
+.mc-drop-icon{font-size:20px;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mc-drop-text{display:flex;flex-direction:column;}
+.mc-drop-title{font-size:13.5px;font-weight:600;color:#fff;}
+.mc-drop-sub{font-size:11px;color:rgba(255,255,255,.4);margin-top:1px;}
+.mc-drop-badge{font-size:9px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;margin-left:auto;flex-shrink:0;font-weight:700;letter-spacing:.06em;}
+.mc-drop-live{background:rgba(74,222,128,.1);color:#4ade80;border:1px solid rgba(74,222,128,.2);}
+.mc-drop-soon{background:rgba(255,255,255,.05);color:rgba(255,255,255,.3);border:1px solid rgba(255,255,255,.1);}
+.mc-drop-divider{height:1px;background:rgba(255,255,255,.07);margin:6px 4px;}
+/* Search bar */
+.mc-search-wrap{flex:1;max-width:600px;position:relative;margin:0 8px;}
+.mc-search-input{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:10px 16px 10px 40px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:background .18s,border-color .18s;}
+.mc-search-input:focus{background:rgba(255,255,255,.11);border-color:rgba(232,201,122,.45);}
+.mc-search-input::placeholder{color:rgba(255,255,255,.38);}
+.mc-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.4);font-size:15px;pointer-events:none;}
+/* Search results dropdown */
+.mc-search-results{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#1a1a22;border:1px solid rgba(255,255,255,.12);border-radius:10px;box-shadow:0 16px 48px rgba(0,0,0,.5);display:none;z-index:300;max-height:400px;overflow-y:auto;}
+.mc-search-results.open{display:block;}
+.mc-sr-header{padding:8px 14px 6px;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.3);border-bottom:1px solid rgba(255,255,255,.07);}
+.mc-sr-item{display:flex;align-items:center;gap:11px;padding:10px 14px;cursor:pointer;transition:background .12s;border-bottom:1px solid rgba(255,255,255,.05);}
+.mc-sr-item:last-child{border-bottom:none;}
+.mc-sr-item:hover{background:rgba(255,255,255,.07);}
+.mc-sr-cat{font-size:9px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;flex-shrink:0;font-weight:700;letter-spacing:.06em;}
+.mc-sr-title{font-size:13.5px;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mc-sr-title mark{background:rgba(232,201,122,.25);color:#e8c97a;border-radius:2px;padding:0 2px;}
+.mc-sr-excerpt{font-size:11.5px;color:rgba(255,255,255,.38);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mc-sr-empty{padding:24px;text-align:center;color:rgba(255,255,255,.3);font-size:13px;}
+/* Right zone */
+.mc-nav-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0;}
+.mc-nav-btn{background:transparent;border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.7);border-radius:7px;padding:8px 14px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .18s;white-space:nowrap;}
+.mc-nav-btn:hover{background:rgba(255,255,255,.08);color:#fff;}
+.mc-nav-btn-primary{background:var(--accent,#e8c97a);color:#0f0f13;border:none;border-radius:7px;padding:8px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:700;cursor:pointer;transition:all .18s;white-space:nowrap;display:none;}
+.mc-nav-btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px);}
+/* Push landing page content down */
+#dwLanding .dw-page{padding-top:calc(56px + 64px)!important;}
+/* Admin FAB hidden — replaced by nav */
+.dw-admin-fab{display:none!important;}
+
 .dw-admin-fab{position:absolute;top:22px;right:28px;z-index:20;display:none;align-items:center;gap:7px;background:rgba(232,201,122,.08);border:1px solid rgba(232,201,122,.25);color:rgba(232,201,122,.75);border-radius:9px;padding:9px 20px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:all .2s;}
 .dw-admin-fab:hover{background:rgba(232,201,122,.16);border-color:rgba(232,201,122,.55);color:var(--accent);box-shadow:0 0 18px rgba(232,201,122,.12);transform:translateY(-1px);}
 .dw-admin-fab .dw-afab-dot{width:7px;height:7px;border-radius:50%;background:#f87171;border:1.5px solid #0f0f13;display:none;animation:pulse 2s infinite;}
@@ -1976,9 +2029,11 @@ function renderUserInfo() {
   const isAdm = !!getAdminPwd();
   document.getElementById('adminBadge').style.display = isAdm ? 'inline-flex' : 'none';
   document.getElementById('exportBtn').style.display  = isAdm ? 'inline-flex' : 'none';
-  // Show Admin button on landing page
-  const fab = document.getElementById('dwAdminFab');
-  if (fab) fab.style.display = isAdm ? 'flex' : 'none';
+  // Show Admin button in MC nav
+  const mcAdminBtn = document.getElementById('mcAdminBtn');
+  if (mcAdminBtn) mcAdminBtn.style.display = isAdm ? 'flex' : 'none';
+  const mcStartBtn = document.getElementById('mcGetStartedBtn');
+  if (mcStartBtn) mcStartBtn.style.display = 'flex';
 }
 function openIdentityModal() {
   const u = getUser();
@@ -5068,8 +5123,84 @@ function switchAdminTab(tab, btn, noHistory) {
 ═══════════════════════════════════════════ -->
 <canvas id="dw-canvas"></canvas>
 <div id="dwLanding">
-  <!-- Admin shortcut — top-right, visible only when logged in as admin -->
-  <button class="dw-admin-fab" id="dwAdminFab" onclick="openAdminPanel()">
+
+  <!-- ── MasterClass-style Navigation Bar ── -->
+  <nav class="mc-nav" id="mcNav">
+    <!-- Logo -->
+    <a class="mc-nav-logo" onclick="void(0)">
+      <img src="/bluecopa-logo.png" alt="Bluecopa">
+    </a>
+
+    <!-- Browse dropdown -->
+    <div class="mc-browse-btn" id="mcBrowseBtn" onclick="mcToggleBrowse(event)">
+      Browse <span class="mc-browse-chevron">▼</span>
+      <div class="mc-dropdown" id="mcDropdown" onclick="event.stopPropagation()">
+        <div class="mc-drop-item" onclick="mcGoTo('knowledge');mcCloseBrowse()">
+          <div class="mc-drop-icon" style="background:rgba(0,200,204,.1);">📚</div>
+          <div class="mc-drop-text">
+            <div class="mc-drop-title">Knowledge Articles</div>
+            <div class="mc-drop-sub">Guides, how-tos & best practices</div>
+          </div>
+          <span class="mc-drop-badge mc-drop-live">Live</span>
+        </div>
+        <div class="mc-drop-item" onclick="mcGoTo('skillmatrix');mcCloseBrowse()">
+          <div class="mc-drop-icon" style="background:rgba(129,140,248,.1);">🧠</div>
+          <div class="mc-drop-text">
+            <div class="mc-drop-title">Skill Matrix</div>
+            <div class="mc-drop-sub">Track & grow team skills</div>
+          </div>
+          <span class="mc-drop-badge mc-drop-live">Live</span>
+        </div>
+        <div class="mc-drop-divider"></div>
+        <div class="mc-drop-item" onclick="dwComingSoon('KPIs');mcCloseBrowse()">
+          <div class="mc-drop-icon" style="background:rgba(249,167,79,.1);">📊</div>
+          <div class="mc-drop-text">
+            <div class="mc-drop-title">KPIs</div>
+            <div class="mc-drop-sub">Live delivery metrics</div>
+          </div>
+          <span class="mc-drop-badge mc-drop-soon">Soon</span>
+        </div>
+        <div class="mc-drop-item" onclick="dwComingSoon('Delivery Journey');mcCloseBrowse()">
+          <div class="mc-drop-icon" style="background:rgba(52,211,153,.1);">🏛️</div>
+          <div class="mc-drop-text">
+            <div class="mc-drop-title">The Delivery Journey</div>
+            <div class="mc-drop-sub">Past implementation stories</div>
+          </div>
+          <span class="mc-drop-badge mc-drop-soon">Soon</span>
+        </div>
+        <div class="mc-drop-divider"></div>
+        <div class="mc-drop-item" onclick="mcGoTo('puzzle');mcCloseBrowse()">
+          <div class="mc-drop-icon" style="background:rgba(232,122,122,.1);">🧩</div>
+          <div class="mc-drop-text">
+            <div class="mc-drop-title">Process Puzzle</div>
+            <div class="mc-drop-sub">Gamified weekly challenges</div>
+          </div>
+          <span class="mc-drop-badge mc-drop-live">Live</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search bar -->
+    <div class="mc-search-wrap">
+      <span class="mc-search-icon">🔍</span>
+      <input class="mc-search-input" id="mcSearchInput" type="text"
+        placeholder="What do you want to find today?"
+        oninput="mcHandleSearch(this.value)"
+        onkeydown="if(event.key==='Escape'){mcClearSearch();}"
+        autocomplete="off">
+      <div class="mc-search-results" id="mcSearchResults"></div>
+    </div>
+
+    <!-- Right actions -->
+    <div class="mc-nav-right">
+      <button class="mc-nav-btn" onclick="hideLanding();showLanding()">Home</button>
+      <button class="mc-nav-btn" id="mcAdminBtn" onclick="openAdminPanel()" style="display:none;">⚙ Admin</button>
+      <button class="mc-nav-btn-primary" id="mcGetStartedBtn" onclick="mcGoTo('knowledge')">Explore Knowledge</button>
+    </div>
+  </nav>
+
+  <!-- Admin shortcut kept for JS compat -->
+  <button class="dw-admin-fab" id="dwAdminFab" onclick="openAdminPanel()" style="display:none!important;">
     ⚙ Admin Panel
     <span class="dw-afab-dot" id="dwAdminFabDot"></span>
   </button>
@@ -5998,6 +6129,9 @@ function hideLanding(){
   document.getElementById('dw-canvas').style.display='none';
   dwCanvasRunning=false;
   dwHideTechEffects();
+  // Hide nav when leaving landing
+  const nav=document.getElementById('mcNav');
+  if(nav) nav.style.display='none';
 }
 
 function dwGoKnowledge(){
@@ -6407,6 +6541,120 @@ function dwHideTechEffects() {
   const s = document.getElementById('dwSysStatus');
   if (s) s.style.display = 'none';
 }
+
+// ══ MASTERCLASS NAV ══════════════════════════════════════════════════════════
+function mcToggleBrowse(e) {
+  e.stopPropagation();
+  const btn = document.getElementById('mcBrowseBtn');
+  btn.classList.toggle('open');
+}
+function mcCloseBrowse() {
+  document.getElementById('mcBrowseBtn').classList.remove('open');
+}
+// Close dropdown when clicking outside
+document.addEventListener('click', () => mcCloseBrowse());
+
+function mcGoTo(section) {
+  hideLanding();
+  if (section === 'knowledge') {
+    history.pushState({screen:'articles'}, '');
+    document.getElementById('pageTitle').textContent = 'All Articles';
+    document.getElementById('pageMeta').textContent = "Browse and manage your team's knowledge base";
+    document.querySelector('.main').style.display = '';
+    filterCategory('All', document.getElementById('cat-all'));
+  } else if (section === 'skillmatrix') {
+    dwGoSkillMatrix();
+  } else if (section === 'puzzle') {
+    dwGoProcessPuzzle();
+  }
+}
+
+// Show/hide nav with landing page
+function mcNavUpdate() {
+  const nav = document.getElementById('mcNav');
+  const landing = document.getElementById('dwLanding');
+  if (!nav || !landing) return;
+  nav.style.display = landing.classList.contains('dw-hidden') ? 'none' : 'flex';
+  // Show admin button & primary btn if admin
+  const isAdm = !!getAdminPwd();
+  const adminBtn = document.getElementById('mcAdminBtn');
+  const startBtn = document.getElementById('mcGetStartedBtn');
+  if (adminBtn) adminBtn.style.display = isAdm ? 'block' : 'none';
+  if (startBtn) startBtn.style.display = 'flex';
+}
+
+// Search functionality
+let _mcSearchTimer = null;
+function mcHandleSearch(val) {
+  clearTimeout(_mcSearchTimer);
+  const results = document.getElementById('mcSearchResults');
+  if (!val.trim()) { results.classList.remove('open'); results.innerHTML = ''; return; }
+  _mcSearchTimer = setTimeout(() => mcDoSearch(val.trim()), 200);
+}
+
+function mcDoSearch(q) {
+  const results = document.getElementById('mcSearchResults');
+  if (!allArticles || !allArticles.length) {
+    results.innerHTML = '<div class="mc-sr-empty">No articles loaded yet.</div>';
+    results.classList.add('open');
+    return;
+  }
+  const lower = q.toLowerCase();
+  const matches = allArticles.filter(a =>
+    (a.title||'').toLowerCase().includes(lower) ||
+    (a.content||'').toLowerCase().includes(lower) ||
+    (a.excerpt||'').toLowerCase().includes(lower) ||
+    (a.category||'').toLowerCase().includes(lower)
+  ).slice(0, 8);
+
+  if (!matches.length) {
+    results.innerHTML = `<div class="mc-sr-empty">No results for "<strong>${q}</strong>"</div>`;
+    results.classList.add('open');
+    return;
+  }
+
+  const catColors = {'Platform':'#00c8cc','Product':'#a78bfa','Onboarding':'#34d399','Finance & FP&A':'#f59e0b','Engineering':'#60a5fa'};
+  const highlight = (text, q) => {
+    if (!text) return '';
+    const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+    return text.replace(re, '<mark>$1</mark>');
+  };
+
+  results.innerHTML = `<div class="mc-sr-header">Results for "${q}"</div>` +
+    matches.map(a => {
+      const col = catColors[a.category] || '#e8c97a';
+      const excerpt = (a.excerpt || a.content || '').replace(/<[^>]+>/g,'').slice(0,80) + '…';
+      return `<div class="mc-sr-item" onclick="mcOpenArticle(${a.id})">
+        <span class="mc-sr-cat" style="background:${col}20;color:${col};border:1px solid ${col}40;">${a.category||'Article'}</span>
+        <div style="flex:1;min-width:0;">
+          <div class="mc-sr-title">${highlight(a.title, q)}</div>
+          <div class="mc-sr-excerpt">${excerpt}</div>
+        </div>
+      </div>`;
+    }).join('');
+  results.classList.add('open');
+}
+
+function mcOpenArticle(id) {
+  mcClearSearch();
+  hideLanding();
+  document.querySelector('.main').style.display = '';
+  history.pushState({screen:'articles'}, '');
+  filterCategory('All', document.getElementById('cat-all'));
+  setTimeout(() => openArticle(id), 300);
+}
+
+function mcClearSearch() {
+  document.getElementById('mcSearchInput').value = '';
+  const r = document.getElementById('mcSearchResults');
+  r.classList.remove('open');
+  r.innerHTML = '';
+}
+
+// Close search on outside click
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.mc-search-wrap')) mcClearSearch();
+});
 
 // ══ ABOUT VIDEO PLAYER ═══════════════════════════════════════════════════════
 const DW_AV_SLIDES = 7;
