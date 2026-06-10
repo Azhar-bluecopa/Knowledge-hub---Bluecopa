@@ -597,12 +597,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dw-page{position:relative;z-index:10;width:100%;display:flex;flex-direction:column;align-items:center;padding:56px 48px 88px;}
 /* Landing admin button — top-right corner */
 /* ══ MASTERCLASS-STYLE NAV ════════════════════════════════════════════════ */
-.mc-nav{position:fixed;top:0;left:0;right:0;z-index:200;height:64px;display:flex;align-items:center;padding:0 24px;gap:0;background:#0f0f13;border-bottom:1px solid rgba(255,255,255,.08);}
+.mc-nav{position:relative;z-index:20;height:64px;display:flex;align-items:center;padding:0 32px;gap:0;background:transparent;border-bottom:1px solid rgba(255,255,255,.06);width:100%;}
 /* Logo zone */
 .mc-nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;margin-right:4px;}
 .mc-nav-logo img{height:28px;filter:brightness(1.1);}
 /* Browse button */
-.mc-browse-btn{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#fff;border-radius:7px;padding:9px 16px;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap;flex-shrink:0;margin-right:12px;position:relative;}
+.mc-browse-btn{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:8px;padding:9px 16px;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap;flex-shrink:0;margin-right:12px;position:relative;}
 .mc-browse-btn:hover{background:rgba(255,255,255,.14);}
 .mc-browse-chevron{font-size:10px;transition:transform .2s;display:inline-block;}
 .mc-browse-btn.open .mc-browse-chevron{transform:rotate(180deg);}
@@ -622,7 +622,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .mc-drop-divider{height:1px;background:rgba(255,255,255,.07);margin:6px 4px;}
 /* Search bar */
 .mc-search-wrap{flex:1;max-width:600px;position:relative;margin:0 8px;}
-.mc-search-input{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:10px 16px 10px 40px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:background .18s,border-color .18s;}
+.mc-search-input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 16px 10px 40px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:background .18s,border-color .18s;}
 .mc-search-input:focus{background:rgba(255,255,255,.11);border-color:rgba(232,201,122,.45);}
 .mc-search-input::placeholder{color:rgba(255,255,255,.38);}
 .mc-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.4);font-size:15px;pointer-events:none;}
@@ -640,12 +640,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .mc-sr-empty{padding:24px;text-align:center;color:rgba(255,255,255,.3);font-size:13px;}
 /* Right zone */
 .mc-nav-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0;}
-.mc-nav-btn{background:transparent;border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.7);border-radius:7px;padding:8px 14px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .18s;white-space:nowrap;}
+.mc-nav-btn{background:transparent;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);border-radius:7px;padding:8px 14px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .18s;white-space:nowrap;}
 .mc-nav-btn:hover{background:rgba(255,255,255,.08);color:#fff;}
 .mc-nav-btn-primary{background:var(--accent,#e8c97a);color:#0f0f13;border:none;border-radius:7px;padding:8px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:700;cursor:pointer;transition:all .18s;white-space:nowrap;display:none;}
 .mc-nav-btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px);}
 /* Push landing page content down */
-#dwLanding .dw-page{padding-top:calc(56px + 64px)!important;}
+#dwLanding .dw-page{padding-top:24px!important;}
 /* Admin FAB hidden — replaced by nav */
 .dw-admin-fab{display:none!important;}
 
@@ -5124,63 +5124,43 @@ function switchAdminTab(tab, btn, noHistory) {
 <canvas id="dw-canvas"></canvas>
 <div id="dwLanding">
 
-  <!-- ── MasterClass-style Navigation Bar ── -->
+  <!-- ── Nav: blended into landing page ── -->
   <nav class="mc-nav" id="mcNav">
-    <!-- Logo -->
     <a class="mc-nav-logo" onclick="void(0)">
       <img src="/bluecopa-logo.png" alt="Bluecopa">
     </a>
-
-    <!-- Browse dropdown -->
     <div class="mc-browse-btn" id="mcBrowseBtn" onclick="mcToggleBrowse(event)">
       Browse <span class="mc-browse-chevron">▼</span>
       <div class="mc-dropdown" id="mcDropdown" onclick="event.stopPropagation()">
         <div class="mc-drop-item" onclick="mcGoTo('knowledge');mcCloseBrowse()">
           <div class="mc-drop-icon" style="background:rgba(0,200,204,.1);">📚</div>
-          <div class="mc-drop-text">
-            <div class="mc-drop-title">Knowledge Articles</div>
-            <div class="mc-drop-sub">Guides, how-tos & best practices</div>
-          </div>
+          <div class="mc-drop-text"><div class="mc-drop-title">Knowledge Articles</div><div class="mc-drop-sub">Guides, how-tos & best practices</div></div>
           <span class="mc-drop-badge mc-drop-live">Live</span>
         </div>
         <div class="mc-drop-item" onclick="mcGoTo('skillmatrix');mcCloseBrowse()">
           <div class="mc-drop-icon" style="background:rgba(129,140,248,.1);">🧠</div>
-          <div class="mc-drop-text">
-            <div class="mc-drop-title">Skill Matrix</div>
-            <div class="mc-drop-sub">Track & grow team skills</div>
-          </div>
+          <div class="mc-drop-text"><div class="mc-drop-title">Skill Matrix</div><div class="mc-drop-sub">Track & grow team skills</div></div>
           <span class="mc-drop-badge mc-drop-live">Live</span>
         </div>
         <div class="mc-drop-divider"></div>
         <div class="mc-drop-item" onclick="dwComingSoon('KPIs');mcCloseBrowse()">
           <div class="mc-drop-icon" style="background:rgba(249,167,79,.1);">📊</div>
-          <div class="mc-drop-text">
-            <div class="mc-drop-title">KPIs</div>
-            <div class="mc-drop-sub">Live delivery metrics</div>
-          </div>
+          <div class="mc-drop-text"><div class="mc-drop-title">KPIs</div><div class="mc-drop-sub">Live delivery metrics</div></div>
           <span class="mc-drop-badge mc-drop-soon">Soon</span>
         </div>
         <div class="mc-drop-item" onclick="dwComingSoon('Delivery Journey');mcCloseBrowse()">
           <div class="mc-drop-icon" style="background:rgba(52,211,153,.1);">🏛️</div>
-          <div class="mc-drop-text">
-            <div class="mc-drop-title">The Delivery Journey</div>
-            <div class="mc-drop-sub">Past implementation stories</div>
-          </div>
+          <div class="mc-drop-text"><div class="mc-drop-title">The Delivery Journey</div><div class="mc-drop-sub">Past implementation stories</div></div>
           <span class="mc-drop-badge mc-drop-soon">Soon</span>
         </div>
         <div class="mc-drop-divider"></div>
         <div class="mc-drop-item" onclick="mcGoTo('puzzle');mcCloseBrowse()">
           <div class="mc-drop-icon" style="background:rgba(232,122,122,.1);">🧩</div>
-          <div class="mc-drop-text">
-            <div class="mc-drop-title">Process Puzzle</div>
-            <div class="mc-drop-sub">Gamified weekly challenges</div>
-          </div>
+          <div class="mc-drop-text"><div class="mc-drop-title">Process Puzzle</div><div class="mc-drop-sub">Gamified weekly challenges</div></div>
           <span class="mc-drop-badge mc-drop-live">Live</span>
         </div>
       </div>
     </div>
-
-    <!-- Search bar -->
     <div class="mc-search-wrap">
       <span class="mc-search-icon">🔍</span>
       <input class="mc-search-input" id="mcSearchInput" type="text"
@@ -5190,31 +5170,24 @@ function switchAdminTab(tab, btn, noHistory) {
         autocomplete="off">
       <div class="mc-search-results" id="mcSearchResults"></div>
     </div>
-
-    <!-- Right actions -->
     <div class="mc-nav-right">
-      <button class="mc-nav-btn" onclick="hideLanding();showLanding()">Home</button>
       <button class="mc-nav-btn" id="mcAdminBtn" onclick="openAdminPanel()" style="display:none;">⚙ Admin</button>
       <button class="mc-nav-btn-primary" id="mcGetStartedBtn" onclick="mcGoTo('knowledge')">Explore Knowledge</button>
     </div>
   </nav>
 
-  <!-- Admin shortcut kept for JS compat -->
+  <!-- Admin shortcut for JS compat -->
   <button class="dw-admin-fab" id="dwAdminFab" onclick="openAdminPanel()" style="display:none!important;">
-    ⚙ Admin Panel
-    <span class="dw-afab-dot" id="dwAdminFabDot"></span>
+    ⚙ Admin Panel<span class="dw-afab-dot" id="dwAdminFabDot"></span>
   </button>
 
   <!-- Tech character rain layer -->
   <div class="dw-tech-layer" id="dwTechLayer"></div>
-  <!-- Page scan line -->
   <div class="dw-scan-line" id="dwScanLine"></div>
-  <!-- System status -->
   <div class="dw-sys-status" id="dwSysStatus">
     <span class="dw-sys-dot"></span>
     <span>SYS ONLINE · v2.0.26 · DELIVERY WIKIPEDIA</span>
   </div>
-
   <div class="dw-orbs">
     <div class="dw-orb dw-orb1"></div>
     <div class="dw-orb dw-orb2"></div>
@@ -5226,7 +5199,7 @@ function switchAdminTab(tab, btn, noHistory) {
   <div class="dw-grain"></div>
   <div class="dw-sweep"></div>
 
-  <div class="dw-page">
+<div class="dw-page">
 
     <!-- Brand -->
     <div class="dw-brand-wrap">
