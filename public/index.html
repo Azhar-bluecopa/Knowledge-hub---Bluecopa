@@ -7179,6 +7179,7 @@ async function liAddUser() {
       showToast(`✅ ${name} granted Leadership Insights access`);
       liAdmLoad();
       _liAccess = null; // reset cache
+      liUpdateNavVisibility(); // immediately show in Browse dropdown
     } else {
       showToast('Failed: ' + (d.error || 'Unknown error'));
     }
@@ -7194,7 +7195,7 @@ async function liAdmRemove(userName) {
       body: JSON.stringify({ userName })
     });
     const d = await r.json();
-    if (d.success) { showToast(`Access revoked for ${userName}`); liAdmLoad(); _liAccess = null; }
+    if (d.success) { showToast(`Access revoked for ${userName}`); liAdmLoad(); _liAccess = null; liUpdateNavVisibility(); }
   } catch(e) { showToast('Failed'); }
 }
 
