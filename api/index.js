@@ -9,6 +9,7 @@ app.use(express.json());
 
 // ── Persistent store — MongoDB (primary) with data.json fallback ──────────────
 let mongoCol = null;
+let auditCol = null; // Separate collection for audit logs — avoids in-memory race conditions
 let db = { articles: [], categories: [], settings: { siteTitle: 'KnowledgeHub', restrictions: { whoCanPost: 'admins_only' } }, nextId: 1 };
 
 function loadFileDB() {
@@ -44,7 +45,8 @@ function getDbInitPromise() {
           const { MongoClient } = require('mongodb');
           const client = new MongoClient(uri, { serverSelectionTimeoutMS: 20000, connectTimeoutMS: 20000 });
           await client.connect();
-          mongoCol = client.db('knowledgehub').collection('store');
+          mongoCol  = client.db('knowledgehub').collection('store');
+          auditCol  = client.db('knowledgehub').collection('audit_log'); // separate collection
           const doc = await mongoCol.findOne({ _id: 'main' });
           if (doc) {
             const { _id, ...data } = doc;
@@ -1046,42 +1048,74 @@ app.get('/api/puzzle/analytics', (req, res) => {
 });
 
 // ══ AUDIT LOG ════════════════════════════════════════════════════════════════
-const AUDIT_MAX = 50000; // keep last 50k events (~6 months for active team)
+// Uses a SEPARATE MongoDB collection (audit_log) — atomic writes, no in-memory race conditions
 
-// POST /api/audit — record a tracking event (no auth, anyone can log)
+// POST /api/audit — record a tracking event (no auth required)
 app.post('/api/audit', async (req, res) => {
-  if (!db.auditLog) db.auditLog = [];
-  const { sessionId, userId, userName, userInitials, action, page, pageTitle, duration, metadata } = req.body;
+  const { sessionId, userId, userName, userInitials, action, page, pageTitle, duration } = req.body;
   if (!sessionId || !action) return res.status(400).json({ error: 'Missing fields' });
   const entry = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-    sessionId, userId: userId || 'Anonymous', userName: userName || 'Anonymous',
-    userInitials: userInitials || '?', action, page, pageTitle,
-    duration: duration || 0, metadata: metadata || {},
+    sessionId,
+    userId:       userId       || 'Anonymous',
+    userName:     userName     || 'Anonymous',
+    userInitials: userInitials || '?',
+    action, page: page || '', pageTitle: pageTitle || '',
+    duration: duration || 0,
     timestamp: new Date().toISOString()
   };
-  db.auditLog.push(entry);
-  if (db.auditLog.length > AUDIT_MAX) db.auditLog = db.auditLog.slice(-AUDIT_MAX);
-  await saveDB(db);
-  res.json({ success: true });
+  try {
+    if (auditCol) {
+      // Write directly to separate MongoDB collection — persists immediately
+      await auditCol.insertOne(entry);
+    } else {
+      // Fallback: in-memory (dev only)
+      if (!db.auditLog) db.auditLog = [];
+      db.auditLog.push(entry);
+      if (db.auditLog.length > 50000) db.auditLog = db.auditLog.slice(-50000);
+    }
+    res.json({ success: true });
+  } catch(e) {
+    res.json({ success: false, error: e.message });
+  }
 });
 
 // GET /api/audit — retrieve audit log (admin only)
-app.get('/api/audit', (req, res) => {
+app.get('/api/audit', async (req, res) => {
   if (!isAdmin(req)) return res.status(403).json({ error: 'Admin only' });
-  if (!db.auditLog) db.auditLog = [];
-  const days = parseInt(req.query.days) || 30;
-  const cutoff = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
-  const filtered = db.auditLog.filter(e => e.timestamp >= cutoff);
-  res.json({ log: filtered, total: db.auditLog.length });
+  const days  = parseInt(req.query.days) || 30;
+  const cutoff = new Date(Date.now() - days * 24 * 3600 * 1000);
+  try {
+    if (auditCol) {
+      // Query directly from MongoDB — always fresh, no caching issues
+      const [log, total] = await Promise.all([
+        auditCol.find({ timestamp: { $gte: cutoff.toISOString() } })
+          .sort({ timestamp: -1 }).limit(10000).toArray(),
+        auditCol.countDocuments()
+      ]);
+      return res.json({ log, total });
+    }
+    // Fallback: in-memory
+    const filtered = (db.auditLog || []).filter(e => e.timestamp >= cutoff.toISOString());
+    res.json({ log: filtered.reverse(), total: (db.auditLog || []).length });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // DELETE /api/audit — clear audit log (admin only)
 app.delete('/api/audit', async (req, res) => {
   if (!isAdmin(req)) return res.status(403).json({ error: 'Admin only' });
-  db.auditLog = [];
-  await saveDB(db);
-  res.json({ success: true });
+  try {
+    if (auditCol) {
+      await auditCol.deleteMany({});
+    } else {
+      db.auditLog = [];
+    }
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 module.exports = app;
