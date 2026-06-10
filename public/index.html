@@ -597,16 +597,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dw-page{position:relative;z-index:10;width:100%;display:flex;flex-direction:column;align-items:center;padding:56px 48px 88px;}
 /* Landing admin button — top-right corner */
 /* ══ MASTERCLASS-STYLE NAV ════════════════════════════════════════════════ */
-/* Row container: nav on left, logo on right */
-.dw-brand-nav-row{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:1200px;margin-bottom:36px;gap:32px;}
-.mc-nav{position:relative;z-index:20;height:56px;display:flex;align-items:center;padding:0;gap:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;flex:1;backdrop-filter:blur(12px);}
-/* Brand wrap beside nav */
-.dw-brand-nav-row .dw-brand-wrap{margin-bottom:0;flex-shrink:0;}
+.mc-nav{position:relative;z-index:20;height:52px;display:flex;align-items:center;padding:0;gap:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;width:auto;align-self:flex-start;margin-bottom:32px;backdrop-filter:blur(12px);}
 /* Logo zone */
-.mc-nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;margin-right:4px;padding:0 16px;}
+.mc-nav-logo{display:none;}
 .mc-nav-logo img{height:42px;filter:brightness(1.1);}
 /* Browse button */
-.mc-browse-btn{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:8px;padding:9px 16px;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap;flex-shrink:0;margin-right:12px;position:relative;}
+.mc-browse-btn{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:8px;padding:9px 16px;margin-left:12px;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap;flex-shrink:0;margin-right:12px;position:relative;}
 .mc-browse-btn:hover{background:rgba(255,255,255,.14);}
 .mc-browse-chevron{font-size:10px;transition:transform .2s;display:inline-block;}
 .mc-browse-btn.open .mc-browse-chevron{transform:rotate(180deg);}
@@ -625,7 +621,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .mc-drop-soon{background:rgba(255,255,255,.05);color:rgba(255,255,255,.3);border:1px solid rgba(255,255,255,.1);}
 .mc-drop-divider{height:1px;background:rgba(255,255,255,.07);margin:6px 4px;}
 /* Search bar — smaller */
-.mc-search-wrap{flex:1;max-width:380px;position:relative;margin:0 8px;}
+.mc-search-wrap{flex:none;width:280px;position:relative;margin:0 8px 0 4px;}
 .mc-search-input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 16px 10px 40px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:background .18s,border-color .18s;}
 .mc-search-input:focus{background:rgba(255,255,255,.11);border-color:rgba(232,201,122,.45);}
 .mc-search-input::placeholder{color:rgba(255,255,255,.38);}
@@ -5157,14 +5153,9 @@ function switchAdminTab(tab, btn, noHistory) {
 
 <div class="dw-page">
 
-    <!-- Brand + Nav side by side -->
-    <div class="dw-brand-nav-row">
-      <!-- Left: Nav (Browse + Search) -->
+    <!-- Nav: compact left-aligned bar -->
       <!-- ── Nav: blended into landing page ── -->
   <nav class="mc-nav" id="mcNav">
-    <a class="mc-nav-logo" onclick="void(0)">
-      <img src="/bluecopa-logo.png" alt="Bluecopa">
-    </a>
     <div class="mc-browse-btn" id="mcBrowseBtn" onclick="mcToggleBrowse(event)">
       Browse <span class="mc-browse-chevron">▼</span>
       <div class="mc-dropdown" id="mcDropdown" onclick="event.stopPropagation()">
@@ -5211,19 +5202,18 @@ function switchAdminTab(tab, btn, noHistory) {
     </div>
   </nav>
 
-      <!-- Right: Bluecopa logo ring -->
-      <div class="dw-brand-wrap">
-        <div class="dw-brand-ring">
-          <img src="/bluecopa-logo.png" alt="Bluecopa" class="dw-brand-logo">
-        </div>
-        <div class="dw-brand-name">Bluecopa</div>
-        <div class="dw-brand-tagline-row">
-          <div class="dw-brand-sep"></div>
-          <div class="dw-brand-tagline">Delivery Team's Go-To Place</div>
-          <div class="dw-brand-sep r"></div>
-        </div>
+    <!-- Brand: centered logo ring -->
+    <div class="dw-brand-wrap">
+      <div class="dw-brand-ring">
+        <img src="/bluecopa-logo.png" alt="Bluecopa" class="dw-brand-logo">
       </div>
-    </div><!-- /dw-brand-nav-row -->
+      <div class="dw-brand-name">Bluecopa</div>
+      <div class="dw-brand-tagline-row">
+        <div class="dw-brand-sep"></div>
+        <div class="dw-brand-tagline">Delivery Team's Go-To Place</div>
+        <div class="dw-brand-sep r"></div>
+      </div>
+    </div>
 
     <!-- Hero -->
     <div class="dw-hero">
