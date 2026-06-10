@@ -649,7 +649,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* Push landing page content down */
 #dwLanding .dw-page{padding-top:20px!important;}
 /* Admin FAB — restored as separate top-right button */
-.dw-admin-fab{position:absolute;top:20px;right:24px;z-index:20;display:none;align-items:center;gap:7px;background:rgba(232,201,122,.08);border:1px solid rgba(232,201,122,.25);color:rgba(232,201,122,.75);border-radius:9px;padding:9px 20px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:all .2s;}
+.dw-admin-fab{position:absolute;top:20px;right:24px;z-index:20;display:flex;align-items:center;gap:7px;background:rgba(232,201,122,.08);border:1px solid rgba(232,201,122,.25);color:rgba(232,201,122,.75);border-radius:9px;padding:9px 20px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:all .2s;}
 .dw-admin-fab:hover{background:rgba(232,201,122,.16);border-color:rgba(232,201,122,.55);color:var(--accent,#e8c97a);transform:translateY(-1px);}
 .dw-admin-fab .dw-afab-dot{width:7px;height:7px;border-radius:50%;background:#f87171;border:1.5px solid #0f0f13;display:none;animation:pulse 2s infinite;}
 .dw-admin-fab:hover{background:rgba(232,201,122,.16);border-color:rgba(232,201,122,.55);color:var(--accent);box-shadow:0 0 18px rgba(232,201,122,.12);transform:translateY(-1px);}
@@ -2085,9 +2085,14 @@ function renderUserInfo() {
   const isAdm = !!getAdminPwd();
   document.getElementById('adminBadge').style.display = isAdm ? 'inline-flex' : 'none';
   document.getElementById('exportBtn').style.display  = isAdm ? 'inline-flex' : 'none';
-  // Restore separate Admin FAB button (top-right)
+  // Admin FAB always visible — clicking prompts for password if not logged in
   const fab = document.getElementById('dwAdminFab');
-  if (fab) fab.style.display = isAdm ? 'flex' : 'none';
+  if (fab) {
+    fab.style.display = 'flex';
+    // Visual distinction: gold when logged in, subtle when not
+    fab.style.opacity = isAdm ? '1' : '0.55';
+    fab.title = isAdm ? 'Admin Panel' : 'Login as Admin';
+  }
   // Also hide/show nav admin btn
   const mcAdminBtn = document.getElementById('mcAdminBtn');
   if (mcAdminBtn) mcAdminBtn.style.display = 'none';
@@ -5187,7 +5192,7 @@ function switchAdminTab(tab, btn, noHistory) {
 
 
   <!-- Admin shortcut for JS compat -->
-  <button class="dw-admin-fab" id="dwAdminFab" onclick="openAdminPanel()" style="display:none!important;">
+  <button class="dw-admin-fab" id="dwAdminFab" onclick="openAdminPanel()">
     ⚙ Admin Panel<span class="dw-afab-dot" id="dwAdminFabDot"></span>
   </button>
 
@@ -6136,7 +6141,7 @@ function showLanding(){
   const mcNav = document.getElementById('mcNav');
   if(mcNav) mcNav.style.display = 'flex';
   const adminFab = document.getElementById('dwAdminFab');
-  if(adminFab) adminFab.style.display = !!getAdminPwd() ? 'flex' : 'none';
+  if(adminFab) { adminFab.style.display='flex'; adminFab.style.opacity=!!getAdminPwd()?'1':'0.55'; }
   // Restore admin btn in nav
   const mcAdminBtn = document.getElementById('mcAdminBtn');
   if(mcAdminBtn) mcAdminBtn.style.display = 'none';
