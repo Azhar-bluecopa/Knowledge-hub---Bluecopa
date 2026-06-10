@@ -597,12 +597,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dw-page{position:relative;z-index:10;width:100%;display:flex;flex-direction:column;align-items:center;padding:56px 48px 88px;}
 /* Landing admin button — top-right corner */
 /* ══ MASTERCLASS-STYLE NAV ════════════════════════════════════════════════ */
-.mc-nav{position:relative;z-index:20;height:52px;display:flex;align-items:center;padding:0;gap:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;width:auto;align-self:flex-start;margin-bottom:32px;backdrop-filter:blur(12px);}
+.dw-header-row{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:1200px;margin-bottom:32px;gap:40px;}
+.dw-header-row .dw-brand-wrap{margin-bottom:0;flex-shrink:0;}
+.mc-nav{position:relative;z-index:20;height:52px;display:flex;align-items:center;padding:0;gap:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;flex:0 0 auto;width:auto;backdrop-filter:blur(12px);}
 /* Logo zone */
-.mc-nav-logo{display:none;}
-.mc-nav-logo img{height:42px;filter:brightness(1.1);}
+.mc-nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none;flex-shrink:0;padding:0 14px;}
+.mc-nav-logo img{height:28px;filter:brightness(1.1);}
 /* Browse button */
-.mc-browse-btn{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:8px;padding:9px 16px;margin-left:12px;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap;flex-shrink:0;margin-right:12px;position:relative;}
+.mc-browse-btn{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:8px;padding:9px 16px;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap;flex-shrink:0;margin-right:12px;position:relative;}
 .mc-browse-btn:hover{background:rgba(255,255,255,.14);}
 .mc-browse-chevron{font-size:10px;transition:transform .2s;display:inline-block;}
 .mc-browse-btn.open .mc-browse-chevron{transform:rotate(180deg);}
@@ -645,7 +647,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .mc-nav-btn-primary{background:var(--accent,#e8c97a);color:#0f0f13;border:none;border-radius:7px;padding:8px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:700;cursor:pointer;transition:all .18s;white-space:nowrap;display:none;}
 .mc-nav-btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px);}
 /* Push landing page content down */
-#dwLanding .dw-page{padding-top:52px!important;}
+#dwLanding .dw-page{padding-top:32px!important;}
 /* Admin FAB — restored as separate top-right button */
 .dw-admin-fab{position:absolute;top:20px;right:24px;z-index:20;display:none;align-items:center;gap:7px;background:rgba(232,201,122,.08);border:1px solid rgba(232,201,122,.25);color:rgba(232,201,122,.75);border-radius:9px;padding:9px 20px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:all .2s;}
 .dw-admin-fab:hover{background:rgba(232,201,122,.16);border-color:rgba(232,201,122,.55);color:var(--accent,#e8c97a);transform:translateY(-1px);}
@@ -713,7 +715,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* Footer */
 .dw-card-footer{margin-top:22px;display:flex;align-items:center;justify-content:space-between;}
 .dw-card-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(var(--cr),.4),rgba(var(--cr),.08),transparent);}
-.dw-card-arrow{width:28px;height:28px;border-radius:50%;border:1px solid rgba(var(--cr),.25);display:flex;align-items:center;justify-content:center;font-size:12px;color:rgba(var(--cr),1);background:rgba(var(--cr),.08);opacity:0;transform:translateX(-8px);transition:all .28s cubic-bezier(.16,1,.3,1);flex-shrink:0;margin-left:12px;}
+.dw-card-arrow{width:28px;height:28px;border-radius:50%;border:1px solid rgba(var(--cr),.25);display:flex;align-items:center;justify-content:center;font-size:12px;color:rgba(var(--cr),1);background:rgba(var(--cr),.08);opacity:0;transform:translateX(-8px);transition:all .28s cubic-bezier(.16,1,.3,1);flex-shrink:0;}
 .dw-card:hover .dw-card-arrow{opacity:1;transform:translateX(0);}
 /* Info tooltip */
 .dw-info-btn{position:absolute;top:-10px;right:-10px;width:22px;height:22px;border-radius:50%;background:rgba(14,14,24,.9);border:1px solid rgba(var(--cr),.35);color:rgba(var(--cr),.8);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:20;transition:all .18s;font-family:'DM Mono',monospace;line-height:1;}
@@ -5153,9 +5155,14 @@ function switchAdminTab(tab, btn, noHistory) {
 
 <div class="dw-page">
 
-    <!-- Nav: compact left-aligned bar -->
+    <!-- Header row: nav left + logo center -->
+    <div class="dw-header-row">
+      <!-- Left: logo + Browse + Search -->
       <!-- ── Nav: blended into landing page ── -->
   <nav class="mc-nav" id="mcNav">
+    <a class="mc-nav-logo" onclick="void(0)">
+      <img src="/bluecopa-logo.png" alt="Bluecopa">
+    </a>
     <div class="mc-browse-btn" id="mcBrowseBtn" onclick="mcToggleBrowse(event)">
       Browse <span class="mc-browse-chevron">▼</span>
       <div class="mc-dropdown" id="mcDropdown" onclick="event.stopPropagation()">
@@ -5202,18 +5209,19 @@ function switchAdminTab(tab, btn, noHistory) {
     </div>
   </nav>
 
-    <!-- Brand: centered logo ring -->
-    <div class="dw-brand-wrap">
-      <div class="dw-brand-ring">
-        <img src="/bluecopa-logo.png" alt="Bluecopa" class="dw-brand-logo">
+      <!-- Center/Right: large circular logo -->
+      <div class="dw-brand-wrap">
+        <div class="dw-brand-ring">
+          <img src="/bluecopa-logo.png" alt="Bluecopa" class="dw-brand-logo">
+        </div>
+        <div class="dw-brand-name">Bluecopa</div>
+        <div class="dw-brand-tagline-row">
+          <div class="dw-brand-sep"></div>
+          <div class="dw-brand-tagline">Delivery Team's Go-To Place</div>
+          <div class="dw-brand-sep r"></div>
+        </div>
       </div>
-      <div class="dw-brand-name">Bluecopa</div>
-      <div class="dw-brand-tagline-row">
-        <div class="dw-brand-sep"></div>
-        <div class="dw-brand-tagline">Delivery Team's Go-To Place</div>
-        <div class="dw-brand-sep r"></div>
-      </div>
-    </div>
+    </div><!-- /dw-header-row -->
 
     <!-- Hero -->
     <div class="dw-hero">
