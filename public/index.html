@@ -597,7 +597,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dw-page{position:relative;z-index:10;width:100%;display:flex;flex-direction:column;align-items:center;padding:56px 48px 88px;}
 /* Landing admin button — top-right corner */
 /* ══ MASTERCLASS-STYLE NAV ════════════════════════════════════════════════ */
-.mc-nav{position:relative;z-index:20;height:60px;display:flex;align-items:center;padding:0 0;gap:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;width:100%;max-width:1200px;margin:0 auto 40px;backdrop-filter:blur(12px);}
+/* Row container: nav on left, logo on right */
+.dw-brand-nav-row{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:1200px;margin-bottom:36px;gap:32px;}
+.mc-nav{position:relative;z-index:20;height:56px;display:flex;align-items:center;padding:0;gap:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;flex:1;backdrop-filter:blur(12px);}
+/* Brand wrap beside nav */
+.dw-brand-nav-row .dw-brand-wrap{margin-bottom:0;flex-shrink:0;}
 /* Logo zone */
 .mc-nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;margin-right:4px;padding:0 16px;}
 .mc-nav-logo img{height:42px;filter:brightness(1.1);}
@@ -620,8 +624,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .mc-drop-live{background:rgba(74,222,128,.1);color:#4ade80;border:1px solid rgba(74,222,128,.2);}
 .mc-drop-soon{background:rgba(255,255,255,.05);color:rgba(255,255,255,.3);border:1px solid rgba(255,255,255,.1);}
 .mc-drop-divider{height:1px;background:rgba(255,255,255,.07);margin:6px 4px;}
-/* Search bar */
-.mc-search-wrap{flex:1;max-width:600px;position:relative;margin:0 8px;}
+/* Search bar — smaller */
+.mc-search-wrap{flex:1;max-width:380px;position:relative;margin:0 8px;}
 .mc-search-input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 16px 10px 40px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:background .18s,border-color .18s;}
 .mc-search-input:focus{background:rgba(255,255,255,.11);border-color:rgba(232,201,122,.45);}
 .mc-search-input::placeholder{color:rgba(255,255,255,.38);}
@@ -646,10 +650,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .mc-nav-btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px);}
 /* Push landing page content down */
 #dwLanding .dw-page{padding-top:52px!important;}
-/* Admin FAB hidden — replaced by nav */
-.dw-admin-fab{display:none!important;}
-
-.dw-admin-fab{position:absolute;top:22px;right:28px;z-index:20;display:none;align-items:center;gap:7px;background:rgba(232,201,122,.08);border:1px solid rgba(232,201,122,.25);color:rgba(232,201,122,.75);border-radius:9px;padding:9px 20px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:all .2s;}
+/* Admin FAB — restored as separate top-right button */
+.dw-admin-fab{position:absolute;top:20px;right:24px;z-index:20;display:none;align-items:center;gap:7px;background:rgba(232,201,122,.08);border:1px solid rgba(232,201,122,.25);color:rgba(232,201,122,.75);border-radius:9px;padding:9px 20px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:all .2s;}
+.dw-admin-fab:hover{background:rgba(232,201,122,.16);border-color:rgba(232,201,122,.55);color:var(--accent,#e8c97a);transform:translateY(-1px);}
+.dw-admin-fab .dw-afab-dot{width:7px;height:7px;border-radius:50%;background:#f87171;border:1.5px solid #0f0f13;display:none;animation:pulse 2s infinite;}
 .dw-admin-fab:hover{background:rgba(232,201,122,.16);border-color:rgba(232,201,122,.55);color:var(--accent);box-shadow:0 0 18px rgba(232,201,122,.12);transform:translateY(-1px);}
 .dw-admin-fab .dw-afab-dot{width:7px;height:7px;border-radius:50%;background:#f87171;border:1.5px solid #0f0f13;display:none;animation:pulse 2s infinite;}
 .dw-brand-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:48px;}
@@ -2029,11 +2033,12 @@ function renderUserInfo() {
   const isAdm = !!getAdminPwd();
   document.getElementById('adminBadge').style.display = isAdm ? 'inline-flex' : 'none';
   document.getElementById('exportBtn').style.display  = isAdm ? 'inline-flex' : 'none';
-  // Show Admin button in MC nav
+  // Restore separate Admin FAB button (top-right)
+  const fab = document.getElementById('dwAdminFab');
+  if (fab) fab.style.display = isAdm ? 'flex' : 'none';
+  // Also hide/show nav admin btn
   const mcAdminBtn = document.getElementById('mcAdminBtn');
-  if (mcAdminBtn) mcAdminBtn.style.display = isAdm ? 'flex' : 'none';
-  const mcStartBtn = document.getElementById('mcGetStartedBtn');
-  if (mcStartBtn) mcStartBtn.style.display = 'flex';
+  if (mcAdminBtn) mcAdminBtn.style.display = 'none';
 }
 function openIdentityModal() {
   const u = getUser();
@@ -5152,20 +5157,10 @@ function switchAdminTab(tab, btn, noHistory) {
 
 <div class="dw-page">
 
-    <!-- Brand -->
-    <div class="dw-brand-wrap">
-      <div class="dw-brand-ring">
-        <img src="/bluecopa-logo.png" alt="Bluecopa" class="dw-brand-logo">
-      </div>
-      <div class="dw-brand-name">Bluecopa</div>
-      <div class="dw-brand-tagline-row">
-        <div class="dw-brand-sep"></div>
-        <div class="dw-brand-tagline">Delivery Team's Go-To Place</div>
-        <div class="dw-brand-sep r"></div>
-      </div>
-    </div>
-
-    <!-- ── Nav: blended into landing page ── -->
+    <!-- Brand + Nav side by side -->
+    <div class="dw-brand-nav-row">
+      <!-- Left: Nav (Browse + Search) -->
+      <!-- ── Nav: blended into landing page ── -->
   <nav class="mc-nav" id="mcNav">
     <a class="mc-nav-logo" onclick="void(0)">
       <img src="/bluecopa-logo.png" alt="Bluecopa">
@@ -5215,6 +5210,20 @@ function switchAdminTab(tab, btn, noHistory) {
       <button class="mc-nav-btn" id="mcAdminBtn" onclick="openAdminPanel()" style="display:none;">⚙ Admin</button>
     </div>
   </nav>
+
+      <!-- Right: Bluecopa logo ring -->
+      <div class="dw-brand-wrap">
+        <div class="dw-brand-ring">
+          <img src="/bluecopa-logo.png" alt="Bluecopa" class="dw-brand-logo">
+        </div>
+        <div class="dw-brand-name">Bluecopa</div>
+        <div class="dw-brand-tagline-row">
+          <div class="dw-brand-sep"></div>
+          <div class="dw-brand-tagline">Delivery Team's Go-To Place</div>
+          <div class="dw-brand-sep r"></div>
+        </div>
+      </div>
+    </div><!-- /dw-brand-nav-row -->
 
     <!-- Hero -->
     <div class="dw-hero">
