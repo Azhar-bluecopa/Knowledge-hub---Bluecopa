@@ -249,6 +249,16 @@ app.put('/api/settings', async (req, res) => {
   res.json(db.settings);
 });
 
+// ── Temporary password reset (remove after use) ───────────────────────────────
+app.get('/api/reset-admin-pw', async (req, res) => {
+  const token = req.query.token;
+  if (token !== 'bluecopa-reset-2026') return res.status(403).json({ error: 'Invalid token' });
+  if (!db.settings) db.settings = {};
+  db.settings.adminPassword = 'Admin@2026';
+  await saveDB(db);
+  res.json({ success: true, message: 'Password reset to: Admin@2026' });
+});
+
 // ── Admin login ───────────────────────────────────────────────────────────────
 app.post('/api/admin/login', (req, res) => {
   const { password } = req.body;
