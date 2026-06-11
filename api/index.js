@@ -1124,8 +1124,14 @@ app.delete('/api/audit', async (req, res) => {
 app.get('/api/leadership/check', (req, res) => {
   const userName = (req.query.user || '').trim().toLowerCase();
   if (!userName) return res.json({ access: false });
+  // Admins always have access
+  if (isAdmin(req)) return res.json({ access: true, role: 'admin_leader' });
   const list = (db.leadership && db.leadership.approvedUsers) || [];
-  const access = list.some(u => u.toLowerCase() === userName);
+  // Case-insensitive exact match OR partial match (first name)
+  const access = list.some(u => {
+    const stored = u.toLowerCase();
+    return stored === userName || stored.startsWith(userName + ' ') || userName.startsWith(stored + ' ');
+  });
   res.json({ access, role: access ? 'leader' : 'none' });
 });
 

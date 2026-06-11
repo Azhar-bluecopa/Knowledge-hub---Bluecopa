@@ -7078,6 +7078,8 @@ async function liCheckAccess() {
   if (_liAccess !== null) return _liAccess;
   const u = getUser();
   if (!u) { _liAccess = false; return false; }
+  // Admins always have access — no API call needed
+  if (!!getAdminPwd()) { _liAccess = true; return true; }
   try {
     const r = await fetch(`/api/leadership/check?user=${encodeURIComponent(u.name)}`);
     const d = await r.json();
