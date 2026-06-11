@@ -7112,13 +7112,52 @@ function liHide() {
 }
 
 function liShowPanel(panel) {
-  ['landing','issues','ideas','denied'].forEach(p => {
+  ['landing','issues','ideas','esw','denied'].forEach(p => {
     const el = document.getElementById(`liPanel${p.charAt(0).toUpperCase()+p.slice(1)}`);
     if (el) el.style.display = p === panel ? 'block' : 'none';
   });
+  // Scroll overlay to top when switching panels
+  const overlay = document.getElementById('liOverlay');
+  if (overlay) overlay.scrollTop = 0;
   // Track sub-page
-  const titles = {landing:'Leadership Insights',issues:'Issue Tracker',ideas:'Process Improvement Ideas',denied:'Access Denied'};
+  const titles = {landing:'Leadership Insights',issues:'Issue Tracker',ideas:'Process Improvement Ideas',esw:'EWS — Early Warning System',denied:'Access Denied'};
   if (typeof auditTrackPage === 'function' && panel !== 'denied') auditTrackPage(`leadership_${panel}`, titles[panel] || panel);
+  // Trigger animations after a brief delay
+  if (panel === 'ideas' || panel === 'esw') {
+    setTimeout(() => liInitScrollAnimations(), 100);
+    if (panel === 'esw') setTimeout(() => liAnimateImpactBars(), 600);
+  }
+  // Fade-up for dashboard
+  if (panel === 'ideas') {
+    setTimeout(() => {
+      document.querySelectorAll('.pi-fade-up').forEach((el, i) => {
+        setTimeout(() => el.classList.add('visible'), i * 80);
+      });
+    }, 80);
+  }
+}
+
+function liInitScrollAnimations() {
+  const container = document.getElementById('liOverlay');
+  if (!container) return;
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { root: container, threshold: 0.12 });
+  document.querySelectorAll('.esw-reveal,.esw-reveal-l,.esw-reveal-r').forEach(el => {
+    el.classList.remove('visible');
+    observer.observe(el);
+  });
+}
+
+function liAnimateImpactBars() {
+  document.querySelectorAll('.esw-impact-bar-fill[data-width]').forEach(bar => {
+    setTimeout(() => { bar.style.width = bar.dataset.width; }, 200);
+  });
 }
 
 // Reset access cache when user changes
@@ -7677,20 +7716,433 @@ window.addEventListener('load', () => { setTimeout(liUpdateNavVisibility, 800); 
     </div>
   </div>
 
-  <!-- Process Improvement Ideas placeholder -->
-  <div id="liPanelIdeas" style="display:none;position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:48px 40px 80px;">
-    <button onclick="liShowPanel('landing')" style="background:transparent;border:none;color:rgba(255,255,255,.5);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;margin-bottom:28px;display:flex;align-items:center;gap:6px;padding:0;">← Back to Leadership Insights</button>
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;">
-      <div style="width:44px;height:44px;background:rgba(20,184,166,.12);border:1px solid rgba(20,184,166,.3);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;">💡</div>
-      <div><div style="font-size:28px;font-weight:800;color:#fff;letter-spacing:-.02em;">Process Improvement Ideas</div><div style="font-size:12px;font-family:'DM Mono',monospace;color:rgba(94,234,212,.6);letter-spacing:.1em;text-transform:uppercase;margin-top:2px;">Module 02 · Leadership Insights</div></div>
+  <!-- ═══ PROCESS IMPROVEMENT IDEAS — DASHBOARD ═══ -->
+  <div id="liPanelIdeas" style="display:none;position:relative;z-index:1;padding:40px 40px 80px;">
+    <style>
+      .pi-fade-up{opacity:0;transform:translateY(24px);transition:opacity .55s cubic-bezier(.16,1,.3,1),transform .55s cubic-bezier(.16,1,.3,1);}
+      .pi-fade-up.visible{opacity:1;transform:translateY(0);}
+      .pi-card-hover{transition:transform .22s,border-color .22s,box-shadow .22s;}
+      .pi-card-hover:hover{transform:translateY(-4px);box-shadow:0 20px 60px rgba(0,0,0,.5);}
+      .pi-stat{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:20px 24px;flex:1;min-width:140px;}
+      .pi-stat-n{font-size:32px;font-weight:900;line-height:1;letter-spacing:-.03em;}
+      .pi-stat-l{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-top:5px;}
+      .pi-idea-card{background:linear-gradient(145deg,rgba(255,255,255,.04) 0%,rgba(255,255,255,.02) 100%);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:28px;cursor:pointer;position:relative;overflow:hidden;}
+      .pi-idea-card:hover{border-color:rgba(20,184,166,.35);}
+      .pi-badge{font-size:10px;font-family:'DM Mono',monospace;font-weight:700;letter-spacing:.08em;padding:3px 10px;border-radius:99px;display:inline-flex;align-items:center;gap:5px;}
+      .pi-progress-bar{height:4px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin-top:16px;}
+      .pi-progress-fill{height:100%;border-radius:99px;transition:width 1.2s cubic-bezier(.16,1,.3,1);}
+      .pi-lc-step{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;position:relative;}
+      .pi-lc-step::after{content:'';position:absolute;top:14px;left:calc(50% + 14px);right:calc(-50% + 14px);height:2px;}
+      .pi-lc-step:last-child::after{display:none;}
+      .pi-lc-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;z-index:1;flex-shrink:0;}
+      .pi-lc-label{font-size:9.5px;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;text-align:center;line-height:1.3;}
+    </style>
+
+    <!-- Header -->
+    <div class="pi-fade-up" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:40px;flex-wrap:wrap;gap:16px;">
+      <div>
+        <button onclick="liShowPanel('landing')" style="background:transparent;border:none;color:rgba(255,255,255,.4);font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;gap:5px;padding:0;letter-spacing:.08em;text-transform:uppercase;">← Leadership Insights</button>
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="width:44px;height:44px;background:rgba(20,184,166,.12);border:1px solid rgba(20,184,166,.3);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;">💡</div>
+          <div>
+            <div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:-.02em;">Process Improvement Ideas</div>
+            <div style="font-size:12px;font-family:'DM Mono',monospace;color:rgba(94,234,212,.55);letter-spacing:.1em;text-transform:uppercase;margin-top:2px;">Innovation Hub · Bluecopa Delivery</div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div style="height:1px;background:linear-gradient(90deg,rgba(20,184,166,.3),transparent);margin:24px 0 40px;"></div>
-    <div style="background:rgba(20,184,166,.05);border:1px solid rgba(20,184,166,.15);border-radius:16px;padding:60px 40px;text-align:center;">
-      <div style="font-size:48px;margin-bottom:16px;">🚧</div>
-      <div style="font-size:20px;font-weight:700;color:#fff;margin-bottom:8px;">Functionality Coming Soon</div>
-      <div style="font-size:14px;color:rgba(255,255,255,.4);max-width:440px;margin:0 auto;line-height:1.65;">The Process Improvement Ideas module is being built. Detailed requirements will be implemented in the next phase. The structure and navigation are ready.</div>
+
+    <!-- Stats Row -->
+    <div class="pi-fade-up" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:36px;">
+      <div class="pi-stat"><div class="pi-stat-n" style="color:#fff;">1</div><div class="pi-stat-l">Total Ideas</div></div>
+      <div class="pi-stat"><div class="pi-stat-n" style="color:#fbbf24;">1</div><div class="pi-stat-l">Under Review</div></div>
+      <div class="pi-stat"><div class="pi-stat-n" style="color:rgba(255,255,255,.25);">0</div><div class="pi-stat-l">Approved</div></div>
+      <div class="pi-stat"><div class="pi-stat-n" style="color:rgba(255,255,255,.25);">0</div><div class="pi-stat-l">In Progress</div></div>
+      <div class="pi-stat"><div class="pi-stat-n" style="color:rgba(255,255,255,.25);">0</div><div class="pi-stat-l">Implemented</div></div>
+      <div class="pi-stat"><div class="pi-stat-n" style="color:rgba(20,184,166,.8);">High</div><div class="pi-stat-l">Projected Impact</div></div>
+    </div>
+
+    <!-- Section label -->
+    <div class="pi-fade-up" style="font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px;display:flex;align-items:center;gap:10px;"><span style="width:16px;height:1px;background:rgba(255,255,255,.2);display:inline-block;"></span>All Initiatives</div>
+
+    <!-- Idea Cards Grid -->
+    <div class="pi-fade-up" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px;">
+
+      <!-- ESW Card -->
+      <div class="pi-idea-card pi-card-hover" onclick="liShowPanel('esw')">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,rgba(20,184,166,.8),rgba(20,184,166,.2),transparent);border-radius:18px 18px 0 0;"></div>
+        <!-- Top row -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;">
+          <div>
+            <div style="font-size:10px;font-family:'DM Mono',monospace;color:rgba(94,234,212,.6);letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px;">Delivery Excellence</div>
+            <div style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-.01em;line-height:1.2;">Early Warning System</div>
+            <div style="font-size:13px;color:rgba(255,255,255,.4);margin-top:3px;font-style:italic;">EWS · Initiative 001</div>
+          </div>
+          <span class="pi-badge" style="background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25);flex-shrink:0;margin-left:12px;">⏳ Under Review</span>
+        </div>
+        <!-- Description -->
+        <div style="font-size:13px;color:rgba(255,255,255,.45);line-height:1.6;margin-bottom:16px;">Structured escalation process to surface project risks early through leadership visibility and shared accountability between Bluecopa and client.</div>
+        <!-- Meta row -->
+        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:11px;font-family:'DM Mono',monospace;margin-bottom:4px;">
+          <span style="color:rgba(255,255,255,.35);">👤 <span style="color:rgba(255,255,255,.6);">Delivery Leadership</span></span>
+          <span style="color:rgba(255,255,255,.35);">🎯 <span style="color:#f87171;">High Priority</span></span>
+          <span style="color:rgba(255,255,255,.35);">📅 <span style="color:rgba(255,255,255,.6);">Jun 2026</span></span>
+        </div>
+        <!-- Lifecycle mini -->
+        <div style="margin-top:12px;">
+          <div style="font-size:9.5px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.25);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Stage 2 of 6 — Validation</div>
+          <div class="pi-progress-bar"><div class="pi-progress-fill" style="width:22%;background:linear-gradient(90deg,rgba(20,184,166,.9),rgba(20,184,166,.5));"></div></div>
+        </div>
+        <!-- Footer -->
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;gap:6px;">
+            <span style="font-size:9.5px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:4px;background:rgba(20,184,166,.08);color:rgba(94,234,212,.7);border:1px solid rgba(20,184,166,.15);">Risk Mgmt</span>
+            <span style="font-size:9.5px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,.04);color:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.08);">Delivery</span>
+          </div>
+          <span style="font-size:12px;color:rgba(20,184,166,.8);font-family:'DM Mono',monospace;">View Detail →</span>
+        </div>
+      </div>
+
+      <!-- Add New Idea placeholder -->
+      <div style="border:1.5px dashed rgba(255,255,255,.1);border-radius:18px;padding:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='rgba(20,184,166,.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,.1)'">
+        <div style="font-size:32px;margin-bottom:10px;opacity:.3;">+</div>
+        <div style="font-size:14px;font-weight:600;color:rgba(255,255,255,.25);">Submit New Idea</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.15);margin-top:4px;">Coming soon</div>
+      </div>
     </div>
   </div>
+
+  <!-- ═══ ESW DETAIL PAGE ═══ -->
+  <div id="liPanelEsw" style="display:none;position:relative;z-index:1;overflow:hidden;">
+    <style>
+      /* Scroll reveal */
+      .esw-reveal{opacity:0;transform:translateY(32px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1);}
+      .esw-reveal.visible{opacity:1;transform:translateY(0);}
+      .esw-reveal-l{opacity:0;transform:translateX(-28px);transition:opacity .65s cubic-bezier(.16,1,.3,1),transform .65s cubic-bezier(.16,1,.3,1);}
+      .esw-reveal-l.visible{opacity:1;transform:translateX(0);}
+      .esw-reveal-r{opacity:0;transform:translateX(28px);transition:opacity .65s cubic-bezier(.16,1,.3,1),transform .65s cubic-bezier(.16,1,.3,1);}
+      .esw-reveal-r.visible{opacity:1;transform:translateX(0);}
+      /* Lifecycle */
+      .esw-lc{display:flex;align-items:flex-start;gap:0;position:relative;margin:32px 0;}
+      .esw-lc-item{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;}
+      .esw-lc-item::before{content:'';position:absolute;top:18px;left:calc(-50% + 18px);right:calc(50% + 18px);height:2px;background:rgba(255,255,255,.1);}
+      .esw-lc-item:first-child::before{display:none;}
+      .esw-lc-item.done::before{background:linear-gradient(90deg,rgba(20,184,166,.6),rgba(20,184,166,.3));}
+      .esw-lc-item.active::before{background:linear-gradient(90deg,rgba(20,184,166,.6),rgba(251,191,36,.4));}
+      .esw-lc-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;margin-bottom:8px;position:relative;z-index:1;transition:all .3s;}
+      .esw-lc-name{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase;text-align:center;line-height:1.4;max-width:80px;}
+      /* Process flow */
+      .esw-flow-step{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:22px;position:relative;transition:all .22s;}
+      .esw-flow-step:hover{border-color:rgba(20,184,166,.3);background:rgba(20,184,166,.04);}
+      .esw-flow-arrow{color:rgba(20,184,166,.4);font-size:20px;display:flex;align-items:center;justify-content:center;padding:0 8px;}
+      /* Risk triggers */
+      .esw-risk-card{background:rgba(248,113,113,.05);border:1px solid rgba(248,113,113,.15);border-radius:14px;padding:20px;transition:all .2s;}
+      .esw-risk-card:hover{border-color:rgba(248,113,113,.35);transform:translateY(-2px);}
+      /* Principle cards */
+      .esw-principle{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:22px;transition:all .2s;}
+      .esw-principle:hover{background:rgba(255,255,255,.055);transform:translateY(-2px);}
+      /* Section headers */
+      .esw-section-tag{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase;color:rgba(20,184,166,.65);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+      .esw-section-tag::before{content:'';width:18px;height:1px;background:rgba(20,184,166,.4);}
+      .esw-h2{font-size:clamp(24px,3.5vw,38px);font-weight:900;color:#fff;letter-spacing:-.03em;line-height:1.1;margin-bottom:12px;}
+      /* Metric cards */
+      .esw-metric{background:linear-gradient(145deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:24px;text-align:center;}
+      /* Impact bars */
+      .esw-impact-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+      .esw-impact-bar-track{flex:1;height:8px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;}
+      .esw-impact-bar-fill{height:100%;border-radius:99px;transition:width 1.5s cubic-bezier(.16,1,.3,1);}
+      /* Roadmap */
+      .esw-phase{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:24px;border-left:3px solid;}
+      /* Risk table */
+      .esw-risk-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.05);}
+      .esw-risk-row:last-child{border-bottom:none;}
+      /* Counter animation */
+      @keyframes eswCountUp{from{opacity:0;transform:scale(.8);}to{opacity:1;transform:scale(1);}}
+      .esw-counter{animation:eswCountUp .6s cubic-bezier(.16,1,.3,1) both;}
+    </style>
+
+    <!-- Scroll container -->
+    <div id="eswScrollContainer" style="max-width:1100px;margin:0 auto;padding:40px 40px 100px;">
+
+      <!-- Back -->
+      <button onclick="liShowPanel('ideas')" style="background:transparent;border:none;color:rgba(255,255,255,.4);font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;margin-bottom:32px;display:flex;align-items:center;gap:5px;padding:0;letter-spacing:.08em;text-transform:uppercase;">← Process Improvement Ideas</button>
+
+      <!-- ── HERO ── -->
+      <div class="esw-reveal" style="margin-bottom:64px;">
+        <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(20,184,166,.1);border:1px solid rgba(20,184,166,.25);border-radius:99px;padding:5px 14px;margin-bottom:20px;">
+          <span style="width:7px;height:7px;border-radius:50%;background:rgba(251,191,36,.9);animation:pulse 2s infinite;display:inline-block;"></span>
+          <span style="font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(94,234,212,.8);">Under Review · Delivery Excellence</span>
+        </div>
+        <h1 style="font-size:clamp(40px,6vw,72px);font-weight:900;color:#fff;letter-spacing:-.04em;line-height:.96;margin-bottom:8px;">Early Warning</h1>
+        <h1 style="font-size:clamp(40px,6vw,72px);font-weight:900;letter-spacing:-.04em;line-height:.96;margin-bottom:20px;background:linear-gradient(135deg,rgba(20,184,166,1) 0%,rgba(94,234,212,1) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">System</h1>
+        <p style="font-size:18px;color:rgba(255,255,255,.5);max-width:600px;line-height:1.65;font-style:italic;">"Early visibility. Faster intervention. Better project outcomes."</p>
+
+        <!-- Hero stats -->
+        <div style="display:flex;gap:16px;margin-top:32px;flex-wrap:wrap;">
+          <div class="esw-metric esw-counter" style="min-width:140px;">
+            <div style="font-size:36px;font-weight:900;color:rgba(20,184,166,1);letter-spacing:-.03em;">6</div>
+            <div style="font-size:10px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-top:4px;">Risk Triggers</div>
+          </div>
+          <div class="esw-metric esw-counter" style="min-width:140px;">
+            <div style="font-size:36px;font-weight:900;color:rgba(251,191,36,1);letter-spacing:-.03em;">6</div>
+            <div style="font-size:10px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-top:4px;">Escalation Steps</div>
+          </div>
+          <div class="esw-metric esw-counter" style="min-width:140px;">
+            <div style="font-size:36px;font-weight:900;color:rgba(96,165,250,1);letter-spacing:-.03em;">4</div>
+            <div style="font-size:10px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-top:4px;">Core Principles</div>
+          </div>
+          <div class="esw-metric esw-counter" style="min-width:140px;">
+            <div style="font-size:36px;font-weight:900;color:rgba(248,113,113,1);letter-spacing:-.03em;">High</div>
+            <div style="font-size:10px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-top:4px;">Business Impact</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── INNOVATION LIFECYCLE ── -->
+      <div class="esw-reveal" style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:32px;margin-bottom:64px;">
+        <div class="esw-section-tag">Initiative Lifecycle</div>
+        <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:24px;">Current Stage: <span style="color:#fbbf24;">Validation & Review</span></div>
+        <div class="esw-lc">
+          <div class="esw-lc-item done">
+            <div class="esw-lc-dot" style="background:rgba(20,184,166,.2);border:2px solid rgba(20,184,166,.6);color:rgba(20,184,166,1);">✓</div>
+            <div class="esw-lc-name" style="color:rgba(20,184,166,.8);">Ideation</div>
+          </div>
+          <div class="esw-lc-item active">
+            <div class="esw-lc-dot" style="background:rgba(251,191,36,.15);border:2px solid rgba(251,191,36,.8);color:#fbbf24;box-shadow:0 0 16px rgba(251,191,36,.3);">▶</div>
+            <div class="esw-lc-name" style="color:#fbbf24;">Validation</div>
+          </div>
+          <div class="esw-lc-item">
+            <div class="esw-lc-dot" style="background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.12);color:rgba(255,255,255,.3);">3</div>
+            <div class="esw-lc-name" style="color:rgba(255,255,255,.3);">Design & Plan</div>
+          </div>
+          <div class="esw-lc-item">
+            <div class="esw-lc-dot" style="background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.12);color:rgba(255,255,255,.3);">4</div>
+            <div class="esw-lc-name" style="color:rgba(255,255,255,.3);">Build & Test</div>
+          </div>
+          <div class="esw-lc-item">
+            <div class="esw-lc-dot" style="background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.12);color:rgba(255,255,255,.3);">5</div>
+            <div class="esw-lc-name" style="color:rgba(255,255,255,.3);">Pilot</div>
+          </div>
+          <div class="esw-lc-item">
+            <div class="esw-lc-dot" style="background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.12);color:rgba(255,255,255,.3);">6</div>
+            <div class="esw-lc-name" style="color:rgba(255,255,255,.3);">Scale & Adopt</div>
+          </div>
+          <div class="esw-lc-item">
+            <div class="esw-lc-dot" style="background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.12);color:rgba(255,255,255,.3);">★</div>
+            <div class="esw-lc-name" style="color:rgba(255,255,255,.3);">Value Realized</div>
+          </div>
+        </div>
+        <div style="background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:10px;padding:12px 16px;font-size:13px;color:rgba(251,191,36,.8);display:flex;align-items:center;gap:10px;margin-top:4px;">
+          <span>⚡</span> Currently in <strong>Stage 2: Validation</strong> — Business case under review by Delivery Leadership. Awaiting formal approval to proceed to Design & Planning phase.
+        </div>
+      </div>
+
+      <!-- ── EXECUTIVE SUMMARY ── -->
+      <div class="esw-reveal" style="margin-bottom:64px;">
+        <div class="esw-section-tag">Executive Summary</div>
+        <div class="esw-h2">What is the Early Warning System?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px;">
+          <div style="grid-column:1/-1;background:linear-gradient(135deg,rgba(20,184,166,.08) 0%,rgba(20,184,166,.03) 100%);border:1px solid rgba(20,184,166,.2);border-radius:18px;padding:28px;">
+            <p style="font-size:16px;color:rgba(255,255,255,.75);line-height:1.75;font-weight:400;">The <strong style="color:#fff;">Early Warning System (EWS)</strong> is a structured escalation mechanism designed to surface project delivery risks before they become critical issues. It creates a formal, shared process between Bluecopa and client teams to identify warning signs early, engage executive sponsors from both organizations, and maintain structured resolution until closure.</p>
+            <p style="font-size:15px;color:rgba(255,255,255,.55);line-height:1.7;margin-top:14px;">EWS ensures that leadership on both sides has complete visibility into project health, corrective plans are actioned with accountability, and no risk is allowed to silently escalate into a delivery failure.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── BUSINESS PROBLEM ── -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:64px;align-items:start;">
+        <div class="esw-reveal-l">
+          <div class="esw-section-tag">The Problem</div>
+          <div class="esw-h2">Why Do Delivery Projects Fail?</div>
+          <p style="font-size:14px;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:20px;">Project delivery risks are often identified too late. By the time issues surface at leadership level, they have already impacted timelines, quality, or customer relationships — and the cost of correction has multiplied.</p>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(248,113,113,.05);border:1px solid rgba(248,113,113,.12);border-radius:12px;padding:14px 16px;">
+              <span style="font-size:18px;flex-shrink:0;">🔴</span>
+              <div><div style="font-size:13.5px;font-weight:700;color:#fff;margin-bottom:2px;">Risks surface too late</div><div style="font-size:12px;color:rgba(255,255,255,.4);">Issues become critical before leadership is engaged</div></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(248,113,113,.05);border:1px solid rgba(248,113,113,.12);border-radius:12px;padding:14px 16px;">
+              <span style="font-size:18px;flex-shrink:0;">🔴</span>
+              <div><div style="font-size:13.5px;font-weight:700;color:#fff;margin-bottom:2px;">No structured escalation path</div><div style="font-size:12px;color:rgba(255,255,255,.4);">Project teams lack a formal process to raise concerns</div></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(248,113,113,.05);border:1px solid rgba(248,113,113,.12);border-radius:12px;padding:14px 16px;">
+              <span style="font-size:18px;flex-shrink:0;">🔴</span>
+              <div><div style="font-size:13.5px;font-weight:700;color:#fff;margin-bottom:2px;">Accountability gaps</div><div style="font-size:12px;color:rgba(255,255,255,.4);">No shared ownership between client and Bluecopa</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="esw-reveal-r">
+          <div class="esw-section-tag">The Solution</div>
+          <div class="esw-h2">Proactive Risk Governance</div>
+          <p style="font-size:14px;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:20px;">EWS creates a proactive, transparent, and accountable framework for managing project risks — before they become delivery failures.</p>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(20,184,166,.05);border:1px solid rgba(20,184,166,.15);border-radius:12px;padding:14px 16px;">
+              <span style="font-size:18px;flex-shrink:0;">✅</span>
+              <div><div style="font-size:13.5px;font-weight:700;color:#fff;margin-bottom:2px;">Early visibility</div><div style="font-size:12px;color:rgba(255,255,255,.4);">Risks surfaced before they become critical</div></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(20,184,166,.05);border:1px solid rgba(20,184,166,.15);border-radius:12px;padding:14px 16px;">
+              <span style="font-size:18px;flex-shrink:0;">✅</span>
+              <div><div style="font-size:13.5px;font-weight:700;color:#fff;margin-bottom:2px;">Structured escalation</div><div style="font-size:12px;color:rgba(255,255,255,.4);">6-step formal process from detection to closure</div></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(20,184,166,.05);border:1px solid rgba(20,184,166,.15);border-radius:12px;padding:14px 16px;">
+              <span style="font-size:18px;flex-shrink:0;">✅</span>
+              <div><div style="font-size:13.5px;font-weight:700;color:#fff;margin-bottom:2px;">Shared accountability</div><div style="font-size:12px;color:rgba(255,255,255,.4);">Executive sponsors from both organisations own resolution</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── RISK TRIGGERS ── -->
+      <div class="esw-reveal" style="margin-bottom:64px;">
+        <div class="esw-section-tag">Risk Triggers</div>
+        <div class="esw-h2">What Activates an EWS?</div>
+        <p style="font-size:14px;color:rgba(255,255,255,.45);max-width:580px;line-height:1.7;margin-bottom:28px;">Any one of these warning signs triggers the EWS escalation process. Raising an EWS is a sign of good governance — not a failure.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;">
+          <div class="esw-risk-card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><span style="width:32px;height:32px;background:rgba(248,113,113,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;">📈</span><div style="font-size:14.5px;font-weight:700;color:#fff;">Scope Creep</div></div><div style="font-size:12.5px;color:rgba(255,255,255,.45);line-height:1.55;">Unplanned feature growth impacting agreed deliverables or timeline</div></div>
+          <div class="esw-risk-card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><span style="width:32px;height:32px;background:rgba(248,113,113,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;">⏰</span><div style="font-size:14.5px;font-weight:700;color:#fff;">Timeline Delays</div></div><div style="font-size:12.5px;color:rgba(255,255,255,.45);line-height:1.55;">Milestone slippage or risk of project extension beyond agreed dates</div></div>
+          <div class="esw-risk-card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><span style="width:32px;height:32px;background:rgba(248,113,113,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;">😟</span><div style="font-size:14.5px;font-weight:700;color:#fff;">Customer Dissatisfaction</div></div><div style="font-size:12.5px;color:rgba(255,255,255,.45);line-height:1.55;">Escalated customer concerns or declining satisfaction signals</div></div>
+          <div class="esw-risk-card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><span style="width:32px;height:32px;background:rgba(248,113,113,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;">⚙️</span><div style="font-size:14.5px;font-weight:700;color:#fff;">Technical Challenges</div></div><div style="font-size:12.5px;color:rgba(255,255,255,.45);line-height:1.55;">Platform or integration issues blocking delivery progress</div></div>
+          <div class="esw-risk-card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><span style="width:32px;height:32px;background:rgba(248,113,113,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;">📉</span><div style="font-size:14.5px;font-weight:700;color:#fff;">De-prioritization</div></div><div style="font-size:12.5px;color:rgba(255,255,255,.45);line-height:1.55;">Customer reducing focus or resources allocated to the project</div></div>
+          <div class="esw-risk-card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><span style="width:32px;height:32px;background:rgba(248,113,113,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;">⚠️</span><div style="font-size:14.5px;font-weight:700;color:#fff;">Emerging Risk</div></div><div style="font-size:12.5px;color:rgba(255,255,255,.45);line-height:1.55;">Any delivery-impacting issue not covered by the above categories</div></div>
+        </div>
+      </div>
+
+      <!-- ── ESCALATION PROCESS ── -->
+      <div class="esw-reveal" style="margin-bottom:64px;">
+        <div class="esw-section-tag">Escalation Process</div>
+        <div class="esw-h2">6-Step Resolution Framework</div>
+        <p style="font-size:14px;color:rgba(255,255,255,.45);max-width:560px;line-height:1.7;margin-bottom:32px;">A structured, time-bound process that moves from risk detection to full resolution with leadership accountability at every stage.</p>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <div class="esw-flow-step" style="display:flex;align-items:flex-start;gap:18px;">
+            <div style="width:40px;height:40px;background:rgba(20,184,166,.15);border:2px solid rgba(20,184,166,.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:rgba(20,184,166,1);flex-shrink:0;">1</div>
+            <div><div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;">Risk Detected</div><div style="font-size:13px;color:rgba(255,255,255,.45);line-height:1.55;">Project team identifies a warning sign — any team member can initiate. No risk is too small to surface.</div></div>
+          </div>
+          <div style="margin-left:19px;width:2px;height:20px;background:linear-gradient(180deg,rgba(20,184,166,.4),rgba(20,184,166,.15));"></div>
+          <div class="esw-flow-step" style="display:flex;align-items:flex-start;gap:18px;">
+            <div style="width:40px;height:40px;background:rgba(20,184,166,.15);border:2px solid rgba(20,184,166,.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:rgba(20,184,166,1);flex-shrink:0;">2</div>
+            <div><div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;">EWS Raised</div><div style="font-size:13px;color:rgba(255,255,255,.45);line-height:1.55;">Issue is formally documented. Root cause is analyzed and captured in the EWS record with supporting evidence.</div></div>
+          </div>
+          <div style="margin-left:19px;width:2px;height:20px;background:linear-gradient(180deg,rgba(20,184,166,.4),rgba(20,184,166,.15));"></div>
+          <div class="esw-flow-step" style="display:flex;align-items:flex-start;gap:18px;">
+            <div style="width:40px;height:40px;background:rgba(20,184,166,.15);border:2px solid rgba(20,184,166,.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:rgba(20,184,166,1);flex-shrink:0;">3</div>
+            <div><div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;">Corrective Plan Defined</div><div style="font-size:13px;color:rgba(255,255,255,.45);line-height:1.55;">A concrete action plan with owners, timelines, and success criteria is agreed upon by the project team.</div></div>
+          </div>
+          <div style="margin-left:19px;width:2px;height:20px;background:linear-gradient(180deg,rgba(20,184,166,.4),rgba(20,184,166,.15));"></div>
+          <div class="esw-flow-step" style="display:flex;align-items:flex-start;gap:18px;">
+            <div style="width:40px;height:40px;background:rgba(251,191,36,.15);border:2px solid rgba(251,191,36,.5);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fbbf24;flex-shrink:0;">4</div>
+            <div><div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;">Leadership Engaged</div><div style="font-size:13px;color:rgba(255,255,255,.45);line-height:1.55;">Executive sponsors from <strong style="color:rgba(255,255,255,.7);">both organisations</strong> are brought in. Leadership owns resolution at the highest level.</div></div>
+          </div>
+          <div style="margin-left:19px;width:2px;height:20px;background:linear-gradient(180deg,rgba(251,191,36,.4),rgba(251,191,36,.15));"></div>
+          <div class="esw-flow-step" style="display:flex;align-items:flex-start;gap:18px;">
+            <div style="width:40px;height:40px;background:rgba(251,191,36,.15);border:2px solid rgba(251,191,36,.5);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fbbf24;flex-shrink:0;">5</div>
+            <div><div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;">Recurring Reviews</div><div style="font-size:13px;color:rgba(255,255,255,.45);line-height:1.55;">Weekly or bi-weekly leadership calls to review corrective plan progress, address blockers, and maintain momentum.</div></div>
+          </div>
+          <div style="margin-left:19px;width:2px;height:20px;background:linear-gradient(180deg,rgba(251,191,36,.4),rgba(20,184,166,.4));"></div>
+          <div class="esw-flow-step" style="display:flex;align-items:flex-start;gap:18px;">
+            <div style="width:40px;height:40px;background:rgba(20,184,166,.2);border:2px solid rgba(20,184,166,.6);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:rgba(20,184,166,1);flex-shrink:0;">✓</div>
+            <div><div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;">Resolution & Closure</div><div style="font-size:13px;color:rgba(255,255,255,.45);line-height:1.55;">Issue is resolved and formally closed. Lessons learned are captured. EWS is archived with outcomes documented.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── KEY PRINCIPLES ── -->
+      <div class="esw-reveal" style="margin-bottom:64px;">
+        <div class="esw-section-tag">Design Principles</div>
+        <div class="esw-h2">What Makes EWS Work</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-top:24px;">
+          <div class="esw-principle">
+            <div style="font-size:28px;margin-bottom:12px;">🎯</div>
+            <div style="font-size:16px;font-weight:800;color:rgba(20,184,166,1);margin-bottom:6px;">Proactive</div>
+            <div style="font-size:13px;color:rgba(255,255,255,.45);line-height:1.6;">Raise EWS <em style="color:rgba(255,255,255,.65);">before</em> issues become critical — not after the damage is done.</div>
+          </div>
+          <div class="esw-principle">
+            <div style="font-size:28px;margin-bottom:12px;">🔍</div>
+            <div style="font-size:16px;font-weight:800;color:rgba(96,165,250,1);margin-bottom:6px;">Transparent</div>
+            <div style="font-size:13px;color:rgba(255,255,255,.45);line-height:1.6;">All parties — Bluecopa and client — see the same data, same plan, same status.</div>
+          </div>
+          <div class="esw-principle">
+            <div style="font-size:28px;margin-bottom:12px;">⚡</div>
+            <div style="font-size:16px;font-weight:800;color:rgba(251,191,36,1);margin-bottom:6px;">Accountable</div>
+            <div style="font-size:13px;color:rgba(255,255,255,.45);line-height:1.6;">Executive sponsors on both sides <em style="color:rgba(255,255,255,.65);">own</em> resolution — no ambiguity on who is responsible.</div>
+          </div>
+          <div class="esw-principle">
+            <div style="font-size:28px;margin-bottom:12px;">🔄</div>
+            <div style="font-size:16px;font-weight:800;color:rgba(168,85,247,1);margin-bottom:6px;">Iterative</div>
+            <div style="font-size:13px;color:rgba(255,255,255,.45);line-height:1.6;">EWS can be raised multiple times on the same project as new risks emerge. It's a living process.</div>
+          </div>
+        </div>
+        <!-- Closing statement -->
+        <div style="background:linear-gradient(135deg,rgba(20,184,166,.08) 0%,rgba(20,184,166,.03) 100%);border:1px solid rgba(20,184,166,.2);border-radius:14px;padding:20px 24px;margin-top:20px;font-size:14.5px;color:rgba(255,255,255,.65);line-height:1.7;font-style:italic;">
+          "EWS ensures issues are surfaced early — keeping projects on track through <strong style="color:#fff;">leadership visibility</strong>, <strong style="color:#fff;">shared accountability</strong>, and <strong style="color:#fff;">structured resolution</strong>."
+        </div>
+      </div>
+
+      <!-- ── BUSINESS IMPACT ── -->
+      <div class="esw-reveal" style="margin-bottom:64px;">
+        <div class="esw-section-tag">Expected Impact</div>
+        <div class="esw-h2">Business Value</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px;">
+          <div>
+            <div style="font-size:12px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;">Impact Areas</div>
+            <div class="esw-impact-row"><span style="font-size:12.5px;color:rgba(255,255,255,.7);min-width:170px;">Delivery Quality</span><div class="esw-impact-bar-track"><div class="esw-impact-bar-fill" style="width:0%;background:linear-gradient(90deg,rgba(20,184,166,.9),rgba(20,184,166,.4));" data-width="85%"></div></div><span style="font-size:12px;color:rgba(20,184,166,.8);min-width:36px;text-align:right;">High</span></div>
+            <div class="esw-impact-row"><span style="font-size:12.5px;color:rgba(255,255,255,.7);min-width:170px;">Customer Satisfaction</span><div class="esw-impact-bar-track"><div class="esw-impact-bar-fill" style="width:0%;background:linear-gradient(90deg,rgba(96,165,250,.9),rgba(96,165,250,.4));" data-width="80%"></div></div><span style="font-size:12px;color:rgba(96,165,250,.8);min-width:36px;text-align:right;">High</span></div>
+            <div class="esw-impact-row"><span style="font-size:12.5px;color:rgba(255,255,255,.7);min-width:170px;">Revenue Protection</span><div class="esw-impact-bar-track"><div class="esw-impact-bar-fill" style="width:0%;background:linear-gradient(90deg,rgba(251,191,36,.9),rgba(251,191,36,.4));" data-width="75%"></div></div><span style="font-size:12px;color:rgba(251,191,36,.8);min-width:36px;text-align:right;">High</span></div>
+            <div class="esw-impact-row"><span style="font-size:12.5px;color:rgba(255,255,255,.7);min-width:170px;">Delivery Efficiency</span><div class="esw-impact-bar-track"><div class="esw-impact-bar-fill" style="width:0%;background:linear-gradient(90deg,rgba(168,85,247,.9),rgba(168,85,247,.4));" data-width="70%"></div></div><span style="font-size:12px;color:rgba(168,85,247,.8);min-width:36px;text-align:right;">High</span></div>
+            <div class="esw-impact-row"><span style="font-size:12.5px;color:rgba(255,255,255,.7);min-width:170px;">Risk Reduction</span><div class="esw-impact-bar-track"><div class="esw-impact-bar-fill" style="width:0%;background:linear-gradient(90deg,rgba(248,113,113,.9),rgba(248,113,113,.4));" data-width="90%"></div></div><span style="font-size:12px;color:rgba(248,113,113,.8);min-width:36px;text-align:right;">Very High</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="esw-metric"><div style="font-size:28px;font-weight:900;color:rgba(20,184,166,1);">↓ Escalations</div><div style="font-size:11px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;margin-top:4px;">Reduced crisis-level escalations through proactive intervention</div></div>
+            <div class="esw-metric"><div style="font-size:28px;font-weight:900;color:rgba(96,165,250,1);">↑ Confidence</div><div style="font-size:11px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;margin-top:4px;">Increased client confidence through leadership visibility</div></div>
+            <div class="esw-metric"><div style="font-size:28px;font-weight:900;color:rgba(251,191,36,1);">↑ On-Time</div><div style="font-size:11px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;margin-top:4px;">Improved on-time delivery rates through early correction</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ROADMAP ── -->
+      <div class="esw-reveal" style="margin-bottom:64px;">
+        <div class="esw-section-tag">Implementation Roadmap</div>
+        <div class="esw-h2">Path to Deployment</div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:24px;">
+          <div class="esw-phase" style="border-color:rgba(251,191,36,.5);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div style="font-size:15px;font-weight:800;color:#fff;">Phase 1: Validation & Approval</div><span style="background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25);font-size:10px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:99px;letter-spacing:.06em;">ACTIVE</span></div>
+            <div style="font-size:13px;color:rgba(255,255,255,.45);line-height:1.6;">Leadership review of business case. Stakeholder alignment across delivery teams. Formal approval from executive sponsors.</div>
+          </div>
+          <div class="esw-phase" style="border-color:rgba(255,255,255,.1);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div style="font-size:15px;font-weight:800;color:rgba(255,255,255,.55);">Phase 2: Framework Design</div><span style="background:rgba(255,255,255,.04);color:rgba(255,255,255,.3);border:1px solid rgba(255,255,255,.1);font-size:10px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:99px;letter-spacing:.06em;">PENDING</span></div>
+            <div style="font-size:13px;color:rgba(255,255,255,.35);line-height:1.6;">Design EWS templates, escalation protocols, and governance documentation. Define SLAs for each escalation step.</div>
+          </div>
+          <div class="esw-phase" style="border-color:rgba(255,255,255,.1);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div style="font-size:15px;font-weight:800;color:rgba(255,255,255,.55);">Phase 3: Pilot — 2 Projects</div><span style="background:rgba(255,255,255,.04);color:rgba(255,255,255,.3);border:1px solid rgba(255,255,255,.1);font-size:10px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:99px;letter-spacing:.06em;">PENDING</span></div>
+            <div style="font-size:13px;color:rgba(255,255,255,.35);line-height:1.6;">Run EWS on 2 live projects. Collect feedback, measure effectiveness, refine the process based on real usage.</div>
+          </div>
+          <div class="esw-phase" style="border-color:rgba(255,255,255,.1);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div style="font-size:15px;font-weight:800;color:rgba(255,255,255,.55);">Phase 4: Full Rollout</div><span style="background:rgba(255,255,255,.04);color:rgba(255,255,255,.3);border:1px solid rgba(255,255,255,.1);font-size:10px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:99px;letter-spacing:.06em;">PENDING</span></div>
+            <div style="font-size:13px;color:rgba(255,255,255,.35);line-height:1.6;">Deploy EWS across all active Bluecopa delivery projects. Train project managers and leadership sponsors on the process.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SUCCESS METRICS ── -->
+      <div class="esw-reveal" style="margin-bottom:64px;">
+        <div class="esw-section-tag">Success Metrics</div>
+        <div class="esw-h2">How We Measure Success</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:24px;">
+          <div class="esw-metric"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:6px;">📉 Fewer Escalations</div><div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.55;">Reduction in crisis-level escalations reaching CXO level</div></div>
+          <div class="esw-metric"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:6px;">⏱ Faster Resolution</div><div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.55;">Average time from EWS raised to issue resolved</div></div>
+          <div class="esw-metric"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:6px;">📊 CSAT Score</div><div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.55;">Customer satisfaction scores on projects using EWS vs those without</div></div>
+          <div class="esw-metric"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:6px;">✅ On-Time Delivery</div><div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.55;">Percentage of EWS-active projects delivered within agreed timeline</div></div>
+          <div class="esw-metric"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:6px;">🔁 EWS Adoption Rate</div><div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.55;">% of at-risk projects where EWS was proactively raised</div></div>
+          <div class="esw-metric"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:6px;">📈 Leadership NPS</div><div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.55;">Satisfaction of leadership sponsors with EWS process quality</div></div>
+        </div>
+      </div>
+
+      <!-- ── FOOTER ── -->
+      <div class="esw-reveal" style="border-top:1px solid rgba(255,255,255,.07);padding-top:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div style="font-size:12px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.25);letter-spacing:.08em;">EWS · Initiative 001 · Leadership Insights · Bluecopa 2026</div>
+        <button onclick="liShowPanel('ideas')" style="background:rgba(20,184,166,.1);border:1px solid rgba(20,184,166,.25);color:rgba(94,234,212,.8);border-radius:8px;padding:8px 18px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">← Back to Ideas Dashboard</button>
+      </div>
+
+    </div><!-- /eswScrollContainer -->
+  </div><!-- /liPanelEsw -->
 
   <!-- Access Denied screen -->
   <div id="liPanelDenied" style="display:none;position:relative;z-index:1;max-width:600px;margin:120px auto;padding:0 40px;text-align:center;">
