@@ -7950,12 +7950,16 @@ window.addEventListener('load', () => { setTimeout(liUpdateNavVisibility, 800); 
       </div>
 
       <!-- ── BUSINESS PROBLEM ── -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:64px;align-items:start;">
-        <div class="esw-reveal-l">
-          <div class="esw-section-tag">The Problem</div>
-          <div class="esw-h2">Why Do Delivery Projects Fail?</div>
-          <p style="font-size:14px;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:20px;">Project delivery risks are often identified too late. By the time issues surface at leadership level, they have already impacted timelines, quality, or customer relationships — and the cost of correction has multiplied.</p>
-          <div style="display:flex;flex-direction:column;gap:12px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:64px;align-items:stretch;">
+        <!-- LEFT: Problem -->
+        <div class="esw-reveal-l" style="display:flex;flex-direction:column;">
+          <!-- Fixed-height header so both columns' cards start at same level -->
+          <div style="min-height:175px;">
+            <div class="esw-section-tag">The Problem</div>
+            <div class="esw-h2">Why Do Delivery Projects Fail?</div>
+            <p style="font-size:14px;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:0;">Project delivery risks are often identified too late. By the time issues surface at leadership level, they have already impacted timelines, quality, or customer relationships — and the cost of correction has multiplied.</p>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
             <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(248,113,113,.05);border:1px solid rgba(248,113,113,.12);border-radius:12px;padding:14px 16px;">
               <span style="font-size:18px;flex-shrink:0;">🔴</span>
               <div><div style="font-size:13.5px;font-weight:700;color:#fff;margin-bottom:2px;">Risks surface too late</div><div style="font-size:12px;color:rgba(255,255,255,.4);">Issues become critical before leadership is engaged</div></div>
@@ -7970,11 +7974,15 @@ window.addEventListener('load', () => { setTimeout(liUpdateNavVisibility, 800); 
             </div>
           </div>
         </div>
-        <div class="esw-reveal-r">
-          <div class="esw-section-tag">The Solution</div>
-          <div class="esw-h2">Proactive Risk Governance</div>
-          <p style="font-size:14px;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:20px;">EWS creates a proactive, transparent, and accountable framework for managing project risks — before they become delivery failures.</p>
-          <div style="display:flex;flex-direction:column;gap:12px;">
+        <!-- RIGHT: Solution -->
+        <div class="esw-reveal-r" style="display:flex;flex-direction:column;">
+          <!-- Same min-height header as left column -->
+          <div style="min-height:175px;">
+            <div class="esw-section-tag">The Solution</div>
+            <div class="esw-h2">Proactive Risk Governance</div>
+            <p style="font-size:14px;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:0;">EWS creates a proactive, transparent, and accountable framework for managing project risks — before they become delivery failures.</p>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
             <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(20,184,166,.05);border:1px solid rgba(20,184,166,.15);border-radius:12px;padding:14px 16px;">
               <span style="font-size:18px;flex-shrink:0;">✅</span>
               <div><div style="font-size:13.5px;font-weight:700;color:#fff;margin-bottom:2px;">Early visibility</div><div style="font-size:12px;color:rgba(255,255,255,.4);">Risks surfaced before they become critical</div></div>
