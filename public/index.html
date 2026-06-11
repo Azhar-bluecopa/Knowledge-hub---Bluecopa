@@ -6156,6 +6156,8 @@ function showLanding(){
   updateLandingStats();
   // tech animations
   setTimeout(dwInitTechEffects, 200);
+  // Always re-check Leadership Insights access on every return to home
+  if(typeof liUpdateNavVisibility==='function') liUpdateNavVisibility();
   // audit tracking
   if(typeof auditTrackPage==='function') auditTrackPage('landing','Home');
 }
@@ -7257,10 +7259,11 @@ function liAnimateImpactBars() {
 // Reset access cache when user changes
 function liResetAccess() { _liAccess = null; }
 
-// Add LI to Browse dropdown visibility check
+// Always re-check access from API (clear cache first so it's never stale)
 async function liUpdateNavVisibility() {
   const liItem = document.getElementById('mcLiItem');
   if (!liItem) return;
+  _liAccess = null; // clear cache — always re-fetch on navigation
   const hasAccess = await liCheckAccess();
   liItem.style.display = hasAccess ? 'flex' : 'none';
 }
