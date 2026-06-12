@@ -8401,61 +8401,130 @@ window.addEventListener('load', () => { setTimeout(liUpdateNavVisibility, 800); 
     <!-- ════════════════════ ESCALATION PROCESS ════════════════════ -->
     <div class="esw-section">
       <div class="esw-section-label">Escalation Process</div>
-      <div class="esw-section-heading">The EWS Escalation Journey</div>
+      <div class="esw-section-heading">Step-by-Step Resolution Flow</div>
+      <p style="font-size:13.5px;color:rgba(255,255,255,.38);margin:-8px 0 28px;max-width:540px;line-height:1.65;">Each stage activates sequentially — from the first sign of risk to full resolution and closure.</p>
 
-      <div class="esw-flow-wrap" id="eswFlowWrap">
-        <svg class="esw-flow-svg" id="eswFlowSvg" preserveAspectRatio="none">
-          <line class="esw-flow-line" id="eswFlowLine" x1="1" y1="0" x2="1" y2="100%"/>
-        </svg>
+      <style>
+        /* Phase banners */
+        .esw-phase-banner{font-size:9px;font-family:"DM Mono",monospace;letter-spacing:.2em;text-transform:uppercase;padding:3px 10px;border-radius:99px;display:inline-flex;align-items:center;gap:5px;margin-bottom:14px;}
+        .esw-phase-detect{background:rgba(20,184,166,.1);color:rgba(20,184,166,.85);border:1px solid rgba(20,184,166,.22);}
+        .esw-phase-escalate{background:rgba(232,201,122,.1);color:rgba(232,201,122,.85);border:1px solid rgba(232,201,122,.22);}
+        .esw-phase-resolve{background:rgba(52,211,153,.1);color:rgba(52,211,153,.85);border:1px solid rgba(52,211,153,.22);}
+        /* Animated step flow */
+        .esw-flow2{display:flex;flex-direction:column;gap:0;position:relative;}
+        /* Spine */
+        .esw-flow2-spine{position:absolute;left:27px;top:28px;bottom:28px;width:2px;background:rgba(255,255,255,.06);border-radius:99px;}
+        .esw-flow2-spine-fill{position:absolute;top:0;left:0;width:100%;height:0%;border-radius:99px;transition:height .1s linear;}
+        /* Individual step */
+        .esw-step2{display:flex;align-items:flex-start;gap:20px;position:relative;opacity:0;transform:translateX(-20px);transition:opacity .5s cubic-bezier(.16,1,.3,1),transform .5s cubic-bezier(.16,1,.3,1);}
+        .esw-step2.active{opacity:1;transform:translateX(0);}
+        /* Number circle */
+        .esw-step2-num{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;flex-shrink:0;position:relative;z-index:2;transition:all .4s;}
+        .esw-step2-num.s-teal{background:rgba(20,184,166,.12);border:2px solid rgba(20,184,166,.4);color:rgba(20,184,166,1);}
+        .esw-step2-num.s-gold{background:rgba(232,201,122,.12);border:2px solid rgba(232,201,122,.4);color:rgba(232,201,122,1);}
+        .esw-step2-num.s-green{background:rgba(52,211,153,.15);border:2px solid rgba(52,211,153,.6);color:rgba(52,211,153,1);}
+        .esw-step2-num.lit{box-shadow:0 0 0 8px rgba(20,184,166,.08),0 0 20px rgba(20,184,166,.25);}
+        .esw-step2-num.lit.s-gold{box-shadow:0 0 0 8px rgba(232,201,122,.08),0 0 20px rgba(232,201,122,.25);}
+        .esw-step2-num.lit.s-green{box-shadow:0 0 0 8px rgba(52,211,153,.08),0 0 20px rgba(52,211,153,.3);}
+        /* Arrow between steps */
+        .esw-step2-arrow{position:absolute;left:27px;bottom:-18px;width:2px;height:18px;display:flex;align-items:center;justify-content:center;z-index:1;}
+        .esw-step2-arrow::after{content:"▼";position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);font-size:9px;opacity:0;transition:opacity .3s .2s;}
+        .esw-step2.active .esw-step2-arrow::after{opacity:.5;}
+        /* Card */
+        .esw-step2-card{flex:1;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px 22px;margin-bottom:14px;transition:border-color .3s,box-shadow .3s;}
+        .esw-step2.active .esw-step2-card{border-color:rgba(255,255,255,.1);}
+        .esw-step2-card:hover{border-color:rgba(20,184,166,.3);box-shadow:0 4px 20px rgba(20,184,166,.08);}
+        .esw-step2-tag{font-size:9.5px;font-family:"DM Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:5px;}
+        .esw-step2-title{font-size:15.5px;font-weight:700;color:#fff;letter-spacing:-.01em;margin-bottom:4px;}
+        .esw-step2-desc{font-size:12.5px;color:rgba(255,255,255,.42);line-height:1.55;}
+        /* Traveling dot */
+        @keyframes eswTravelDot{0%{transform:translateY(0) scale(1);opacity:.9;}50%{transform:translateY(6px) scale(1.3);opacity:.5;}100%{transform:translateY(0) scale(1);opacity:.9;}}
+        .esw-travel-dot{width:8px;height:8px;border-radius:50%;position:absolute;left:24px;top:28px;z-index:10;background:rgba(20,184,166,1);box-shadow:0 0 10px rgba(20,184,166,.7);animation:eswTravelDot 1.4s ease-in-out infinite;transition:top 0.45s cubic-bezier(.16,1,.3,1),background .3s;}
+      </style>
 
-        <div class="esw-step">
-          <div class="esw-step-num teal" style="animation:eswPulse 2.5s 0s infinite">1</div>
-          <div class="esw-step-card esw2-reveal" style="animation-delay:.1s">
-            <div class="esw-step-title">Risk Detected</div>
-            <div class="esw-step-desc">Project team identifies warning sign</div>
-          </div>
+      <div id="eswFlow2" class="esw-flow2">
+        <!-- Spine -->
+        <div class="esw-flow2-spine">
+          <div class="esw-flow2-spine-fill" id="eswSpineFill2"></div>
         </div>
+        <!-- Traveling dot -->
+        <div class="esw-travel-dot" id="eswTravelDot"></div>
 
-        <div class="esw-step">
-          <div class="esw-step-num teal" style="animation:eswPulse 2.5s .3s infinite">2</div>
-          <div class="esw-step-card esw2-reveal" style="animation-delay:.2s">
-            <div class="esw-step-title">EWS Raised</div>
-            <div class="esw-step-desc">Issue documented, root cause analyzed</div>
-          </div>
-        </div>
+        <!-- Phase: Detect -->
+        <div class="esw-phase-banner esw-phase-detect" style="margin-left:76px;">● Detect</div>
 
-        <div class="esw-step">
-          <div class="esw-step-num teal" style="animation:eswPulse 2.5s .6s infinite">3</div>
-          <div class="esw-step-card esw2-reveal" style="animation-delay:.3s">
-            <div class="esw-step-title">Corrective Plan Defined</div>
-            <div class="esw-step-desc">Action plan agreed by project team</div>
-          </div>
-        </div>
-
-        <div class="esw-step">
-          <div class="esw-step-num gold" style="animation:eswPulse 2.5s .9s infinite">4</div>
-          <div class="esw-step-card esw2-reveal" style="animation-delay:.4s">
-            <div class="esw-step-title">Leadership Engaged</div>
-            <div class="esw-step-desc">Executive sponsors from both orgs</div>
-          </div>
-        </div>
-
-        <div class="esw-step">
-          <div class="esw-step-num gold" style="animation:eswPulse 2.5s 1.2s infinite">5</div>
-          <div class="esw-step-card esw2-reveal" style="animation-delay:.5s">
-            <div class="esw-step-title">Recurring Reviews</div>
-            <div class="esw-step-desc">Weekly / bi-weekly leadership calls</div>
-          </div>
-        </div>
-
-        <div class="esw-step">
-          <div class="esw-step-num green" style="animation:eswPulse 2.5s 1.5s infinite">6</div>
-          <div class="esw-step-card esw2-reveal" style="animation-delay:.6s">
-            <div class="esw-step-title">
-              Resolution &amp; Closure
-              <span class="esw-badge-closed">CLOSED</span>
+        <div class="esw-step2" id="eswS1">
+          <div class="esw-step2-num s-teal" id="eswN1">1</div>
+          <div style="flex:1">
+            <div class="esw-step2-card">
+              <div class="esw-step2-tag">Step 01 · Detect</div>
+              <div class="esw-step2-title">Risk Detected</div>
+              <div class="esw-step2-desc">Project team identifies warning sign</div>
             </div>
-            <div class="esw-step-desc">Issue resolved, EWS closed</div>
+            <div class="esw-step2-arrow" id="eswA1"></div>
+          </div>
+        </div>
+
+        <div class="esw-step2" id="eswS2">
+          <div class="esw-step2-num s-teal" id="eswN2">2</div>
+          <div style="flex:1">
+            <div class="esw-step2-card">
+              <div class="esw-step2-tag">Step 02 · Detect</div>
+              <div class="esw-step2-title">EWS Raised</div>
+              <div class="esw-step2-desc">Issue documented, root cause analyzed</div>
+            </div>
+            <div class="esw-step2-arrow" id="eswA2"></div>
+          </div>
+        </div>
+
+        <div class="esw-step2" id="eswS3">
+          <div class="esw-step2-num s-teal" id="eswN3">3</div>
+          <div style="flex:1">
+            <div class="esw-step2-card">
+              <div class="esw-step2-tag">Step 03 · Detect</div>
+              <div class="esw-step2-title">Corrective Plan Defined</div>
+              <div class="esw-step2-desc">Action plan agreed by project team</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase: Escalate -->
+        <div class="esw-phase-banner esw-phase-escalate" style="margin-left:76px;margin-top:14px;">● Escalate</div>
+
+        <div class="esw-step2" id="eswS4">
+          <div class="esw-step2-num s-gold" id="eswN4">4</div>
+          <div style="flex:1">
+            <div class="esw-step2-card">
+              <div class="esw-step2-tag">Step 04 · Escalate</div>
+              <div class="esw-step2-title">Leadership Engaged</div>
+              <div class="esw-step2-desc">Executive sponsors from both orgs</div>
+            </div>
+            <div class="esw-step2-arrow" id="eswA4"></div>
+          </div>
+        </div>
+
+        <div class="esw-step2" id="eswS5">
+          <div class="esw-step2-num s-gold" id="eswN5">5</div>
+          <div style="flex:1">
+            <div class="esw-step2-card">
+              <div class="esw-step2-tag">Step 05 · Escalate</div>
+              <div class="esw-step2-title">Recurring Reviews</div>
+              <div class="esw-step2-desc">Weekly / bi-weekly leadership calls</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase: Resolve -->
+        <div class="esw-phase-banner esw-phase-resolve" style="margin-left:76px;margin-top:14px;">● Resolve</div>
+
+        <div class="esw-step2" id="eswS6">
+          <div class="esw-step2-num s-green" id="eswN6">6</div>
+          <div style="flex:1">
+            <div class="esw-step2-card" style="border-color:rgba(52,211,153,.2);">
+              <div class="esw-step2-tag">Step 06 · Resolve</div>
+              <div class="esw-step2-title">Resolution &amp; Closure <span class="esw-badge-closed">CLOSED</span></div>
+              <div class="esw-step2-desc">Issue resolved, EWS closed</div>
+            </div>
           </div>
         </div>
 
@@ -8491,6 +8560,105 @@ window.addEventListener('load', () => { setTimeout(liUpdateNavVisibility, 800); 
           <div class="esw-principle-desc">EWS can be raised multiple times as new risks emerge.</div>
         </div>
 
+      </div>
+    </div>
+
+
+    <!-- ════════════════════ IDEA LIFECYCLE ════════════════════ -->
+    <div class="esw-section" id="eswIdeaLifecycle">
+      <div class="esw-section-label">Idea Lifecycle</div>
+      <div class="esw-section-heading" style="margin-bottom:8px;">Where Is This Idea Today?</div>
+      <p style="font-size:13.5px;color:rgba(255,255,255,.38);margin-bottom:36px;max-width:540px;line-height:1.65;">Every process improvement moves through these six stages — from the moment an opportunity is spotted to the point it becomes business-as-usual.</p>
+
+      <style>
+        .ilc-track{position:relative;padding:0 0 48px;}
+        /* Horizontal connecting line */
+        .ilc-line-bg{position:absolute;top:32px;left:32px;right:32px;height:2px;background:rgba(255,255,255,.06);border-radius:99px;}
+        .ilc-line-fill{position:absolute;top:0;left:0;height:100%;width:0%;background:linear-gradient(90deg,rgba(20,184,166,.8),rgba(232,201,122,.6));border-radius:99px;transition:width 1.8s cubic-bezier(.16,1,.3,1);}
+        /* Stage nodes row */
+        .ilc-stages{display:flex;justify-content:space-between;position:relative;z-index:2;}
+        .ilc-stage{display:flex;flex-direction:column;align-items:center;gap:12px;flex:1;cursor:default;}
+        /* Node circle */
+        .ilc-node{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;border:2px solid;transition:all .4s;position:relative;}
+        .ilc-node.done{background:rgba(20,184,166,.15);border-color:rgba(20,184,166,.6);box-shadow:0 0 14px rgba(20,184,166,.2);}
+        .ilc-node.active{background:rgba(232,201,122,.15);border-color:rgba(232,201,122,.8);box-shadow:0 0 0 10px rgba(232,201,122,.07),0 0 24px rgba(232,201,122,.3);}
+        @keyframes ilcActivePulse{0%,100%{box-shadow:0 0 0 10px rgba(232,201,122,.07),0 0 24px rgba(232,201,122,.3);}50%{box-shadow:0 0 0 18px rgba(232,201,122,.04),0 0 36px rgba(232,201,122,.5);}}
+        .ilc-node.active{animation:ilcActivePulse 2.8s ease-in-out infinite;}
+        .ilc-node.pending{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.1);}
+        /* Checkmark badge on done */
+        .ilc-node.done::after{content:"✓";position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:rgba(20,184,166,1);color:#07090f;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;line-height:20px;text-align:center;}
+        /* Stage label */
+        .ilc-label{font-size:11px;font-weight:700;text-align:center;line-height:1.3;max-width:80px;}
+        .ilc-label.done{color:rgba(20,184,166,.85);}
+        .ilc-label.active{color:rgba(232,201,122,.95);}
+        .ilc-label.pending{color:rgba(255,255,255,.25);}
+        /* Sub label */
+        .ilc-sub{font-size:9.5px;font-family:"DM Mono",monospace;letter-spacing:.06em;text-transform:uppercase;text-align:center;line-height:1.3;max-width:80px;}
+        .ilc-sub.done{color:rgba(20,184,166,.5);}
+        .ilc-sub.active{color:rgba(232,201,122,.6);}
+        .ilc-sub.pending{color:rgba(255,255,255,.14);}
+        /* Current stage callout */
+        .ilc-callout{background:rgba(232,201,122,.06);border:1px solid rgba(232,201,122,.18);border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:12px;margin-top:8px;}
+        .ilc-callout-dot{width:8px;height:8px;border-radius:50%;background:rgba(232,201,122,.9);flex-shrink:0;animation:eswPulse 2s infinite;}
+      </style>
+
+      <div class="ilc-track esw2-reveal" id="eswIdeaTrack">
+        <div class="ilc-line-bg">
+          <div class="ilc-line-fill" id="eswIdeaFill"></div>
+        </div>
+        <div class="ilc-stages">
+
+          <!-- 1: Done -->
+          <div class="ilc-stage">
+            <div class="ilc-node done">💡</div>
+            <div class="ilc-label done">Idea Captured</div>
+            <div class="ilc-sub done">Identified</div>
+          </div>
+
+          <!-- 2: Active -->
+          <div class="ilc-stage">
+            <div class="ilc-node active">🔍</div>
+            <div class="ilc-label active">Under Evaluation</div>
+            <div class="ilc-sub active">Current</div>
+          </div>
+
+          <!-- 3: Pending -->
+          <div class="ilc-stage">
+            <div class="ilc-node pending" style="font-size:20px;color:rgba(255,255,255,.18);">✅</div>
+            <div class="ilc-label pending">Formally Approved</div>
+            <div class="ilc-sub pending">Next</div>
+          </div>
+
+          <!-- 4: Pending -->
+          <div class="ilc-stage">
+            <div class="ilc-node pending" style="font-size:20px;color:rgba(255,255,255,.18);">⚙️</div>
+            <div class="ilc-label pending">In Development</div>
+            <div class="ilc-sub pending">Upcoming</div>
+          </div>
+
+          <!-- 5: Pending -->
+          <div class="ilc-stage">
+            <div class="ilc-node pending" style="font-size:20px;color:rgba(255,255,255,.18);">🚀</div>
+            <div class="ilc-label pending">Live &amp; Piloted</div>
+            <div class="ilc-sub pending">Upcoming</div>
+          </div>
+
+          <!-- 6: Pending -->
+          <div class="ilc-stage">
+            <div class="ilc-node pending" style="font-size:20px;color:rgba(255,255,255,.18);">🌟</div>
+            <div class="ilc-label pending">Operationalized</div>
+            <div class="ilc-sub pending">Goal</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current stage callout -->
+      <div class="ilc-callout esw2-reveal" style="animation-delay:.2s">
+        <div class="ilc-callout-dot"></div>
+        <div>
+          <strong style="color:rgba(232,201,122,.9);font-size:13.5px;">Stage 2 of 6 — Under Evaluation</strong>
+          <span style="color:rgba(255,255,255,.38);font-size:12.5px;margin-left:8px;">Feasibility being assessed by leadership. Awaiting formal approval to proceed.</span>
+        </div>
       </div>
     </div>
 
