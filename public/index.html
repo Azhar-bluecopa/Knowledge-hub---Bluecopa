@@ -8055,7 +8055,9 @@ window.addEventListener('load', () => { setTimeout(liUpdateNavVisibility, 800); 
         lbl.className = 'it-spark-lbl';
         lbl.style.flex = '1';
         lbl.style.minWidth = '20px';
-        lbl.textContent = m.slice(5);
+        const monthNames = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const mm = parseInt(m.slice(5));
+        lbl.textContent = (monthNames[mm]||m.slice(5)) + "'" + m.slice(2,4);
         lblEl.appendChild(lbl);
       });
 
