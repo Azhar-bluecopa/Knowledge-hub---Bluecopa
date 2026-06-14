@@ -7848,18 +7848,280 @@ window.addEventListener('load', () => { setTimeout(liUpdateNavVisibility, 800); 
   </div>
 
   <!-- Issue Tracker placeholder -->
-  <div id="liPanelIssues" style="display:none;position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:48px 40px 80px;">
-    <button onclick="liShowPanel('landing')" style="background:transparent;border:none;color:rgba(255,255,255,.5);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;margin-bottom:28px;display:flex;align-items:center;gap:6px;padding:0;">← Back to Leadership Insights</button>
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;">
-      <div style="width:44px;height:44px;background:rgba(60,100,255,.15);border:1px solid rgba(60,100,255,.3);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;">🎯</div>
-      <div><div style="font-size:28px;font-weight:800;color:#fff;letter-spacing:-.02em;">Issue Tracker</div><div style="font-size:12px;font-family:'DM Mono',monospace;color:rgba(96,165,250,.6);letter-spacing:.1em;text-transform:uppercase;margin-top:2px;">Module 01 · Leadership Insights</div></div>
+  <!-- ═══ ISSUE TRACKER — PLATFORM HEALTH DASHBOARD ═══ -->
+  <div id="liPanelIssues" style="display:none;position:relative;z-index:1;padding:40px 40px 80px;">
+    <style>
+      .it-section{max-width:1100px;margin:0 auto 48px;}
+      .it-label{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:rgba(96,165,250,.6);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+      .it-label::before{content:'';width:16px;height:1px;background:rgba(96,165,250,.4);}
+      .it-h2{font-size:clamp(22px,3vw,32px);font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:6px;}
+      .it-sub{font-size:13.5px;color:rgba(255,255,255,.38);line-height:1.6;max-width:540px;}
+      /* KPI Cards */
+      .it-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:28px;}
+      @media(max-width:900px){.it-kpis{grid-template-columns:repeat(3,1fr);}}
+      .it-kpi{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px 16px;transition:border-color .2s;}
+      .it-kpi:hover{border-color:rgba(96,165,250,.3);}
+      .it-kpi-val{font-size:26px;font-weight:900;color:#fff;line-height:1;letter-spacing:-.02em;margin-bottom:6px;}
+      .it-kpi-lbl{font-size:9.5px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);}
+      /* Bar charts */
+      .it-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+      .it-bar-label{font-size:12px;color:rgba(255,255,255,.6);min-width:90px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .it-bar-track{flex:1;height:22px;background:rgba(255,255,255,.04);border-radius:6px;overflow:hidden;position:relative;}
+      .it-bar-fill{height:100%;border-radius:6px;transition:width 1.2s cubic-bezier(.16,1,.3,1);display:flex;align-items:center;padding-left:8px;font-size:10px;font-weight:700;color:#fff;}
+      /* Chart containers */
+      .it-chart-card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:22px;}
+      .it-chart-title{font-size:13px;font-weight:700;color:rgba(255,255,255,.7);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+      /* Table */
+      .it-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+      .it-table th{text-align:left;padding:10px 12px;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);border-bottom:1px solid rgba(255,255,255,.07);position:sticky;top:0;background:#0a0c14;z-index:1;}
+      .it-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:rgba(255,255,255,.65);vertical-align:top;}
+      .it-table tr:hover td{background:rgba(96,165,250,.04);}
+      .it-table .it-occ{font-family:'DM Mono',monospace;font-weight:700;text-align:center;min-width:32px;}
+      /* Tabs */
+      .it-tabs{display:flex;gap:4px;margin-bottom:20px;background:rgba(255,255,255,.03);border-radius:10px;padding:4px;width:fit-content;}
+      .it-tab{font-size:12px;font-family:'DM Mono',monospace;letter-spacing:.06em;padding:7px 18px;border-radius:7px;border:none;cursor:pointer;color:rgba(255,255,255,.4);background:transparent;transition:all .2s;font-weight:600;}
+      .it-tab.active{background:rgba(96,165,250,.2);color:rgba(96,165,250,1);border:1px solid rgba(96,165,250,.3);}
+      .it-tab:hover:not(.active){color:rgba(255,255,255,.65);}
+      /* Search */
+      .it-search{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:9px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s;margin-bottom:16px;}
+      .it-search:focus{border-color:rgba(96,165,250,.4);}
+      .it-search::placeholder{color:rgba(255,255,255,.25);}
+      /* Module badge */
+      .it-mod-badge{font-size:10px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:4px;background:rgba(96,165,250,.1);color:rgba(96,165,250,.8);border:1px solid rgba(96,165,250,.2);white-space:nowrap;}
+      /* Sparkline */
+      .it-spark{display:flex;align-items:flex-end;gap:3px;height:60px;}
+      .it-spark-bar{flex:1;border-radius:3px 3px 0 0;transition:height 1s cubic-bezier(.16,1,.3,1);position:relative;cursor:default;min-width:20px;}
+      .it-spark-bar:hover{opacity:.85;}
+      .it-spark-lbl{font-size:8px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.25);text-align:center;margin-top:4px;}
+      /* Weekly review */
+      .it-wr-card{background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.15);border-radius:14px;padding:20px;}
+      .it-wr-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+      .it-wr-item:last-child{border-bottom:none;}
+      .it-wr-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+      /* Animations */
+      .it-reveal{opacity:0;transform:translateY(20px);transition:opacity .5s,transform .5s;}
+      .it-reveal.in{opacity:1;transform:translateY(0);}
+    </style>
+
+    <div class="it-section">
+      <!-- Header -->
+      <button onclick="liShowPanel('landing')" style="background:transparent;border:none;color:rgba(255,255,255,.4);font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;margin-bottom:16px;display:flex;align-items:center;gap:5px;padding:0;letter-spacing:.08em;text-transform:uppercase;">← Leadership Insights</button>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;">
+        <div style="width:48px;height:48px;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.3);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;">🎯</div>
+        <div>
+          <div style="font-size:32px;font-weight:900;color:#fff;letter-spacing:-.03em;">Platform Issue Tracker</div>
+          <div style="font-size:12px;font-family:'DM Mono',monospace;color:rgba(96,165,250,.55);letter-spacing:.12em;text-transform:uppercase;margin-top:2px;">Platform Health Command Center</div>
+        </div>
+      </div>
+      <div style="height:1px;background:linear-gradient(90deg,rgba(96,165,250,.25),transparent);margin:20px 0 0;"></div>
     </div>
-    <div style="height:1px;background:linear-gradient(90deg,rgba(60,100,255,.3),transparent);margin:24px 0 40px;"></div>
-    <div style="background:rgba(60,100,255,.06);border:1px solid rgba(60,100,255,.15);border-radius:16px;padding:60px 40px;text-align:center;">
-      <div style="font-size:48px;margin-bottom:16px;">🚧</div>
-      <div style="font-size:20px;font-weight:700;color:#fff;margin-bottom:8px;">Functionality Coming Soon</div>
-      <div style="font-size:14px;color:rgba(255,255,255,.4);max-width:440px;margin:0 auto;line-height:1.65;">The Issue Tracker module is being built. Detailed requirements will be implemented in the next phase. The structure and navigation are ready.</div>
+
+    <!-- KPIs -->
+    <div class="it-section it-reveal">
+      <div class="it-kpis" id="itKpis"></div>
     </div>
+
+    <!-- Charts Row -->
+    <div class="it-section it-reveal" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="it-chart-card">
+        <div class="it-chart-title">📊 Issues by Client</div>
+        <div id="itChartClient"></div>
+      </div>
+      <div class="it-chart-card">
+        <div class="it-chart-title">🧩 Issues by Module</div>
+        <div id="itChartModule"></div>
+      </div>
+    </div>
+
+    <!-- Monthly Trend -->
+    <div class="it-section it-reveal">
+      <div class="it-chart-card">
+        <div class="it-chart-title">📈 Monthly Issue Trend</div>
+        <div id="itSparkline" class="it-spark"></div>
+        <div id="itSparkLabels" style="display:flex;gap:3px;margin-top:4px;"></div>
+      </div>
+    </div>
+
+    <!-- Top Recurring Issues -->
+    <div class="it-section it-reveal">
+      <div class="it-label">Platform Hotspots</div>
+      <div class="it-h2">Top Recurring Issues</div>
+      <div class="it-chart-card" style="margin-top:16px;max-height:340px;overflow-y:auto;">
+        <table class="it-table" id="itTopIssues"></table>
+      </div>
+    </div>
+
+    <!-- Weekly Review -->
+    <div class="it-section it-reveal">
+      <div class="it-label">Weekly Review</div>
+      <div class="it-h2">Recommended Discussion Points</div>
+      <div class="it-wr-card" style="margin-top:16px;" id="itWeeklyReview"></div>
+    </div>
+
+    <!-- Client Drill-Down -->
+    <div class="it-section it-reveal">
+      <div class="it-label">Client Drill-Down</div>
+      <div class="it-h2">Explore by Client</div>
+      <div class="it-tabs" id="itClientTabs"></div>
+      <input class="it-search" id="itClientSearch" type="text" placeholder="Search issues..." oninput="itFilterClient()">
+      <div class="it-chart-card" style="margin-top:0;">
+        <div id="itClientStats" style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;"></div>
+        <div id="itClientModules" style="margin-bottom:16px;"></div>
+        <div style="max-height:400px;overflow-y:auto;">
+          <table class="it-table" id="itClientTable"></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Back -->
+    <div class="it-section" style="text-align:center;padding-top:20px;">
+      <button onclick="liShowPanel('landing')" style="background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.25);color:rgba(96,165,250,.8);border-radius:8px;padding:10px 24px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">← Back to Leadership Insights</button>
+    </div>
+
+    <script>
+    (function(){
+      const IT_DATA = {"GIVA":[{"date":"2026-01-13","issue":"In V2 pipelines, nodes run and perview error","module":"Pipeline","description":"In V2 pipelines, the nodes remain in a running state for a long time, and the data preview is not loading.","occurrences":1},{"date":"2026-02-13","issue":"V2 pipeline run error","module":"Pipeline","description":"while running the pipeline, it got stuck in scheduled state","occurrences":1},{"date":"2026-02-13","issue":"Recon run error","module":"Reconciliation","description":"while running recon ,it got stuck in scheduled state.","occurrences":1},{"date":"2026-02-06","issue":"V2 pipeline log access","module":"Pipeline","description":"please give access for the logs in the V2 pipelines.","occurrences":1},{"date":"2026-02-10","issue":"Recon dataset configaration error","module":"Reconciliation","description":"While saving rules in a new recon, after providing the datasets, the primary and secondary datasets are getting switched","occurrences":1},{"date":"2026-02-12","issue":"Data type validation error","module":"Databox","description":"Set one column as string in the schema, and the Excel values are also in the same format. But after uploading to Databox, it shows in E+ format.","occurrences":1},{"date":"2026-03-09","issue":"V2 pipelines node run and perview error","module":"Pipeline","description":"The nodes in pipelines are in running state and preview is not loading .","occurrences":1},{"date":"2026-03-17","issue":"Calculate node error","module":"Pipeline","description":"When I try to preview the calculate node, it gets stuck and doesn\u2019t display any output or error. When I am checking in the Dev tools we are not getting result call","occurrences":1},{"date":"2026-04-02","issue":"Pipeline Select Node","module":"Pipeline","description":"While previewing the Select node in the V2 pipeline, the following error is encountered:\n\"The query is too large (1038.89K characters, 15243 characters over the limit). The maximum standard SQL query length is 1024.00K characters, including comments and white space characters\". This issue persists even when selecting only 10 columns","occurrences":2},{"date":"2026-04-07","issue":"Pipeline run error","module":"Pipeline","description":"When I try to run the pipeline, it is not showing any new runs. One run failed earlier, and when I tried to run it again, no new run appeared. \nCurrently, only the failed run is visible.","occurrences":3},{"date":"2026-04-08","issue":"Exports","module":"Exports","description":"When we try to run the existing exports, the following error is encountered,Error: \"Variable ${rate_type} does not have a input rate_type\"","occurrences":1},{"date":"2026-04-17","issue":"Node preview error","module":"Pipeline","description":"Pipelines are getting stuck in Preview state.","occurrences":2},{"date":"2026-04-23","issue":"Data fetch error","module":"Pipeline","description":"Encountering issue in fetching data from nodes of the existing pipeline. But when i run the pipeline the run got succeeded.","occurrences":2},{"date":"2026-05-05","issue":"Portal preview error","module":"Portal","description":"The portal has been published with two pages. However, while previewing, only one page is visible.","occurrences":1},{"date":"2026-05-05","issue":"Calculate node error","module":"Pipeline","description":"The calculate node has been in a running state for a long time. I also tried materializing the node, but the issue still persists.","occurrences":2},{"date":"2026-05-12","issue":"V2 pipeline output node error","module":"Pipeline","description":"I have two chained pipelines where the output of Pipeline A serves as the source for Pipeline B. However, upon completion of the second pipeline, the output dataset from Pipeline A is being overwritten.Both stages are now reflecting the same name and the final processed data, resulting in the loss of the intermediate dataset.","occurrences":1},{"date":"2026-05-18","issue":"Statement line error","module":"Statement","description":"I'm getting this error \"Unexpected err-> The query is too large (1027.26K characters, 3335 characters over the limit). The maximum standard SQL query length is 1024.00K characters, including comments and white space characters.'), type(err)=<class 'google.api_core.exceptions.BadRequest'> in the statement for one particular metric.\n When I use the same metric in a new statement, it succeeds. In another statement, I'm neither getting an error nor any value.","occurrences":1},{"date":"2026-05-20","issue":"User invitation access","module":"User Invitation","description":"After inviting a particular user and granting access, the system displayed that the user had already been invited.However, when trying to provide folder-specific access to that user, the user was not appearing in the user list.","occurrences":1}],"Navi":[{"date":"2025-07-24","issue":"GCP WIF","module":"Pipeline, Workflow & Portals","description":"Tested Pipeline as throwed error as \"Failed to get Preasigned urlRequest failed with status code 500\"","occurrences":1},{"date":"2025-07-28","issue":"Unable to create a new instance.","module":"Workflow","description":"we\u2019re unable to create a new instance at the moment.","occurrences":1},{"date":"2025-07-30","issue":"Internal server error","module":"Pipeline","description":"Able to save and Run the pipeline. But while trying to publish the pipeline encountering Internal server error.","occurrences":1},{"date":"2025-11-18","issue":"Access Control","module":"Databox","description":"Users are unable to upload files in the Databox with Team-level access","occurrences":1},{"date":"2025-11-18","issue":"Access Control","module":"Other","description":"If the user has access to upload data in Databox, then it should auto-provide access to datasets. Similarly, we need to share both the statement from the workspace as well as the published statement. The same applies to the portals. This is creating a lot of confusion and causing hiccups in parallel runs.","occurrences":1},{"date":"2025-11-18","issue":"Improper Working of Reverse Action","module":"Statement","description":"Reverse option is not working properly - needs to re-verify all related scenarios","occurrences":1},{"date":"2025-11-18","issue":"Variance when reverse ie enabled","module":"Statement","description":"Variance in the Reverse option is not calculated correctly","occurrences":1},{"date":"2025-11-18","issue":"Variance displays incorrect value","module":"Statement","description":"If the number format is in crores, the Variance % shows 0 - which is incorrect; however, it shows the correct value if the graph option is selected","occurrences":1},{"date":"2025-11-18","issue":"Date range filter","module":"Statement","description":"If the statement is shared with multiple people, and user1 has updated the date range from 1Aug25 to 31Oct25 from 1Apr25 to 30Sep25 (User2 already has this view open in his screen). On new run, both users see the data from 1Aug25 to 31Oct25 even if the filters for User2 are shown as 1Apr25 to 30Sep25. Sometimes, even if user2 changes the filters to This Year or any other dates, it still shows data of 1Aug25 to 31Oct25 (that User1 has selected) - This needs to be verified for all promoted filters","occurrences":1},{"date":"2025-11-18","issue":"cache issue","module":"Statement","description":"when a new file is dropped, the numbers are not reflecting until we change/apply different date range filter","occurrences":2},{"date":"2025-12-09","issue":"Updation of Databox status","module":"Databox","description":"we uploaded a file 2 hours ago into a databox and its still in processing status / schema updtae","occurrences":2},{"date":"2026-03-12","issue":"Column not found","module":"Statement","description":"When the YTD option is enabled in the statement, formula lines throw \"Column not found\" error, _ytd suffix is being incorrectly inserted mid-name instead of being appended at the end, whereas in Existing columns its reflecting correctly","occurrences":1},{"date":"2026-03-16","issue":"Taking longer time to load the statement","module":"Statement","description":"One of the statements in Navi- Production environment is loading even after a successful run , unable to see the statement since it is in loading state","occurrences":1},{"date":"2026-03-17","issue":"Failed Processing","module":"Statement","description":"We\u2019re encountering an issue with a databox that shows a processing failed error when it was created and ran for the first time. Could we connect and take a look at this","occurrences":2},{"date":"2026-03-17","issue":"Stack Overflow","module":"Statement","description":"In Navi - Staging, data is getting updated only after a new date filter is selected Example: If feb data is updated , even when selected filter on Feb - data didn't change When changed date filter to feb-mar then the data reflected This is already raised previously now we are seeing this issue again Also, If a new filter is added in any column only after diagnosis and new run, we are able to see that filter option","occurrences":3},{"date":"2026-03-26","issue":"Statement Loading Continously","module":"Statement","description":"statement in the Navi production instance that isn\u2019t populating any line items, and no errors are being thrown.","occurrences":1},{"date":"2026-03-26","issue":"Value Mismatch","module":"Statement","description":"When a line item is pulled from one statement to other statement value it's showing different value Example: In PL statement value is 70 when pulled to other statement its 68","occurrences":5},{"date":"2026-03-26","issue":"nats time error","module":"Statement","description":"a) In a statement, YTD is enabled and worked fine, after adding a new line item its throwing as nats time out. after doing a new run again numbers are displayed but everything is just 0 - after Reverse is disabled it worked - need to raise a ticket on this asking - expecting statements to not throw error when reverse and YTD enabled.  (b) We are getting nats:timeout error for a statement even though there is no YTD enabled.","occurrences":8},{"date":"2026-03-26","issue":"Pipelines are getting failed","module":"Pipeline","description":"When pipelines are ran by client its failing(all the sources and exports are shared) this is happening for few of the pipelines.","occurrences":1},{"date":"2026-03-26","issue":"Access Issue","module":"Statement & Portals","description":"the user is not able to access statements from portal links in production env after deployment","occurrences":1},{"date":"2026-04-01","issue":"Unable to add filters","module":"Statement","description":"Unable to add filters after pulling new metric line in statement","occurrences":1},{"date":"2026-04-03","issue":"Formula line errors in Statments","module":"Statement","description":"When  tried to add a formula line of one section to another formula line of other section in a statement, it is throwing an error","occurrences":1},{"date":"2026-04-03","issue":"New Run","module":"Statement","description":"in a statement in Navi prod instance iam unable to do a new run even when I'm clicking on the new run option the run is changing its status from scheduled to outdated and is not succeeding","occurrences":2},{"date":"2026-04-03","issue":"Publish","module":"Statement","description":"We are getting Stack Overflow Error while publishing a statement","occurrences":5},{"date":"2026-04-06","issue":"Unable to pull line item from one statement to another staement","module":"Statement","description":"Unable to pull line item from one statement to another statement by its name","occurrences":1},{"date":"2026-04-08","issue":"Incorrect format of the value","module":"Statement","description":"In Variance Percentage column of Statement, instead of percentage showing full number, for few of the line","occurrences":1},{"date":"2026-04-08","issue":"New Run","module":"Statement","description":"Automatic new run is not triggered in other view of the statement, while in default view it's Triggered","occurrences":1},{"date":"2026-04-14","issue":"Irrespective of schema Databox is getting succeeded","module":"Databox","description":"In one of the databox while uploading files it's getting uploaded irrespective of schema","occurrences":6},{"date":"2026-04-14","issue":"SFTP Connection","module":"SFTP","description":"While creating SFTP connection, it's throwing as SFTP connection test failed","occurrences":1},{"date":"2026-04-15","issue":"Adding new line","module":"Statement","description":"On adding new line item in statement it is taking too longer to load","occurrences":2},{"date":"2026-04-17","issue":"SFTP Connection","module":"Workflow","description":"In workflow, Process SFTP action is failing","occurrences":1},{"date":"2026-04-20","issue":"Databox is taking longer time to load","module":"Databox","description":"when I'm creating a databox and trying to set schema its loading continuously and im unable to see available columns","occurrences":1},{"date":"2026-04-27","issue":"Unable to update formula in Workbook - intermittent issue","module":"Workbook","description":"When updating a formula of a column in workbook, on clicking enter workbook throwing an error unable to update formula","occurrences":1},{"date":"2026-05-07","issue":"Taking longer time to run an export","module":"Export","description":"Statements Export ran more than hour and failed this is in Production environment","occurrences":3},{"date":"2026-05-07","issue":"Stack over flow","module":"Statement","description":"Unable to add filetrs, new lines and to apply percentages, Unable to edit formula line, Filter icon is invisible in view statement and facing a new run/retry error in one of the statement in production .","occurrences":4},{"date":"2026-05-08","issue":"Taking longer time than ususal - OOM error msg","module":"Statement","description":"Statements are loading for a long time and databox is in schedule state from a long time","occurrences":6},{"date":"2026-05-08","issue":"Stack overflow","module":"Statement","description":"facing stack over flow Error on publishing statement in staging","occurrences":4},{"date":"2026-05-12","issue":"Unable to select drilldowns to the formula lines","module":"Statement","description":"In statements I am unable to select drilldowns to the formula lines.","occurrences":2},{"date":"2026-05-14","issue":"Export is getting Partially succeded","module":"Export","description":"Export is getting partially succeeded \u2014 a few statements got succeeded while the same statements partially succeseded in the next run. This is happening more frequently, even after saving and publishing the statements.","occurrences":3},{"date":"2026-05-25","issue":"invalid_request","module":"Workflow","description":"We are getting invalid_request on Authenticating Email in Email connections","occurrences":1},{"date":"2026-05-25","issue":"Export is getting failed without any error","module":"Export","description":"I\u2019m facing an issue while exporting a statement. The export status is showing as \u201cFailed,\u201d but I\u2019m unable to find any error message related to it.","occurrences":1},{"date":"2026-05-25","issue":"Unable to open anythig on prod","module":"Nvi prod env","description":"we are unable to run workflows , unable to open statements in navi production env ,when i tried to open in new tab its showing : might be temporarily down or may have moved to new web address","occurrences":2},{"date":"2026-05-26","issue":"Assertion Error","module":"Statement","description":"I\u2019m facing an issue while uploading scenarios in Statements under Plan vs Actuals. When I try to upload a scenario, it throws an assertion error, even though the data is already in numeric format.","occurrences":1},{"date":"2026-05-27","issue":"Production environment is inaccessible","module":"NAVI Prod env","description":"On opening Production Environment we are getting \"This site can't be reached ,The web page might be temporarily down or it may have moved permanently to a new web address\"","occurrences":1},{"date":"2026-05-29","issue":"YTD, Remarks & Variance are not getting displayed","module":"Statement","description":"On publishing the statement after anabling YTD ,Remarks and Variance they are getting unselected (I.e unable to view YTD,Remarks and Variance columns)","occurrences":1},{"date":"2026-06-02","issue":"Unable to see all line items in Statement","module":"Statement","description":"On making a new run in a statement, it is Just showing few line items Example: Total no of lines in a statement:60 but only 40 line items being show and am unable to see rest 20 line items.","occurrences":1},{"date":"2026-06-03","issue":"Run export excel action","module":"Export","description":"Issue: I am exporting statements through a workflow using the Run Export Excel action. The workflow contains a form where users provide start_date and end_date, allowing the export to run for the selected time period. I have completed the necessary configuration to pick the start and end dates from the form. However, the export has been stuck in the Running state for a long time and is not completing successfully. To rule out any issues with the date parameters, I removed the start_date and end_date configuration and triggered the export using the default configuration. However, I am still seeing the same behavior, with the export remaining in the Running state and not completing.","occurrences":1}],"ProHance":[{"date":"2025-10-11","issue":"Updated Records Not Reflecting  Due to Deduplication","module":"App Connections","description":"Updates made to existing records in QuickBooks/Zoho Books were not reflected in Prohance. \nDue to the deduplication logic during synchronization, modified records were skipped, causing outdated values to be displayed.","occurrences":2},{"date":"2025-10-13","issue":"403 Error During Login in Prohance Environment","module":"Client error","description":"Users are encountering a 403 (Forbidden) error while attempting to log in to the Prohance environment, \npreventing access to the application","occurrences":1},{"date":"2026-01-15","issue":"Workbook Data Not Loading (Nats issue)","module":"Workbook","description":"Workbook data is not loading in the Prohance application, \npreventing users from viewing or accessing the required workbook information","occurrences":2},{"date":"2026-01-20","issue":"Currency Change Error in KPI Portal","module":"Portal","description":"While changing the currency for KPIs in the portal, \nusers are encountering the error: \u201cWrong type. \u2018dict\u2019 object has no attribute \u2018upper\u2019","occurrences":1},{"date":"2026-03-02","issue":"Workbook Data Import Failure","module":"Workbook","description":"Workbook data is not importing successfully,\npreventing users from loading and accessing the required workbook information","occurrences":1},{"date":"2026-03-02","issue":"Pipeline Source Data Preview Failure","module":"Pipeline","description":"Pipeline source data is not being previewed,\npreventing users from validating the input data before processing.","occurrences":2},{"date":"2026-03-11","issue":"YTD Calculation Failure Due to Missing Columns","module":"Exchange rates","description":"After applying YTD in Prohance,\nmultiple formula lines fail with \u201ccolumn not found\u201d errors due to incorrect or missing YTD column mapping","occurrences":1},{"date":"2026-03-24","issue":"Portal Save Failure","module":"Portal","description":"saving the portal,an error occurs: \u201cCannot read properties of null \ncausing the save operation to fail.","occurrences":1},{"date":"2026-03-17","issue":"Incorrect Currency Symbol Display in Metrics Configuration","module":"Metric","description":"When selecting number format in metrics configuration,\nthe value is not reflecting correctly and is showing the \u201c$\u201d symbol instead of a numeric format.","occurrences":1},{"date":"2026-04-03","issue":"Empty Export File from Workbook","module":"Export","description":"The downloaded export file is empty even though data is present in the workbook, \nresulting in missing output during export","occurrences":1},{"date":"2026-05-21","issue":"Filters Not Updating in Statements View","module":"Statements","description":"Filters are not updating in the Statements view when applying filters,\nresulting in no change in the displayed data.","occurrences":1},{"date":"2026-06-03","issue":"Incorrect Exchange Rate Mapping in Dataset","module":"Exchange rates","description":"The dataset is not using the exchange rates from the exchange rates sheet. \nInstead,it is applying incorrect currency rates leading to inaccurate calculations","occurrences":1}]};
+
+      // ── Compute metrics ──
+      let totalIssues=0, totalOcc=0, modules={}, monthly={}, issueMap={}, clientCounts={};
+      const now = new Date();
+      const thisMonth = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+      let thisMonthCount = 0;
+
+      Object.keys(IT_DATA).forEach(client => {
+        const rows = IT_DATA[client];
+        clientCounts[client] = rows.length;
+        totalIssues += rows.length;
+        rows.forEach(r => {
+          const occ = r.occurrences || 1;
+          totalOcc += occ;
+          const mod = r.module || 'Other';
+          modules[mod] = (modules[mod]||0) + 1;
+          const m = (r.date||'').slice(0,7);
+          if(m) monthly[m] = (monthly[m]||0) + 1;
+          if(m === thisMonth) thisMonthCount++;
+          const key = r.issue;
+          if(key) issueMap[key] = (issueMap[key]||0) + occ;
+        });
+      });
+
+      const sortedModules = Object.entries(modules).sort((a,b)=>b[1]-a[1]);
+      const topModule = sortedModules[0]?sortedModules[0][0]:'—';
+      const topIssue = Object.entries(issueMap).sort((a,b)=>b[1]-a[1])[0];
+      const topIssueName = topIssue ? topIssue[0] : '—';
+
+      // ── KPIs ──
+      document.getElementById('itKpis').innerHTML = [
+        {v:totalIssues,l:'Total Issues',c:'#60a5fa'},
+        {v:totalOcc,l:'Total Occurrences',c:'#f59e0b'},
+        {v:Object.keys(IT_DATA).length,l:'Clients Impacted',c:'#14b8a6'},
+        {v:topModule,l:'Most Affected Module',c:'#f87171',small:true},
+        {v:topIssueName.slice(0,22)+(topIssueName.length>22?'…':''),l:'Most Repeated Issue',c:'#a78bfa',small:true},
+        {v:thisMonthCount,l:'Issues This Month',c:'#34d399'},
+      ].map(k=>`<div class="it-kpi"><div class="it-kpi-val" style="color:${k.c};${k.small?'font-size:15px;':''}text-transform:none;">${k.v}</div><div class="it-kpi-lbl">${k.l}</div></div>`).join('');
+
+      // ── Issues by Client ──
+      const maxClient = Math.max(...Object.values(clientCounts));
+      const clientColors = {'GIVA':'#14b8a6','Navi':'#60a5fa','ProHance':'#f59e0b'};
+      document.getElementById('itChartClient').innerHTML = Object.entries(clientCounts).map(([c,v])=>{
+        const pct = Math.round(v/maxClient*100);
+        const col = clientColors[c]||'#60a5fa';
+        return `<div class="it-bar-row"><div class="it-bar-label">${c}</div><div class="it-bar-track"><div class="it-bar-fill" style="width:${pct}%;background:${col};">${v}</div></div></div>`;
+      }).join('');
+
+      // ── Issues by Module ──
+      const maxMod = sortedModules[0]?sortedModules[0][1]:1;
+      document.getElementById('itChartModule').innerHTML = sortedModules.slice(0,8).map(([m,v])=>{
+        const pct = Math.round(v/maxMod*100);
+        return `<div class="it-bar-row"><div class="it-bar-label" style="min-width:100px;">${m}</div><div class="it-bar-track"><div class="it-bar-fill" style="width:${pct}%;background:rgba(96,165,250,.7);">${v}</div></div></div>`;
+      }).join('');
+
+      // ── Monthly Trend ──
+      const months = Object.keys(monthly).sort();
+      const maxMonth = Math.max(...Object.values(monthly));
+      const sparkEl = document.getElementById('itSparkline');
+      const lblEl = document.getElementById('itSparkLabels');
+      months.forEach(m=>{
+        const v = monthly[m];
+        const pct = Math.round(v/maxMonth*100);
+        const bar = document.createElement('div');
+        bar.className = 'it-spark-bar';
+        bar.style.height = '0%';
+        bar.style.background = v>=15?'rgba(248,113,113,.7)':v>=8?'rgba(251,191,36,.7)':'rgba(96,165,250,.6)';
+        bar.title = m+': '+v+' issues';
+        setTimeout(()=>{bar.style.height=pct+'%';},300);
+        sparkEl.appendChild(bar);
+        const lbl = document.createElement('div');
+        lbl.className = 'it-spark-lbl';
+        lbl.style.flex = '1';
+        lbl.style.minWidth = '20px';
+        lbl.textContent = m.slice(5);
+        lblEl.appendChild(lbl);
+      });
+
+      // ── Top Recurring Issues ──
+      const topIssues = Object.entries(issueMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      document.getElementById('itTopIssues').innerHTML = '<thead><tr><th>#</th><th>Issue</th><th>Occurrences</th></tr></thead><tbody>'
+        + topIssues.map(([name,occ],i)=>`<tr><td style="color:rgba(255,255,255,.25);">${i+1}</td><td>${name}</td><td class="it-occ" style="color:${occ>=5?'#f87171':occ>=3?'#fbbf24':'rgba(255,255,255,.5)'};">${occ}</td></tr>`).join('')
+        + '</tbody>';
+
+      // ── Weekly Review ──
+      const wrPoints = [
+        {dot:'#f87171',text:'<strong>Statement module</strong> accounts for '+modules['Statement']+' issues — highest across all modules. Needs platform team prioritization.'},
+        {dot:'#60a5fa',text:'<strong>Navi</strong> has the most issues ('+clientCounts['Navi']+') — review if platform stability is impacting this implementation.'},
+        {dot:'#fbbf24',text:'<strong>"nats time error"</strong> has occurred '+(issueMap['nats time error']||0)+' times — a recurring infrastructure issue requiring root cause analysis.'},
+        {dot:'#14b8a6',text:'<strong>Pipeline issues</strong> appear across multiple clients — may indicate a systemic platform problem.'},
+        {dot:'#a78bfa',text:'<strong>'+thisMonthCount+'</strong> new issues logged this month — '+(thisMonthCount>10?'elevated':'normal')+' volume. Track trend weekly.'},
+      ];
+      document.getElementById('itWeeklyReview').innerHTML = wrPoints.map(p=>`<div class="it-wr-item"><div class="it-wr-dot" style="background:${p.dot};"></div><div style="font-size:13px;color:rgba(255,255,255,.6);line-height:1.6;">${p.text}</div></div>`).join('');
+
+      // ── Client Drill-Down ──
+      let activeClient = Object.keys(IT_DATA)[0];
+      const tabsEl = document.getElementById('itClientTabs');
+      Object.keys(IT_DATA).forEach(c => {
+        const btn = document.createElement('button');
+        btn.className = 'it-tab' + (c===activeClient?' active':'');
+        btn.textContent = c + ' ('+IT_DATA[c].length+')';
+        btn.onclick = ()=>{ activeClient=c; document.querySelectorAll('.it-tab').forEach(t=>t.classList.remove('active')); btn.classList.add('active'); itRenderClient(); };
+        tabsEl.appendChild(btn);
+      });
+
+      function itRenderClient(filter) {
+        const rows = IT_DATA[activeClient];
+        const q = (filter||'').toLowerCase();
+        const filtered = q ? rows.filter(r=>(r.issue+r.module+r.description).toLowerCase().includes(q)) : rows;
+        const occ = filtered.reduce((s,r)=>s+(r.occurrences||1),0);
+        const mods = {};
+        filtered.forEach(r=>{const m=r.module||'Other';mods[m]=(mods[m]||0)+1;});
+        const sortedM = Object.entries(mods).sort((a,b)=>b[1]-a[1]);
+        const maxM = sortedM[0]?sortedM[0][1]:1;
+
+        document.getElementById('itClientStats').innerHTML =
+          `<div class="it-kpi" style="flex:1;min-width:120px;"><div class="it-kpi-val" style="color:#60a5fa;">${filtered.length}</div><div class="it-kpi-lbl">Issues</div></div>`+
+          `<div class="it-kpi" style="flex:1;min-width:120px;"><div class="it-kpi-val" style="color:#f59e0b;">${occ}</div><div class="it-kpi-lbl">Occurrences</div></div>`+
+          `<div class="it-kpi" style="flex:1;min-width:120px;"><div class="it-kpi-val" style="color:#14b8a6;">${sortedM.length}</div><div class="it-kpi-lbl">Modules Affected</div></div>`;
+
+        document.getElementById('itClientModules').innerHTML = sortedM.map(([m,v])=>{
+          const pct=Math.round(v/maxM*100);
+          return `<div class="it-bar-row"><div class="it-bar-label" style="min-width:100px;">${m}</div><div class="it-bar-track"><div class="it-bar-fill" style="width:${pct}%;background:rgba(96,165,250,.6);">${v}</div></div></div>`;
+        }).join('');
+
+        document.getElementById('itClientTable').innerHTML =
+          '<thead><tr><th>Date</th><th>Issue</th><th>Module</th><th>Description</th><th>Occ.</th></tr></thead><tbody>'
+          + filtered.map(r=>`<tr><td style="white-space:nowrap;color:rgba(255,255,255,.35);font-family:'DM Mono',monospace;font-size:11px;">${r.date||'—'}</td><td style="font-weight:600;color:#fff;">${r.issue}</td><td><span class="it-mod-badge">${r.module}</span></td><td style="max-width:320px;font-size:12px;color:rgba(255,255,255,.4);line-height:1.5;">${r.description.slice(0,120)}${r.description.length>120?'…':''}</td><td class="it-occ" style="color:${r.occurrences>=3?'#f87171':'rgba(255,255,255,.5)'};">${r.occurrences}</td></tr>`).join('')
+          + '</tbody>';
+      }
+      window.itFilterClient = function(){ itRenderClient(document.getElementById('itClientSearch').value); };
+      itRenderClient();
+
+      // ── Scroll reveal ──
+      const overlay = document.getElementById('liOverlay') || document.body;
+      const obs = new IntersectionObserver(entries=>{
+        entries.forEach(e=>{ if(e.isIntersecting){e.target.classList.add('in');obs.unobserve(e.target);} });
+      },{root:overlay,threshold:0.08});
+      document.querySelectorAll('#liPanelIssues .it-reveal').forEach(el=>obs.observe(el));
+    })();
+    </script>
   </div>
 
   <!-- ═══ PROCESS IMPROVEMENT IDEAS — DASHBOARD ═══ -->
