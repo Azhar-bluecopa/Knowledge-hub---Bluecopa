@@ -1166,4 +1166,34 @@ app.delete('/api/leadership/users', async (req, res) => {
   res.json({ success: true, users: db.leadership.approvedUsers });
 });
 
+// ── Rocketlane proxy — API key stays server-side ──────────────────────────────
+let rlCache = null;
+let rlCacheAt = 0;
+const RL_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+app.get('/api/rocketlane/projects', async (req, res) => {
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) {
+    return res.status(503).json({ error: 'not_configured', message: 'ROCKETLANE_API_KEY environment variable not set. Add it in Vercel → Project → Environment Variables.' });
+  }
+  const now = Date.now();
+  if (rlCache && !req.query.refresh && (now - rlCacheAt) < RL_CACHE_TTL) {
+    return res.json({ ...rlCache, cached: true, cacheAge: Math.round((now - rlCacheAt) / 1000) });
+  }
+  try {
+    const resp = await fetch('https://api.rocketlane.com/api/1.0/projects?limit=100', {
+      headers: { 'api-key': apiKey, 'Accept': 'application/json', 'Content-Type': 'application/json' }
+    });
+    const text = await resp.text();
+    let data;
+    try { data = JSON.parse(text); } catch { return res.status(502).json({ error: 'invalid_json', message: text.slice(0, 300) }); }
+    if (!resp.ok) return res.status(resp.status).json({ error: 'api_error', status: resp.status, message: data?.message || text.slice(0, 300) });
+    rlCache = data;
+    rlCacheAt = now;
+    res.json({ ...data, cached: false, fetchedAt: now });
+  } catch (e) {
+    res.status(500).json({ error: 'fetch_failed', message: e.message });
+  }
+});
+
 module.exports = app;

@@ -7163,7 +7163,7 @@ function liHide() {
 }
 
 function liShowPanel(panel) {
-  ['landing','issues','ideas','esw','denied'].forEach(p => {
+  ['landing','issues','ideas','esw','denied','rocketlane'].forEach(p => {
     const el = document.getElementById(`liPanel${p.charAt(0).toUpperCase()+p.slice(1)}`);
     if (el) el.style.display = p === panel ? 'block' : 'none';
   });
@@ -7171,7 +7171,7 @@ function liShowPanel(panel) {
   const overlay = document.getElementById('liOverlay');
   if (overlay) overlay.scrollTop = 0;
   // Track sub-page
-  const titles = {landing:'Leadership Insights',issues:'Issue Tracker',ideas:'Process Improvement Ideas',esw:'EWS — Early Warning System',denied:'Access Denied'};
+  const titles = {landing:'Leadership Insights',issues:'Issue Tracker',ideas:'Process Improvement Ideas',esw:'EWS — Early Warning System',denied:'Access Denied',rocketlane:'Rocketlane Dashboard'};
   if (typeof auditTrackPage === 'function' && panel !== 'denied') auditTrackPage(`leadership_${panel}`, titles[panel] || panel);
   // Trigger animations after a brief delay
   if (panel === 'ideas' || panel === 'esw') {
@@ -7186,7 +7186,145 @@ function liShowPanel(panel) {
       });
     }, 80);
   }
+  // Rocketlane init
+  if (panel === 'rocketlane') setTimeout(() => liInitRocketlane(), 100);
 }
+
+// ── Rocketlane Dashboard ──────────────────────────────────────────────────────
+let rlProjectsData = [];
+let rlCurrentFilter = 'all';
+
+async function liInitRocketlane(forceRefresh) {
+  const content = document.getElementById('rlContent');
+  const lastFetched = document.getElementById('rlLastFetched');
+  const refreshIcon = document.getElementById('rlRefreshIcon');
+  if (!content) return;
+  content.innerHTML = '<div class="rl-loader"><div class="rl-spin"></div><div style="font-size:13px;color:rgba(255,255,255,.3);">Fetching projects from Rocketlane…</div></div>';
+  if (refreshIcon) { refreshIcon.style.animation = 'rlSpin .7s linear infinite'; refreshIcon.style.display = 'inline-block'; }
+  try {
+    const resp = await fetch(forceRefresh ? '/api/rocketlane/projects?refresh=1' : '/api/rocketlane/projects');
+    const json = await resp.json();
+    if (resp.status === 503 && json.error === 'not_configured') {
+      content.innerHTML = `<div class="rl-setup">
+        <div style="font-size:44px;margin-bottom:16px;">🔗</div>
+        <div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:8px;">Connect Rocketlane</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.45);line-height:1.7;">Add your Rocketlane API key to enable live project syncing. The key is stored securely as a server-side environment variable.</div>
+        <div class="rl-setup-steps">
+          <div style="color:rgba(255,255,255,.25);margin-bottom:4px;"># How to connect</div>
+          <div>1. Rocketlane → <span style="color:rgba(251,146,60,.8);">Settings → API Keys</span> → Create key (Read access)</div>
+          <div>2. Vercel Dashboard → Project → <span style="color:rgba(134,239,172,.8);">Environment Variables</span></div>
+          <div>3. Add: <span style="color:rgba(147,197,253,.9);">ROCKETLANE_API_KEY</span> = &lt;your-key&gt;</div>
+          <div>4. Redeploy → click <span style="color:rgba(251,191,36,.8);">Refresh</span> above</div>
+        </div>
+        <button onclick="liInitRocketlane(true)" style="background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.3);color:rgba(251,191,36,.9);border-radius:8px;padding:10px 22px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">↻ Try Again</button>
+      </div>`;
+      return;
+    }
+    if (!resp.ok) throw new Error(json.message || `HTTP ${resp.status}`);
+    // Normalize various possible Rocketlane API response shapes
+    let raw = [];
+    if (Array.isArray(json)) raw = json;
+    else if (json.data && Array.isArray(json.data)) raw = json.data;
+    else if (json.data && Array.isArray(json.data.projects)) raw = json.data.projects;
+    else if (json.projects) raw = json.projects;
+    else { const v = Object.values(json.data || json); const a = v.find(x => Array.isArray(x)); if (a) raw = a; }
+    rlProjectsData = raw.map(p => ({
+      id: p.projectId || p.id,
+      name: p.projectName || p.name || 'Unnamed Project',
+      status: rlNormStatus(p.status || p.projectStatus || ''),
+      phase: rlGetPhase(p),
+      progress: rlGetProgress(p),
+      dueDate: p.dueDate || p.endDate || p.expectedEndDate || '',
+      customer: (p.customer && p.customer.name) || p.clientName || (p.account && p.account.name) || '',
+    }));
+    rlUpdateKpis();
+    rlCurrentFilter = 'all';
+    rlRenderTable();
+    if (lastFetched) { const n = new Date(); lastFetched.textContent = `Updated ${n.getHours().toString().padStart(2,'0')}:${n.getMinutes().toString().padStart(2,'0')}`; }
+  } catch(e) {
+    content.innerHTML = `<div class="rl-loader"><div style="font-size:36px;opacity:.5;">⚠️</div><div style="font-size:15px;font-weight:700;color:#fff;">Failed to load projects</div><div style="font-size:13px;color:rgba(255,255,255,.4);max-width:380px;text-align:center;">${e.message}</div><button onclick="liInitRocketlane(true)" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);border-radius:8px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">↻ Retry</button></div>`;
+  } finally {
+    if (refreshIcon) { refreshIcon.style.animation = ''; }
+  }
+}
+
+function rlNormStatus(s) {
+  const m = {'IN_PROGRESS':'inprogress','In progress':'inprogress','in_progress':'inprogress','BLOCKED':'blocked','Blocked':'blocked','COMPLETED':'completed','Completed':'completed','ON_HOLD':'onhold','On Hold':'onhold','on_hold':'onhold','PROPOSED':'proposed','Proposed':'proposed','IN_PLANNING':'inplanning','In Planning':'inplanning','in_planning':'inplanning'};
+  return m[s] || s.toLowerCase().replace(/[^a-z]/g,'') || 'unknown';
+}
+function rlStatusLabel(s) { return {'inprogress':'In Progress','blocked':'Blocked','completed':'Completed','onhold':'On Hold','proposed':'Proposed','inplanning':'In Planning'}[s] || s; }
+function rlGetPhase(p) {
+  if (p.currentPhase) return typeof p.currentPhase === 'string' ? p.currentPhase : (p.currentPhase.name || '');
+  if (p.currentPhases && p.currentPhases.length) return Array.isArray(p.currentPhases) ? p.currentPhases[0] : p.currentPhases;
+  if (p.phases && p.phases.length) { const a = p.phases.find(ph => ph.status==='IN_PROGRESS'||ph.isActive); return a ? (a.name||a.phaseName||'') : ''; }
+  return '';
+}
+function rlGetProgress(p) {
+  if (typeof p.progress === 'number') return p.progress;
+  if (typeof p.completionPercentage === 'number') return p.completionPercentage;
+  if ((p.status||'').toString().includes('COMPLET')) return 100;
+  return null;
+}
+
+function rlUpdateKpis() {
+  const c = {total:0,inprogress:0,blocked:0,completed:0,onhold:0,proposed:0};
+  rlProjectsData.forEach(p => { c.total++; if(c[p.status]!==undefined) c[p.status]++; });
+  const el = document.getElementById('rlKpis');
+  if (!el) return;
+  el.innerHTML = [
+    ['total','#f0f0f6','Total'],['inprogress','rgba(147,197,253,1)','In Progress'],['blocked','rgba(252,165,165,1)','Blocked'],
+    ['completed','rgba(134,239,172,1)','Completed'],['onhold','rgba(209,213,219,1)','On Hold'],['proposed','rgba(253,224,71,1)','Proposed'],
+  ].map(([k,col,lbl]) => `<div class="rl-kpi" onclick="rlSetFilter('${k}')"><div class="rl-kpi-val" style="color:${col};">${c[k]}</div><div class="rl-kpi-lbl">${lbl}</div></div>`).join('');
+}
+
+function rlSetFilter(f) { rlCurrentFilter = (f === rlCurrentFilter) ? 'all' : f; rlRenderTable(); }
+
+function rlRenderTable() {
+  const content = document.getElementById('rlContent');
+  if (!content) return;
+  const filtered = rlCurrentFilter === 'all' ? rlProjectsData : rlProjectsData.filter(p => p.status === rlCurrentFilter);
+  const statusColors = {inprogress:'#3b82f6',blocked:'#ef4444',completed:'#22c55e',onhold:'#9ca3af',proposed:'#a855f7',inplanning:'#eab308'};
+  const statusBg = {inprogress:'rgba(59,130,246,.12)',blocked:'rgba(239,68,68,.12)',completed:'rgba(34,197,94,.12)',onhold:'rgba(107,114,128,.12)',proposed:'rgba(168,85,247,.12)',inplanning:'rgba(234,179,8,.12)'};
+  const statusBorder = {inprogress:'rgba(59,130,246,.28)',blocked:'rgba(239,68,68,.28)',completed:'rgba(34,197,94,.28)',onhold:'rgba(107,114,128,.28)',proposed:'rgba(168,85,247,.28)',inplanning:'rgba(234,179,8,.28)'};
+  const statusText = {inprogress:'rgba(147,197,253,1)',blocked:'rgba(252,165,165,1)',completed:'rgba(134,239,172,1)',onhold:'rgba(209,213,219,1)',proposed:'rgba(216,180,254,1)',inplanning:'rgba(253,224,71,1)'};
+  const iconColors = ['#3b82f6','#8b5cf6','#f59e0b','#10b981','#ef4444','#ec4899','#06b6d4','#f97316'];
+  const iconBg = (name) => { let h=0; for(let i=0;i<name.length;i++) h=(h*31+name.charCodeAt(i))&0xffffffff; return iconColors[Math.abs(h)%iconColors.length]; };
+  const badgeHtml = (s) => `<span class="rl-badge" style="background:${statusBg[s]||'rgba(255,255,255,.06)'};border:1px solid ${statusBorder[s]||'rgba(255,255,255,.1)'};color:${statusText[s]||'rgba(255,255,255,.5)'}"><span class="rl-dot" style="background:${statusColors[s]||'#aaa'};"></span>${rlStatusLabel(s)}</span>`;
+  const progressHtml = (pct) => {
+    if (pct === null || pct === undefined) return '<span style="color:rgba(255,255,255,.2);font-size:12px;font-family:\'DM Mono\',monospace;">—</span>';
+    const col = pct>=80?'#22c55e':pct>=50?'#3b82f6':pct>=20?'#f59e0b':'#ef4444';
+    return `<div style="display:flex;align-items:center;gap:8px;"><div class="rl-prog-wrap"><div class="rl-prog-bar" style="width:${pct}%;background:${col};"></div></div><span style="font-size:11px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.45);">${pct}%</span></div>`;
+  };
+  const fmtDate = (d) => { if(!d) return '<span style="color:rgba(255,255,255,.2);">—</span>'; try{ return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'}); }catch{return d;} };
+  const filterBtns = [['all','All'],['inprogress','In Progress'],['blocked','Blocked'],['onhold','On Hold'],['inplanning','In Planning'],['proposed','Proposed'],['completed','Completed']]
+    .map(([k,l]) => { const cnt = k==='all'?rlProjectsData.length:rlProjectsData.filter(p=>p.status===k).length; return `<button class="rl-filter-btn${rlCurrentFilter===k?' rl-active':''}" onclick="rlSetFilter('${k}')">${l} <span style="opacity:.5;font-size:10px;">${cnt}</span></button>`; }).join('');
+  if (!filtered.length) {
+    content.innerHTML = `<div class="rl-filters">${filterBtns}</div><div class="rl-loader"><div style="font-size:32px;opacity:.25;">📂</div><div style="font-size:13px;color:rgba(255,255,255,.3);">No projects with this status</div></div>`;
+    return;
+  }
+  const rows = filtered.map((p,i) => {
+    const ic = iconBg(p.name); const ini = (p.name||'').split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'?';
+    return `<tr>
+      <td style="color:rgba(255,255,255,.2);font-family:'DM Mono',monospace;font-size:11px;padding-left:20px;">${i+1}</td>
+      <td><div style="display:flex;align-items:center;"><div class="rl-proj-icon" style="background:${ic}22;border:1px solid ${ic}44;color:${ic};">${ini}</div><div><div class="rl-proj-name">${p.name}</div>${p.customer?`<div style="font-size:11px;color:rgba(255,255,255,.28);margin-top:2px;">${p.customer}</div>`:''}</div></div></td>
+      <td>${badgeHtml(p.status)}</td>
+      <td>${p.phase?`<span class="rl-phase-tag" title="${p.phase}">${p.phase}</span>`:'<span style="color:rgba(255,255,255,.18);font-size:11px;">—</span>'}</td>
+      <td>${progressHtml(p.progress)}</td>
+      <td style="font-size:12px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.5);white-space:nowrap;">${fmtDate(p.dueDate)}</td>
+    </tr>`;
+  }).join('');
+  content.innerHTML = `<div class="rl-filters">${filterBtns}</div>
+    <div class="rl-table-wrap">
+      <table class="rl-table">
+        <thead><tr>
+          <th style="width:40px;padding-left:20px;">#</th>
+          <th>Project</th><th>Status</th><th>Current Phase</th><th>Progress</th><th>Due Date</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 function liInitScrollAnimations() {
   const container = document.getElementById('liOverlay');
@@ -7829,17 +7967,22 @@ window.addEventListener('load', () => { setTimeout(liUpdateNavVisibility, 800); 
         <div style="margin-top:20px;display:flex;align-items:center;gap:6px;font-size:12px;font-family:'DM Mono',monospace;color:rgba(94,234,212,.65);">Explore <span style="font-size:14px;">→</span></div>
       </div>
 
-      <!-- Future modules placeholder -->
-      <div style="background:rgba(255,255,255,.02);border:1px dashed rgba(255,255,255,.1);border-radius:18px;padding:32px 28px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:200px;">
-        <div style="font-size:28px;margin-bottom:12px;opacity:.3;">+</div>
-        <div style="font-size:13.5px;font-weight:600;color:rgba(255,255,255,.25);">More modules coming</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.15);margin-top:4px;">Future leadership insights will appear here</div>
+      <!-- Rocketlane Dashboard -->
+      <div onclick="liShowPanel('rocketlane')" style="background:linear-gradient(140deg,rgba(120,60,20,.18) 0%,rgba(255,255,255,.03) 100%);border:1px solid rgba(251,146,60,.2);border-radius:18px;padding:32px 28px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;"
+        onmouseover="this.style.borderColor='rgba(251,146,60,.45)';this.style.transform='translateY(-4px)';this.style.boxShadow='0 20px 60px rgba(120,60,20,.25)'"
+        onmouseout="this.style.borderColor='rgba(251,146,60,.2)';this.style.transform='';this.style.boxShadow=''">
+        <div style="position:absolute;top:-20px;right:-20px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(251,146,60,.15),transparent 70%);pointer-events:none;"></div>
+        <div style="width:52px;height:52px;background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.3);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:20px;">🚀</div>
+        <div style="font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(251,191,36,.7);margin-bottom:8px;">Module 03</div>
+        <div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:8px;letter-spacing:-.01em;">Rocketlane Dashboard</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.4);line-height:1.6;">Real-time view of all active delivery projects. Track status, phases, and progress across every client engagement.</div>
+        <div style="margin-top:20px;display:flex;align-items:center;gap:6px;font-size:12px;font-family:'DM Mono',monospace;color:rgba(251,191,36,.65);">Explore <span style="font-size:14px;">→</span></div>
       </div>
     </div>
 
     <!-- Quick stats bar -->
     <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:20px 28px;display:flex;gap:0;">
-      <div style="flex:1;text-align:center;position:relative;"><div style="font-size:22px;font-weight:800;color:#fff;">2</div><div style="font-size:10px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-top:4px;">Active Modules</div></div>
+      <div style="flex:1;text-align:center;position:relative;"><div style="font-size:22px;font-weight:800;color:#fff;">3</div><div style="font-size:10px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-top:4px;">Active Modules</div></div>
       <div style="width:1px;background:rgba(255,255,255,.07);"></div>
       <div style="flex:1;text-align:center;"><div style="font-size:22px;font-weight:800;color:rgba(201,162,39,.8);">Executive</div><div style="font-size:10px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-top:4px;">Access Level</div></div>
       <div style="width:1px;background:rgba(255,255,255,.07);"></div>
@@ -9045,6 +9188,85 @@ window.addEventListener('load', () => { setTimeout(liUpdateNavVisibility, 800); 
     })();
   </script>
 </div><!-- /liPanelEsw -->
+
+  <!-- ═══ ROCKETLANE DASHBOARD ═══ -->
+  <div id="liPanelRocketlane" style="display:none;position:relative;z-index:1;padding:40px 40px 80px;">
+    <style>
+      .rl-back{background:transparent;border:none;color:rgba(255,255,255,.4);font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;display:flex;align-items:center;gap:5px;padding:0;letter-spacing:.1em;text-transform:uppercase;transition:color .2s;}
+      .rl-back:hover{color:rgba(255,255,255,.7);}
+      .rl-label{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:rgba(251,146,60,.6);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+      .rl-label::before{content:'';width:16px;height:1px;background:rgba(251,146,60,.4);}
+      .rl-h2{font-size:clamp(22px,3vw,32px);font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:6px;}
+      .rl-sub{font-size:13.5px;color:rgba(255,255,255,.38);line-height:1.6;max-width:540px;}
+      .rl-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:28px;}
+      @media(max-width:900px){.rl-kpis{grid-template-columns:repeat(3,1fr);}}
+      .rl-kpi{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px 16px;transition:all .2s;cursor:pointer;}
+      .rl-kpi:hover{border-color:rgba(255,255,255,.18);transform:translateY(-1px);}
+      .rl-kpi-val{font-size:26px;font-weight:900;line-height:1;letter-spacing:-.02em;margin-bottom:6px;}
+      .rl-kpi-lbl{font-size:9.5px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);}
+      .rl-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+      .rl-filter-btn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:8px;padding:7px 13px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .15s;}
+      .rl-filter-btn:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);}
+      .rl-filter-btn.rl-active{background:rgba(251,146,60,.12);border-color:rgba(251,146,60,.4);color:rgba(251,191,36,.9);}
+      .rl-table-wrap{border-radius:14px;border:1px solid rgba(255,255,255,.06);overflow:hidden;}
+      .rl-table{width:100%;border-collapse:collapse;font-size:13px;}
+      .rl-table th{text-align:left;padding:12px 16px;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);border-bottom:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);white-space:nowrap;}
+      .rl-table td{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+      .rl-table tr:last-child td{border-bottom:none;}
+      .rl-table tbody tr:hover td{background:rgba(255,255,255,.025);}
+      .rl-proj-name{font-weight:600;color:#fff;font-size:13px;line-height:1.3;}
+      .rl-proj-icon{width:30px;height:30px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;margin-right:10px;flex-shrink:0;}
+      .rl-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:6px;font-size:11px;font-family:'DM Mono',monospace;font-weight:600;white-space:nowrap;}
+      .rl-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+      .rl-prog-wrap{width:90px;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;}
+      .rl-prog-bar{height:100%;border-radius:3px;}
+      .rl-phase-tag{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:2px 7px;font-size:11px;color:rgba(255,255,255,.5);white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:middle;}
+      .rl-loader{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;gap:16px;}
+      .rl-spin{width:28px;height:28px;border:3px solid rgba(255,255,255,.08);border-top-color:rgba(251,146,60,.7);border-radius:50%;animation:rlSpin .7s linear infinite;}
+      @keyframes rlSpin{to{transform:rotate(360deg);}}
+      .rl-setup{background:rgba(251,146,60,.04);border:1px solid rgba(251,146,60,.15);border-radius:16px;padding:48px 40px;max-width:580px;margin:0 auto;text-align:center;}
+      .rl-setup-steps{text-align:left;background:rgba(0,0,0,.25);border-radius:10px;padding:16px 20px;font-family:'DM Mono',monospace;font-size:11.5px;color:rgba(255,255,255,.55);margin:20px 0;line-height:2.2;}
+    </style>
+
+    <div style="max-width:1100px;margin:0 auto;">
+      <!-- Back -->
+      <button class="rl-back" onclick="liShowPanel('landing')" style="margin-bottom:32px;">← Leadership Insights</button>
+
+      <!-- Header -->
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px;">
+        <div>
+          <div class="rl-label">Module 03</div>
+          <div class="rl-h2">Rocketlane Dashboard</div>
+          <div class="rl-sub">Real-time project status across all active delivery engagements.</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span id="rlLastFetched" style="font-size:11px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.22);"></span>
+          <button onclick="liInitRocketlane(true)" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);border-radius:8px;padding:8px 14px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;"
+            onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">
+            <span id="rlRefreshIcon" style="font-size:14px;display:inline-block;">↻</span> Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI bar -->
+      <div class="rl-kpis" id="rlKpis">
+        <div class="rl-kpi"><div class="rl-kpi-val" style="color:#f0f0f6;">—</div><div class="rl-kpi-lbl">Total</div></div>
+        <div class="rl-kpi"><div class="rl-kpi-val" style="color:rgba(147,197,253,1);">—</div><div class="rl-kpi-lbl">In Progress</div></div>
+        <div class="rl-kpi"><div class="rl-kpi-val" style="color:rgba(252,165,165,1);">—</div><div class="rl-kpi-lbl">Blocked</div></div>
+        <div class="rl-kpi"><div class="rl-kpi-val" style="color:rgba(134,239,172,1);">—</div><div class="rl-kpi-lbl">Completed</div></div>
+        <div class="rl-kpi"><div class="rl-kpi-val" style="color:rgba(209,213,219,1);">—</div><div class="rl-kpi-lbl">On Hold</div></div>
+        <div class="rl-kpi"><div class="rl-kpi-val" style="color:rgba(253,224,71,1);">—</div><div class="rl-kpi-lbl">Proposed</div></div>
+      </div>
+
+      <!-- Dynamic content -->
+      <div style="margin-top:32px;" id="rlContent">
+        <div class="rl-loader">
+          <div class="rl-spin"></div>
+          <div style="font-size:13px;color:rgba(255,255,255,.3);">Connecting to Rocketlane…</div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /liPanelRocketlane -->
 
   <!-- Access Denied screen -->
   <div id="liPanelDenied" style="display:none;position:relative;z-index:1;max-width:600px;margin:120px auto;padding:0 40px;text-align:center;">
