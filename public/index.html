@@ -7235,7 +7235,7 @@ async function liInitRocketlane(forceRefresh) {
       phase: rlGetPhase(p),
       progress: rlGetProgress(p),
       dueDate: p.dueDate || p.endDate || p.expectedEndDate || '',
-      customer: (p.customer && p.customer.name) || p.clientName || (p.account && p.account.name) || '',
+      customer: (p.customer && (p.customer.companyName || p.customer.name)) || p.clientName || (p.account && p.account.name) || '',
     }));
     rlUpdateKpis();
     rlCurrentFilter = 'all';
@@ -7249,8 +7249,10 @@ async function liInitRocketlane(forceRefresh) {
 }
 
 function rlNormStatus(s) {
+  // Rocketlane API returns status as {value: 2, label: "In progress"}
+  const str = (s && typeof s === 'object') ? (s.label || s.name || String(s.value || '')) : String(s || '');
   const m = {'IN_PROGRESS':'inprogress','In progress':'inprogress','in_progress':'inprogress','BLOCKED':'blocked','Blocked':'blocked','COMPLETED':'completed','Completed':'completed','ON_HOLD':'onhold','On Hold':'onhold','on_hold':'onhold','PROPOSED':'proposed','Proposed':'proposed','IN_PLANNING':'inplanning','In Planning':'inplanning','in_planning':'inplanning'};
-  return m[s] || s.toLowerCase().replace(/[^a-z]/g,'') || 'unknown';
+  return m[str] || str.toLowerCase().replace(/[^a-z]/g,'') || 'unknown';
 }
 function rlStatusLabel(s) { return {'inprogress':'In Progress','blocked':'Blocked','completed':'Completed','onhold':'On Hold','proposed':'Proposed','inplanning':'In Planning'}[s] || s; }
 function rlGetPhase(p) {
