@@ -1181,7 +1181,7 @@ app.get('/api/rocketlane/projects', async (req, res) => {
     return res.json({ ...rlCache, cached: true, cacheAge: Math.round((now - rlCacheAt) / 1000) });
   }
   try {
-    const resp = await fetch('https://api.rocketlane.com/api/1.0/projects?limit=100', {
+    const resp = await fetch('https://api.rocketlane.com/api/1.0/projects', {
       headers: { 'api-key': apiKey, 'Accept': 'application/json', 'Content-Type': 'application/json' }
     });
     const text = await resp.text();
