@@ -7239,7 +7239,7 @@ async function liInitRocketlane(forceRefresh) {
     }));
     rlUpdateKpis();
     rlCurrentFilter = 'all';
-    rlRenderTable();
+    rlRenderDashboard();
     if (lastFetched) { const n = new Date(); lastFetched.textContent = `Updated ${n.getHours().toString().padStart(2,'0')}:${n.getMinutes().toString().padStart(2,'0')}`; }
   } catch(e) {
     content.innerHTML = `<div class="rl-loader"><div style="font-size:36px;opacity:.5;">⚠️</div><div style="font-size:15px;font-weight:700;color:#fff;">Failed to load projects</div><div style="font-size:13px;color:rgba(255,255,255,.4);max-width:380px;text-align:center;">${e.message}</div><button onclick="liInitRocketlane(true)" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);border-radius:8px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">↻ Retry</button></div>`;
@@ -7279,52 +7279,213 @@ function rlUpdateKpis() {
   ].map(([k,col,lbl]) => `<div class="rl-kpi" onclick="rlSetFilter('${k}')"><div class="rl-kpi-val" style="color:${col};">${c[k]}</div><div class="rl-kpi-lbl">${lbl}</div></div>`).join('');
 }
 
-function rlSetFilter(f) { rlCurrentFilter = (f === rlCurrentFilter) ? 'all' : f; rlRenderTable(); }
+function rlSetFilter(f) { rlCurrentFilter = (f === rlCurrentFilter) ? 'all' : f; rlRefreshTable(); }
 
-function rlRenderTable() {
+// Shared helpers
+const RL_STATUS_COLORS = {inprogress:'#3b82f6',blocked:'#ef4444',completed:'#22c55e',onhold:'#9ca3af',proposed:'#a855f7',inplanning:'#eab308'};
+const RL_STATUS_BG     = {inprogress:'rgba(59,130,246,.12)',blocked:'rgba(239,68,68,.12)',completed:'rgba(34,197,94,.12)',onhold:'rgba(107,114,128,.12)',proposed:'rgba(168,85,247,.12)',inplanning:'rgba(234,179,8,.12)'};
+const RL_STATUS_BORDER = {inprogress:'rgba(59,130,246,.28)',blocked:'rgba(239,68,68,.28)',completed:'rgba(34,197,94,.28)',onhold:'rgba(107,114,128,.28)',proposed:'rgba(168,85,247,.28)',inplanning:'rgba(234,179,8,.28)'};
+const RL_STATUS_TEXT   = {inprogress:'rgba(147,197,253,1)',blocked:'rgba(252,165,165,1)',completed:'rgba(134,239,172,1)',onhold:'rgba(209,213,219,1)',proposed:'rgba(216,180,254,1)',inplanning:'rgba(253,224,71,1)'};
+const RL_ICON_POOL = ['#3b82f6','#8b5cf6','#f59e0b','#10b981','#ef4444','#ec4899','#06b6d4','#f97316'];
+function rlIconColor(name){let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))&0xffffffff;return RL_ICON_POOL[Math.abs(h)%RL_ICON_POOL.length];}
+function rlBadge(s){return `<span class="rl-badge" style="background:${RL_STATUS_BG[s]||'rgba(255,255,255,.06)'};border:1px solid ${RL_STATUS_BORDER[s]||'rgba(255,255,255,.1)'};color:${RL_STATUS_TEXT[s]||'rgba(255,255,255,.5)'}"><span class="rl-dot" style="background:${RL_STATUS_COLORS[s]||'#aaa'};"></span>${rlStatusLabel(s)}</span>`;}
+function rlFmtDate(d,short){if(!d)return'—';try{const opts=short?{day:'2-digit',month:'short'}:{day:'2-digit',month:'short',year:'2-digit'};return new Date(d).toLocaleDateString('en-GB',opts);}catch{return d;}}
+function rlDaysLeft(d){try{const t=new Date();t.setHours(0,0,0,0);return Math.ceil((new Date(d)-t)/86400000);}catch{return null;}}
+
+function rlRenderDashboard() {
   const content = document.getElementById('rlContent');
   if (!content) return;
-  const filtered = rlCurrentFilter === 'all' ? rlProjectsData : rlProjectsData.filter(p => p.status === rlCurrentFilter);
-  const statusColors = {inprogress:'#3b82f6',blocked:'#ef4444',completed:'#22c55e',onhold:'#9ca3af',proposed:'#a855f7',inplanning:'#eab308'};
-  const statusBg = {inprogress:'rgba(59,130,246,.12)',blocked:'rgba(239,68,68,.12)',completed:'rgba(34,197,94,.12)',onhold:'rgba(107,114,128,.12)',proposed:'rgba(168,85,247,.12)',inplanning:'rgba(234,179,8,.12)'};
-  const statusBorder = {inprogress:'rgba(59,130,246,.28)',blocked:'rgba(239,68,68,.28)',completed:'rgba(34,197,94,.28)',onhold:'rgba(107,114,128,.28)',proposed:'rgba(168,85,247,.28)',inplanning:'rgba(234,179,8,.28)'};
-  const statusText = {inprogress:'rgba(147,197,253,1)',blocked:'rgba(252,165,165,1)',completed:'rgba(134,239,172,1)',onhold:'rgba(209,213,219,1)',proposed:'rgba(216,180,254,1)',inplanning:'rgba(253,224,71,1)'};
-  const iconColors = ['#3b82f6','#8b5cf6','#f59e0b','#10b981','#ef4444','#ec4899','#06b6d4','#f97316'];
-  const iconBg = (name) => { let h=0; for(let i=0;i<name.length;i++) h=(h*31+name.charCodeAt(i))&0xffffffff; return iconColors[Math.abs(h)%iconColors.length]; };
-  const badgeHtml = (s) => `<span class="rl-badge" style="background:${statusBg[s]||'rgba(255,255,255,.06)'};border:1px solid ${statusBorder[s]||'rgba(255,255,255,.1)'};color:${statusText[s]||'rgba(255,255,255,.5)'}"><span class="rl-dot" style="background:${statusColors[s]||'#aaa'};"></span>${rlStatusLabel(s)}</span>`;
-  const progressHtml = (pct) => {
-    if (pct === null || pct === undefined) return '<span style="color:rgba(255,255,255,.2);font-size:12px;font-family:\'DM Mono\',monospace;">—</span>';
-    const col = pct>=80?'#22c55e':pct>=50?'#3b82f6':pct>=20?'#f59e0b':'#ef4444';
-    return `<div style="display:flex;align-items:center;gap:8px;"><div class="rl-prog-wrap"><div class="rl-prog-bar" style="width:${pct}%;background:${col};"></div></div><span style="font-size:11px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.45);">${pct}%</span></div>`;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const total = rlProjectsData.length;
+
+  // Segments
+  const byStatus = (s) => rlProjectsData.filter(p=>p.status===s);
+  const overdue = rlProjectsData.filter(p=>p.status!=='completed'&&p.dueDate&&new Date(p.dueDate)<today);
+  const dueSoon = rlProjectsData.filter(p=>{if(p.status==='completed'||!p.dueDate)return false;const d=rlDaysLeft(p.dueDate);return d!==null&&d>=0&&d<=30;});
+  const blocked = byStatus('blocked');
+  const onHold  = byStatus('onhold');
+  const completed = byStatus('completed');
+
+  // Health score: % of active projects that are healthy
+  const active = rlProjectsData.filter(p=>p.status!=='completed');
+  const problematic = new Set([...blocked,...overdue].map(p=>p.id));
+  const healthPct = active.length ? Math.round(((active.length-problematic.size)/active.length)*100) : 100;
+  const healthColor = healthPct>=75?'#22c55e':healthPct>=50?'#f59e0b':'#ef4444';
+  const healthLabel = healthPct>=75?'Healthy':healthPct>=50?'At Risk':'Critical';
+
+  // SVG health ring
+  const R=52,CX=64,CY=64,circ=2*Math.PI*R,dash=circ*healthPct/100;
+  const healthSvg=`<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="10"/>
+    <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${healthColor}" stroke-width="10"
+      stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}" stroke-dashoffset="${(circ/4).toFixed(1)}" stroke-linecap="round"/>
+    <text x="${CX}" y="${CY-5}" text-anchor="middle" fill="#fff" font-family="DM Sans,sans-serif" font-size="24" font-weight="900">${healthPct}</text>
+    <text x="${CX}" y="${CY+13}" text-anchor="middle" fill="${healthColor}" font-family="DM Mono,monospace" font-size="8" letter-spacing="1.5">${healthLabel.toUpperCase()}</text>
+  </svg>`;
+
+  // Action items
+  const ALEVEL = {
+    critical:{bg:'rgba(239,68,68,.1)',border:'rgba(239,68,68,.25)',text:'rgba(252,165,165,.95)'},
+    warning: {bg:'rgba(245,158,11,.1)',border:'rgba(245,158,11,.25)',text:'rgba(253,224,71,.95)'},
+    info:    {bg:'rgba(59,130,246,.1)',border:'rgba(59,130,246,.25)',text:'rgba(147,197,253,.95)'},
+    success: {bg:'rgba(34,197,94,.1)', border:'rgba(34,197,94,.25)', text:'rgba(134,239,172,.95)'},
   };
-  const fmtDate = (d) => { if(!d) return '<span style="color:rgba(255,255,255,.2);">—</span>'; try{ return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'}); }catch{return d;} };
+  const actions=[];
+  if(blocked.length) actions.push({l:'critical',icon:'🚫',title:`${blocked.length} project${blocked.length>1?'s':''}  blocked`,rec:'Schedule immediate unblocking calls — review dependencies and escalate blockers',names:blocked.map(p=>p.name)});
+  if(overdue.length) actions.push({l:'critical',icon:'⏰',title:`${overdue.length} project${overdue.length>1?'s':''}  overdue`,rec:'Initiate recovery plans and communicate revised timelines to stakeholders',names:overdue.map(p=>p.name)});
+  if(dueSoon.length) actions.push({l:'warning',icon:'📅',title:`${dueSoon.length} project${dueSoon.length>1?'s':''} due in 30 days`,rec:'Verify delivery readiness, confirm client sign-offs, and flag any risks now',names:dueSoon.map(p=>p.name)});
+  if(onHold.length) actions.push({l:'info',icon:'⏸️',title:`${onHold.length} project${onHold.length>1?'s':''} on hold`,rec:'Review continuation status — confirm decision with client and update forecast',names:onHold.map(p=>p.name)});
+  // Per-client risk
+  const clientRisk={};
+  rlProjectsData.forEach(p=>{if(!clientRisk[p.customer])clientRisk[p.customer]={b:0,o:0};if(p.status==='blocked')clientRisk[p.customer].b++;if(overdue.find(x=>x.id===p.id))clientRisk[p.customer].o++;});
+  Object.entries(clientRisk).forEach(([c,r])=>{if(r.b>=2)actions.push({l:'warning',icon:'🏢',title:`${c}: ${r.b} blocked projects`,rec:'Escalate to client senior stakeholders — risk of relationship impact'});});
+  if(!actions.length) actions.push({l:'success',icon:'✅',title:'Portfolio on track',rec:'No immediate action items — all active projects are within schedule'});
+
+  // Client breakdown
+  const clientMap={};
+  rlProjectsData.forEach(p=>{const c=p.customer||'Unknown';if(!clientMap[c])clientMap[c]={t:0,s:{}};clientMap[c].t++;clientMap[c].s[p.status]=(clientMap[c].s[p.status]||0)+1;});
+  const clients=Object.entries(clientMap).sort((a,b)=>b[1].t-a[1].t);
+
+  // Status distribution bar
+  const statusOrder=[['inprogress','In Progress'],['blocked','Blocked'],['completed','Completed'],['onhold','On Hold'],['inplanning','In Planning'],['proposed','Proposed']];
+  const distBar=statusOrder.map(([k])=>{const n=byStatus(k).length;if(!n)return'';return`<div style="flex:${n};background:${RL_STATUS_COLORS[k]};height:100%;cursor:pointer;transition:opacity .2s;" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'" title="${rlStatusLabel(k)}: ${n} (${Math.round(n/total*100)}%)" onclick="rlSetFilter('${k}')"></div>`;}).join('');
+
+  // Upcoming deadlines
+  const upcoming=[...rlProjectsData].filter(p=>p.dueDate&&p.status!=='completed').sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)).slice(0,7);
+
+  content.innerHTML = `
+  <!-- Row 1: Health + Actions + Deadlines -->
+  <div style="display:grid;grid-template-columns:180px 1fr 280px;gap:16px;margin-bottom:16px;align-items:start;">
+
+    <!-- Health Ring -->
+    <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:20px 16px;text-align:center;">
+      <div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:12px;">Portfolio Health</div>
+      ${healthSvg}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:12px;">
+        <div><div style="font-size:16px;font-weight:800;color:rgba(252,165,165,1);">${blocked.length}</div><div style="font-size:8px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.28);">BLOCKED</div></div>
+        <div><div style="font-size:16px;font-weight:800;color:rgba(252,165,165,1);">${overdue.length}</div><div style="font-size:8px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.28);">OVERDUE</div></div>
+        <div><div style="font-size:16px;font-weight:800;color:rgba(253,224,71,1);">${dueSoon.length}</div><div style="font-size:8px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.28);">DUE SOON</div></div>
+      </div>
+    </div>
+
+    <!-- Action Items -->
+    <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:20px;">
+      <div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:12px;">⚡ Action Items for Leadership</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${actions.map(a=>`<div style="background:${ALEVEL[a.l].bg};border:1px solid ${ALEVEL[a.l].border};border-radius:8px;padding:10px 12px;">
+          <div style="font-size:12.5px;font-weight:700;color:${ALEVEL[a.l].text};margin-bottom:3px;">${a.icon} ${a.title}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.45);line-height:1.5;">${a.rec}</div>
+          ${a.names&&a.names.length?`<div style="font-size:10px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.22);margin-top:5px;line-height:1.6;">${a.names.slice(0,3).join(' · ')}${a.names.length>3?' +'+( a.names.length-3)+' more':''}</div>`:''}
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Upcoming Deadlines -->
+    <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:20px;">
+      <div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:12px;">📅 Upcoming Deadlines</div>
+      ${upcoming.map(p=>{
+        const days=rlDaysLeft(p.dueDate);
+        const isOD=days!==null&&days<0;
+        const urgColor=isOD?'rgba(252,165,165,.9)':days<=14?'rgba(253,224,71,.9)':'rgba(255,255,255,.45)';
+        const daysStr=isOD?Math.abs(days)+'d overdue':days===0?'Today':days+'d left';
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);gap:8px;">
+          <div style="min-width:0;">
+            <div style="font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name.length>28?p.name.slice(0,28)+'…':p.name}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">${rlBadge(p.status)}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:11px;font-weight:700;color:${urgColor};font-family:'DM Mono',monospace;">${rlFmtDate(p.dueDate,true)}</div>
+            <div style="font-size:10px;color:${urgColor};opacity:.7;">${daysStr}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+
+  <!-- Row 2: Distribution + Client Portfolio -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+
+    <!-- Status Distribution -->
+    <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:20px;">
+      <div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:14px;">📊 Portfolio Distribution — ${total} Projects</div>
+      <div style="height:10px;border-radius:5px;overflow:hidden;display:flex;gap:2px;margin-bottom:16px;">${distBar}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;">
+        ${statusOrder.map(([k,lbl])=>{const n=byStatus(k).length;if(!n)return'';return`<div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:3px 0;" onclick="rlSetFilter('${k}')">
+          <div style="display:flex;align-items:center;gap:6px;"><div style="width:8px;height:8px;border-radius:2px;background:${RL_STATUS_COLORS[k]};flex-shrink:0;"></div><span style="font-size:12px;color:rgba(255,255,255,.6);">${lbl}</span></div>
+          <span style="font-size:11px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.4);">${n} · ${Math.round(n/total*100)}%</span>
+        </div>`;}).join('')}
+      </div>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:20px;">
+        <div><div style="font-size:18px;font-weight:800;color:rgba(134,239,172,1);">${Math.round(completed.length/total*100)}%</div><div style="font-size:9px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.28);">COMPLETION RATE</div></div>
+        <div><div style="font-size:18px;font-weight:800;color:rgba(252,165,165,1);">${Math.round((blocked.length+overdue.length)/total*100)}%</div><div style="font-size:9px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.28);">AT-RISK RATE</div></div>
+        <div><div style="font-size:18px;font-weight:800;color:rgba(147,197,253,1);">${active.length}</div><div style="font-size:9px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.28);">ACTIVE</div></div>
+      </div>
+    </div>
+
+    <!-- Client Portfolio -->
+    <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:20px;">
+      <div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:14px;">🏢 Client Portfolio Health</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        ${clients.map(([name,d])=>{
+          const b=d.s['blocked']||0;const ip=d.s['inprogress']||0;const c=d.s['completed']||0;const oh=d.s['onhold']||0;const pr=d.s['proposed']||0;const pl=d.s['inplanning']||0;
+          const hasRisk=b>0;const od=overdue.filter(p=>p.customer===name).length;
+          const hInd=b===0&&od===0?'rgba(134,239,172,.7)':b+od>=2?'rgba(252,165,165,.7)':'rgba(253,224,71,.7)';
+          return `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);">
+            <div style="width:6px;height:6px;border-radius:50%;background:${hInd};flex-shrink:0;"></div>
+            <div style="font-size:12px;font-weight:600;color:#fff;min-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name||'Unknown'}</div>
+            <div style="flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;display:flex;gap:1px;">
+              ${ip?`<div style="flex:${ip};background:#3b82f6;"></div>`:''}${b?`<div style="flex:${b};background:#ef4444;"></div>`:''}${c?`<div style="flex:${c};background:#22c55e;"></div>`:''}${oh?`<div style="flex:${oh};background:#9ca3af;"></div>`:''}${pr?`<div style="flex:${pr};background:#a855f7;"></div>`:''}${pl?`<div style="flex:${pl};background:#eab308;"></div>`:''}
+            </div>
+            <div style="font-size:10px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.3);min-width:18px;text-align:right;">${d.t}</div>
+            ${b?`<div style="font-size:9px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.22);border-radius:4px;padding:2px 5px;color:rgba(252,165,165,.8);white-space:nowrap;">${b} blocked</div>`:od?`<div style="font-size:9px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.22);border-radius:4px;padding:2px 5px;color:rgba(253,224,71,.8);white-space:nowrap;">${od} overdue</div>`:'<div style="font-size:9px;color:rgba(134,239,172,.5);">✓ on track</div>'}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Project Table -->
+  <div id="rlTableSection"></div>`;
+
+  rlRefreshTable();
+}
+
+function rlRefreshTable() {
+  const section = document.getElementById('rlTableSection');
+  if (!section) return;
+  const filtered = rlCurrentFilter === 'all' ? rlProjectsData : rlProjectsData.filter(p=>p.status===rlCurrentFilter);
   const filterBtns = [['all','All'],['inprogress','In Progress'],['blocked','Blocked'],['onhold','On Hold'],['inplanning','In Planning'],['proposed','Proposed'],['completed','Completed']]
-    .map(([k,l]) => { const cnt = k==='all'?rlProjectsData.length:rlProjectsData.filter(p=>p.status===k).length; return `<button class="rl-filter-btn${rlCurrentFilter===k?' rl-active':''}" onclick="rlSetFilter('${k}')">${l} <span style="opacity:.5;font-size:10px;">${cnt}</span></button>`; }).join('');
-  if (!filtered.length) {
-    content.innerHTML = `<div class="rl-filters">${filterBtns}</div><div class="rl-loader"><div style="font-size:32px;opacity:.25;">📂</div><div style="font-size:13px;color:rgba(255,255,255,.3);">No projects with this status</div></div>`;
-    return;
-  }
-  const rows = filtered.map((p,i) => {
-    const ic = iconBg(p.name); const ini = (p.name||'').split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'?';
-    return `<tr>
+    .map(([k,l])=>{const n=k==='all'?rlProjectsData.length:rlProjectsData.filter(p=>p.status===k).length;return`<button class="rl-filter-btn${rlCurrentFilter===k?' rl-active':''}" onclick="rlSetFilter('${k}')">${l} <span style="opacity:.5;font-size:10px;">${n}</span></button>`;}).join('');
+  if(!filtered.length){section.innerHTML=`<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:16px 20px;"><div class="rl-filters">${filterBtns}</div><div class="rl-loader"><div style="font-size:28px;opacity:.2;">📂</div><div style="font-size:13px;color:rgba(255,255,255,.3);">No projects with this status</div></div></div>`;return;}
+  const today=new Date();today.setHours(0,0,0,0);
+  const rows=filtered.map((p,i)=>{
+    const ic=rlIconColor(p.name);const ini=(p.name||'').split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'?';
+    const days=p.dueDate?rlDaysLeft(p.dueDate):null;const isOD=days!==null&&days<0&&p.status!=='completed';
+    const dateColor=isOD?'rgba(252,165,165,.9)':days!==null&&days<=14&&p.status!=='completed'?'rgba(253,224,71,.9)':'rgba(255,255,255,.45)';
+    const dateStr=p.dueDate?rlFmtDate(p.dueDate):'<span style="color:rgba(255,255,255,.18);">—</span>';
+    return`<tr>
       <td style="color:rgba(255,255,255,.2);font-family:'DM Mono',monospace;font-size:11px;padding-left:20px;">${i+1}</td>
       <td><div style="display:flex;align-items:center;"><div class="rl-proj-icon" style="background:${ic}22;border:1px solid ${ic}44;color:${ic};">${ini}</div><div><div class="rl-proj-name">${p.name}</div>${p.customer?`<div style="font-size:11px;color:rgba(255,255,255,.28);margin-top:2px;">${p.customer}</div>`:''}</div></div></td>
-      <td>${badgeHtml(p.status)}</td>
+      <td>${rlBadge(p.status)}</td>
       <td>${p.phase?`<span class="rl-phase-tag" title="${p.phase}">${p.phase}</span>`:'<span style="color:rgba(255,255,255,.18);font-size:11px;">—</span>'}</td>
-      <td>${progressHtml(p.progress)}</td>
-      <td style="font-size:12px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.5);white-space:nowrap;">${fmtDate(p.dueDate)}</td>
+      <td style="font-size:12px;font-family:'DM Mono',monospace;color:${dateColor};white-space:nowrap;">${dateStr}${isOD?` <span style="font-size:9px;opacity:.7;">(${Math.abs(days)}d late)</span>`:''}</td>
     </tr>`;
   }).join('');
-  content.innerHTML = `<div class="rl-filters">${filterBtns}</div>
-    <div class="rl-table-wrap">
+  section.innerHTML=`<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:16px;overflow:hidden;">
+    <div style="padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);">📋 All Projects</div>
+      <div class="rl-filters" style="margin-bottom:0;">${filterBtns}</div>
+    </div>
+    <div class="rl-table-wrap" style="border:none;border-radius:0;">
       <table class="rl-table">
         <thead><tr>
           <th style="width:40px;padding-left:20px;">#</th>
-          <th>Project</th><th>Status</th><th>Current Phase</th><th>Progress</th><th>Due Date</th>
+          <th>Project</th><th>Status</th><th>Current Phase</th><th>Due Date</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
-    </div>`;
+    </div>
+  </div>`;
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
