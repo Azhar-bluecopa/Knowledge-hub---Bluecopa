@@ -1375,6 +1375,8 @@ html{scroll-behavior:smooth;}
       .lc-logo:hover{opacity:1;transform:scale(1.1);filter:brightness(1.8) contrast(.95);}
       .lc-logo[alt="Neve Jewels"]{height:52px;max-width:160px;}
       .lc-logo[alt="Giva"]{height:48px;max-width:140px;}
+      .lc-logo[alt="Prohance"]{height:46px;max-width:150px;}
+      .lc-logo[alt="Navi"]{height:46px;max-width:150px;}
 
 .it-section{max-width:1100px;margin:0 auto 48px;}
       .it-label{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:rgba(96,165,250,.6);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
