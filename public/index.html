@@ -5,7 +5,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=3">
+  <link rel="stylesheet" href="/style.css?v=4">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
 </head>
@@ -3614,36 +3614,17 @@ document.addEventListener('keydown',e=>{
 
     <div style="max-width:1100px;margin:0 auto;">
       <!-- Back -->
-      <button class="rl-back" onclick="liShowPanel('landing')" style="margin-bottom:32px;">← Leadership Insights</button>
+      <button class="rl-back" onclick="liShowPanel('landing')" style="margin-bottom:24px;">← Leadership Insights</button>
 
       <!-- Header -->
-      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px;">
-        <div>
-          <div class="rl-label">Module 03</div>
-          <div class="rl-h2">Rocketlane Dashboard</div>
-          <div class="rl-sub">Real-time project status across all active delivery engagements.</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span id="rlLastFetched" style="font-size:11px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.22);"></span>
-          <button onclick="liInitRocketlane(true)" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);border-radius:8px;padding:8px 14px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;"
-            onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">
-            <span id="rlRefreshIcon" style="font-size:14px;display:inline-block;">↻</span> Refresh
-          </button>
-        </div>
+      <div style="margin-bottom:24px;">
+        <div class="rl-label">Module 03</div>
+        <div class="rl-h2">Rocketlane Dashboard</div>
+        <div class="rl-sub">Weekly project connect · Live sync from Rocketlane</div>
       </div>
 
-      <!-- KPI bar -->
-      <div class="rl-kpis" id="rlKpis">
-        <div class="rl-kpi"><div class="rl-kpi-val" style="color:#f0f0f6;">—</div><div class="rl-kpi-lbl">Total</div></div>
-        <div class="rl-kpi"><div class="rl-kpi-val" style="color:rgba(147,197,253,1);">—</div><div class="rl-kpi-lbl">In Progress</div></div>
-        <div class="rl-kpi"><div class="rl-kpi-val" style="color:rgba(252,165,165,1);">—</div><div class="rl-kpi-lbl">Blocked</div></div>
-        <div class="rl-kpi"><div class="rl-kpi-val" style="color:rgba(134,239,172,1);">—</div><div class="rl-kpi-lbl">Completed</div></div>
-        <div class="rl-kpi"><div class="rl-kpi-val" style="color:rgba(209,213,219,1);">—</div><div class="rl-kpi-lbl">On Hold</div></div>
-        <div class="rl-kpi"><div class="rl-kpi-val" style="color:rgba(253,224,71,1);">—</div><div class="rl-kpi-lbl">Proposed</div></div>
-      </div>
-
-      <!-- Dynamic content -->
-      <div style="margin-top:32px;" id="rlContent">
+      <!-- Dynamic content (KPIs, tabs, project list all rendered here) -->
+      <div id="rlContent">
         <div class="rl-loader">
           <div class="rl-spin"></div>
           <div style="font-size:13px;color:rgba(255,255,255,.3);">Connecting to Rocketlane…</div>

@@ -3133,11 +3133,8 @@ let rlCurrentFilter = 'all';
 
 async function liInitRocketlane(forceRefresh) {
   const content = document.getElementById('rlContent');
-  const lastFetched = document.getElementById('rlLastFetched');
-  const refreshIcon = document.getElementById('rlRefreshIcon');
   if (!content) return;
   content.innerHTML = '<div class="rl-loader"><div class="rl-spin"></div><div style="font-size:13px;color:rgba(255,255,255,.3);">Fetching projects from Rocketlane…</div></div>';
-  if (refreshIcon) { refreshIcon.style.animation = 'rlSpin .7s linear infinite'; refreshIcon.style.display = 'inline-block'; }
   try {
     const resp = await fetch(forceRefresh ? '/api/rocketlane/projects?refresh=1' : '/api/rocketlane/projects');
     const json = await resp.json();
@@ -3151,14 +3148,13 @@ async function liInitRocketlane(forceRefresh) {
           <div>1. Rocketlane → <span style="color:rgba(251,146,60,.8);">Settings → API Keys</span> → Create key (Read access)</div>
           <div>2. Vercel Dashboard → Project → <span style="color:rgba(134,239,172,.8);">Environment Variables</span></div>
           <div>3. Add: <span style="color:rgba(147,197,253,.9);">ROCKETLANE_API_KEY</span> = &lt;your-key&gt;</div>
-          <div>4. Redeploy → click <span style="color:rgba(251,191,36,.8);">Refresh</span> above</div>
+          <div>4. Redeploy → click <span style="color:rgba(251,191,36,.8);">↻</span> button</div>
         </div>
         <button onclick="liInitRocketlane(true)" style="background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.3);color:rgba(251,191,36,.9);border-radius:8px;padding:10px 22px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">↻ Try Again</button>
       </div>`;
       return;
     }
     if (!resp.ok) throw new Error(json.message || `HTTP ${resp.status}`);
-    // Normalize various possible Rocketlane API response shapes
     let raw = [];
     if (Array.isArray(json)) raw = json;
     else if (json.data && Array.isArray(json.data)) raw = json.data;
@@ -3174,16 +3170,13 @@ async function liInitRocketlane(forceRefresh) {
       completionPct: typeof p.completionPct === 'number' ? p.completionPct : rlGetProgress(p),
       completionTasks: p.completionTasks || null,
       dueDate: p.dueDate || p.endDate || p.expectedEndDate || '',
+      goLiveDate: p.dueDate || p.endDate || p.expectedEndDate || '',
       customer: (p.customer && (p.customer.companyName || p.customer.name)) || p.clientName || (p.account && p.account.name) || '',
     }));
-    rlUpdateKpis();
     rlCurrentFilter = 'all';
     rlRenderDashboard();
-    if (lastFetched) { const n = new Date(); lastFetched.textContent = `Updated ${n.getHours().toString().padStart(2,'0')}:${n.getMinutes().toString().padStart(2,'0')}`; }
   } catch(e) {
     content.innerHTML = `<div class="rl-loader"><div style="font-size:36px;opacity:.5;">⚠️</div><div style="font-size:15px;font-weight:700;color:#fff;">Failed to load projects</div><div style="font-size:13px;color:rgba(255,255,255,.4);max-width:380px;text-align:center;">${e.message}</div><button onclick="liInitRocketlane(true)" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);border-radius:8px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">↻ Retry</button></div>`;
-  } finally {
-    if (refreshIcon) { refreshIcon.style.animation = ''; }
   }
 }
 
@@ -3208,18 +3201,17 @@ function rlGetProgress(p) {
   return null;
 }
 
-function rlUpdateKpis() {
-  const c = {total:0,inprogress:0,blocked:0,completed:0,onhold:0,proposed:0};
-  rlProjectsData.forEach(p => { c.total++; if(c[p.status]!==undefined) c[p.status]++; });
-  const el = document.getElementById('rlKpis');
-  if (!el) return;
-  el.innerHTML = [
-    ['total','#f0f0f6','Total'],['inprogress','rgba(147,197,253,1)','In Progress'],['blocked','rgba(252,165,165,1)','Blocked'],
-    ['completed','rgba(134,239,172,1)','Completed'],['onhold','rgba(209,213,219,1)','On Hold'],['proposed','rgba(253,224,71,1)','Proposed'],
-  ].map(([k,col,lbl]) => `<div class="rl-kpi" onclick="rlSetFilter('${k}')"><div class="rl-kpi-val" style="color:${col};">${c[k]}</div><div class="rl-kpi-lbl">${lbl}</div></div>`).join('');
+function rlSetFilter(f) {
+  rlCurrentFilter = (f === rlCurrentFilter) ? 'all' : f;
+  // Ensure current view tab is visible
+  const cp = document.getElementById('rl2CurrentPane'), sp = document.getElementById('rl2SnapPane');
+  if (cp && sp && sp.style.display !== 'none') {
+    cp.style.display = ''; sp.style.display = 'none';
+    document.getElementById('rl2TabCurrent')?.classList.add('rl2-tab-active');
+    document.getElementById('rl2TabSnap')?.classList.remove('rl2-tab-active');
+  }
+  rlRefreshTable();
 }
-
-function rlSetFilter(f) { rlCurrentFilter = (f === rlCurrentFilter) ? 'all' : f; rlRefreshTable(); }
 
 // Shared helpers
 const RL_STATUS_COLORS = {inprogress:'#3b82f6',blocked:'#ef4444',completed:'#22c55e',onhold:'#9ca3af',proposed:'#a855f7',inplanning:'#eab308'};
@@ -3235,211 +3227,362 @@ function rlDaysLeft(d){try{const t=new Date();t.setHours(0,0,0,0);return Math.ce
 function rlRenderDashboard() {
   const content = document.getElementById('rlContent');
   if (!content) return;
-  const today = new Date(); today.setHours(0,0,0,0);
+
   const total = rlProjectsData.length;
+  const byStatus = {};
+  rlProjectsData.forEach(p => { byStatus[p.status] = (byStatus[p.status]||0)+1; });
+  const inProgress = byStatus['inprogress']||0;
+  const blocked    = byStatus['blocked']||0;
+  const completed  = byStatus['completed']||0;
+  const onHold     = byStatus['onhold']||0;
 
-  // Segments
-  const byStatus = (s) => rlProjectsData.filter(p=>p.status===s);
-  const overdue = rlProjectsData.filter(p=>p.status!=='completed'&&p.dueDate&&new Date(p.dueDate)<today);
-  const dueSoon = rlProjectsData.filter(p=>{if(p.status==='completed'||!p.dueDate)return false;const d=rlDaysLeft(p.dueDate);return d!==null&&d>=0&&d<=30;});
-  const blocked = byStatus('blocked');
-  const onHold  = byStatus('onhold');
-  const completed = byStatus('completed');
+  // Avg completion across active projects only (exclude proposed/completed)
+  const active = rlProjectsData.filter(p => p.status !== 'completed' && p.status !== 'proposed');
+  const avgPct = active.length ? Math.round(active.reduce((s,p) => s+(p.completionPct||0), 0) / active.length) : 0;
+  const noGoLive = rlProjectsData.filter(p => !p.goLiveDate && p.status !== 'completed' && p.status !== 'proposed').length;
 
-  // Health score: % of active projects that are healthy
-  const active = rlProjectsData.filter(p=>p.status!=='completed');
-  const problematic = new Set([...blocked,...overdue].map(p=>p.id));
-  const healthPct = active.length ? Math.round(((active.length-problematic.size)/active.length)*100) : 100;
-  const healthColor = healthPct>=75?'#22c55e':healthPct>=50?'#f59e0b':'#ef4444';
-  const healthLabel = healthPct>=75?'Healthy':healthPct>=50?'At Risk':'Critical';
+  const kpis = [
+    { n: total,     l: 'Total Projects',   col: 'rgba(255,255,255,.9)',  f: 'all' },
+    { n: inProgress,l: 'In Progress',       col: 'rgba(147,197,253,1)',   f: 'inprogress' },
+    { n: blocked,   l: 'Blocked',           col: blocked>0?'rgba(252,165,165,1)':'rgba(255,255,255,.9)',  f: 'blocked' },
+    { n: `${avgPct}%`, l: 'Avg Completion', col: avgPct>=70?'rgba(134,239,172,1)':avgPct>=40?'rgba(253,224,71,1)':'rgba(252,165,165,1)', f: null },
+    { n: completed, l: 'Completed',          col: 'rgba(134,239,172,1)',  f: 'completed' },
+    { n: noGoLive,  l: 'No Go-Live Date',    col: noGoLive>0?'rgba(253,224,71,1)':'rgba(255,255,255,.5)', f: null },
+  ];
+  const kpiHtml = kpis.map(k =>
+    `<div class="rl2-kpi"${k.f?` onclick="rlSetFilter('${k.f}')" style="cursor:pointer;"`:''}>`+
+    `<div class="rl2-kpi-n" style="color:${k.col};">${k.n}</div>`+
+    `<div class="rl2-kpi-l">${k.l}</div></div>`
+  ).join('');
 
-  // SVG health ring
-  const R=52,CX=64,CY=64,circ=2*Math.PI*R,dash=circ*healthPct/100;
-  const healthSvg=`<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="10"/>
-    <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${healthColor}" stroke-width="10"
-      stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}" stroke-dashoffset="${(circ/4).toFixed(1)}" stroke-linecap="round"/>
-    <text x="${CX}" y="${CY-5}" text-anchor="middle" fill="#fff" font-family="DM Sans,sans-serif" font-size="24" font-weight="900">${healthPct}</text>
-    <text x="${CX}" y="${CY+13}" text-anchor="middle" fill="${healthColor}" font-family="DM Mono,monospace" font-size="8" letter-spacing="1.5">${healthLabel.toUpperCase()}</text>
-  </svg>`;
+  const now = new Date();
+  const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
 
-  // Action items
-  const ALEVEL = {
-    critical:{bg:'rgba(239,68,68,.1)',border:'rgba(239,68,68,.25)',text:'rgba(252,165,165,.95)'},
-    warning: {bg:'rgba(245,158,11,.1)',border:'rgba(245,158,11,.25)',text:'rgba(253,224,71,.95)'},
-    info:    {bg:'rgba(59,130,246,.1)',border:'rgba(59,130,246,.25)',text:'rgba(147,197,253,.95)'},
-    success: {bg:'rgba(34,197,94,.1)', border:'rgba(34,197,94,.25)', text:'rgba(134,239,172,.95)'},
-  };
-  const actions=[];
-  if(blocked.length) actions.push({l:'critical',icon:'🚫',title:`${blocked.length} project${blocked.length>1?'s':''}  blocked`,rec:'Schedule immediate unblocking calls — review dependencies and escalate blockers',names:blocked.map(p=>p.name)});
-  if(overdue.length) actions.push({l:'critical',icon:'⏰',title:`${overdue.length} project${overdue.length>1?'s':''}  overdue`,rec:'Initiate recovery plans and communicate revised timelines to stakeholders',names:overdue.map(p=>p.name)});
-  if(dueSoon.length) actions.push({l:'warning',icon:'📅',title:`${dueSoon.length} project${dueSoon.length>1?'s':''} due in 30 days`,rec:'Verify delivery readiness, confirm client sign-offs, and flag any risks now',names:dueSoon.map(p=>p.name)});
-  if(onHold.length) actions.push({l:'info',icon:'⏸️',title:`${onHold.length} project${onHold.length>1?'s':''} on hold`,rec:'Review continuation status — confirm decision with client and update forecast',names:onHold.map(p=>p.name)});
-  // Per-client risk
-  const clientRisk={};
-  rlProjectsData.forEach(p=>{if(!clientRisk[p.customer])clientRisk[p.customer]={b:0,o:0};if(p.status==='blocked')clientRisk[p.customer].b++;if(overdue.find(x=>x.id===p.id))clientRisk[p.customer].o++;});
-  Object.entries(clientRisk).forEach(([c,r])=>{if(r.b>=2)actions.push({l:'warning',icon:'🏢',title:`${c}: ${r.b} blocked projects`,rec:'Escalate to client senior stakeholders — risk of relationship impact'});});
-  if(!actions.length) actions.push({l:'success',icon:'✅',title:'Portfolio on track',rec:'No immediate action items — all active projects are within schedule'});
-
-  // Client breakdown
-  const clientMap={};
-  rlProjectsData.forEach(p=>{const c=p.customer||'Unknown';if(!clientMap[c])clientMap[c]={t:0,s:{}};clientMap[c].t++;clientMap[c].s[p.status]=(clientMap[c].s[p.status]||0)+1;});
-  const clients=Object.entries(clientMap).sort((a,b)=>b[1].t-a[1].t);
-
-  // Status distribution bar
-  const statusOrder=[['inprogress','In Progress'],['blocked','Blocked'],['completed','Completed'],['onhold','On Hold'],['inplanning','In Planning'],['proposed','Proposed']];
-  const distBar=statusOrder.map(([k])=>{const n=byStatus(k).length;if(!n)return'';return`<div style="flex:${n};background:${RL_STATUS_COLORS[k]};height:100%;cursor:pointer;transition:opacity .2s;" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'" title="${rlStatusLabel(k)}: ${n} (${Math.round(n/total*100)}%)" onclick="rlSetFilter('${k}')"></div>`;}).join('');
-
-  // Upcoming deadlines
-  const upcoming=[...rlProjectsData].filter(p=>p.dueDate&&p.status!=='completed').sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate)).slice(0,7);
-
-  content.innerHTML = `
-  <!-- Row 1: Health + Actions + Deadlines -->
-  <div style="display:grid;grid-template-columns:180px 1fr 280px;gap:16px;margin-bottom:16px;align-items:start;">
-
-    <!-- Health Ring -->
-    <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:20px 16px;text-align:center;">
-      <div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:12px;">Portfolio Health</div>
-      ${healthSvg}
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:12px;">
-        <div><div style="font-size:16px;font-weight:800;color:rgba(252,165,165,1);">${blocked.length}</div><div style="font-size:8px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.28);">BLOCKED</div></div>
-        <div><div style="font-size:16px;font-weight:800;color:rgba(252,165,165,1);">${overdue.length}</div><div style="font-size:8px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.28);">OVERDUE</div></div>
-        <div><div style="font-size:16px;font-weight:800;color:rgba(253,224,71,1);">${dueSoon.length}</div><div style="font-size:8px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.28);">DUE SOON</div></div>
-      </div>
-    </div>
-
-    <!-- Action Items -->
-    <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:20px;">
-      <div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:12px;">⚡ Action Items for Leadership</div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        ${actions.map(a=>`<div style="background:${ALEVEL[a.l].bg};border:1px solid ${ALEVEL[a.l].border};border-radius:8px;padding:10px 12px;">
-          <div style="font-size:12.5px;font-weight:700;color:${ALEVEL[a.l].text};margin-bottom:3px;">${a.icon} ${a.title}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.45);line-height:1.5;">${a.rec}</div>
-          ${a.names&&a.names.length?`<div style="font-size:10px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.22);margin-top:5px;line-height:1.6;">${a.names.slice(0,3).join(' · ')}${a.names.length>3?' +'+( a.names.length-3)+' more':''}</div>`:''}
-        </div>`).join('')}
-      </div>
-    </div>
-
-    <!-- Upcoming Deadlines -->
-    <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:20px;">
-      <div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:12px;">📅 Upcoming Deadlines</div>
-      ${upcoming.map(p=>{
-        const days=rlDaysLeft(p.dueDate);
-        const isOD=days!==null&&days<0;
-        const urgColor=isOD?'rgba(252,165,165,.9)':days<=14?'rgba(253,224,71,.9)':'rgba(255,255,255,.45)';
-        const daysStr=isOD?Math.abs(days)+'d overdue':days===0?'Today':days+'d left';
-        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);gap:8px;">
-          <div style="min-width:0;">
-            <div style="font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name.length>28?p.name.slice(0,28)+'…':p.name}</div>
-            <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">${rlBadge(p.status)}</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0;">
-            <div style="font-size:11px;font-weight:700;color:${urgColor};font-family:'DM Mono',monospace;">${rlFmtDate(p.dueDate,true)}</div>
-            <div style="font-size:10px;color:${urgColor};opacity:.7;">${daysStr}</div>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>
-  </div>
-
-  <!-- Row 2: Distribution + Client Portfolio -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
-
-    <!-- Status Distribution -->
-    <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:20px;">
-      <div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:14px;">📊 Portfolio Distribution — ${total} Projects</div>
-      <div style="height:10px;border-radius:5px;overflow:hidden;display:flex;gap:2px;margin-bottom:16px;">${distBar}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;">
-        ${statusOrder.map(([k,lbl])=>{const n=byStatus(k).length;if(!n)return'';return`<div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:3px 0;" onclick="rlSetFilter('${k}')">
-          <div style="display:flex;align-items:center;gap:6px;"><div style="width:8px;height:8px;border-radius:2px;background:${RL_STATUS_COLORS[k]};flex-shrink:0;"></div><span style="font-size:12px;color:rgba(255,255,255,.6);">${lbl}</span></div>
-          <span style="font-size:11px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.4);">${n} · ${Math.round(n/total*100)}%</span>
-        </div>`;}).join('')}
-      </div>
-      <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:20px;">
-        <div><div style="font-size:18px;font-weight:800;color:rgba(134,239,172,1);">${Math.round(completed.length/total*100)}%</div><div style="font-size:9px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.28);">COMPLETION RATE</div></div>
-        <div><div style="font-size:18px;font-weight:800;color:rgba(252,165,165,1);">${Math.round((blocked.length+overdue.length)/total*100)}%</div><div style="font-size:9px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.28);">AT-RISK RATE</div></div>
-        <div><div style="font-size:18px;font-weight:800;color:rgba(147,197,253,1);">${active.length}</div><div style="font-size:9px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.28);">ACTIVE</div></div>
-      </div>
-    </div>
-
-    <!-- Client Portfolio -->
-    <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:20px;">
-      <div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:14px;">🏢 Client Portfolio Health</div>
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        ${clients.map(([name,d])=>{
-          const b=d.s['blocked']||0;const ip=d.s['inprogress']||0;const c=d.s['completed']||0;const oh=d.s['onhold']||0;const pr=d.s['proposed']||0;const pl=d.s['inplanning']||0;
-          const hasRisk=b>0;const od=overdue.filter(p=>p.customer===name).length;
-          const hInd=b===0&&od===0?'rgba(134,239,172,.7)':b+od>=2?'rgba(252,165,165,.7)':'rgba(253,224,71,.7)';
-          return `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);">
-            <div style="width:6px;height:6px;border-radius:50%;background:${hInd};flex-shrink:0;"></div>
-            <div style="font-size:12px;font-weight:600;color:#fff;min-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name||'Unknown'}</div>
-            <div style="flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;display:flex;gap:1px;">
-              ${ip?`<div style="flex:${ip};background:#3b82f6;"></div>`:''}${b?`<div style="flex:${b};background:#ef4444;"></div>`:''}${c?`<div style="flex:${c};background:#22c55e;"></div>`:''}${oh?`<div style="flex:${oh};background:#9ca3af;"></div>`:''}${pr?`<div style="flex:${pr};background:#a855f7;"></div>`:''}${pl?`<div style="flex:${pl};background:#eab308;"></div>`:''}
-            </div>
-            <div style="font-size:10px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.3);min-width:18px;text-align:right;">${d.t}</div>
-            ${b?`<div style="font-size:9px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.22);border-radius:4px;padding:2px 5px;color:rgba(252,165,165,.8);white-space:nowrap;">${b} blocked</div>`:od?`<div style="font-size:9px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.22);border-radius:4px;padding:2px 5px;color:rgba(253,224,71,.8);white-space:nowrap;">${od} overdue</div>`:'<div style="font-size:9px;color:rgba(134,239,172,.5);">✓ on track</div>'}
-          </div>`;
-        }).join('')}
-      </div>
-    </div>
-  </div>
-
-  <!-- Row 3: Project Table -->
-  <div id="rlTableSection"></div>`;
+  content.innerHTML =
+    `<div class="rl2-header">`+
+      `<div><div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:4px;">Weekly Project Connect</div>`+
+      `<div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.38);">Task-weighted completion (done=100% · active=50% · to-do=0%)</div></div>`+
+      `<div style="display:flex;gap:8px;align-items:center;">`+
+        `<span style="font-size:11px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.22);">Updated ${timeStr}</span>`+
+        `<button onclick="rl2CaptureModal()" class="rl2-capture-btn">📸 Capture Snapshot</button>`+
+        `<button onclick="liInitRocketlane(true)" title="Force refresh" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.4);border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.09)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">↻</button>`+
+      `</div>`+
+    `</div>`+
+    `<div class="rl2-kpi-row">${kpiHtml}</div>`+
+    `<div class="rl2-tabs">`+
+      `<button class="rl2-tab rl2-tab-active" id="rl2TabCurrent" onclick="rl2SwitchTab('current')">📊 Current View</button>`+
+      `<button class="rl2-tab" id="rl2TabSnap" onclick="rl2SwitchTab('snapshots')">📅 Snapshot History</button>`+
+    `</div>`+
+    `<div id="rl2CurrentPane"></div>`+
+    `<div id="rl2SnapPane" style="display:none;"></div>`;
 
   rlRefreshTable();
+  rl2LoadSnapshots();
+
+
 }
 
 function rlRefreshTable() {
-  const section = document.getElementById('rlTableSection');
-  if (!section) return;
-  const filtered = rlCurrentFilter === 'all' ? rlProjectsData : rlProjectsData.filter(p=>p.status===rlCurrentFilter);
-  const filterBtns = [['all','All'],['inprogress','In Progress'],['blocked','Blocked'],['onhold','On Hold'],['inplanning','In Planning'],['proposed','Proposed'],['completed','Completed']]
-    .map(([k,l])=>{const n=k==='all'?rlProjectsData.length:rlProjectsData.filter(p=>p.status===k).length;return`<button class="rl-filter-btn${rlCurrentFilter===k?' rl-active':''}" onclick="rlSetFilter('${k}')">${l} <span style="opacity:.5;font-size:10px;">${n}</span></button>`;}).join('');
-  if(!filtered.length){section.innerHTML=`<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:16px 20px;"><div class="rl-filters">${filterBtns}</div><div class="rl-loader"><div style="font-size:28px;opacity:.2;">📂</div><div style="font-size:13px;color:rgba(255,255,255,.3);">No projects with this status</div></div></div>`;return;}
-  const today=new Date();today.setHours(0,0,0,0);
-  const rows=filtered.map((p,i)=>{
-    const ic=rlIconColor(p.name);const ini=(p.name||'').split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'?';
-    const days=p.dueDate?rlDaysLeft(p.dueDate):null;const isOD=days!==null&&days<0&&p.status!=='completed';
-    const dateColor=isOD?'rgba(252,165,165,.9)':days!==null&&days<=14&&p.status!=='completed'?'rgba(253,224,71,.9)':'rgba(255,255,255,.45)';
-    const dateStr=p.dueDate?rlFmtDate(p.dueDate):'<span style="color:rgba(255,255,255,.18);">—</span>';
-    const pct = p.completionPct != null ? p.completionPct : (p.status === 'completed' ? 100 : null);
-    const barColor = pct === null ? '#4b5563' : pct >= 70 ? '#22c55e' : pct >= 40 ? '#eab308' : '#ef4444';
-    const taskLabel = p.completionTasks && p.completionTasks.total > 0
-      ? `${p.completionTasks.completed}/${p.completionTasks.total} tasks`
-      : '';
-    const progressCell = pct !== null
-      ? `<div style="display:flex;align-items:center;gap:8px;min-width:120px;">
-          <div style="flex:1;height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;">
-            <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;transition:width .4s;"></div>
-          </div>
-          <span style="font-size:11px;font-family:'DM Mono',monospace;color:${barColor};min-width:30px;">${pct}%</span>
-        </div>${taskLabel?`<div style="font-size:10px;color:rgba(255,255,255,.22);margin-top:3px;font-family:'DM Mono',monospace;">${taskLabel}</div>`:''}`
-      : '<span style="color:rgba(255,255,255,.18);font-size:11px;">—</span>';
-    return`<tr>
-      <td style="color:rgba(255,255,255,.2);font-family:'DM Mono',monospace;font-size:11px;padding-left:20px;">${i+1}</td>
-      <td><div style="display:flex;align-items:center;"><div class="rl-proj-icon" style="background:${ic}22;border:1px solid ${ic}44;color:${ic};">${ini}</div><div><div class="rl-proj-name">${p.name}</div>${p.customer?`<div style="font-size:11px;color:rgba(255,255,255,.28);margin-top:2px;">${p.customer}</div>`:''}</div></div></td>
-      <td>${rlBadge(p.status)}</td>
-      <td style="min-width:140px;">${progressCell}</td>
-      <td>${p.phase?`<span class="rl-phase-tag" title="${p.phase}">${p.phase}</span>`:'<span style="color:rgba(255,255,255,.18);font-size:11px;">—</span>'}</td>
-      <td style="font-size:12px;font-family:'DM Mono',monospace;color:${dateColor};white-space:nowrap;">${dateStr}${isOD?` <span style="font-size:9px;opacity:.7;">(${Math.abs(days)}d late)</span>`:''}</td>
-    </tr>`;
+  const pane = document.getElementById('rl2CurrentPane');
+  if (!pane) return;
+
+  const filterConf = [
+    ['all','All'],['inprogress','In Progress'],['blocked','Blocked'],
+    ['onhold','On Hold'],['inplanning','In Planning'],['proposed','Proposed'],['completed','Completed']
+  ];
+  const pillsHtml = filterConf.map(([k,l]) => {
+    const n = k==='all' ? rlProjectsData.length : rlProjectsData.filter(p=>p.status===k).length;
+    return `<button class="rl2-filter-pill${rlCurrentFilter===k?' rl2-active':''}" onclick="rlSetFilter('${k}')">${l} <span style="opacity:.4;font-size:10px;">${n}</span></button>`;
   }).join('');
-  section.innerHTML=`<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:16px;overflow:hidden;">
-    <div style="padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);">📋 All Projects</div>
-      <div class="rl-filters" style="margin-bottom:0;">${filterBtns}</div>
-    </div>
-    <div class="rl-table-wrap" style="border:none;border-radius:0;">
-      <table class="rl-table">
-        <thead><tr>
-          <th style="width:40px;padding-left:20px;">#</th>
-          <th>Project</th><th>Status</th><th>% Complete</th><th>Current Phase</th><th>Due Date</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-  </div>`;
+
+  const statusPrio = {blocked:0,inprogress:1,inplanning:2,onhold:3,proposed:4,completed:5};
+  const filtered = rlCurrentFilter==='all' ? rlProjectsData : rlProjectsData.filter(p=>p.status===rlCurrentFilter);
+  const sorted = [...filtered].sort((a,b) => {
+    const ap=statusPrio[a.status]??6, bp=statusPrio[b.status]??6;
+    return ap!==bp ? ap-bp : (b.completionPct||0)-(a.completionPct||0);
+  });
+
+  if (!sorted.length) {
+    pane.innerHTML = `<div class="rl2-filters">${pillsHtml}</div>`+
+      `<div style="text-align:center;padding:64px 20px;color:rgba(255,255,255,.25);font-size:14px;">No projects with this status</div>`;
+    return;
+  }
+
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  const headerRow =
+    `<div class="rl2-proj-row" style="border-bottom:2px solid rgba(255,255,255,.07);padding:10px 20px;">` +
+    `<div></div>` +
+    `<div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.25);">Project</div>` +
+    `<div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.25);">Status</div>` +
+    `<div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.25);">% Complete</div>` +
+    `<div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.25);">Current Phase</div>` +
+    `<div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.25);">Go-Live Date</div>` +
+    `</div>`;
+
+  const rows = sorted.map(p => {
+    const ic = rlIconColor(p.name);
+    const ini = (p.name||'').split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'?';
+    const pct = p.completionPct ?? (p.status==='completed' ? 100 : 0);
+    const barColor = p.status==='blocked'?'#ef4444':p.status==='completed'?'#22c55e':pct>=70?'#22c55e':pct>=40?'#eab308':'#ef4444';
+
+    const ct = p.completionTasks;
+    const taskInfo = ct && ct.total>0
+      ? `<div class="rl2-task-info">${ct.completed||0} done · ${ct.inprogress||0} active · ${ct.todo||0} to-do</div>` : '';
+
+    const glDate = p.goLiveDate;
+    const glMissing = !glDate && p.status!=='completed' && p.status!=='proposed';
+    let glHtml;
+    if (glMissing) {
+      glHtml = `<div style="color:rgba(253,224,71,.85);font-size:11px;font-family:'DM Mono',monospace;font-weight:700;">⚠ Missing</div>`;
+    } else if (glDate) {
+      const glDays = Math.ceil((new Date(glDate)-today)/86400000);
+      const glColor = glDays<0?'rgba(252,165,165,.9)':glDays<=14?'rgba(253,224,71,.9)':'rgba(255,255,255,.45)';
+      const glSub = glDays<0&&p.status!=='completed'
+        ? `<div style="font-size:10px;color:rgba(252,165,165,.6);">${Math.abs(glDays)}d overdue</div>`
+        : glDays>=0&&glDays<=30&&p.status!=='completed'
+          ? `<div style="font-size:10px;color:rgba(253,224,71,.55);">in ${glDays}d</div>` : '';
+      glHtml = `<div style="color:${glColor};font-size:12px;font-family:'DM Mono',monospace;">${rlFmtDate(glDate)}</div>${glSub}`;
+    } else {
+      glHtml = `<div style="color:rgba(255,255,255,.18);font-size:12px;">—</div>`;
+    }
+
+    const phaseHtml = p.phase
+      ? `<span style="font-size:11px;color:rgba(147,197,253,.8);background:rgba(147,197,253,.07);border:1px solid rgba(147,197,253,.15);border-radius:4px;padding:2px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:155px;display:inline-block;" title="${p.phase}">${p.phase.length>22?p.phase.slice(0,20)+'…':p.phase}</span>`
+      : `<span style="color:rgba(255,255,255,.15);font-size:11px;">—</span>`;
+
+    const rowCls = `rl2-proj-row${p.status==='blocked'?' rl2-blocked-row':glMissing?' rl2-noglive-row':''}`;
+    return `<div class="${rowCls}">` +
+      `<div class="rl2-proj-icon" style="background:${ic}22;border:1px solid ${ic}44;color:${ic};">${ini}</div>` +
+      `<div style="min-width:0;"><div class="rl2-proj-name">${p.name}</div>${p.customer?`<div class="rl2-proj-client">${p.customer}</div>`:''}</div>` +
+      `<div>${rlBadge(p.status)}</div>` +
+      `<div><div class="rl2-bar-wrap"><div class="rl2-bar-track"><div class="rl2-bar-fill" style="width:${pct}%;background:${barColor};"></div></div><span class="rl2-bar-pct" style="color:${barColor};">${pct}%</span></div>${taskInfo}</div>` +
+      `<div>${phaseHtml}</div>` +
+      `<div>${glHtml}</div>` +
+      `</div>`;
+  }).join('');
+
+  pane.innerHTML = `<div class="rl2-filters">${pillsHtml}</div>`+
+    `<div class="rl2-proj-grid">${headerRow}${rows}</div>`;
+}
+
+// ── Snapshot state ────────────────────────────────────────────────────────────
+let rl2SnapsCache = [];
+let rl2SnapType = 'weekly';
+let rl2SelSnaps = [];
+
+function rl2SwitchTab(tab) {
+  const cp=document.getElementById('rl2CurrentPane'), sp=document.getElementById('rl2SnapPane');
+  const tc=document.getElementById('rl2TabCurrent'), ts=document.getElementById('rl2TabSnap');
+  if (!cp||!sp) return;
+  if (tab==='current') {
+    cp.style.display=''; sp.style.display='none';
+    tc?.classList.add('rl2-tab-active'); ts?.classList.remove('rl2-tab-active');
+  } else {
+    cp.style.display='none'; sp.style.display='';
+    tc?.classList.remove('rl2-tab-active'); ts?.classList.add('rl2-tab-active');
+    rl2RenderSnapPane();
+  }
+}
+
+function rl2CaptureModal() {
+  const now = new Date();
+  const weekLbl = `Week of ${now.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}`;
+  const monthLbl = `${now.toLocaleDateString('en-GB',{month:'long',year:'numeric'})}`;
+  rl2SnapType = 'weekly';
+  const m = document.createElement('div');
+  m.className = 'rl2-modal-overlay'; m.id = 'rl2Modal';
+  m.innerHTML =
+    `<div class="rl2-modal-box">` +
+    `<h3>📸 Capture Snapshot</h3>` +
+    `<div style="font-size:13px;color:rgba(255,255,255,.38);margin-bottom:20px;">Save portfolio state for week-on-week comparison</div>` +
+    `<div style="font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:8px;">Type</div>` +
+    `<div class="rl2-modal-type">` +
+      `<button class="rl2-type-opt active" id="rl2OWeek" onclick="rl2SetSnapType('weekly','${weekLbl}')">📅 Weekly</button>` +
+      `<button class="rl2-type-opt" id="rl2OMon" onclick="rl2SetSnapType('monthly','${monthLbl}')">📆 Monthly</button>` +
+    `</div>` +
+    `<div style="font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:8px;">Label</div>` +
+    `<input type="text" id="rl2SnapLbl" value="${weekLbl}" placeholder="e.g. Week of 16 Jun 2026" />` +
+    `<div style="font-size:12px;color:rgba(255,255,255,.28);margin-top:10px;">${rlProjectsData.length} projects will be captured</div>` +
+    `<div class="rl2-modal-footer">` +
+      `<button onclick="document.getElementById('rl2Modal').remove()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.45);border-radius:8px;padding:9px 18px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">Cancel</button>` +
+      `<button id="rl2SaveBtn" onclick="rl2SaveSnapshot()" class="rl2-capture-btn" style="font-size:13px;padding:9px 20px;">💾 Capture</button>` +
+    `</div></div>`;
+  document.body.appendChild(m);
+  m.addEventListener('click', e => { if(e.target===m) m.remove(); });
+}
+
+function rl2SetSnapType(type, lbl) {
+  rl2SnapType = type;
+  document.getElementById('rl2OWeek')?.classList.toggle('active', type==='weekly');
+  document.getElementById('rl2OMon')?.classList.toggle('active', type==='monthly');
+  if (lbl) { const el=document.getElementById('rl2SnapLbl'); if(el) el.value=lbl; }
+}
+
+async function rl2SaveSnapshot() {
+  const label = (document.getElementById('rl2SnapLbl')?.value||'').trim();
+  if (!label) { alert('Please enter a label'); return; }
+  const btn = document.getElementById('rl2SaveBtn');
+  if (btn) { btn.textContent='Saving…'; btn.disabled=true; }
+  const projects = rlProjectsData.map(p => ({
+    id:p.id, name:p.name, customer:p.customer, status:p.status,
+    completionPct:p.completionPct??0, completionTasks:p.completionTasks||{},
+    phase:p.phase, goLiveDate:p.goLiveDate, dueDate:p.dueDate
+  }));
+  try {
+    const r = await fetch('/api/rocketlane/snapshots', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ type:rl2SnapType, label, projects })
+    });
+    if (!r.ok) throw new Error('Save failed');
+    document.getElementById('rl2Modal')?.remove();
+    await rl2LoadSnapshots();
+    const t = document.createElement('div');
+    t.style.cssText='position:fixed;bottom:24px;right:24px;background:rgba(134,239,172,.14);border:1px solid rgba(134,239,172,.4);color:rgba(134,239,172,.9);padding:12px 20px;border-radius:10px;font-size:13px;font-weight:700;z-index:9999;font-family:DM Sans,sans-serif;';
+    t.textContent='✓ Snapshot saved';
+    document.body.appendChild(t);
+    setTimeout(()=>t.remove(),3000);
+  } catch(e) {
+    alert('Failed to save: '+e.message);
+    if(btn){btn.textContent='💾 Capture';btn.disabled=false;}
+  }
+}
+
+async function rl2LoadSnapshots() {
+  try {
+    const r = await fetch('/api/rocketlane/snapshots');
+    const d = await r.json();
+    rl2SnapsCache = d.snapshots||[];
+  } catch { rl2SnapsCache=[]; }
+}
+
+function rl2RenderSnapPane() {
+  const pane = document.getElementById('rl2SnapPane');
+  if (!pane) return;
+  if (!rl2SnapsCache.length) {
+    pane.innerHTML =
+      `<div style="text-align:center;padding:64px 24px;">` +
+      `<div style="font-size:48px;opacity:.18;margin-bottom:16px;">📅</div>` +
+      `<div style="font-size:16px;font-weight:700;color:rgba(255,255,255,.38);margin-bottom:8px;">No snapshots yet</div>` +
+      `<div style="font-size:13px;color:rgba(255,255,255,.22);margin-bottom:24px;">Capture your first snapshot to start tracking progress week-on-week</div>` +
+      `<button onclick="rl2CaptureModal()" class="rl2-capture-btn">📸 Capture First Snapshot</button></div>`;
+    return;
+  }
+
+  const snapCards = rl2SnapsCache.map(s => {
+    const d = new Date(s.capturedAt);
+    const dateStr = d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+    const timeStr = d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const avg = s.projects.length ? Math.round(s.projects.reduce((a,p)=>a+(p.completionPct||0),0)/s.projects.length) : 0;
+    const sel = rl2SelSnaps.includes(s.id);
+    const avgCol = avg>=70?'rgba(134,239,172,1)':avg>=40?'rgba(253,224,71,1)':'rgba(252,165,165,1)';
+    return `<div class="rl2-snap-card${sel?' rl2-snap-sel':''}" onclick="rl2ToggleSnap(${s.id})">` +
+      `<div style="display:flex;align-items:center;gap:12px;">` +
+        `<span class="rl2-snap-badge ${s.type}">${s.type}</span>` +
+        `<div><div style="font-size:14px;font-weight:700;color:#fff;">${s.label}</div>` +
+        `<div style="font-size:11px;color:rgba(255,255,255,.32);font-family:'DM Mono',monospace;">${dateStr} · ${timeStr} · ${s.projects.length} projects</div></div>` +
+      `</div>` +
+      `<div style="display:flex;align-items:center;gap:12px;">` +
+        `<div style="text-align:right;"><div style="font-size:20px;font-weight:900;color:${avgCol};">${avg}%</div>` +
+        `<div style="font-size:9px;color:rgba(255,255,255,.28);font-family:'DM Mono',monospace;">AVG COMPLETE</div></div>` +
+        `<button onclick="event.stopPropagation();rl2DelSnap(${s.id})" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.18);color:rgba(252,165,165,.65);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;">🗑</button>` +
+      `</div></div>`;
+  }).join('');
+
+  let detailHtml = '';
+  if (rl2SelSnaps.length===2) {
+    const s1=rl2SnapsCache.find(s=>s.id===rl2SelSnaps[0]), s2=rl2SnapsCache.find(s=>s.id===rl2SelSnaps[1]);
+    if (s1&&s2) {
+      const [older,newer] = new Date(s1.capturedAt)<new Date(s2.capturedAt)?[s1,s2]:[s2,s1];
+      const ids = [...new Set([...older.projects.map(p=>p.id),...newer.projects.map(p=>p.id)])];
+      const compRows = ids.map(id=>{
+        const op=older.projects.find(p=>p.id===id), np=newer.projects.find(p=>p.id===id);
+        const name=(np||op)?.name||'Unknown', cust=(np||op)?.customer||'';
+        const oldPct=op?.completionPct??null, newPct=np?.completionPct??null;
+        const delta=oldPct!==null&&newPct!==null?newPct-oldPct:null;
+        const dStr=delta===null?'—':delta>0?`↑ +${delta}%`:delta<0?`↓ ${delta}%`:'→ 0%';
+        const dCls=delta===null?'flat':delta>0?'up':delta<0?'down':'flat';
+        const ic=rlIconColor(name), ini=name.split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'?';
+        const bc=newPct!=null?(newPct>=70?'#22c55e':newPct>=40?'#eab308':'#ef4444'):'#4b5563';
+        return `<div class="rl2-compare-grid">` +
+          `<div style="width:28px;height:28px;border-radius:7px;background:${ic}22;border:1px solid ${ic}44;color:${ic};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;">${ini}</div>` +
+          `<div><div style="font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>${cust?`<div style="font-size:11px;color:rgba(255,255,255,.26);">${cust}</div>`:''}</div>` +
+          `<div style="font-size:13px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.38);">${oldPct!==null?oldPct+'%':'—'}</div>` +
+          `<div>${newPct!==null?`<div style="display:flex;align-items:center;gap:6px;"><div style="width:56px;height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${newPct}%;background:${bc};border-radius:3px;"></div></div><span style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:${bc};">${newPct}%</span></div>`:'—'}</div>` +
+          `<div class="rl2-delta ${dCls}">${dStr}</div>` +
+          `</div>`;
+      }).join('');
+      detailHtml =
+        `<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:14px;overflow:hidden;margin-top:20px;">` +
+        `<div style="padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:12px;">` +
+          `<span style="font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;color:rgba(255,255,255,.25);letter-spacing:.12em;">Comparing</span>` +
+          `<span style="font-size:13px;font-weight:700;color:rgba(255,255,255,.55);">${older.label}</span>` +
+          `<span style="color:rgba(255,255,255,.22);">→</span>` +
+          `<span style="font-size:13px;font-weight:700;color:#fff;">${newer.label}</span>` +
+        `</div>` +
+        `<div class="rl2-compare-grid" style="padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.06);">` +
+          `<div></div><div style="font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;color:rgba(255,255,255,.22);">Project</div>` +
+          `<div style="font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;color:rgba(255,255,255,.22);">Before</div>` +
+          `<div style="font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;color:rgba(255,255,255,.22);">After</div>` +
+          `<div style="font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;color:rgba(255,255,255,.22);">Change</div>` +
+        `</div>${compRows}</div>`;
+    }
+  } else if (rl2SelSnaps.length===1) {
+    const snap=rl2SnapsCache.find(s=>s.id===rl2SelSnaps[0]);
+    if (snap) {
+      const dRows = snap.projects.map(p=>{
+        const ic=rlIconColor(p.name), ini=p.name.split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'?';
+        const pct=p.completionPct??0, bc=pct>=70?'#22c55e':pct>=40?'#eab308':'#ef4444';
+        return `<div class="rl2-compare-grid">` +
+          `<div style="width:28px;height:28px;border-radius:7px;background:${ic}22;border:1px solid ${ic}44;color:${ic};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;">${ini}</div>` +
+          `<div><div style="font-size:13px;font-weight:700;color:#fff;">${p.name}</div>${p.customer?`<div style="font-size:11px;color:rgba(255,255,255,.26);">${p.customer}</div>`:''}</div>` +
+          `<div>${rlBadge(p.status)}</div>` +
+          `<div style="display:flex;align-items:center;gap:8px;"><div style="width:70px;height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${bc};border-radius:3px;"></div></div><span style="font-size:12px;font-weight:700;font-family:'DM Mono',monospace;color:${bc};">${pct}%</span></div>` +
+          `<div style="font-size:11px;color:rgba(255,255,255,.3);">${p.phase||'—'}</div></div>`;
+      }).join('');
+      detailHtml =
+        `<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:14px;overflow:hidden;margin-top:20px;">` +
+        `<div style="padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.06);">` +
+          `<div style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:4px;">Snapshot Detail</div>` +
+          `<div style="font-size:15px;font-weight:700;color:#fff;">${snap.label}</div>` +
+          `<div style="font-size:11px;color:rgba(255,255,255,.28);font-family:'DM Mono',monospace;margin-top:2px;">${new Date(snap.capturedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>` +
+        `</div>${dRows}</div>`;
+    }
+  }
+
+  const hintText = rl2SelSnaps.length===0
+    ? 'Select one to view detail · Select two to compare'
+    : rl2SelSnaps.length===1
+      ? 'Select one more to compare side-by-side'
+      : '<span style="color:rgba(134,239,172,.7);">✓ Comparing two snapshots</span>';
+
+  pane.innerHTML =
+    `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">` +
+      `<div style="font-size:13px;color:rgba(255,255,255,.38);">${hintText}</div>` +
+      `<div style="display:flex;gap:8px;">` +
+        `${rl2SelSnaps.length?`<button onclick="rl2SelSnaps=[];rl2RenderSnapPane()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.38);border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Clear</button>`:''}` +
+        `<button onclick="rl2CaptureModal()" class="rl2-capture-btn">📸 New Snapshot</button>` +
+      `</div>` +
+    `</div>` +
+    `<div class="rl2-snap-list">${snapCards}</div>` +
+    detailHtml;
+}
+
+function rl2ToggleSnap(id) {
+  if (rl2SelSnaps.includes(id)) { rl2SelSnaps=rl2SelSnaps.filter(s=>s!==id); }
+  else if (rl2SelSnaps.length<2) { rl2SelSnaps.push(id); }
+  else { rl2SelSnaps=[rl2SelSnaps[1],id]; }
+  rl2RenderSnapPane();
+}
+
+async function rl2DelSnap(id) {
+  if (!confirm('Delete this snapshot?')) return;
+  try {
+    await fetch(`/api/rocketlane/snapshots/${id}`,{method:'DELETE'});
+    rl2SnapsCache=rl2SnapsCache.filter(s=>s.id!==id);
+    rl2SelSnaps=rl2SelSnaps.filter(s=>s!==id);
+    rl2RenderSnapPane();
+  } catch(e) { alert('Delete failed: '+e.message); }
 }
 // ─────────────────────────────────────────────────────────────────────────────
 

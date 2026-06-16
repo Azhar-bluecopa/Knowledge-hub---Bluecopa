@@ -1070,9 +1070,12 @@ async function rlFetchCompletionMap(apiKey) {
       (d.data || []).forEach(task => {
         const pid = task.project?.projectId;
         if (!pid) return;
-        if (!map[pid]) map[pid] = { total: 0, completed: 0 };
+        if (!map[pid]) map[pid] = { total: 0, completed: 0, inprogress: 0, todo: 0 };
         map[pid].total++;
-        if (task.status?.label === 'Completed') map[pid].completed++;
+        const lbl = task.status?.label || '';
+        if (lbl === 'Completed') map[pid].completed++;
+        else if (lbl === 'In progress') map[pid].inprogress++;
+        else map[pid].todo++;
       });
       hasMore = d.pagination?.hasMore || false;
       pageToken = d.pagination?.nextPageToken || null;
@@ -1098,16 +1101,50 @@ app.get('/api/rocketlane/projects', async (req, res) => {
     projects.forEach(p => {
       const comp = completionMap[p.projectId];
       if (comp && comp.total > 0) {
-        p.completionPct = Math.round(comp.completed / comp.total * 100);
+        // Weighted formula: completed=100%, in-progress=50%, todo=0%
+        p.completionPct = Math.round((comp.completed + comp.inprogress * 0.5) / comp.total * 100);
         p.completionTasks = comp;
       } else {
         p.completionPct = (p.status?.label || '').toLowerCase().includes('complet') ? 100 : 0;
-        p.completionTasks = { total: 0, completed: 0 };
+        p.completionTasks = { total: 0, completed: 0, inprogress: 0, todo: 0 };
       }
     });
     rlCache = data; rlCacheAt = now;
     res.json({ ...data, cached: false, fetchedAt: now });
   } catch (e) { res.status(500).json({ error: 'fetch_failed', message: e.message }); }
+});
+
+// ── Rocketlane Snapshots ──────────────────────────────────────────────────────
+function ensureRL() {
+  if (!db.rocketlane) db.rocketlane = { snapshots: [], nextSnapshotId: 1 };
+}
+
+app.get('/api/rocketlane/snapshots', (req, res) => {
+  ensureRL();
+  res.json({ snapshots: [...db.rocketlane.snapshots].reverse() });
+});
+
+app.post('/api/rocketlane/snapshots', async (req, res) => {
+  ensureRL();
+  const { type, label, projects } = req.body;
+  if (!type || !label || !Array.isArray(projects)) return res.status(400).json({ error: 'type, label, projects required' });
+  const snap = {
+    id: db.rocketlane.nextSnapshotId++,
+    type, label,
+    capturedAt: new Date().toISOString(),
+    projects
+  };
+  db.rocketlane.snapshots.push(snap);
+  await saveDB(db);
+  res.json({ ok: true, snapshot: snap });
+});
+
+app.delete('/api/rocketlane/snapshots/:id', async (req, res) => {
+  ensureRL();
+  const id = parseInt(req.params.id);
+  db.rocketlane.snapshots = db.rocketlane.snapshots.filter(s => s.id !== id);
+  await saveDB(db);
+  res.json({ ok: true });
 });
 
 // ── Export for Vercel serverless ──────────────────────────────────────────────
