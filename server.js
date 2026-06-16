@@ -1054,5 +1054,61 @@ app.get('/api/puzzle/analytics', (req, res) => {
   res.json({ analytics: { totalParticipants: first.length, totalAttempts: all.length, avgAccuracy: avgAcc, avgTime, topScore: first.length ? Math.max(...first.map(a => a.accuracy)) : 0, gameTitle: game.title, week: game.week } });
 });
 
+// ── Rocketlane proxy (mirrors api/index.js logic for local dev) ──────────────
+let rlCache = null, rlCacheAt = 0;
+const RL_CACHE_TTL = 5 * 60 * 1000;
+
+async function rlFetchCompletionMap(apiKey) {
+  const map = {};
+  let pageToken = null, hasMore = true;
+  while (hasMore) {
+    const url = 'https://api.rocketlane.com/api/1.0/tasks?pageSize=100' + (pageToken ? `&pageToken=${pageToken}` : '');
+    try {
+      const r = await fetch(url, { headers: { 'api-key': apiKey, 'Accept': 'application/json' } });
+      if (!r.ok) break;
+      const d = await r.json();
+      (d.data || []).forEach(task => {
+        const pid = task.project?.projectId;
+        if (!pid) return;
+        if (!map[pid]) map[pid] = { total: 0, completed: 0 };
+        map[pid].total++;
+        if (task.status?.label === 'Completed') map[pid].completed++;
+      });
+      hasMore = d.pagination?.hasMore || false;
+      pageToken = d.pagination?.nextPageToken || null;
+    } catch { break; }
+  }
+  return map;
+}
+
+app.get('/api/rocketlane/projects', async (req, res) => {
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) return res.status(503).json({ error: 'not_configured', message: 'ROCKETLANE_API_KEY not set in .env' });
+  const now = Date.now();
+  if (rlCache && !req.query.refresh && (now - rlCacheAt) < RL_CACHE_TTL)
+    return res.json({ ...rlCache, cached: true, cacheAge: Math.round((now - rlCacheAt) / 1000) });
+  try {
+    const [projResp, completionMap] = await Promise.all([
+      fetch('https://api.rocketlane.com/api/1.0/projects', { headers: { 'api-key': apiKey, 'Accept': 'application/json' } }),
+      rlFetchCompletionMap(apiKey)
+    ]);
+    const data = await projResp.json();
+    if (!projResp.ok) return res.status(projResp.status).json({ error: 'api_error', message: data?.message });
+    const projects = data.data || data.projects || (Array.isArray(data) ? data : []);
+    projects.forEach(p => {
+      const comp = completionMap[p.projectId];
+      if (comp && comp.total > 0) {
+        p.completionPct = Math.round(comp.completed / comp.total * 100);
+        p.completionTasks = comp;
+      } else {
+        p.completionPct = (p.status?.label || '').toLowerCase().includes('complet') ? 100 : 0;
+        p.completionTasks = { total: 0, completed: 0 };
+      }
+    });
+    rlCache = data; rlCacheAt = now;
+    res.json({ ...data, cached: false, fetchedAt: now });
+  } catch (e) { res.status(500).json({ error: 'fetch_failed', message: e.message }); }
+});
+
 // ── Export for Vercel serverless ──────────────────────────────────────────────
 module.exports = app;

@@ -3171,6 +3171,8 @@ async function liInitRocketlane(forceRefresh) {
       status: rlNormStatus(p.status || p.projectStatus || ''),
       phase: rlGetPhase(p),
       progress: rlGetProgress(p),
+      completionPct: typeof p.completionPct === 'number' ? p.completionPct : rlGetProgress(p),
+      completionTasks: p.completionTasks || null,
       dueDate: p.dueDate || p.endDate || p.expectedEndDate || '',
       customer: (p.customer && (p.customer.companyName || p.customer.name)) || p.clientName || (p.account && p.account.name) || '',
     }));
@@ -3199,6 +3201,7 @@ function rlGetPhase(p) {
   return '';
 }
 function rlGetProgress(p) {
+  if (typeof p.completionPct === 'number') return p.completionPct;
   if (typeof p.progress === 'number') return p.progress;
   if (typeof p.completionPercentage === 'number') return p.completionPercentage;
   if ((p.status||'').toString().includes('COMPLET')) return 100;
@@ -3400,10 +3403,24 @@ function rlRefreshTable() {
     const days=p.dueDate?rlDaysLeft(p.dueDate):null;const isOD=days!==null&&days<0&&p.status!=='completed';
     const dateColor=isOD?'rgba(252,165,165,.9)':days!==null&&days<=14&&p.status!=='completed'?'rgba(253,224,71,.9)':'rgba(255,255,255,.45)';
     const dateStr=p.dueDate?rlFmtDate(p.dueDate):'<span style="color:rgba(255,255,255,.18);">—</span>';
+    const pct = p.completionPct != null ? p.completionPct : (p.status === 'completed' ? 100 : null);
+    const barColor = pct === null ? '#4b5563' : pct >= 70 ? '#22c55e' : pct >= 40 ? '#eab308' : '#ef4444';
+    const taskLabel = p.completionTasks && p.completionTasks.total > 0
+      ? `${p.completionTasks.completed}/${p.completionTasks.total} tasks`
+      : '';
+    const progressCell = pct !== null
+      ? `<div style="display:flex;align-items:center;gap:8px;min-width:120px;">
+          <div style="flex:1;height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;transition:width .4s;"></div>
+          </div>
+          <span style="font-size:11px;font-family:'DM Mono',monospace;color:${barColor};min-width:30px;">${pct}%</span>
+        </div>${taskLabel?`<div style="font-size:10px;color:rgba(255,255,255,.22);margin-top:3px;font-family:'DM Mono',monospace;">${taskLabel}</div>`:''}`
+      : '<span style="color:rgba(255,255,255,.18);font-size:11px;">—</span>';
     return`<tr>
       <td style="color:rgba(255,255,255,.2);font-family:'DM Mono',monospace;font-size:11px;padding-left:20px;">${i+1}</td>
       <td><div style="display:flex;align-items:center;"><div class="rl-proj-icon" style="background:${ic}22;border:1px solid ${ic}44;color:${ic};">${ini}</div><div><div class="rl-proj-name">${p.name}</div>${p.customer?`<div style="font-size:11px;color:rgba(255,255,255,.28);margin-top:2px;">${p.customer}</div>`:''}</div></div></td>
       <td>${rlBadge(p.status)}</td>
+      <td style="min-width:140px;">${progressCell}</td>
       <td>${p.phase?`<span class="rl-phase-tag" title="${p.phase}">${p.phase}</span>`:'<span style="color:rgba(255,255,255,.18);font-size:11px;">—</span>'}</td>
       <td style="font-size:12px;font-family:'DM Mono',monospace;color:${dateColor};white-space:nowrap;">${dateStr}${isOD?` <span style="font-size:9px;opacity:.7;">(${Math.abs(days)}d late)</span>`:''}</td>
     </tr>`;
@@ -3417,7 +3434,7 @@ function rlRefreshTable() {
       <table class="rl-table">
         <thead><tr>
           <th style="width:40px;padding-left:20px;">#</th>
-          <th>Project</th><th>Status</th><th>Current Phase</th><th>Due Date</th>
+          <th>Project</th><th>Status</th><th>% Complete</th><th>Current Phase</th><th>Due Date</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>

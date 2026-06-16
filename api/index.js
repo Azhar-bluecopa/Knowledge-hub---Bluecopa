@@ -1171,6 +1171,30 @@ let rlCache = null;
 let rlCacheAt = 0;
 const RL_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+async function rlFetchCompletionMap(apiKey) {
+  const map = {}; // projectId -> { total, completed }
+  let pageToken = null;
+  let hasMore = true;
+  while (hasMore) {
+    const url = 'https://api.rocketlane.com/api/1.0/tasks?pageSize=100' + (pageToken ? `&pageToken=${pageToken}` : '');
+    try {
+      const r = await fetch(url, { headers: { 'api-key': apiKey, 'Accept': 'application/json' } });
+      if (!r.ok) break;
+      const d = await r.json();
+      (d.data || []).forEach(task => {
+        const pid = task.project?.projectId;
+        if (!pid) return;
+        if (!map[pid]) map[pid] = { total: 0, completed: 0 };
+        map[pid].total++;
+        if (task.status?.label === 'Completed') map[pid].completed++;
+      });
+      hasMore = d.pagination?.hasMore || false;
+      pageToken = d.pagination?.nextPageToken || null;
+    } catch { break; }
+  }
+  return map;
+}
+
 app.get('/api/rocketlane/projects', async (req, res) => {
   const apiKey = process.env.ROCKETLANE_API_KEY;
   if (!apiKey) {
@@ -1181,13 +1205,30 @@ app.get('/api/rocketlane/projects', async (req, res) => {
     return res.json({ ...rlCache, cached: true, cacheAge: Math.round((now - rlCacheAt) / 1000) });
   }
   try {
-    const resp = await fetch('https://api.rocketlane.com/api/1.0/projects', {
-      headers: { 'api-key': apiKey, 'Accept': 'application/json', 'Content-Type': 'application/json' }
-    });
-    const text = await resp.text();
+    const [projResp, completionMap] = await Promise.all([
+      fetch('https://api.rocketlane.com/api/1.0/projects', {
+        headers: { 'api-key': apiKey, 'Accept': 'application/json', 'Content-Type': 'application/json' }
+      }),
+      rlFetchCompletionMap(apiKey)
+    ]);
+    const text = await projResp.text();
     let data;
     try { data = JSON.parse(text); } catch { return res.status(502).json({ error: 'invalid_json', message: text.slice(0, 300) }); }
-    if (!resp.ok) return res.status(resp.status).json({ error: 'api_error', status: resp.status, message: data?.message || text.slice(0, 300) });
+    if (!projResp.ok) return res.status(projResp.status).json({ error: 'api_error', status: projResp.status, message: data?.message || text.slice(0, 300) });
+    // Attach completion percentage to each project
+    const projects = data.data || data.projects || (Array.isArray(data) ? data : []);
+    projects.forEach(p => {
+      const pid = p.projectId;
+      const comp = completionMap[pid];
+      if (comp && comp.total > 0) {
+        p.completionPct = Math.round(comp.completed / comp.total * 100);
+        p.completionTasks = comp;
+      } else {
+        const lbl = (p.status?.label || '').toLowerCase();
+        p.completionPct = lbl.includes('complet') ? 100 : 0;
+        p.completionTasks = { total: 0, completed: 0 };
+      }
+    });
     rlCache = data;
     rlCacheAt = now;
     res.json({ ...data, cached: false, fetchedAt: now });
