@@ -138,6 +138,26 @@ app.post('/api/articles/:id/view', async (req, res) => {
   res.json({ views: a.views });
 });
 
+// TEMP: one-time seed endpoint — remove after use
+app.post('/api/temp-seed-xk9q', async (req, res) => {
+  if (req.headers['x-seed-token'] !== 'c3da7f8eseed2024xk9q') return res.status(403).json({ error: 'Forbidden' });
+  const { title, category, author, initials, content, tags, excerpt } = req.body;
+  if (!title || !category || !content) return res.status(400).json({ error: 'title, category, content required' });
+  if (!db.articles) db.articles = [];
+  if (!db.nextId) db.nextId = (Math.max(0, ...db.articles.map(a => a.id)) + 1);
+  const article = {
+    id: db.nextId++,
+    title, category, author: author || 'Anonymous',
+    initials: initials || (author || 'A').slice(0,2).toUpperCase(),
+    excerpt: excerpt || content.replace(/<style[\s\S]*?<\/style>/gi,'').replace(/<script[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,180) + '…',
+    content, tags: Array.isArray(tags) ? tags : (tags||'').split(',').map(t=>t.trim()).filter(Boolean),
+    created_at: new Date().toISOString(), views: 0,
+  };
+  db.articles.push(article);
+  await saveDB(db);
+  res.status(201).json(article);
+});
+
 // Create article
 app.post('/api/articles', async (req, res) => {
   const { whoCanPost } = (db.settings && db.settings.restrictions) || {};
