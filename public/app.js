@@ -3371,6 +3371,8 @@ let rl2SnapsCache = [];
 let rl2SnapType = 'weekly';
 let rl2SelSnaps = [];
 let rl2SnapSubTab = 'weekly';
+let rl2TrendView = 'overall';
+let rl2TrendFilter = [];
 
 function rl2SwitchTab(tab) {
   const cp=document.getElementById('rl2CurrentPane'), sp=document.getElementById('rl2SnapPane');
@@ -3459,71 +3461,93 @@ async function rl2LoadSnapshots() {
 
 function rl2SetSubTab(tab) {
   rl2SnapSubTab = tab;
+  rl2TrendView = 'overall';
+  rl2TrendFilter = [];
   rl2RenderSnapPane();
 }
 
-function rl2BuildTrendChart(snaps) {
-  if (!snaps.length) return '<div style="text-align:center;padding:48px 24px;color:rgba(255,255,255,.28);font-size:13px;">No snapshots of this type yet. Capture your first snapshot.</div>';
-  const projMap = new Map();
-  snaps.forEach(s => s.projects.forEach(p => { if (!projMap.has(p.id)) projMap.set(p.id, p.name); }));
-  const projects = [...projMap.entries()];
-  if (!projects.length) return '<div style="text-align:center;padding:48px;color:rgba(255,255,255,.28);font-size:13px;">No project data found in snapshots.</div>';
+function rl2SetTrendView(view) {
+  rl2TrendView = view;
+  rl2TrendFilter = [];
+  rl2RenderSnapPane();
+}
 
-  const W = 900, H = 300;
-  const ML = 44, MR = 16, MT = 20, MB = 68;
-  const cW = W - ML - MR, cH = H - MT - MB;
+function rl2ToggleTrendFilter(el) {
+  const id = el.dataset.pid;
+  if (rl2TrendFilter.includes(id)) {
+    rl2TrendFilter = rl2TrendFilter.filter(x => x !== id);
+  } else {
+    rl2TrendFilter = [...rl2TrendFilter, id];
+  }
+  rl2RenderSnapPane();
+}
+
+function rl2BuildTrendChart(snaps, filterIds) {
+  if (!snaps.length) return '<div style="text-align:center;padding:48px 24px;color:rgba(255,255,255,.28);font-size:13px;">No snapshots of this type yet. Capture your first snapshot.</div>';
+
+  const PALETTE = ['#60a5fa','#34d399','#f472b6','#a78bfa','#fb923c','#38bdf8','#4ade80','#e879f9','#facc15','#f87171','#94a3b8','#2dd4bf','#c084fc','#fbbf24','#6ee7b7'];
+
+  const projMap = new Map();
+  snaps.forEach(s => s.projects.forEach(p => { if (!projMap.has(String(p.id))) projMap.set(String(p.id), {id: p.id, name: p.name}); }));
+  let projects = [...projMap.values()];
+  if (filterIds && filterIds.length) projects = projects.filter(p => filterIds.includes(String(p.id)));
+  if (!projects.length) return '<div style="text-align:center;padding:48px;color:rgba(255,255,255,.28);font-size:13px;">No projects match the filter.</div>';
+
   const nP = projects.length, nS = snaps.length;
+  const W = Math.max(900, nP * 72 + 64);
+  const H = 360;
+  const ML = 44, MR = 20, MT = 20, MB = 108;
+  const cW = W - ML - MR, cH = H - MT - MB;
   const groupW = cW / nP;
-  const barW = Math.max(5, Math.min(22, (groupW * 0.78) / nS));
+  const barW = Math.max(6, Math.min(20, (groupW * 0.78) / nS));
   const sideGap = (groupW - barW * nS) / 2;
 
-  // Snapshot color ramp: oldest=faded blue → newest=gold
-  const snapColors = snaps.map((_, i) => {
-    const t = nS === 1 ? 1 : i / (nS - 1);
-    if (t < 0.5) return `rgba(147,197,253,${(0.4 + t * 0.5).toFixed(2)})`;
-    return `rgba(201,162,39,${(0.55 + (t - 0.5) * 0.9).toFixed(2)})`;
-  });
+  const projColor = {};
+  projects.forEach((p, i) => { projColor[String(p.id)] = PALETTE[i % PALETTE.length]; });
 
   let gridSvg = '';
   [0, 25, 50, 75, 100].forEach(v => {
     const y = MT + cH * (1 - v / 100);
-    gridSvg += `<line x1="${ML}" y1="${y}" x2="${ML + cW}" y2="${y}" stroke="rgba(255,255,255,.05)" stroke-width="1"/>`;
-    gridSvg += `<text x="${ML - 5}" y="${y + 4}" text-anchor="end" font-size="9" fill="rgba(255,255,255,.25)" font-family="DM Mono,monospace">${v}</text>`;
+    gridSvg += `<line x1="${ML}" y1="${y.toFixed(1)}" x2="${(ML+cW).toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,.05)" stroke-width="1"/>`;
+    gridSvg += `<text x="${(ML-5).toFixed(1)}" y="${(y+4).toFixed(1)}" text-anchor="end" font-size="9" fill="rgba(255,255,255,.25)" font-family="DM Mono,monospace">${v}</text>`;
   });
 
   let barsSvg = '';
-  projects.forEach(([pid, pname], gi) => {
+  projects.forEach((proj, gi) => {
+    const sid = String(proj.id);
+    const col = projColor[sid];
     const gx = ML + gi * groupW + sideGap;
     snaps.forEach((snap, si) => {
-      const proj = snap.projects.find(p => p.id === pid);
-      const pct = proj ? (proj.completionPct || 0) : 0;
+      const pd = snap.projects.find(p => String(p.id) === sid);
+      const pct = pd ? (pd.completionPct || 0) : 0;
       const bh = (pct / 100) * cH;
       const x = gx + si * barW;
       const y = MT + cH - bh;
-      const col = snapColors[si];
-      barsSvg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(barW - 1).toFixed(1)}" height="${Math.max(2, bh).toFixed(1)}" fill="${col}" rx="2"><title>${pname} · ${snap.label}: ${pct}%</title></rect>`;
-      if (bh > 14) barsSvg += `<text x="${(x + (barW - 1) / 2).toFixed(1)}" y="${(y - 3).toFixed(1)}" text-anchor="middle" font-size="8" fill="${col}" font-family="DM Mono,monospace">${pct}</text>`;
+      const opacity = nS === 1 ? 1 : 0.35 + (si / (nS - 1)) * 0.65;
+      barsSvg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(barW-1).toFixed(1)}" height="${Math.max(2,bh).toFixed(1)}" fill="${col}" opacity="${opacity.toFixed(2)}" rx="2"><title>${proj.name} · ${snap.label}: ${pct}%</title></rect>`;
+      if (bh > 20) barsSvg += `<text x="${(x+(barW-1)/2).toFixed(1)}" y="${(y-3).toFixed(1)}" text-anchor="middle" font-size="8" fill="${col}" opacity="${opacity.toFixed(2)}" font-family="DM Mono,monospace">${pct}</text>`;
     });
+    // Rotated project label (-42°, coloured by project)
     const lx = ML + gi * groupW + groupW / 2;
-    const short = pname.length > 13 ? pname.slice(0, 12) + '…' : pname;
-    barsSvg += `<text x="${lx.toFixed(1)}" y="${(MT + cH + 14).toFixed(1)}" text-anchor="middle" font-size="10" fill="rgba(255,255,255,.42)" font-family="DM Sans,sans-serif">${short}</text>`;
+    const ly = MT + cH + 8;
+    const short = proj.name.length > 18 ? proj.name.slice(0, 17) + '…' : proj.name;
+    barsSvg += `<text transform="translate(${lx.toFixed(1)},${ly.toFixed(1)}) rotate(-42)" text-anchor="end" font-size="10" fill="${col}" font-family="DM Sans,sans-serif">${short}</text>`;
   });
 
-  // Legend
+  // Legend: each snapshot bar = a white swatch at increasing opacity (oldest faded → newest solid)
   let legendSvg = '';
-  const lBaseY = H - 14;
-  const lItemW = 120;
-  const lTotalW = Math.min(nS * lItemW, W - ML - MR);
-  let lx = ML + (cW - lTotalW) / 2;
+  const lBaseY = H - 12;
+  const lItemW = Math.min(140, (cW - 20) / nS);
+  let lx = ML + (cW - lItemW * nS) / 2;
   snaps.forEach((snap, si) => {
-    const col = snapColors[si];
-    legendSvg += `<rect x="${lx.toFixed(1)}" y="${(lBaseY - 8).toFixed(1)}" width="8" height="8" fill="${col}" rx="1"/>`;
-    const lbl = snap.label.length > 14 ? snap.label.slice(0, 13) + '…' : snap.label;
-    legendSvg += `<text x="${(lx + 12).toFixed(1)}" y="${lBaseY.toFixed(1)}" font-size="9" fill="rgba(255,255,255,.35)" font-family="DM Sans,sans-serif">${lbl}</text>`;
+    const opacity = nS === 1 ? 1 : 0.35 + (si / (nS - 1)) * 0.65;
+    legendSvg += `<rect x="${lx.toFixed(1)}" y="${(lBaseY-9).toFixed(1)}" width="10" height="10" fill="rgba(255,255,255,${opacity.toFixed(2)})" rx="2"/>`;
+    const lbl = snap.label.length > 17 ? snap.label.slice(0,16)+'…' : snap.label;
+    legendSvg += `<text x="${(lx+14).toFixed(1)}" y="${lBaseY.toFixed(1)}" font-size="9" fill="rgba(255,255,255,.38)" font-family="DM Sans,sans-serif">${lbl}</text>`;
     lx += lItemW;
   });
 
-  return `<div class="rl2-chart-wrap"><svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;min-width:480px;" xmlns="http://www.w3.org/2000/svg">${gridSvg}${barsSvg}${legendSvg}</svg></div>`;
+  return `<div class="rl2-chart-wrap"><svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible;min-width:${Math.min(W,700)}px;" xmlns="http://www.w3.org/2000/svg">${gridSvg}${barsSvg}${legendSvg}</svg></div>`;
 }
 
 function rl2BuildSnapList() {
@@ -3648,10 +3672,34 @@ function rl2RenderSnapPane() {
 
   let body = '';
   if (rl2SnapSubTab === 'weekly' || rl2SnapSubTab === 'monthly') {
-    const filtered = [...rl2SnapsCache].filter(s => s.type === rl2SnapSubTab).sort((a,b)=>new Date(a.capturedAt)-new Date(b.capturedAt));
+    const sorted = [...rl2SnapsCache].filter(s => s.type === rl2SnapSubTab).sort((a,b)=>new Date(a.capturedAt)-new Date(b.capturedAt));
+    const snapsToShow = rl2SnapSubTab === 'weekly' ? sorted.slice(-4) : sorted;
     const typeLabel = rl2SnapSubTab === 'weekly' ? 'weekly' : 'monthly';
-    body = `<div style="margin-bottom:12px;font-size:12px;color:rgba(255,255,255,.28);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;">% Completion · ${typeLabel} trend · ${filtered.length} snapshot${filtered.length!==1?'s':''}</div>` +
-      rl2BuildTrendChart(filtered);
+    const projMap = new Map();
+    snapsToShow.forEach(s => s.projects.forEach(p => { if (!projMap.has(String(p.id))) projMap.set(String(p.id), p.name); }));
+    const viewToggle =
+      `<div class="rl2-view-toggle">` +
+      `<button class="rl2-view-btn${rl2TrendView==='overall'?' rl2-view-active':''}" onclick="rl2SetTrendView('overall')">Overall</button>` +
+      `<button class="rl2-view-btn${rl2TrendView==='client'?' rl2-view-active':''}" onclick="rl2SetTrendView('client')">By Client</button>` +
+      `</div>`;
+    let clientPills = '';
+    if (rl2TrendView === 'client' && projMap.size) {
+      const pillsBtns = [...projMap.entries()].map(([sid, name]) =>
+        `<button class="rl2-client-pill${rl2TrendFilter.includes(sid)?' active':''}" onclick="rl2ToggleTrendFilter(this)" data-pid="${sid}">${name}</button>`
+      ).join('');
+      clientPills =
+        `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">` +
+        `<span style="font-size:10px;color:rgba(255,255,255,.28);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;">Filter</span>` +
+        `<button class="rl2-client-pill${rl2TrendFilter.length===0?' active':''}" onclick="rl2TrendFilter=[];rl2RenderSnapPane()">All clients</button>` +
+        `</div><div class="rl2-client-filter">${pillsBtns}</div>`;
+    }
+    const filterIds = rl2TrendView === 'client' && rl2TrendFilter.length ? rl2TrendFilter : null;
+    body =
+      `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;">` +
+      `<div style="font-size:11px;color:rgba(255,255,255,.28);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;">% Completion · ${typeLabel} trend · ${snapsToShow.length} snapshot${snapsToShow.length!==1?'s':''}${rl2SnapSubTab==='weekly'?' · last 4 weeks':''}</div>` +
+      viewToggle + `</div>` +
+      clientPills +
+      rl2BuildTrendChart(snapsToShow, filterIds);
   } else {
     body = rl2BuildSnapList();
   }

@@ -2005,3 +2005,11 @@ html{scroll-behavior:smooth;}
       .rl2-subtab:hover{color:rgba(255,255,255,.65);background:rgba(255,255,255,.04);}
       .rl2-subtab.rl2-subtab-active{background:rgba(201,162,39,.12);border:1px solid rgba(201,162,39,.3);color:rgba(201,162,39,.95);}
       .rl2-chart-wrap{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:20px;overflow-x:auto;}
+      .rl2-view-toggle{display:flex;gap:3px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:3px;flex-shrink:0;}
+      .rl2-view-btn{padding:5px 14px;border:none;background:transparent;color:rgba(255,255,255,.35);font-size:12px;font-weight:600;border-radius:6px;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;}
+      .rl2-view-btn:hover{color:rgba(255,255,255,.62);}
+      .rl2-view-btn.rl2-view-active{background:rgba(201,162,39,.12);border:1px solid rgba(201,162,39,.28);color:rgba(201,162,39,.92);}
+      .rl2-client-filter{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+      .rl2-client-pill{padding:4px 12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(255,255,255,.38);font-size:11px;font-weight:600;border-radius:99px;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;}
+      .rl2-client-pill:hover{border-color:rgba(255,255,255,.22);color:rgba(255,255,255,.65);}
+      .rl2-client-pill.active{background:rgba(201,162,39,.1);border-color:rgba(201,162,39,.42);color:rgba(201,162,39,.92);}
