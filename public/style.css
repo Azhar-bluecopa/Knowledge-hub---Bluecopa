@@ -2000,3 +2000,8 @@ html{scroll-behavior:smooth;}
       .rl2-modal-box input[type=text]{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 14px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;}
       .rl2-modal-box input[type=text]:focus{border-color:rgba(201,162,39,.5);}
       .rl2-modal-footer{display:flex;gap:8px;margin-top:20px;justify-content:flex-end;}
+      .rl2-subtabs{display:flex;gap:4px;margin-bottom:20px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:4px;}
+      .rl2-subtab{flex:1;padding:8px 12px;border:none;background:transparent;color:rgba(255,255,255,.38);font-size:12px;font-weight:600;border-radius:8px;cursor:pointer;transition:all .18s;font-family:'DM Sans',sans-serif;text-align:center;}
+      .rl2-subtab:hover{color:rgba(255,255,255,.65);background:rgba(255,255,255,.04);}
+      .rl2-subtab.rl2-subtab-active{background:rgba(201,162,39,.12);border:1px solid rgba(201,162,39,.3);color:rgba(201,162,39,.95);}
+      .rl2-chart-wrap{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:20px;overflow-x:auto;}

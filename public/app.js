@@ -3370,6 +3370,7 @@ function rlRefreshTable() {
 let rl2SnapsCache = [];
 let rl2SnapType = 'weekly';
 let rl2SelSnaps = [];
+let rl2SnapSubTab = 'weekly';
 
 function rl2SwitchTab(tab) {
   const cp=document.getElementById('rl2CurrentPane'), sp=document.getElementById('rl2SnapPane');
@@ -3456,19 +3457,76 @@ async function rl2LoadSnapshots() {
   } catch { rl2SnapsCache=[]; }
 }
 
-function rl2RenderSnapPane() {
-  const pane = document.getElementById('rl2SnapPane');
-  if (!pane) return;
-  if (!rl2SnapsCache.length) {
-    pane.innerHTML =
-      `<div style="text-align:center;padding:64px 24px;">` +
-      `<div style="font-size:48px;opacity:.18;margin-bottom:16px;">📅</div>` +
-      `<div style="font-size:16px;font-weight:700;color:rgba(255,255,255,.38);margin-bottom:8px;">No snapshots yet</div>` +
-      `<div style="font-size:13px;color:rgba(255,255,255,.22);margin-bottom:24px;">Capture your first snapshot to start tracking progress week-on-week</div>` +
-      `<button onclick="rl2CaptureModal()" class="rl2-capture-btn">📸 Capture First Snapshot</button></div>`;
-    return;
-  }
+function rl2SetSubTab(tab) {
+  rl2SnapSubTab = tab;
+  rl2RenderSnapPane();
+}
 
+function rl2BuildTrendChart(snaps) {
+  if (!snaps.length) return '<div style="text-align:center;padding:48px 24px;color:rgba(255,255,255,.28);font-size:13px;">No snapshots of this type yet. Capture your first snapshot.</div>';
+  const projMap = new Map();
+  snaps.forEach(s => s.projects.forEach(p => { if (!projMap.has(p.id)) projMap.set(p.id, p.name); }));
+  const projects = [...projMap.entries()];
+  if (!projects.length) return '<div style="text-align:center;padding:48px;color:rgba(255,255,255,.28);font-size:13px;">No project data found in snapshots.</div>';
+
+  const W = 900, H = 300;
+  const ML = 44, MR = 16, MT = 20, MB = 68;
+  const cW = W - ML - MR, cH = H - MT - MB;
+  const nP = projects.length, nS = snaps.length;
+  const groupW = cW / nP;
+  const barW = Math.max(5, Math.min(22, (groupW * 0.78) / nS));
+  const sideGap = (groupW - barW * nS) / 2;
+
+  // Snapshot color ramp: oldest=faded blue → newest=gold
+  const snapColors = snaps.map((_, i) => {
+    const t = nS === 1 ? 1 : i / (nS - 1);
+    if (t < 0.5) return `rgba(147,197,253,${(0.4 + t * 0.5).toFixed(2)})`;
+    return `rgba(201,162,39,${(0.55 + (t - 0.5) * 0.9).toFixed(2)})`;
+  });
+
+  let gridSvg = '';
+  [0, 25, 50, 75, 100].forEach(v => {
+    const y = MT + cH * (1 - v / 100);
+    gridSvg += `<line x1="${ML}" y1="${y}" x2="${ML + cW}" y2="${y}" stroke="rgba(255,255,255,.05)" stroke-width="1"/>`;
+    gridSvg += `<text x="${ML - 5}" y="${y + 4}" text-anchor="end" font-size="9" fill="rgba(255,255,255,.25)" font-family="DM Mono,monospace">${v}</text>`;
+  });
+
+  let barsSvg = '';
+  projects.forEach(([pid, pname], gi) => {
+    const gx = ML + gi * groupW + sideGap;
+    snaps.forEach((snap, si) => {
+      const proj = snap.projects.find(p => p.id === pid);
+      const pct = proj ? (proj.completionPct || 0) : 0;
+      const bh = (pct / 100) * cH;
+      const x = gx + si * barW;
+      const y = MT + cH - bh;
+      const col = snapColors[si];
+      barsSvg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(barW - 1).toFixed(1)}" height="${Math.max(2, bh).toFixed(1)}" fill="${col}" rx="2"><title>${pname} · ${snap.label}: ${pct}%</title></rect>`;
+      if (bh > 14) barsSvg += `<text x="${(x + (barW - 1) / 2).toFixed(1)}" y="${(y - 3).toFixed(1)}" text-anchor="middle" font-size="8" fill="${col}" font-family="DM Mono,monospace">${pct}</text>`;
+    });
+    const lx = ML + gi * groupW + groupW / 2;
+    const short = pname.length > 13 ? pname.slice(0, 12) + '…' : pname;
+    barsSvg += `<text x="${lx.toFixed(1)}" y="${(MT + cH + 14).toFixed(1)}" text-anchor="middle" font-size="10" fill="rgba(255,255,255,.42)" font-family="DM Sans,sans-serif">${short}</text>`;
+  });
+
+  // Legend
+  let legendSvg = '';
+  const lBaseY = H - 14;
+  const lItemW = 120;
+  const lTotalW = Math.min(nS * lItemW, W - ML - MR);
+  let lx = ML + (cW - lTotalW) / 2;
+  snaps.forEach((snap, si) => {
+    const col = snapColors[si];
+    legendSvg += `<rect x="${lx.toFixed(1)}" y="${(lBaseY - 8).toFixed(1)}" width="8" height="8" fill="${col}" rx="1"/>`;
+    const lbl = snap.label.length > 14 ? snap.label.slice(0, 13) + '…' : snap.label;
+    legendSvg += `<text x="${(lx + 12).toFixed(1)}" y="${lBaseY.toFixed(1)}" font-size="9" fill="rgba(255,255,255,.35)" font-family="DM Sans,sans-serif">${lbl}</text>`;
+    lx += lItemW;
+  });
+
+  return `<div class="rl2-chart-wrap"><svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;min-width:480px;" xmlns="http://www.w3.org/2000/svg">${gridSvg}${barsSvg}${legendSvg}</svg></div>`;
+}
+
+function rl2BuildSnapList() {
   const snapCards = rl2SnapsCache.map(s => {
     const d = new Date(s.capturedAt);
     const dateStr = d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
@@ -3556,16 +3614,53 @@ function rl2RenderSnapPane() {
       ? 'Select one more to compare side-by-side'
       : '<span style="color:rgba(134,239,172,.7);">✓ Comparing two snapshots</span>';
 
-  pane.innerHTML =
-    `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">` +
-      `<div style="font-size:13px;color:rgba(255,255,255,.38);">${hintText}</div>` +
-      `<div style="display:flex;gap:8px;">` +
-        `${rl2SelSnaps.length?`<button onclick="rl2SelSnaps=[];rl2RenderSnapPane()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.38);border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Clear</button>`:''}` +
-        `<button onclick="rl2CaptureModal()" class="rl2-capture-btn">📸 New Snapshot</button>` +
-      `</div>` +
+  return `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">` +
+    `<div style="font-size:13px;color:rgba(255,255,255,.38);">${hintText}</div>` +
+    `<div style="display:flex;gap:8px;">` +
+      `${rl2SelSnaps.length?`<button onclick="rl2SelSnaps=[];rl2RenderSnapPane()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.38);border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Clear</button>`:''}` +
     `</div>` +
-    `<div class="rl2-snap-list">${snapCards}</div>` +
-    detailHtml;
+  `</div>` +
+  `<div class="rl2-snap-list">${snapCards}</div>` +
+  detailHtml;
+}
+
+function rl2RenderSnapPane() {
+  const pane = document.getElementById('rl2SnapPane');
+  if (!pane) return;
+  if (!rl2SnapsCache.length) {
+    pane.innerHTML =
+      `<div style="text-align:center;padding:64px 24px;">` +
+      `<div style="font-size:48px;opacity:.18;margin-bottom:16px;">📅</div>` +
+      `<div style="font-size:16px;font-weight:700;color:rgba(255,255,255,.38);margin-bottom:8px;">No snapshots yet</div>` +
+      `<div style="font-size:13px;color:rgba(255,255,255,.22);margin-bottom:24px;">Capture your first snapshot to start tracking progress week-on-week</div>` +
+      `<button onclick="rl2CaptureModal()" class="rl2-capture-btn">📸 Capture First Snapshot</button></div>`;
+    return;
+  }
+
+  const subTabs = [
+    {key:'weekly', label:'📊 Weekly Trend'},
+    {key:'monthly', label:'📅 Monthly Trend'},
+    {key:'all', label:'📋 All Snapshots'},
+  ];
+  const tabBar = `<div class="rl2-subtabs">` +
+    subTabs.map(t => `<button class="rl2-subtab${rl2SnapSubTab===t.key?' rl2-subtab-active':''}" onclick="rl2SetSubTab('${t.key}')">${t.label}</button>`).join('') +
+    `</div>`;
+
+  let body = '';
+  if (rl2SnapSubTab === 'weekly' || rl2SnapSubTab === 'monthly') {
+    const filtered = [...rl2SnapsCache].filter(s => s.type === rl2SnapSubTab).sort((a,b)=>new Date(a.capturedAt)-new Date(b.capturedAt));
+    const typeLabel = rl2SnapSubTab === 'weekly' ? 'weekly' : 'monthly';
+    body = `<div style="margin-bottom:12px;font-size:12px;color:rgba(255,255,255,.28);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;">% Completion · ${typeLabel} trend · ${filtered.length} snapshot${filtered.length!==1?'s':''}</div>` +
+      rl2BuildTrendChart(filtered);
+  } else {
+    body = rl2BuildSnapList();
+  }
+
+  pane.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">` +
+    `<div></div>` +
+    `<button onclick="rl2CaptureModal()" class="rl2-capture-btn">📸 New Snapshot</button>` +
+    `</div>` +
+    tabBar + body;
 }
 
 function rl2ToggleSnap(id) {
