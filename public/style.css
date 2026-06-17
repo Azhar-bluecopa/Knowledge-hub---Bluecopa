@@ -2013,3 +2013,19 @@ html{scroll-behavior:smooth;}
       .rl2-client-pill{padding:4px 12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(255,255,255,.38);font-size:11px;font-weight:600;border-radius:99px;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;}
       .rl2-client-pill:hover{border-color:rgba(255,255,255,.22);color:rgba(255,255,255,.65);}
       .rl2-client-pill.active{background:rgba(201,162,39,.1);border-color:rgba(201,162,39,.42);color:rgba(201,162,39,.92);}
+      /* Fullscreen */
+      .rl2-fullscreen{position:fixed!important;inset:0!important;z-index:9998!important;background:#08080d!important;overflow-y:auto!important;padding:24px 32px!important;border-radius:0!important;}
+      /* Trend layout: sidebar + main */
+      .rl2-trend-layout{display:flex;gap:0;min-height:420px;}
+      .rl2-client-sidebar{width:192px;flex-shrink:0;border-right:1px solid rgba(255,255,255,.07);padding-right:12px;margin-right:20px;}
+      .rl2-client-sidebar-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.25);margin-bottom:8px;padding:0 4px;}
+      .rl2-client-sidebar-item{display:block;width:100%;text-align:left;padding:8px 10px;margin-bottom:3px;border:1px solid transparent;background:transparent;color:rgba(255,255,255,.42);font-size:12px;font-weight:500;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .rl2-client-sidebar-item:hover{background:rgba(255,255,255,.04);color:rgba(255,255,255,.72);}
+      .rl2-client-sidebar-item.active{background:rgba(201,162,39,.12);border-color:rgba(201,162,39,.3);color:rgba(201,162,39,.95);}
+      .rl2-trend-main{flex:1;min-width:0;}
+      /* Metrics summary row */
+      .rl2-metrics-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px;}
+      .rl2-metric-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 14px;}
+      /* Project list */
+      .rl2-project-list{display:flex;flex-direction:column;gap:6px;}
+      .rl2-project-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:12px 14px;}

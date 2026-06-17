@@ -3373,6 +3373,7 @@ let rl2SelSnaps = [];
 let rl2SnapSubTab = 'weekly';
 let rl2TrendView = 'overall';
 let rl2TrendFilter = [];
+let rl2SelClient = '';
 
 function rl2SwitchTab(tab) {
   const cp=document.getElementById('rl2CurrentPane'), sp=document.getElementById('rl2SnapPane');
@@ -3463,43 +3464,48 @@ function rl2SetSubTab(tab) {
   rl2SnapSubTab = tab;
   rl2TrendView = 'overall';
   rl2TrendFilter = [];
+  rl2SelClient = '';
   rl2RenderSnapPane();
 }
 
 function rl2SetTrendView(view) {
   rl2TrendView = view;
   rl2TrendFilter = [];
+  rl2SelClient = '';
   rl2RenderSnapPane();
 }
 
-function rl2ToggleTrendFilter(el) {
-  const id = el.dataset.pid;
-  if (rl2TrendFilter.includes(id)) {
-    rl2TrendFilter = rl2TrendFilter.filter(x => x !== id);
-  } else {
-    rl2TrendFilter = [...rl2TrendFilter, id];
-  }
+function rl2SetClient(name) {
+  rl2SelClient = name;
   rl2RenderSnapPane();
 }
 
-function rl2BuildTrendChart(snaps, filterIds) {
+function rl2ToggleFullscreen() {
+  const el = document.getElementById('rl2FullWrap');
+  if (!el) return;
+  el.classList.toggle('rl2-fullscreen');
+  const btn = document.getElementById('rl2FullBtn');
+  if (btn) btn.textContent = el.classList.contains('rl2-fullscreen') ? '✕ Exit' : '⛶ Expand';
+}
+
+function rl2BuildTrendChart(snaps, filterClient) {
   if (!snaps.length) return '<div style="text-align:center;padding:48px 24px;color:rgba(255,255,255,.28);font-size:13px;">No snapshots of this type yet. Capture your first snapshot.</div>';
 
   const PALETTE = ['#60a5fa','#34d399','#f472b6','#a78bfa','#fb923c','#38bdf8','#4ade80','#e879f9','#facc15','#f87171','#94a3b8','#2dd4bf','#c084fc','#fbbf24','#6ee7b7'];
 
   const projMap = new Map();
-  snaps.forEach(s => s.projects.forEach(p => { if (!projMap.has(String(p.id))) projMap.set(String(p.id), {id: p.id, name: p.name}); }));
+  snaps.forEach(s => s.projects.forEach(p => { if (!projMap.has(String(p.id))) projMap.set(String(p.id), {id: p.id, name: p.name, customer: p.customer||''}); }));
   let projects = [...projMap.values()];
-  if (filterIds && filterIds.length) projects = projects.filter(p => filterIds.includes(String(p.id)));
+  if (filterClient) projects = projects.filter(p => p.customer === filterClient);
   if (!projects.length) return '<div style="text-align:center;padding:48px;color:rgba(255,255,255,.28);font-size:13px;">No projects match the filter.</div>';
 
   const nP = projects.length, nS = snaps.length;
-  const W = Math.max(900, nP * 72 + 64);
-  const H = 360;
-  const ML = 44, MR = 20, MT = 20, MB = 108;
+  const W = Math.max(1100, nP * 90 + 80);
+  const H = 420;
+  const ML = 48, MR = 24, MT = 24, MB = 120;
   const cW = W - ML - MR, cH = H - MT - MB;
   const groupW = cW / nP;
-  const barW = Math.max(6, Math.min(20, (groupW * 0.78) / nS));
+  const barW = Math.max(8, Math.min(28, (groupW * 0.82) / nS));
   const sideGap = (groupW - barW * nS) / 2;
 
   const projColor = {};
@@ -3508,8 +3514,8 @@ function rl2BuildTrendChart(snaps, filterIds) {
   let gridSvg = '';
   [0, 25, 50, 75, 100].forEach(v => {
     const y = MT + cH * (1 - v / 100);
-    gridSvg += `<line x1="${ML}" y1="${y.toFixed(1)}" x2="${(ML+cW).toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,.05)" stroke-width="1"/>`;
-    gridSvg += `<text x="${(ML-5).toFixed(1)}" y="${(y+4).toFixed(1)}" text-anchor="end" font-size="9" fill="rgba(255,255,255,.25)" font-family="DM Mono,monospace">${v}</text>`;
+    gridSvg += `<line x1="${ML}" y1="${y.toFixed(1)}" x2="${(ML+cW).toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,.06)" stroke-width="1"/>`;
+    gridSvg += `<text x="${(ML-6).toFixed(1)}" y="${(y+4).toFixed(1)}" text-anchor="end" font-size="10" fill="rgba(255,255,255,.28)" font-family="DM Mono,monospace">${v}</text>`;
   });
 
   let barsSvg = '';
@@ -3523,31 +3529,103 @@ function rl2BuildTrendChart(snaps, filterIds) {
       const bh = (pct / 100) * cH;
       const x = gx + si * barW;
       const y = MT + cH - bh;
-      const opacity = nS === 1 ? 1 : 0.35 + (si / (nS - 1)) * 0.65;
-      barsSvg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(barW-1).toFixed(1)}" height="${Math.max(2,bh).toFixed(1)}" fill="${col}" opacity="${opacity.toFixed(2)}" rx="2"><title>${proj.name} · ${snap.label}: ${pct}%</title></rect>`;
-      if (bh > 20) barsSvg += `<text x="${(x+(barW-1)/2).toFixed(1)}" y="${(y-3).toFixed(1)}" text-anchor="middle" font-size="8" fill="${col}" opacity="${opacity.toFixed(2)}" font-family="DM Mono,monospace">${pct}</text>`;
+      const opacity = nS === 1 ? 1 : 0.38 + (si / (nS - 1)) * 0.62;
+      barsSvg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(barW-1.5).toFixed(1)}" height="${Math.max(2,bh).toFixed(1)}" fill="${col}" opacity="${opacity.toFixed(2)}" rx="2"><title>${proj.name} · ${snap.label}: ${pct}%</title></rect>`;
+      if (bh >= 14) barsSvg += `<text x="${(x+(barW-1.5)/2).toFixed(1)}" y="${(y-4).toFixed(1)}" text-anchor="middle" font-size="9" fill="${col}" opacity="${Math.min(1,opacity+0.1).toFixed(2)}" font-weight="600" font-family="DM Mono,monospace">${pct}</text>`;
     });
-    // Rotated project label (-42°, coloured by project)
     const lx = ML + gi * groupW + groupW / 2;
-    const ly = MT + cH + 8;
-    const short = proj.name.length > 18 ? proj.name.slice(0, 17) + '…' : proj.name;
-    barsSvg += `<text transform="translate(${lx.toFixed(1)},${ly.toFixed(1)}) rotate(-42)" text-anchor="end" font-size="10" fill="${col}" font-family="DM Sans,sans-serif">${short}</text>`;
+    const ly = MT + cH + 10;
+    const short = proj.name.length > 20 ? proj.name.slice(0, 19) + '…' : proj.name;
+    barsSvg += `<text transform="translate(${lx.toFixed(1)},${ly.toFixed(1)}) rotate(-42)" text-anchor="end" font-size="11" fill="${col}" font-weight="500" font-family="DM Sans,sans-serif">${short}</text>`;
   });
 
-  // Legend: each snapshot bar = a white swatch at increasing opacity (oldest faded → newest solid)
   let legendSvg = '';
   const lBaseY = H - 12;
-  const lItemW = Math.min(140, (cW - 20) / nS);
+  const lItemW = Math.min(160, (cW - 20) / nS);
   let lx = ML + (cW - lItemW * nS) / 2;
   snaps.forEach((snap, si) => {
-    const opacity = nS === 1 ? 1 : 0.35 + (si / (nS - 1)) * 0.65;
-    legendSvg += `<rect x="${lx.toFixed(1)}" y="${(lBaseY-9).toFixed(1)}" width="10" height="10" fill="rgba(255,255,255,${opacity.toFixed(2)})" rx="2"/>`;
-    const lbl = snap.label.length > 17 ? snap.label.slice(0,16)+'…' : snap.label;
-    legendSvg += `<text x="${(lx+14).toFixed(1)}" y="${lBaseY.toFixed(1)}" font-size="9" fill="rgba(255,255,255,.38)" font-family="DM Sans,sans-serif">${lbl}</text>`;
+    const opacity = nS === 1 ? 1 : 0.38 + (si / (nS - 1)) * 0.62;
+    legendSvg += `<rect x="${lx.toFixed(1)}" y="${(lBaseY-10).toFixed(1)}" width="12" height="12" fill="rgba(255,255,255,${opacity.toFixed(2)})" rx="2"/>`;
+    const lbl = snap.label.length > 20 ? snap.label.slice(0,19)+'…' : snap.label;
+    legendSvg += `<text x="${(lx+16).toFixed(1)}" y="${lBaseY.toFixed(1)}" font-size="10" fill="rgba(255,255,255,.42)" font-family="DM Sans,sans-serif">${lbl}</text>`;
     lx += lItemW;
   });
 
-  return `<div class="rl2-chart-wrap"><svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible;min-width:${Math.min(W,700)}px;" xmlns="http://www.w3.org/2000/svg">${gridSvg}${barsSvg}${legendSvg}</svg></div>`;
+  return `<div class="rl2-chart-wrap"><svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible;min-width:${Math.min(W,800)}px;" xmlns="http://www.w3.org/2000/svg">${gridSvg}${barsSvg}${legendSvg}</svg></div>`;
+}
+
+function rl2BuildMetricsSummary(snaps, filterClient) {
+  if (!snaps.length) return '';
+  const latest = snaps[snaps.length - 1];
+  const prev = snaps.length >= 2 ? snaps[snaps.length - 2] : null;
+  let projects = latest.projects || [];
+  if (filterClient) projects = projects.filter(p => (p.customer||'') === filterClient);
+  if (!projects.length) return '';
+  const total = projects.length;
+  const done = projects.filter(p => ['done','completed'].includes(p.status)).length;
+  const active = projects.filter(p => ['active','in_progress','in-progress'].includes(p.status)).length;
+  const blocked = projects.filter(p => p.status === 'blocked').length;
+  const todo = total - done - active - blocked;
+  const avg = Math.round(projects.reduce((a,p)=>a+(p.completionPct||0),0)/total);
+  let delta = null;
+  if (prev) {
+    let pp = prev.projects || [];
+    if (filterClient) pp = pp.filter(p => (p.customer||'') === filterClient);
+    if (pp.length) delta = avg - Math.round(pp.reduce((a,p)=>a+(p.completionPct||0),0)/pp.length);
+  }
+  const deltaHtml = delta !== null
+    ? `<div style="font-size:10px;font-family:'DM Mono',monospace;margin-top:3px;color:${delta>0?'#22c55e':delta<0?'#ef4444':'rgba(255,255,255,.3)'};">${delta>0?'↑ +':'↓ '}${delta}% vs prev</div>`
+    : '';
+  const cards = [
+    {label:'TOTAL',val:total,col:'rgba(255,255,255,.7)'},
+    {label:'DONE',val:done,col:'#22c55e'},
+    {label:'IN PROGRESS',val:active,col:'#60a5fa'},
+    {label:'BLOCKED',val:blocked,col:'#ef4444'},
+    {label:'TO DO',val:todo,col:'rgba(255,255,255,.38)'},
+    {label:'AVG %',val:avg+'%',col:avg>=70?'#22c55e':avg>=40?'#eab308':'#ef4444',extra:deltaHtml},
+  ];
+  return `<div class="rl2-metrics-row">` +
+    cards.map(c=>`<div class="rl2-metric-card"><div style="font-size:22px;font-weight:900;color:${c.col};font-family:'DM Mono',monospace;">${c.val}</div><div style="font-size:9px;color:rgba(255,255,255,.28);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;margin-top:2px;">${c.label}</div>${c.extra||''}</div>`).join('') +
+    `</div>`;
+}
+
+function rl2BuildClientSidebar(clients, selClient) {
+  const allBtn = `<button class="rl2-client-sidebar-item${!selClient?' active':''}" onclick="rl2SetClient('')">All clients</button>`;
+  const cBtns = clients.map(c=>`<button class="rl2-client-sidebar-item${selClient===c?' active':''}" onclick="rl2SetClient(${JSON.stringify(c)})">${c}</button>`).join('');
+  return `<div class="rl2-client-sidebar"><div class="rl2-client-sidebar-label">Clients</div>${allBtn}${cBtns}</div>`;
+}
+
+function rl2BuildClientAnalysis(clientName, snaps) {
+  if (!snaps.length) return '';
+  const latest = snaps[snaps.length - 1];
+  const prev = snaps.length >= 2 ? snaps[snaps.length - 2] : null;
+  const projects = (latest.projects||[]).filter(p=>(p.customer||'')===clientName);
+  if (!projects.length) return `<div style="padding:32px;text-align:center;color:rgba(255,255,255,.28);font-size:13px;">No projects for this client in the latest snapshot.</div>`;
+  const atRisk = projects.filter(p=>p.status==='blocked'||(p.completionPct||0)<30).length;
+  const healthBadge = atRisk > 0
+    ? `<span style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#fca5a5;border-radius:6px;padding:3px 10px;font-size:11px;font-family:'DM Mono',monospace;">⚠ ${atRisk} at risk</span>`
+    : `<span style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);color:#86efac;border-radius:6px;padding:3px 10px;font-size:11px;font-family:'DM Mono',monospace;">✓ On track</span>`;
+  const rows = projects.map(p=>{
+    const pct=p.completionPct||0, bc=pct>=70?'#22c55e':pct>=40?'#eab308':'#ef4444';
+    const ic=rlIconColor(p.name), ini=p.name.split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'?';
+    let delta=null;
+    if (prev) { const pp=(prev.projects||[]).find(x=>x.id===p.id); if(pp) delta=pct-(pp.completionPct||0); }
+    const dHtml = delta!==null?`<span style="font-size:11px;font-family:'DM Mono',monospace;color:${delta>0?'#22c55e':delta<0?'#ef4444':'rgba(255,255,255,.3)'};">${delta>0?'↑ +':'↓ '}${delta}%</span>`:'';
+    return `<div class="rl2-project-row">` +
+      `<div style="width:32px;height:32px;border-radius:8px;background:${ic}22;border:1px solid ${ic}44;color:${ic};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">${ini}</div>` +
+      `<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>` +
+      `<div style="display:flex;align-items:center;gap:8px;margin-top:4px;"><div style="flex:1;max-width:120px;height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${bc};border-radius:2px;"></div></div><span style="font-size:12px;font-weight:700;font-family:'DM Mono',monospace;color:${bc};">${pct}%</span>${dHtml}</div></div>` +
+      `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">${rlBadge(p.status)}${p.phase?`<div style="font-size:10px;color:rgba(255,255,255,.28);font-family:'DM Mono',monospace;">${p.phase}</div>`:''}</div>` +
+    `</div>`;
+  }).join('');
+  return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">` +
+    `<div style="font-size:14px;font-weight:700;color:#fff;">${clientName}</div>` +
+    `<div style="font-size:11px;color:rgba(255,255,255,.32);font-family:'DM Mono',monospace;">${projects.length} project${projects.length!==1?'s':''}</div>` +
+    healthBadge + `</div>` +
+    rl2BuildMetricsSummary(snaps, clientName) +
+    `<div style="margin:12px 0 6px;font-size:9px;color:rgba(255,255,255,.28);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;">Projects</div>` +
+    `<div class="rl2-project-list">${rows}</div>` +
+    `<div style="margin-top:16px;">${rl2BuildTrendChart(snaps, clientName)}</div>`;
 }
 
 function rl2BuildSnapList() {
@@ -3673,42 +3751,40 @@ function rl2RenderSnapPane() {
   let body = '';
   if (rl2SnapSubTab === 'weekly' || rl2SnapSubTab === 'monthly') {
     const sorted = [...rl2SnapsCache].filter(s => s.type === rl2SnapSubTab).sort((a,b)=>new Date(a.capturedAt)-new Date(b.capturedAt));
-    const snapsToShow = rl2SnapSubTab === 'weekly' ? sorted.slice(-4) : sorted;
+    const snapsToShow = sorted.slice(-5);
     const typeLabel = rl2SnapSubTab === 'weekly' ? 'weekly' : 'monthly';
-    const projMap = new Map();
-    snapsToShow.forEach(s => s.projects.forEach(p => { if (!projMap.has(String(p.id))) projMap.set(String(p.id), p.name); }));
+    const clientSet = new Set();
+    snapsToShow.forEach(s => s.projects.forEach(p => { if (p.customer) clientSet.add(p.customer); }));
+    const clients = [...clientSet].sort();
     const viewToggle =
       `<div class="rl2-view-toggle">` +
       `<button class="rl2-view-btn${rl2TrendView==='overall'?' rl2-view-active':''}" onclick="rl2SetTrendView('overall')">Overall</button>` +
       `<button class="rl2-view-btn${rl2TrendView==='client'?' rl2-view-active':''}" onclick="rl2SetTrendView('client')">By Client</button>` +
       `</div>`;
-    let clientPills = '';
-    if (rl2TrendView === 'client' && projMap.size) {
-      const pillsBtns = [...projMap.entries()].map(([sid, name]) =>
-        `<button class="rl2-client-pill${rl2TrendFilter.includes(sid)?' active':''}" onclick="rl2ToggleTrendFilter(this)" data-pid="${sid}">${name}</button>`
-      ).join('');
-      clientPills =
-        `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">` +
-        `<span style="font-size:10px;color:rgba(255,255,255,.28);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;">Filter</span>` +
-        `<button class="rl2-client-pill${rl2TrendFilter.length===0?' active':''}" onclick="rl2TrendFilter=[];rl2RenderSnapPane()">All clients</button>` +
-        `</div><div class="rl2-client-filter">${pillsBtns}</div>`;
-    }
-    const filterIds = rl2TrendView === 'client' && rl2TrendFilter.length ? rl2TrendFilter : null;
-    body =
+    const headerBar =
       `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;">` +
-      `<div style="font-size:11px;color:rgba(255,255,255,.28);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;">% Completion · ${typeLabel} trend · ${snapsToShow.length} snapshot${snapsToShow.length!==1?'s':''}${rl2SnapSubTab==='weekly'?' · last 4 weeks':''}</div>` +
-      viewToggle + `</div>` +
-      clientPills +
-      rl2BuildTrendChart(snapsToShow, filterIds);
+      `<div style="font-size:11px;color:rgba(255,255,255,.28);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;">% Completion · ${typeLabel} trend · ${snapsToShow.length} snapshot${snapsToShow.length!==1?'s':''}${rl2SnapSubTab==='weekly'?' · last 5 weeks':' · last 5 months'}</div>` +
+      `<div style="display:flex;align-items:center;gap:8px;">${viewToggle}` +
+      `<button id="rl2FullBtn" onclick="rl2ToggleFullscreen()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.55);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">⛶ Expand</button>` +
+      `</div></div>`;
+    if (rl2TrendView === 'client') {
+      const sidebar = rl2BuildClientSidebar(clients, rl2SelClient);
+      const mainContent = rl2SelClient
+        ? rl2BuildClientAnalysis(rl2SelClient, snapsToShow)
+        : rl2BuildMetricsSummary(snapsToShow, '') + rl2BuildTrendChart(snapsToShow, '');
+      body = headerBar + `<div class="rl2-trend-layout">${sidebar}<div class="rl2-trend-main">${mainContent}</div></div>`;
+    } else {
+      body = headerBar + rl2BuildMetricsSummary(snapsToShow, '') + rl2BuildTrendChart(snapsToShow, '');
+    }
   } else {
     body = rl2BuildSnapList();
   }
 
-  pane.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">` +
+  pane.innerHTML = `<div id="rl2FullWrap"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">` +
     `<div></div>` +
     `<button onclick="rl2CaptureModal()" class="rl2-capture-btn">📸 New Snapshot</button>` +
     `</div>` +
-    tabBar + body;
+    tabBar + body + `</div>`;
 }
 
 function rl2ToggleSnap(id) {
