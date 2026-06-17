@@ -3500,12 +3500,12 @@ function rl2BuildTrendChart(snaps, filterClient) {
   if (!projects.length) return '<div style="text-align:center;padding:48px;color:rgba(255,255,255,.28);font-size:13px;">No projects match the filter.</div>';
 
   const nP = projects.length, nS = snaps.length;
-  const W = Math.max(1100, nP * 90 + 80);
-  const H = 420;
+  const W = Math.max(1400, nP * 110 + 80);
+  const H = 500;
   const ML = 48, MR = 24, MT = 24, MB = 120;
   const cW = W - ML - MR, cH = H - MT - MB;
   const groupW = cW / nP;
-  const barW = Math.max(8, Math.min(28, (groupW * 0.82) / nS));
+  const barW = Math.max(18, Math.min(52, (groupW * 0.85) / nS));
   const sideGap = (groupW - barW * nS) / 2;
 
   const projColor = {};
@@ -3530,8 +3530,12 @@ function rl2BuildTrendChart(snaps, filterClient) {
       const x = gx + si * barW;
       const y = MT + cH - bh;
       const opacity = nS === 1 ? 1 : 0.38 + (si / (nS - 1)) * 0.62;
-      barsSvg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(barW-1.5).toFixed(1)}" height="${Math.max(2,bh).toFixed(1)}" fill="${col}" opacity="${opacity.toFixed(2)}" rx="2"><title>${proj.name} · ${snap.label}: ${pct}%</title></rect>`;
-      if (bh >= 14) barsSvg += `<text x="${(x+(barW-1.5)/2).toFixed(1)}" y="${(y-4).toFixed(1)}" text-anchor="middle" font-size="9" fill="${col}" opacity="${Math.min(1,opacity+0.1).toFixed(2)}" font-weight="600" font-family="DM Mono,monospace">${pct}</text>`;
+      barsSvg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(barW-1.5).toFixed(1)}" height="${Math.max(2,bh).toFixed(1)}" fill="${col}" opacity="${opacity.toFixed(2)}" rx="3"><title>${proj.name} · ${snap.label}: ${pct}%</title></rect>`;
+      if (bh >= 40) {
+        barsSvg += `<text x="${(x+(barW-1.5)/2).toFixed(1)}" y="${(y+bh/2+5).toFixed(1)}" text-anchor="middle" font-size="12" fill="rgba(0,0,0,.7)" font-weight="800" font-family="DM Mono,monospace">${pct}%</text>`;
+      } else if (bh >= 16) {
+        barsSvg += `<text x="${(x+(barW-1.5)/2).toFixed(1)}" y="${(y-4).toFixed(1)}" text-anchor="middle" font-size="10" fill="${col}" opacity="${Math.min(1,opacity+0.1).toFixed(2)}" font-weight="700" font-family="DM Mono,monospace">${pct}</text>`;
+      }
     });
     const lx = ML + gi * groupW + groupW / 2;
     const ly = MT + cH + 10;
@@ -3589,9 +3593,95 @@ function rl2BuildMetricsSummary(snaps, filterClient) {
     `</div>`;
 }
 
+function rl2BuildStatusChart(snaps, filterClient) {
+  if (!snaps.length) return '';
+  const CATS = [
+    {key:'done',col:'#22c55e',label:'Done'},
+    {key:'active',col:'#60a5fa',label:'Active'},
+    {key:'blocked',col:'#ef4444',label:'Blocked'},
+    {key:'todo',col:'rgba(255,255,255,.22)',label:'To Do'},
+  ];
+  const data = snaps.map(s => {
+    let ps = s.projects || [];
+    if (filterClient) ps = ps.filter(p => (p.customer||'') === filterClient);
+    const done = ps.filter(p => ['done','completed'].includes(p.status)).length;
+    const active = ps.filter(p => ['active','in_progress','in-progress'].includes(p.status)).length;
+    const blocked = ps.filter(p => p.status === 'blocked').length;
+    const todo = Math.max(0, ps.length - done - active - blocked);
+    return {done, active, blocked, todo, total: ps.length, label: s.label};
+  });
+  const nS = data.length;
+  const maxVal = Math.max(...data.map(d => d.total), 1);
+  const W = Math.max(500, nS * 220);
+  const H = 200;
+  const ML = 36, MR = 16, MT = 14, MB = 52;
+  const cW = W - ML - MR, cH = H - MT - MB;
+  const groupW = cW / nS;
+  const barW = Math.max(14, Math.min(36, groupW * 0.22));
+  let svg = '';
+  [0, Math.ceil(maxVal/2), maxVal].forEach(v => {
+    const y = MT + cH * (1 - v / maxVal);
+    svg += `<line x1="${ML}" y1="${y.toFixed(1)}" x2="${(ML+cW).toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,.05)" stroke-width="1"/>`;
+    svg += `<text x="${(ML-4).toFixed(1)}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="9" fill="rgba(255,255,255,.22)" font-family="DM Mono,monospace">${v}</text>`;
+  });
+  data.forEach((d, si) => {
+    const gx = ML + si * groupW + (groupW - CATS.length * barW) / 2;
+    CATS.forEach((cat, ci) => {
+      const val = d[cat.key];
+      const bh = (val / maxVal) * cH;
+      const x = gx + ci * barW;
+      const y = MT + cH - bh;
+      svg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(barW-2).toFixed(1)}" height="${Math.max(2,bh).toFixed(1)}" fill="${cat.col}" rx="2" opacity="0.85"><title>${cat.label}: ${val}</title></rect>`;
+      if (bh >= 16) svg += `<text x="${(x+(barW-2)/2).toFixed(1)}" y="${(bh>=34?(y+bh/2+4):(y-3)).toFixed(1)}" text-anchor="middle" font-size="${bh>=34?10:9}" fill="${bh>=34?'rgba(0,0,0,.65)':'rgba(255,255,255,.7)'}" font-weight="700" font-family="DM Mono,monospace">${val}</text>`;
+    });
+    const lx = ML + si * groupW + groupW / 2;
+    const lbl = d.label.length > 14 ? d.label.slice(0,13)+'…' : d.label;
+    svg += `<text x="${lx.toFixed(1)}" y="${(H-6).toFixed(1)}" text-anchor="middle" font-size="10" fill="rgba(255,255,255,.42)" font-family="DM Sans,sans-serif">${lbl}</text>`;
+  });
+  let legX = ML;
+  CATS.forEach(cat => {
+    svg += `<rect x="${legX.toFixed(1)}" y="${(H-30).toFixed(1)}" width="9" height="9" fill="${cat.col}" rx="1"/>`;
+    svg += `<text x="${(legX+13).toFixed(1)}" y="${(H-22).toFixed(1)}" font-size="9" fill="rgba(255,255,255,.4)" font-family="DM Sans,sans-serif">${cat.label}</text>`;
+    legX += 58;
+  });
+  return `<div style="margin-bottom:20px;"><div style="font-size:9px;color:rgba(255,255,255,.25);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Status Distribution Trend</div><div class="rl2-chart-wrap" style="padding:14px 16px;"><svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible;" xmlns="http://www.w3.org/2000/svg">${svg}</svg></div></div>`;
+}
+
+function rl2BuildDeltaTable(snaps, filterClient) {
+  if (snaps.length < 2) return '';
+  const latest = snaps[snaps.length - 1], prev = snaps[snaps.length - 2];
+  let lps = latest.projects || [], pps = prev.projects || [];
+  if (filterClient) { lps = lps.filter(p => (p.customer||'') === filterClient); pps = pps.filter(p => (p.customer||'') === filterClient); }
+  if (!lps.length) return '';
+  const rows = lps.map(p => {
+    const pp = pps.find(x => x.id === p.id);
+    const cur = p.completionPct || 0, prv = pp ? (pp.completionPct||0) : null;
+    const delta = prv !== null ? cur - prv : null;
+    const bc = cur>=70?'#22c55e':cur>=40?'#eab308':'#ef4444';
+    const dc = delta===null?'rgba(255,255,255,.3)':delta>0?'#22c55e':delta<0?'#ef4444':'rgba(255,255,255,.35)';
+    const ds = delta===null?'New':delta>0?`↑ +${delta}%`:delta<0?`↓ ${delta}%`:'→ 0%';
+    return `<div style="display:grid;grid-template-columns:1fr 58px 64px 84px;gap:8px;align-items:center;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);">` +
+      `<div style="font-size:12px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>` +
+      `<div style="font-size:12px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.35);text-align:right;">${prv!==null?prv+'%':'—'}</div>` +
+      `<div style="font-size:12px;font-weight:700;font-family:'DM Mono',monospace;color:${bc};text-align:right;">${cur}%</div>` +
+      `<div style="font-size:12px;font-weight:700;font-family:'DM Mono',monospace;color:${dc};text-align:right;">${ds}</div></div>`;
+  }).join('');
+  return `<div style="margin-bottom:20px;"><div style="font-size:9px;color:rgba(255,255,255,.25);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">WoW Progress · ${prev.label} → ${latest.label}</div>` +
+    `<div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:hidden;">` +
+    `<div style="display:grid;grid-template-columns:1fr 58px 64px 84px;gap:8px;padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.07);">` +
+      `<div style="font-size:9px;color:rgba(255,255,255,.22);font-family:'DM Mono',monospace;text-transform:uppercase;">Project</div>` +
+      `<div style="font-size:9px;color:rgba(255,255,255,.22);font-family:'DM Mono',monospace;text-transform:uppercase;text-align:right;">Prev</div>` +
+      `<div style="font-size:9px;color:rgba(255,255,255,.22);font-family:'DM Mono',monospace;text-transform:uppercase;text-align:right;">Now</div>` +
+      `<div style="font-size:9px;color:rgba(255,255,255,.22);font-family:'DM Mono',monospace;text-transform:uppercase;text-align:right;">Change</div>` +
+    `</div>${rows}</div></div>`;
+}
+
 function rl2BuildClientSidebar(clients, selClient) {
   const allBtn = `<button class="rl2-client-sidebar-item${!selClient?' active':''}" onclick="rl2SetClient('')">All clients</button>`;
-  const cBtns = clients.map(c=>`<button class="rl2-client-sidebar-item${selClient===c?' active':''}" onclick="rl2SetClient(${JSON.stringify(c)})">${c}</button>`).join('');
+  const cBtns = clients.map(c => {
+    const safe = c.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    return `<button class="rl2-client-sidebar-item${selClient===c?' active':''}" data-client="${safe}" onclick="rl2SetClient(this.dataset.client)">${safe}</button>`;
+  }).join('');
   return `<div class="rl2-client-sidebar"><div class="rl2-client-sidebar-label">Clients</div>${allBtn}${cBtns}</div>`;
 }
 
@@ -3625,7 +3715,9 @@ function rl2BuildClientAnalysis(clientName, snaps) {
     rl2BuildMetricsSummary(snaps, clientName) +
     `<div style="margin:12px 0 6px;font-size:9px;color:rgba(255,255,255,.28);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;">Projects</div>` +
     `<div class="rl2-project-list">${rows}</div>` +
-    `<div style="margin-top:16px;">${rl2BuildTrendChart(snaps, clientName)}</div>`;
+    `<div style="margin-top:16px;">${rl2BuildStatusChart(snaps, clientName)}</div>` +
+    `<div>${rl2BuildDeltaTable(snaps, clientName)}</div>` +
+    `<div>${rl2BuildTrendChart(snaps, clientName)}</div>`;
 }
 
 function rl2BuildSnapList() {
@@ -3771,10 +3863,10 @@ function rl2RenderSnapPane() {
       const sidebar = rl2BuildClientSidebar(clients, rl2SelClient);
       const mainContent = rl2SelClient
         ? rl2BuildClientAnalysis(rl2SelClient, snapsToShow)
-        : rl2BuildMetricsSummary(snapsToShow, '') + rl2BuildTrendChart(snapsToShow, '');
+        : rl2BuildMetricsSummary(snapsToShow, '') + rl2BuildStatusChart(snapsToShow, '') + rl2BuildDeltaTable(snapsToShow, '') + rl2BuildTrendChart(snapsToShow, '');
       body = headerBar + `<div class="rl2-trend-layout">${sidebar}<div class="rl2-trend-main">${mainContent}</div></div>`;
     } else {
-      body = headerBar + rl2BuildMetricsSummary(snapsToShow, '') + rl2BuildTrendChart(snapsToShow, '');
+      body = headerBar + rl2BuildMetricsSummary(snapsToShow, '') + rl2BuildStatusChart(snapsToShow, '') + rl2BuildDeltaTable(snapsToShow, '') + rl2BuildTrendChart(snapsToShow, '');
     }
   } else {
     body = rl2BuildSnapList();
