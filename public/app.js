@@ -4442,6 +4442,8 @@ function mlUpdateHeroStats() {
   const total = ML_COURSES.length;
   nEl.textContent = done;
   lEl.textContent = done === total ? 'All Done 🎉' : `of ${total} Done`;
+  const catsEl = document.getElementById('mlStatCatsN');
+  if (catsEl) catsEl.textContent = new Set(ML_COURSES.map(c => c.cat || c.id)).size;
 }
 
 function dwGoLearning() {
