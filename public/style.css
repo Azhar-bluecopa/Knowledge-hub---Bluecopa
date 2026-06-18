@@ -2066,27 +2066,11 @@ html{scroll-behavior:smooth;}
 
 /* ── Hero ── */
 .ml-hero{
-  position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:24px;
+  position:relative;overflow:hidden;
   background:linear-gradient(135deg,#0a0a12 0%,#111827 55%,#0f172a 100%);
   padding:56px 40px 52px;flex-shrink:0;
 }
-.ml-hero-inner{position:relative;z-index:2;max-width:580px;flex:1;}
-.ml-hero-visual{flex:0 0 300px;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;}
-.ml-grad-svg{width:300px;height:300px;overflow:visible;}
-/* cap animations */
-.ml-cap-float{animation:mlCapFloat 3.5s ease-in-out infinite;transform-box:fill-box;transform-origin:center;}
-.ml-tassel-anim{animation:mlTasselSwing 2.8s ease-in-out infinite;transform-box:fill-box;transform-origin:top left;}
-.ml-sparkle-a{animation:mlSparkle 2.4s ease-in-out infinite;}
-.ml-sparkle-b{animation:mlSparkle 2.4s ease-in-out .8s infinite;}
-.ml-sparkle-c{animation:mlSparkle 2.4s ease-in-out 1.6s infinite;}
-.ml-sparkle-d{animation:mlSparkle 2.4s ease-in-out .4s infinite;}
-.ml-book-float{animation:mlCapFloat 4.2s ease-in-out .6s infinite;transform-box:fill-box;transform-origin:center;}
-.ml-scroll-float{animation:mlCapFloat 4.2s ease-in-out 1.2s infinite;transform-box:fill-box;transform-origin:center;}
-.ml-glow-anim{animation:mlGlowPulse 3s ease-in-out infinite;}
-@keyframes mlCapFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-@keyframes mlTasselSwing{0%,100%{transform:rotate(0deg)}30%{transform:rotate(-14deg)}70%{transform:rotate(14deg)}}
-@keyframes mlSparkle{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:1;transform:scale(1)}}
-@keyframes mlGlowPulse{0%,100%{opacity:.5}50%{opacity:.95}}
+.ml-hero-inner{position:relative;z-index:2;max-width:680px;}
 .ml-hero-tag{
   font-family:'DM Mono',monospace;font-size:14px;letter-spacing:.18em;
   text-transform:uppercase;color:rgba(201,162,39,.7);margin-bottom:16px;
