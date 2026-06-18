@@ -4366,6 +4366,7 @@ const ML_COURSES = [
   },
   {
     id:'bc',
+    cat:'platform',
     title:'About Bluecopa',
     desc:'Understand the Bluecopa platform from the ground up — its four-layer architecture, Foundation capabilities, Processing Engines, pre-built Solutions, and the Samyx AI layer.',
     tag:'Platform Overview',
@@ -4428,7 +4429,7 @@ function mlRender(courses) {
 function mlFilter(cat, btn) {
   document.querySelectorAll('.ml-filter-btn').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
-  const filtered = cat==='all' ? ML_COURSES : ML_COURSES.filter(c=>c.id===cat);
+  const filtered = cat==='all' ? ML_COURSES : ML_COURSES.filter(c=>(c.cat||c.id)===cat);
   mlRender(filtered);
 }
 
