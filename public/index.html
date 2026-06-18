@@ -5,7 +5,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=19">
+  <link rel="stylesheet" href="/style.css?v=20">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
 </head>
@@ -2550,76 +2550,8 @@ document.addEventListener('keydown',e=>{
     <div class="dw-cards-sub">Everything your delivery team needs — in one place</div>
     <div class="dw-cards-grid">
 
-      <!-- 01 Knowledge Articles -->
-      <div class="dw-card" style="--cr:0,200,204;--fdur:4.2s;--fdel:0s;" onclick="dwGoKnowledge()">
-        <div class="dw-card-spin"></div>
-        <div class="dw-card-orb"></div>
-        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip01')" title="About this section">i</div>
-        <div class="dw-tooltip" id="tip01">
-          <div class="dw-tooltip-title">Knowledge Articles</div>
-          <div class="dw-tooltip-text">Step-by-step guides, how-tos, deep technical docs and best practices covering every Bluecopa feature — written by the team, for the team. Browse by category or search.</div>
-        </div>
-        <div class="dw-card-badge">● Live</div>
-        <span class="dw-card-icon">📚</span>
-        <div class="dw-card-num">// 01</div>
-        <div class="dw-card-name">Knowledge Articles</div>
-        <div class="dw-card-desc">Step-by-step guides, how-tos and deep technical docs covering every Bluecopa feature.</div>
-        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
-      </div>
-
-      <!-- 02 Skill Matrix -->
-      <div class="dw-card" style="--cr:129,140,248;--fdur:3.8s;--fdel:.5s;" onclick="dwGoSkillMatrix()">
-        <div class="dw-card-spin"></div>
-        <div class="dw-card-orb"></div>
-        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip02')" title="About this section">i</div>
-        <div class="dw-tooltip" id="tip02">
-          <div class="dw-tooltip-title">Skill Matrix</div>
-          <div class="dw-tooltip-text">See where every team member stands across all process areas. Track growth over time, spot skill gaps, and celebrate expertise — with live data snapshots and visual dashboards.</div>
-        </div>
-        <div class="dw-card-badge">● Live</div>
-        <span class="dw-card-icon">🧠</span>
-        <div class="dw-card-num">// 02</div>
-        <div class="dw-card-name">Skill Matrix</div>
-        <div class="dw-card-desc">Track every team member's skills across all process areas with live data.</div>
-        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
-      </div>
-
-      <!-- 03 KPIs -->
-      <div class="dw-card" style="--cr:249,167,79;--fdur:4.5s;--fdel:1s;" onclick="dwComingSoon('KPIs')">
-        <div class="dw-card-spin"></div>
-        <div class="dw-card-orb"></div>
-        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip03')" title="About this section">i</div>
-        <div class="dw-tooltip" id="tip03">
-          <div class="dw-tooltip-title">KPIs</div>
-          <div class="dw-tooltip-text">Delivery performance metrics that actually matter — velocity, quality, efficiency and team health indicators, all in one live dashboard. Compare period-over-period trends.</div>
-        </div>
-        <div class="dw-card-badge">◌ Coming Soon</div>
-        <span class="dw-card-icon">📊</span>
-        <div class="dw-card-num">// 03</div>
-        <div class="dw-card-name">KPIs</div>
-        <div class="dw-card-desc">Delivery performance metrics — velocity, quality and team health, all live.</div>
-        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
-      </div>
-
-      <!-- 04 Delivery Journey -->
-      <div class="dw-card" style="--cr:122,232,180;--fdur:4s;--fdel:1.5s;" onclick="dwComingSoon('Delivery Journey')">
-        <div class="dw-card-spin"></div>
-        <div class="dw-card-orb"></div>
-        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip04')" title="About this section">i</div>
-        <div class="dw-tooltip" id="tip04">
-          <div class="dw-tooltip-title">The Delivery Journey</div>
-          <div class="dw-tooltip-text">A living record of every past implementation — what was built, what was learned, and how each project shaped the team we are today. Project stories, timelines and retrospectives.</div>
-        </div>
-        <div class="dw-card-badge">◌ Coming Soon</div>
-        <span class="dw-card-icon">🏛️</span>
-        <div class="dw-card-num">// 04</div>
-        <div class="dw-card-name">The Delivery Journey</div>
-        <div class="dw-card-desc">A living record of every past implementation and what we learned.</div>
-        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
-      </div>
-
-      <!-- 06 My Learning -->
-      <div class="dw-card" style="--cr:201,162,39;--fdur:4.1s;--fdel:2.5s;" onclick="dwGoLearning()">
+      <!-- 01 My Learning -->
+      <div class="dw-card" style="--cr:201,162,39;--fdur:4.1s;--fdel:0s;" onclick="dwGoLearning()">
         <div class="dw-card-spin"></div>
         <div class="dw-card-orb"></div>
         <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip06')" title="About this section">i</div>
@@ -2629,14 +2561,82 @@ document.addEventListener('keydown',e=>{
         </div>
         <div class="dw-card-badge">● Live</div>
         <span class="dw-card-icon">🎓</span>
-        <div class="dw-card-num">// 06</div>
+        <div class="dw-card-num">// 01</div>
         <div class="dw-card-name">My Learning</div>
         <div class="dw-card-desc">Structured courses across AR, AP, MIS, P2P, O2C and R2R — built from knowledge articles.</div>
         <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
 
-      <!-- 05 Process Puzzle -->
-      <div class="dw-card" style="--cr:232,122,122;--fdur:3.6s;--fdel:2s;" onclick="dwGoProcessPuzzle()">
+      <!-- 02 Knowledge Articles -->
+      <div class="dw-card" style="--cr:0,200,204;--fdur:4.2s;--fdel:.5s;" onclick="dwGoKnowledge()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip01')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip01">
+          <div class="dw-tooltip-title">Knowledge Articles</div>
+          <div class="dw-tooltip-text">Step-by-step guides, how-tos, deep technical docs and best practices covering every Bluecopa feature — written by the team, for the team. Browse by category or search.</div>
+        </div>
+        <div class="dw-card-badge">● Live</div>
+        <span class="dw-card-icon">📚</span>
+        <div class="dw-card-num">// 02</div>
+        <div class="dw-card-name">Knowledge Articles</div>
+        <div class="dw-card-desc">Step-by-step guides, how-tos and deep technical docs covering every Bluecopa feature.</div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+      <!-- 03 Skill Matrix -->
+      <div class="dw-card" style="--cr:129,140,248;--fdur:3.8s;--fdel:1s;" onclick="dwGoSkillMatrix()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip02')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip02">
+          <div class="dw-tooltip-title">Skill Matrix</div>
+          <div class="dw-tooltip-text">See where every team member stands across all process areas. Track growth over time, spot skill gaps, and celebrate expertise — with live data snapshots and visual dashboards.</div>
+        </div>
+        <div class="dw-card-badge">● Live</div>
+        <span class="dw-card-icon">🧠</span>
+        <div class="dw-card-num">// 03</div>
+        <div class="dw-card-name">Skill Matrix</div>
+        <div class="dw-card-desc">Track every team member's skills across all process areas with live data.</div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+      <!-- 04 KPIs -->
+      <div class="dw-card" style="--cr:249,167,79;--fdur:4.5s;--fdel:1.5s;" onclick="dwComingSoon('KPIs')">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip03')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip03">
+          <div class="dw-tooltip-title">KPIs</div>
+          <div class="dw-tooltip-text">Delivery performance metrics that actually matter — velocity, quality, efficiency and team health indicators, all in one live dashboard. Compare period-over-period trends.</div>
+        </div>
+        <div class="dw-card-badge">◌ Coming Soon</div>
+        <span class="dw-card-icon">📊</span>
+        <div class="dw-card-num">// 04</div>
+        <div class="dw-card-name">KPIs</div>
+        <div class="dw-card-desc">Delivery performance metrics — velocity, quality and team health, all live.</div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+      <!-- 05 The Delivery Journey -->
+      <div class="dw-card" style="--cr:122,232,180;--fdur:4s;--fdel:2s;" onclick="dwComingSoon('Delivery Journey')">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip04')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip04">
+          <div class="dw-tooltip-title">The Delivery Journey</div>
+          <div class="dw-tooltip-text">A living record of every past implementation — what was built, what was learned, and how each project shaped the team we are today. Project stories, timelines and retrospectives.</div>
+        </div>
+        <div class="dw-card-badge">◌ Coming Soon</div>
+        <span class="dw-card-icon">🏛️</span>
+        <div class="dw-card-num">// 05</div>
+        <div class="dw-card-name">The Delivery Journey</div>
+        <div class="dw-card-desc">A living record of every past implementation and what we learned.</div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+      <!-- 06 Process Puzzle -->
+      <div class="dw-card" style="--cr:232,122,122;--fdur:3.6s;--fdel:2.5s;" onclick="dwGoProcessPuzzle()">
         <div class="dw-card-spin"></div>
         <div class="dw-card-orb"></div>
         <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip05')" title="About this section">i</div>
@@ -2646,7 +2646,7 @@ document.addEventListener('keydown',e=>{
         </div>
         <div class="dw-card-badge">● Live</div>
         <span class="dw-card-icon">🧩</span>
-        <div class="dw-card-num">// 05</div>
+        <div class="dw-card-num">// 06</div>
         <div class="dw-card-name">Process Puzzle</div>
         <div class="dw-card-desc">Quizzes, puzzles and interactive challenges — learn by doing and level up.</div>
         <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
