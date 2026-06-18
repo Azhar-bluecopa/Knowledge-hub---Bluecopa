@@ -29,10 +29,6 @@ function mlcCompare(lt, lr, rt, rr) {
   function col(h,rows){return '<div class="mlc-compare-col"><div class="mlc-compare-head">'+h+'</div>'+rows.map(function(r){return '<div class="mlc-compare-row">'+r+'</div>';}).join('')+'</div>';}
   return '<div class="mlc-compare">'+col(lt,lr)+col(rt,rr)+'</div>';
 }
-function mlcVideo(label, q) {
-  var url='https://www.youtube.com/results?search_query='+encodeURIComponent(q);
-  return '<div class="mlc-video-wrap" onclick="window.open(\''+url+'\',\'_blank\')"><div class="mlc-video-inner"><div class="mlc-video-play">▶</div><div><div class="mlc-video-label">🎬 '+label+'</div><div class="mlc-video-cta">Find on YouTube →</div></div></div></div>';
-}
 function mlcDiagram(title, body) {
   return '<div class="mlc-diagram"><div class="mlc-diagram-title">'+title+'</div><div class="mlc-diagram-body">'+body+'</div></div>';
 }
@@ -66,7 +62,6 @@ ${mlcSection('Journal Entry for AR Creation', mlcOl([
 ]))}
 ${mlcExample('Real-World Example', 'Bluecopa delivers a SaaS implementation to Giva on 1 June. A ₹5,00,000 invoice is raised with 30-day terms. From 1–30 June this appears as AR. When Giva pays on 30 June, AR is cleared and Cash increases.')}
 ${mlcTakeaway('AR is the bridge between revenue earned and cash received. Efficient AR management directly impacts working capital and cash flow.')}
-${mlcVideo('Accounts Receivable Process Explained', 'accounts receivable process explained finance ERP')}
 ${mlcFlow(['Customer places order', 'Goods/services delivered', 'Invoice raised & sent to customer', 'AR entry recorded in books', 'Customer pays (bank receipt)', 'Cash applied to invoice', 'AR cleared — Cash confirmed'])}
 ${mlcStatGrid([{n:'30–45',l:'Avg. DSO in days',note:'Best-in-class target: <30 days'},{n:'60–90',l:'Days before bad debt risk',note:'Provision threshold varies by co.'},{n:'2%',l:'Typical bad debt rate',note:'As % of total credit sales'},{n:'5×',l:'Cost to collect vs prevent',note:'Prevention is always cheaper'}])}`
           },
@@ -264,7 +259,6 @@ ${mlcSection('AP vs AR — The Mirror Image', mlcUl([
 ]))}
 ${mlcExample('Journal Entry', 'On receipt of vendor invoice for ₹3,00,000 of services: Dr Expense/Cost Account ₹3,00,000 | Cr Accounts Payable ₹3,00,000. On payment: Dr AP ₹3,00,000 | Cr Bank ₹3,00,000.')}
 ${mlcTakeaway('AP is not just about paying bills — it is about paying the right amount, to the right vendor, at the right time, with proper authorisation. Each element of that sentence represents a control that prevents fraud and error.')}
-${mlcVideo('Accounts Payable Process Explained', 'accounts payable process explained ERP three way matching')}
 ${mlcFlow(['Business need identified', 'Purchase Requisition raised', 'PR approved by budget owner', 'Purchase Order created & sent to vendor', 'Vendor delivers goods/services', 'Goods Receipt Note (GRN) raised', 'Vendor invoice received', 'Three-way match: PO + GRN + Invoice', 'Invoice approved & posted as AP', 'Payment run executed', 'Vendor paid & AP cleared'])}`
           },
           {
@@ -446,7 +440,6 @@ ${mlcSection('MIS Data Sources in Enterprise Finance', mlcUl([
   '<strong>Spreadsheets / BI Tools</strong> — Excel, Power BI, Tableau: layer on top of ERP data for visualisation'
 ]))}
 ${mlcTakeaway('An MIS report is only as valuable as the quality of the underlying data and the timeliness of its delivery. Stale data or data the user does not trust will result in decisions being made on gut feel rather than facts.')}
-${mlcVideo('MIS Reports in Finance Explained', 'management information system finance reports explained dashboards')}
 ${mlcFlow(['Raw data in ERP, banks, ops systems', 'Data extracted & validated', 'Aggregated into MIS tables/views', 'Reports & dashboards generated', 'Distributed to management (email/portal)', 'Decisions made based on insights', 'Actions tracked against outcomes'])}
 ${mlcCompare('MIS Report Characteristics', ['Structured, repeatable format', 'Covers a defined reporting period', 'Comparable to prior periods and targets', 'Exception-driven — shows variances', 'Actionable — drives a specific decision'], 'NOT an MIS Report', ['One-off ad-hoc data extraction', 'Unformatted raw ERP export dump', 'No comparison to target or prior period', 'Shows all data without prioritisation', 'Informational only — no decision trigger'])}`
           }
@@ -565,7 +558,6 @@ ${mlcSection('Trial Balance — The Starting Point of All MIS', mlcUl([
   'Unexplained variances in the trial balance must be investigated before closing the period'
 ]))}
 ${mlcTakeaway('The best MIS report is the one that gets used. Focus on relevance, accuracy, and timeliness over comprehensiveness. One trusted, timely metric outperforms ten comprehensive reports that arrive late or are not believed.')}
-${mlcVideo('Finance Dashboard Design Best Practices', 'finance KPI dashboard design best practices power BI')}
 ${mlcCompare('Effective Dashboard', ['Max 8–10 KPIs on one screen', 'RAG status (Red/Amber/Green) per metric', 'Current vs target vs prior period shown', 'Exceptions highlighted at the top', 'Auto-refreshed from live data', 'Mobile-friendly, readable in 30 seconds'], 'Ineffective Dashboard', ['40+ metrics across multiple tabs', 'Numbers only — no visual indicators', 'No targets to compare against', 'All metrics look equally important', 'Manually updated in Excel weekly', 'Requires training to interpret'])}`
           }
         ]
@@ -616,7 +608,6 @@ ${mlcSection('P2P Stakeholders & Governance', mlcUl([
   '<strong>Finance Controller</strong> — Sets policy, approves exceptions, manages audit requirements'
 ]))}
 ${mlcTakeaway('P2P maturity determines how much of your spend is controlled, visible, and optimised. Organisations with immature P2P processes experience rogue spending, inflated costs, and AP backlogs. Structured P2P enables cost savings, compliance, and vendor relationship management.')}
-${mlcVideo('Procure to Pay Process End to End', 'procure to pay P2P process explained purchase order invoice payment')}
 ${mlcFlow(['Business need identified', 'Purchase Requisition (PR) created', 'PR approved by budget owner', 'RFQ sent to vendors (if required)', 'Vendor selected, PO raised & sent', 'Vendor confirms & delivers', 'GRN raised in system', 'Vendor invoice received & logged', 'Three-way match (PO + GRN + Invoice)', 'Invoice approved & posted to AP', 'Payment run executed', 'Vendor paid & AP cleared'])}`
           }
         ]
@@ -784,7 +775,6 @@ ${mlcSection('O2C Stakeholders', mlcUl([
   '<strong>Credit & Risk</strong> — Customer credit assessment, credit limit management'
 ]))}
 ${mlcTakeaway('O2C is where your company\'s revenue promise to a customer becomes actual cash in the bank. Every step between order and cash represents time, cost, and risk. Optimising O2C is directly equivalent to improving revenue quality and working capital.')}
-${mlcVideo('Order to Cash O2C Process Explained', 'order to cash O2C process explained end to end ERP')}
 ${mlcFlow(['Customer sends purchase order', 'Sales order created in ERP', 'Credit check performed & passed', 'Order confirmed to customer', 'Goods picked, packed & shipped', 'Customer invoice raised', 'Invoice delivered to customer', 'Payment received in bank', 'Remittance matched to invoice', 'Cash applied — AR reduced', 'AR cleared, revenue recognised'])}`
           }
         ]
@@ -949,7 +939,6 @@ ${mlcSection('Financial Close Types', mlcUl([
   '<strong>Virtual Close</strong> — Real-time reporting enabled by continuous accounting and automation'
 ]))}
 ${mlcTakeaway('R2R is the financial nervous system of an organisation. Every operational process (P2P, O2C, HR payroll) eventually feeds into R2R. The quality of your financial statements is entirely determined by the quality of your R2R process.')}
-${mlcVideo('Record to Report R2R Process Explained', 'record to report R2R financial close period end process')}
 ${mlcFlow(['Record all business transactions as JEs', 'Post accruals and prepayments', 'Reconcile subledgers to GL control accounts', 'Perform bank reconciliation', 'Clear intercompany balances', 'Post period-end adjustments (depreciation, provisions)', 'Lock the period in ERP', 'Generate trial balance', 'Produce P&L, Balance Sheet, Cash Flow', 'Management sign-off and publish'])}`
           }
         ]
@@ -1136,7 +1125,6 @@ ${mlcSection('Where Bluecopa Lives on the Customer Stack', mlcOl([
 ]))}
 ${mlcExample('Positioning Example', 'A company already using SAP S/4HANA for core accounting uses Bluecopa to automate bank reconciliation, AP three-way matching, and intercompany reconciliation — three areas where SAP requires heavy manual intervention. Bluecopa does not replace SAP; it fills the automation gaps SAP leaves open.')}
 ${mlcTakeaway('Bluecopa is not an ERP. It is a finance automation layer that works with your existing stack to eliminate manual work, reduce close cycles, and give finance teams real-time visibility.')}
-${mlcVideo('Bluecopa Finance Automation Platform', 'bluecopa finance automation platform overview demo')}
 ${mlcCompare('Bluecopa Replaces', ['Manual spreadsheet reconciliation', 'Email-based approval workflows', 'Fragmented point solutions per process', 'Monthly batch reconciliation', 'Siloed data across ERP and bank systems'], 'Bluecopa Works Alongside', ['Your existing ERP (SAP, Oracle, Tally)', 'Your BI and reporting tools', 'Your bank and vendor connections', 'Your chart of accounts structure', 'Your existing finance team and processes'])}`
           },
           {
