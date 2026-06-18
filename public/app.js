@@ -3596,19 +3596,18 @@ function rl2BuildMetricsSummary(snaps, filterClient) {
 function rl2BuildStatusChart(snaps, filterClient) {
   if (!snaps.length) return '';
   const CATS = [
-    {key:'done',col:'#22c55e',label:'Done'},
-    {key:'active',col:'#60a5fa',label:'Active'},
-    {key:'blocked',col:'#ef4444',label:'Blocked'},
-    {key:'todo',col:'rgba(255,255,255,.22)',label:'To Do'},
+    {key:'completed',col:'#22c55e',label:'Completed'},
+    {key:'inprogress',col:'#60a5fa',label:'In Progress'},
+    {key:'todo',col:'rgba(180,180,200,.35)',label:'To Do'},
   ];
   const data = snaps.map(s => {
     let ps = s.projects || [];
     if (filterClient) ps = ps.filter(p => (p.customer||'') === filterClient);
-    const done = ps.filter(p => ['done','completed'].includes(p.status)).length;
-    const active = ps.filter(p => ['active','in_progress','in-progress'].includes(p.status)).length;
-    const blocked = ps.filter(p => p.status === 'blocked').length;
-    const todo = Math.max(0, ps.length - done - active - blocked);
-    return {done, active, blocked, todo, total: ps.length, label: s.label};
+    const completed = ps.reduce((a,p)=>a+((p.completionTasks||{}).completed||0),0);
+    const inprogress = ps.reduce((a,p)=>a+((p.completionTasks||{}).inprogress||0),0);
+    const todo = ps.reduce((a,p)=>a+((p.completionTasks||{}).todo||0),0);
+    const total = completed + inprogress + todo;
+    return {completed, inprogress, todo, total, label: s.label};
   });
   const nS = data.length;
   const maxVal = Math.max(...data.map(d => d.total), 1);
@@ -3644,7 +3643,7 @@ function rl2BuildStatusChart(snaps, filterClient) {
     svg += `<text x="${(legX+13).toFixed(1)}" y="${(H-22).toFixed(1)}" font-size="9" fill="rgba(255,255,255,.4)" font-family="DM Sans,sans-serif">${cat.label}</text>`;
     legX += 58;
   });
-  return `<div style="margin-bottom:20px;"><div style="font-size:9px;color:rgba(255,255,255,.25);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Status Distribution Trend</div><div class="rl2-chart-wrap" style="padding:14px 16px;"><svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible;" xmlns="http://www.w3.org/2000/svg">${svg}</svg></div></div>`;
+  return `<div style="margin-bottom:20px;"><div style="font-size:9px;color:rgba(255,255,255,.25);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Task Status Distribution (Completed · In Progress · To Do)</div><div class="rl2-chart-wrap" style="padding:14px 16px;"><svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible;" xmlns="http://www.w3.org/2000/svg">${svg}</svg></div></div>`;
 }
 
 function rl2BuildDeltaTable(snaps, filterClient) {
