@@ -19,6 +19,23 @@ function mlcExample(label, text) {
 function mlcTakeaway(text) {
   return `<div class="mlc-takeaway"><strong>Key Takeaway:</strong> ${text}</div>`;
 }
+function mlcFlow(steps) {
+  return '<div class="mlc-flow">'+steps.map(function(s,i){return '<div class="mlc-flow-step"><div class="mlc-flow-num">'+(i+1)+'</div><div class="mlc-flow-text">'+s+'</div></div>'+(i<steps.length-1?'<div class="mlc-flow-arrow">→</div>':'');}).join('')+'</div>';
+}
+function mlcStatGrid(stats) {
+  return '<div class="mlc-stat-grid">'+stats.map(function(s){return '<div class="mlc-stat-item"><div class="mlc-stat-n">'+s.n+'</div><div class="mlc-stat-l">'+s.l+'</div>'+(s.note?'<div class="mlc-stat-note">'+s.note+'</div>':'')+'</div>';}).join('')+'</div>';
+}
+function mlcCompare(lt, lr, rt, rr) {
+  function col(h,rows){return '<div class="mlc-compare-col"><div class="mlc-compare-head">'+h+'</div>'+rows.map(function(r){return '<div class="mlc-compare-row">'+r+'</div>';}).join('')+'</div>';}
+  return '<div class="mlc-compare">'+col(lt,lr)+col(rt,rr)+'</div>';
+}
+function mlcVideo(label, q) {
+  var url='https://www.youtube.com/results?search_query='+encodeURIComponent(q);
+  return '<div class="mlc-video-wrap" onclick="window.open(\''+url+'\',\'_blank\')"><div class="mlc-video-inner"><div class="mlc-video-play">▶</div><div><div class="mlc-video-label">🎬 '+label+'</div><div class="mlc-video-cta">Find on YouTube →</div></div></div></div>';
+}
+function mlcDiagram(title, body) {
+  return '<div class="mlc-diagram"><div class="mlc-diagram-title">'+title+'</div><div class="mlc-diagram-body">'+body+'</div></div>';
+}
 
 // ─── Course Content ─────────────────────────────────────────────
 const MLC = {
@@ -48,7 +65,10 @@ ${mlcSection('Journal Entry for AR Creation', mlcOl([
   'On payment receipt: Dr Cash ₹5,00,000 | Cr AR ₹5,00,000'
 ]))}
 ${mlcExample('Real-World Example', 'Bluecopa delivers a SaaS implementation to Giva on 1 June. A ₹5,00,000 invoice is raised with 30-day terms. From 1–30 June this appears as AR. When Giva pays on 30 June, AR is cleared and Cash increases.')}
-${mlcTakeaway('AR is the bridge between revenue earned and cash received. Efficient AR management directly impacts working capital and cash flow.')}`
+${mlcTakeaway('AR is the bridge between revenue earned and cash received. Efficient AR management directly impacts working capital and cash flow.')}
+${mlcVideo('Accounts Receivable Process Explained', 'accounts receivable process explained finance ERP')}
+${mlcFlow(['Customer places order', 'Goods/services delivered', 'Invoice raised & sent to customer', 'AR entry recorded in books', 'Customer pays (bank receipt)', 'Cash applied to invoice', 'AR cleared — Cash confirmed'])}
+${mlcStatGrid([{n:'30–45',l:'Avg. DSO in days',note:'Best-in-class target: <30 days'},{n:'60–90',l:'Days before bad debt risk',note:'Provision threshold varies by co.'},{n:'2%',l:'Typical bad debt rate',note:'As % of total credit sales'},{n:'5×',l:'Cost to collect vs prevent',note:'Prevention is always cheaper'}])}`
           },
           {
             title: 'Customer Master Data & Credit Management',
@@ -114,7 +134,8 @@ ${mlcSection('Open Items Review — Weekly Routine', mlcOl([
   'Present weekly AR flash to Finance Manager'
 ]))}
 ${mlcExample('SAP Context', 'In SAP S/4HANA, open AR items are reviewed using transaction FBL5N (Customer Line Items). The standard AR Aging Analysis is generated via S_ALR_87012178. Both reports can be exported to Excel for collection team workflow management.')}
-${mlcTakeaway('Review your aging report weekly without exception. The 60–90 day bucket is where most recoverable bad debt is created — early intervention here prevents write-offs.')}`
+${mlcTakeaway('Review your aging report weekly without exception. The 60–90 day bucket is where most recoverable bad debt is created — early intervention here prevents write-offs.')}
+${mlcDiagram('AR Aging Buckets — Action by Bucket', '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;text-align:center;"><div style="padding:12px 6px;border-radius:8px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3)"><div style="font-size:15px;font-weight:800;color:#22c55e">Current</div><div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:4px">0–30 days</div><div style="font-size:11px;color:#22c55e;margin-top:8px">✓ On track</div></div><div style="padding:12px 6px;border-radius:8px;background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.3)"><div style="font-size:15px;font-weight:800;color:#eab308">Overdue</div><div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:4px">31–60 days</div><div style="font-size:11px;color:#eab308;margin-top:8px">⚠ Send reminder</div></div><div style="padding:12px 6px;border-radius:8px;background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3)"><div style="font-size:15px;font-weight:800;color:#f97316">Late</div><div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:4px">61–90 days</div><div style="font-size:11px;color:#f97316;margin-top:8px">📞 Call now</div></div><div style="padding:12px 6px;border-radius:8px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3)"><div style="font-size:15px;font-weight:800;color:#ef4444">At Risk</div><div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:4px">91–120 days</div><div style="font-size:11px;color:#ef4444;margin-top:8px">🚫 Credit hold</div></div><div style="padding:12px 6px;border-radius:8px;background:rgba(239,68,68,.22);border:1px solid rgba(239,68,68,.5)"><div style="font-size:15px;font-weight:800;color:#ef4444">Critical</div><div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:4px">120+ days</div><div style="font-size:11px;color:#ef4444;margin-top:8px">📋 Provision</div></div></div>')}`
           }
         ]
       },
@@ -195,7 +216,9 @@ ${mlcSection('Key AR KPIs', mlcUl([
   '<strong>% AR Overdue</strong> = Overdue AR ÷ Total AR — monitor weekly; flag if > 20%',
   '<strong>Cash Collected vs Target</strong> — weekly collections vs. cash forecast'
 ]))}
-${mlcTakeaway('A DSO above your standard payment terms signals collection inefficiency. DSO exceeding 2× your payment terms indicates serious risk. Report DSO weekly to leadership — it is the single most important AR health indicator.')}`
+${mlcTakeaway('A DSO above your standard payment terms signals collection inefficiency. DSO exceeding 2× your payment terms indicates serious risk. Report DSO weekly to leadership — it is the single most important AR health indicator.')}
+${mlcStatGrid([{n:'DSO',l:'Days Sales Outstanding',note:'(AR ÷ Revenue) × Days in period'},{n:'CEI',l:'Collections Effectiveness Index',note:'Higher = better collections team'},{n:'<2%',l:'Bad debt as % of revenue',note:'Industry benchmark'},{n:'95%+',l:'Cash auto-application rate',note:'% invoices matched without manual work'}])}
+${mlcCompare('AR Best Practices', ['Weekly aging review — every Monday', 'Automated dunning by bucket', 'Credit limits reviewed quarterly', 'Dispute log maintained daily', 'DSO tracked vs prior month & target'], 'AR Red Flags', ['Aging buckets growing month-on-month', 'Same customers perpetually late', 'High unapplied cash sitting in suspense', 'Credit holds blocking new revenue orders', 'Cash application manual rate above 20%'])}`
           }
         ]
       }
@@ -240,7 +263,9 @@ ${mlcSection('AP vs AR — The Mirror Image', mlcUl([
   'AR aims for fast collection; AP aims to optimise payment timing'
 ]))}
 ${mlcExample('Journal Entry', 'On receipt of vendor invoice for ₹3,00,000 of services: Dr Expense/Cost Account ₹3,00,000 | Cr Accounts Payable ₹3,00,000. On payment: Dr AP ₹3,00,000 | Cr Bank ₹3,00,000.')}
-${mlcTakeaway('AP is not just about paying bills — it is about paying the right amount, to the right vendor, at the right time, with proper authorisation. Each element of that sentence represents a control that prevents fraud and error.')}`
+${mlcTakeaway('AP is not just about paying bills — it is about paying the right amount, to the right vendor, at the right time, with proper authorisation. Each element of that sentence represents a control that prevents fraud and error.')}
+${mlcVideo('Accounts Payable Process Explained', 'accounts payable process explained ERP three way matching')}
+${mlcFlow(['Business need identified', 'Purchase Requisition raised', 'PR approved by budget owner', 'Purchase Order created & sent to vendor', 'Vendor delivers goods/services', 'Goods Receipt Note (GRN) raised', 'Vendor invoice received', 'Three-way match: PO + GRN + Invoice', 'Invoice approved & posted as AP', 'Payment run executed', 'Vendor paid & AP cleared'])}`
           },
           {
             title: 'Vendor Master Data & Payment Terms',
@@ -291,7 +316,8 @@ ${mlcSection('What Happens on Mismatch — Blocked Invoice', mlcUl([
   'Only a properly authorised person can release the block'
 ]))}
 ${mlcExample('SAP Context', 'In SAP, invoice receipt and three-way matching is performed via transaction MIRO (Logistics Invoice Verification). The system automatically compares the invoice against the PO and GRN. If a match fails, the invoice is blocked (MRBR is used to review and release blocked invoices).')}
-${mlcTakeaway('Three-way matching prevents overpayment, duplicate payment, and fraud. It is non-negotiable — any process that allows invoice payment without a matching PO and GRN is a significant financial control weakness.')}`
+${mlcTakeaway('Three-way matching prevents overpayment, duplicate payment, and fraud. It is non-negotiable — any process that allows invoice payment without a matching PO and GRN is a significant financial control weakness.')}
+${mlcDiagram('Three-Way Match — How It Works', '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><div style="flex:1;min-width:120px;padding:14px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);border-radius:10px;text-align:center"><div style="font-size:22px;margin-bottom:8px">📋</div><div style="font-weight:700;color:#60a5fa;font-size:12px">Purchase Order</div><div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:6px">Qty · Price · Vendor · Terms</div></div><div style="font-size:20px;color:rgba(201,162,39,.5);font-weight:300;flex-shrink:0">+</div><div style="flex:1;min-width:120px;padding:14px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);border-radius:10px;text-align:center"><div style="font-size:22px;margin-bottom:8px">📦</div><div style="font-weight:700;color:#22c55e;font-size:12px">Goods Receipt</div><div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:6px">Qty received · Condition · Date</div></div><div style="font-size:20px;color:rgba(201,162,39,.5);font-weight:300;flex-shrink:0">+</div><div style="flex:1;min-width:120px;padding:14px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.4);border-radius:10px;text-align:center"><div style="font-size:22px;margin-bottom:8px">🧾</div><div style="font-weight:700;color:#c9a227;font-size:12px">Vendor Invoice</div><div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:6px">Amount · Ref · Payment terms</div></div><div style="font-size:20px;color:rgba(201,162,39,.5);flex-shrink:0">→</div><div style="flex:1;min-width:120px;padding:14px;background:rgba(34,197,94,.12);border:2px solid #22c55e;border-radius:10px;text-align:center"><div style="font-size:22px;margin-bottom:8px">✅</div><div style="font-weight:700;color:#22c55e;font-size:12px">Match = Approve</div><div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:6px">All 3 agree → post for payment</div></div></div>')}`
           }
         ]
       },
@@ -375,7 +401,8 @@ ${mlcSection('Key AP KPIs', mlcUl([
   '<strong>Duplicate Payment Rate</strong> — Should be zero; any duplicate is a control failure',
   '<strong>On-Time Payment %</strong> — % of invoices paid within agreed terms; impacts vendor relationships'
 ]))}
-${mlcTakeaway('DPO optimisation is a legitimate working capital strategy, but never compromise vendor relationships or miss terms that have early-payment discounts. A 2% discount on 30-day payment is worth 36% annualised — almost always worth taking.')}`
+${mlcTakeaway('DPO optimisation is a legitimate working capital strategy, but never compromise vendor relationships or miss terms that have early-payment discounts. A 2% discount on 30-day payment is worth 36% annualised — almost always worth taking.')}
+${mlcStatGrid([{n:'DPO',l:'Days Payable Outstanding',note:'(AP ÷ COGS) × Days in period'},{n:'98%+',l:'Three-way match auto rate',note:'Best-in-class benchmark'},{n:'<1%',l:'Duplicate payment rate',note:'Critical fraud/error control'},{n:'2/10',l:'Early payment discount terms',note:'~36% annualised return on capital'}])}`
           }
         ]
       }
@@ -418,7 +445,10 @@ ${mlcSection('MIS Data Sources in Enterprise Finance', mlcUl([
   '<strong>Banking Platforms</strong> — Real-time cash positions, payment confirmations',
   '<strong>Spreadsheets / BI Tools</strong> — Excel, Power BI, Tableau: layer on top of ERP data for visualisation'
 ]))}
-${mlcTakeaway('An MIS report is only as valuable as the quality of the underlying data and the timeliness of its delivery. Stale data or data the user does not trust will result in decisions being made on gut feel rather than facts.')}`
+${mlcTakeaway('An MIS report is only as valuable as the quality of the underlying data and the timeliness of its delivery. Stale data or data the user does not trust will result in decisions being made on gut feel rather than facts.')}
+${mlcVideo('MIS Reports in Finance Explained', 'management information system finance reports explained dashboards')}
+${mlcFlow(['Raw data in ERP, banks, ops systems', 'Data extracted & validated', 'Aggregated into MIS tables/views', 'Reports & dashboards generated', 'Distributed to management (email/portal)', 'Decisions made based on insights', 'Actions tracked against outcomes'])}
+${mlcCompare('MIS Report Characteristics', ['Structured, repeatable format', 'Covers a defined reporting period', 'Comparable to prior periods and targets', 'Exception-driven — shows variances', 'Actionable — drives a specific decision'], 'NOT an MIS Report', ['One-off ad-hoc data extraction', 'Unformatted raw ERP export dump', 'No comparison to target or prior period', 'Shows all data without prioritisation', 'Informational only — no decision trigger'])}`
           }
         ]
       },
@@ -473,7 +503,9 @@ ${mlcSection('Cash Conversion Cycle', mlcUl([
   'Target: reduce DSO and DIO while responsibly increasing DPO'
 ]))}
 ${mlcExample('Worked Example', 'Company A: DSO = 45 days, DIO = 30 days, DPO = 40 days. CCC = 45 + 30 − 40 = 35 days. This means for every ₹1 of cost, the business needs 35 days of funding before that ₹1 returns as cash. If annual revenue is ₹100 cr, this represents ~₹9.6 cr of working capital requirement.')}
-${mlcTakeaway('The CCC is one of the most powerful cross-functional finance metrics. Reducing it by even 5 days can free up millions in cash for a mid-sized company. Finance, sales, and supply chain teams must own their part of the cycle.')}`
+${mlcTakeaway('The CCC is one of the most powerful cross-functional finance metrics. Reducing it by even 5 days can free up millions in cash for a mid-sized company. Finance, sales, and supply chain teams must own their part of the cycle.')}
+${mlcDiagram('Cash Conversion Cycle Formula', '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><div style="flex:1;min-width:100px;padding:12px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.35);border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:#60a5fa">DSO</div><div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:4px">Days Sales Outstanding</div><div style="font-size:10px;color:#60a5fa;margin-top:6px">AR ÷ Revenue × Days</div></div><div style="font-size:16px;color:rgba(201,162,39,.7);font-weight:700;flex-shrink:0">+</div><div style="flex:1;min-width:100px;padding:12px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:#22c55e">DIO</div><div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:4px">Days Inventory Outstanding</div><div style="font-size:10px;color:#22c55e;margin-top:6px">Inventory ÷ COGS × Days</div></div><div style="font-size:16px;color:rgba(201,162,39,.7);font-weight:700;flex-shrink:0">−</div><div style="flex:1;min-width:100px;padding:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:#ef4444">DPO</div><div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:4px">Days Payable Outstanding</div><div style="font-size:10px;color:#ef4444;margin-top:6px">AP ÷ COGS × Days</div></div><div style="font-size:16px;color:rgba(201,162,39,.7);font-weight:700;flex-shrink:0">=</div><div style="flex:1;min-width:100px;padding:12px;background:rgba(201,162,39,.12);border:2px solid rgba(201,162,39,.5);border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:#c9a227">CCC</div><div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:4px">Cash Conversion Cycle</div><div style="font-size:10px;color:#c9a227;margin-top:6px">Lower = better cash flow</div></div></div>')}
+${mlcStatGrid([{n:'30–45d',l:'Good DSO for B2B',note:'Collect faster = better working capital'},{n:'45–60d',l:'Good DPO target',note:'Pay slower (within terms) = better'},{n:'<30d',l:'World-class CCC',note:'Amazon achieves negative CCC'},{n:'1%',l:'CCC improvement = cash',note:'Every day saved = free cash'}])}`
           }
         ]
       },
@@ -532,7 +564,9 @@ ${mlcSection('Trial Balance — The Starting Point of All MIS', mlcUl([
   'All financial statements (P&L, Balance Sheet, Cash Flow) are derived from the trial balance',
   'Unexplained variances in the trial balance must be investigated before closing the period'
 ]))}
-${mlcTakeaway('The best MIS report is the one that gets used. Focus on relevance, accuracy, and timeliness over comprehensiveness. One trusted, timely metric outperforms ten comprehensive reports that arrive late or are not believed.')}`
+${mlcTakeaway('The best MIS report is the one that gets used. Focus on relevance, accuracy, and timeliness over comprehensiveness. One trusted, timely metric outperforms ten comprehensive reports that arrive late or are not believed.')}
+${mlcVideo('Finance Dashboard Design Best Practices', 'finance KPI dashboard design best practices power BI')}
+${mlcCompare('Effective Dashboard', ['Max 8–10 KPIs on one screen', 'RAG status (Red/Amber/Green) per metric', 'Current vs target vs prior period shown', 'Exceptions highlighted at the top', 'Auto-refreshed from live data', 'Mobile-friendly, readable in 30 seconds'], 'Ineffective Dashboard', ['40+ metrics across multiple tabs', 'Numbers only — no visual indicators', 'No targets to compare against', 'All metrics look equally important', 'Manually updated in Excel weekly', 'Requires training to interpret'])}`
           }
         ]
       }
@@ -581,7 +615,9 @@ ${mlcSection('P2P Stakeholders & Governance', mlcUl([
   '<strong>Accounts Payable</strong> — Processes invoices, manages vendor payments',
   '<strong>Finance Controller</strong> — Sets policy, approves exceptions, manages audit requirements'
 ]))}
-${mlcTakeaway('P2P maturity determines how much of your spend is controlled, visible, and optimised. Organisations with immature P2P processes experience rogue spending, inflated costs, and AP backlogs. Structured P2P enables cost savings, compliance, and vendor relationship management.')}`
+${mlcTakeaway('P2P maturity determines how much of your spend is controlled, visible, and optimised. Organisations with immature P2P processes experience rogue spending, inflated costs, and AP backlogs. Structured P2P enables cost savings, compliance, and vendor relationship management.')}
+${mlcVideo('Procure to Pay Process End to End', 'procure to pay P2P process explained purchase order invoice payment')}
+${mlcFlow(['Business need identified', 'Purchase Requisition (PR) created', 'PR approved by budget owner', 'RFQ sent to vendors (if required)', 'Vendor selected, PO raised & sent', 'Vendor confirms & delivers', 'GRN raised in system', 'Vendor invoice received & logged', 'Three-way match (PO + GRN + Invoice)', 'Invoice approved & posted to AP', 'Payment run executed', 'Vendor paid & AP cleared'])}`
           }
         ]
       },
@@ -635,7 +671,8 @@ ${mlcSection('GR/IR Account — How It Works', mlcUl([
   'Open GR/IR items represent timing differences — investigate and clear monthly (SAP: MR11)'
 ]))}
 ${mlcExample('Practical Scenario', 'Porter orders 100 laptops at ₹50,000 each (PO = ₹50,00,000). 80 arrive on 28th: GRN posted for 80 units. Dr Inventory ₹40,00,000 | Cr GR/IR ₹40,00,000. Invoice arrives for 80 units: Dr GR/IR ₹40,00,000 | Cr AP ₹40,00,000. GR/IR = zero. 20 units arrive next month and the cycle repeats.')}
-${mlcTakeaway('Never post a GRN unless you have physically verified the goods. A GRN creates an accounting liability. An incorrect GRN means you are booking a cost and creating a payment obligation for goods you may not have received — a serious financial misstatement.')}`
+${mlcTakeaway('Never post a GRN unless you have physically verified the goods. A GRN creates an accounting liability. An incorrect GRN means you are booking a cost and creating a payment obligation for goods you may not have received — a serious financial misstatement.')}
+${mlcDiagram('GR/IR Account — How Entries Flow', '<div style="display:flex;gap:10px;flex-wrap:wrap;"><div style="flex:1;min-width:160px;padding:14px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);border-radius:8px"><div style="font-size:11px;font-weight:700;color:#60a5fa;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Step 1 — Goods Receipt (GRN)</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.9">Dr Inventory / Expense ↑<br><span style="color:rgba(255,255,255,.3)">Asset increases</span><br>Cr GR/IR Account ↑<br><span style="color:rgba(255,255,255,.3)">Pending invoice liability</span></div></div><div style="flex:1;min-width:160px;padding:14px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px"><div style="font-size:11px;font-weight:700;color:#22c55e;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Step 2 — Invoice Posting</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.9">Dr GR/IR Account ↓<br><span style="color:rgba(255,255,255,.3)">Clearing the pending</span><br>Cr Accounts Payable ↑<br><span style="color:rgba(255,255,255,.3)">Real vendor liability created</span></div></div><div style="flex:1;min-width:160px;padding:14px;background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.3);border-radius:8px"><div style="font-size:11px;font-weight:700;color:#c9a227;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Result</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.9">GR/IR nets to zero ✓<br><span style="color:rgba(255,255,255,.3)">Both entries cancel out</span><br>Residual = missing invoice<br><span style="color:rgba(255,255,255,.3)">Needs investigation</span></div></div></div>')}`
           }
         ]
       },
@@ -696,7 +733,8 @@ ${mlcSection('Key P2P KPIs', mlcUl([
   '<strong>DPO</strong> — Days Payable Outstanding; optimise without damaging vendor relationships',
   '<strong>Duplicate Payment Rate</strong> — Should be zero; any duplicate is a control failure'
 ]))}
-${mlcTakeaway('P2P process maturity is measured by how much spend flows through a controlled, visible, and optimised channel. Move from reactive exception management to proactive process design — the best P2P teams prevent exceptions from occurring in the first place.')}`
+${mlcTakeaway('P2P process maturity is measured by how much spend flows through a controlled, visible, and optimised channel. Move from reactive exception management to proactive process design — the best P2P teams prevent exceptions from occurring in the first place.')}
+${mlcStatGrid([{n:'DPO',l:'Days Payable Outstanding',note:'(AP ÷ COGS) × Days'},{n:'98%+',l:'3-way match auto rate',note:'Best-in-class automation'},{n:'<1%',l:'Duplicate payment rate',note:'Key fraud & error control metric'},{n:'2/10 n/30',l:'Early payment discount',note:'~36% annualised return on capital'}])}`
           }
         ]
       }
@@ -745,7 +783,9 @@ ${mlcSection('O2C Stakeholders', mlcUl([
   '<strong>Accounts Receivable (Finance)</strong> — Invoicing, collections, cash application, dispute resolution',
   '<strong>Credit & Risk</strong> — Customer credit assessment, credit limit management'
 ]))}
-${mlcTakeaway('O2C is where your company\'s revenue promise to a customer becomes actual cash in the bank. Every step between order and cash represents time, cost, and risk. Optimising O2C is directly equivalent to improving revenue quality and working capital.')}`
+${mlcTakeaway('O2C is where your company\'s revenue promise to a customer becomes actual cash in the bank. Every step between order and cash represents time, cost, and risk. Optimising O2C is directly equivalent to improving revenue quality and working capital.')}
+${mlcVideo('Order to Cash O2C Process Explained', 'order to cash O2C process explained end to end ERP')}
+${mlcFlow(['Customer sends purchase order', 'Sales order created in ERP', 'Credit check performed & passed', 'Order confirmed to customer', 'Goods picked, packed & shipped', 'Customer invoice raised', 'Invoice delivered to customer', 'Payment received in bank', 'Remittance matched to invoice', 'Cash applied — AR reduced', 'AR cleared, revenue recognised'])}`
           }
         ]
       },
@@ -859,7 +899,9 @@ ${mlcSection('Key O2C KPIs', mlcUl([
   '<strong>Order-to-Invoice Cycle Time</strong> — Days from order to invoice creation; reduction directly reduces DSO',
   '<strong>Cash Application Rate</strong> — % of cash automatically applied vs. manual; best-in-class > 85%'
 ]))}
-${mlcTakeaway('The fastest way to reduce DSO is to invoice sooner. Every day between delivery and invoicing is a day added to your DSO before the clock even starts on payment terms. Automate invoice creation to trigger immediately upon confirmed delivery.')}`
+${mlcTakeaway('The fastest way to reduce DSO is to invoice sooner. Every day between delivery and invoicing is a day added to your DSO before the clock even starts on payment terms. Automate invoice creation to trigger immediately upon confirmed delivery.')}
+${mlcFlow(['Bank statement downloaded', 'Remittance advice matched to payment', 'Payment identified to customer account', 'Open invoices identified for this payment', 'Cash applied — AR balance reduced', 'Unapplied cash investigated separately', 'Deductions and short-pays resolved'])}
+${mlcStatGrid([{n:'DSO',l:'Days Sales Outstanding',note:'Collect faster = better'},{n:'95%+',l:'Auto cash application rate',note:'% matched without manual work'},{n:'<2%',l:'Unapplied cash as % of AR',note:'Lower = cleaner books'},{n:'<5%',l:'Disputed invoice rate',note:'Disputes delay cash collection'}])}`
           }
         ]
       }
@@ -906,7 +948,9 @@ ${mlcSection('Financial Close Types', mlcUl([
   '<strong>Fast Close</strong> — Target to deliver financial statements in 3–5 working days after month-end (best practice)',
   '<strong>Virtual Close</strong> — Real-time reporting enabled by continuous accounting and automation'
 ]))}
-${mlcTakeaway('R2R is the financial nervous system of an organisation. Every operational process (P2P, O2C, HR payroll) eventually feeds into R2R. The quality of your financial statements is entirely determined by the quality of your R2R process.')}`
+${mlcTakeaway('R2R is the financial nervous system of an organisation. Every operational process (P2P, O2C, HR payroll) eventually feeds into R2R. The quality of your financial statements is entirely determined by the quality of your R2R process.')}
+${mlcVideo('Record to Report R2R Process Explained', 'record to report R2R financial close period end process')}
+${mlcFlow(['Record all business transactions as JEs', 'Post accruals and prepayments', 'Reconcile subledgers to GL control accounts', 'Perform bank reconciliation', 'Clear intercompany balances', 'Post period-end adjustments (depreciation, provisions)', 'Lock the period in ERP', 'Generate trial balance', 'Produce P&L, Balance Sheet, Cash Flow', 'Management sign-off and publish'])}`
           }
         ]
       },
@@ -967,7 +1011,8 @@ ${mlcSection('Bank Reconciliation Steps', mlcOl([
   'File the completed reconciliation with evidence for audit'
 ]))}
 ${mlcExample('SAP Context', 'In SAP, bank reconciliation is performed using the Electronic Bank Statement (EBS) process. The system automatically matches bank statement line items to ERP postings. Unmatched items are presented for manual review. The FF67 transaction is used for manual bank statement entry.')}
-${mlcTakeaway('Bank reconciliation is a detective control — it detects errors, fraud, and timing differences after they occur. It should be performed at least monthly, and daily for main operating accounts. An unexplained reconciling item of any size must be investigated.')}`
+${mlcTakeaway('Bank reconciliation is a detective control — it detects errors, fraud, and timing differences after they occur. It should be performed at least monthly, and daily for main operating accounts. An unexplained reconciling item of any size must be investigated.')}
+${mlcDiagram('Bank Reconciliation — Two Sides', '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;"><div style="flex:1;min-width:155px;padding:14px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);border-radius:8px"><div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:10px">ERP Cash Ledger</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.8">• All payments posted in ERP<br>• All receipts recorded<br>• Bank charges not yet in ERP<br>• Outstanding cheques issued<br>• Balance as per books</div></div><div style="display:flex;align-items:center;font-size:20px;color:rgba(201,162,39,.6)">⇄</div><div style="flex:1;min-width:155px;padding:14px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px"><div style="font-size:12px;font-weight:700;color:#22c55e;margin-bottom:10px">Bank Statement</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.8">• Payments that have cleared<br>• Receipts actually credited<br>• Bank charges debited<br>• Cheques not yet presented<br>• Balance as per bank</div></div></div><div style="padding:10px 14px;background:rgba(201,162,39,.07);border:1px solid rgba(201,162,39,.2);border-radius:8px;font-size:11px;color:rgba(255,255,255,.6)"><strong style="color:#c9a227">Reconciling items:</strong> Timing differences, bank charges not yet posted, interest credited by bank but not recorded in ERP. Every item must be explained — an unexplained difference means an error.</div>')}`
           }
         ]
       },
@@ -1001,7 +1046,18 @@ ${mlcSection('Intercompany Accounting', mlcUl([
   'At consolidation, these intercompany transactions must be eliminated',
   'Intercompany balances must agree between entities at period-end — differences are reconciliation items'
 ]))}
-${mlcTakeaway('The quality of the financial close is determined by preparation, not speed. The best finance teams complete 80% of close activities before month-end (processing invoices daily, reconciling accounts weekly) — making the final 20% a confirmation exercise rather than a scramble.')}`
+${mlcTakeaway('The quality of the financial close is determined by preparation, not speed. The best finance teams complete 80% of close activities before month-end (processing invoices daily, reconciling accounts weekly) — making the final 20% a confirmation exercise rather than a scramble.')}
+${mlcDiagram('Typical Month-End Close Sequence', '<div style="display:flex;flex-direction:column;gap:6px;">' + [
+  ['Day 0','Cutoff — period ends, no more transaction postings accepted','#22c55e'],
+  ['Day 1','Post all accruals, prepayments, and recurring journals','#22c55e'],
+  ['Day 1–2','Reconcile AR subledger, AP subledger, and bank statements','#22c55e'],
+  ['Day 2–3','Clear all intercompany balances; post elimination entries','#eab308'],
+  ['Day 3','Post adjustments: depreciation, provisions, write-offs','#eab308'],
+  ['Day 3–4','Lock subledgers; run trial balance; check for unposted items','#eab308'],
+  ['Day 4–5','Review P&L and Balance Sheet; investigate key variances','#60a5fa'],
+  ['Day 5','Controller sign-off; lock period in ERP system','#60a5fa'],
+  ['Day 5–7','Produce and distribute management reporting pack','#60a5fa']
+].map(function(s){return '<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 12px;background:rgba(255,255,255,.03);border-radius:7px;border-left:3px solid '+s[2]+'"><div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.3);min-width:40px;flex-shrink:0">'+s[0]+'</div><div style="font-size:11px;color:rgba(255,255,255,.62)">'+s[1]+'</div></div>';}).join('') + '</div>')}`
           }
         ]
       },
@@ -1079,7 +1135,9 @@ ${mlcSection('Where Bluecopa Lives on the Customer Stack', mlcOl([
   'Output feeds back to the ERP as journals, or to BI tools as reporting datasets'
 ]))}
 ${mlcExample('Positioning Example', 'A company already using SAP S/4HANA for core accounting uses Bluecopa to automate bank reconciliation, AP three-way matching, and intercompany reconciliation — three areas where SAP requires heavy manual intervention. Bluecopa does not replace SAP; it fills the automation gaps SAP leaves open.')}
-${mlcTakeaway('Bluecopa is not an ERP. It is a finance automation layer that works with your existing stack to eliminate manual work, reduce close cycles, and give finance teams real-time visibility.')}`
+${mlcTakeaway('Bluecopa is not an ERP. It is a finance automation layer that works with your existing stack to eliminate manual work, reduce close cycles, and give finance teams real-time visibility.')}
+${mlcVideo('Bluecopa Finance Automation Platform', 'bluecopa finance automation platform overview demo')}
+${mlcCompare('Bluecopa Replaces', ['Manual spreadsheet reconciliation', 'Email-based approval workflows', 'Fragmented point solutions per process', 'Monthly batch reconciliation', 'Siloed data across ERP and bank systems'], 'Bluecopa Works Alongside', ['Your existing ERP (SAP, Oracle, Tally)', 'Your BI and reporting tools', 'Your bank and vendor connections', 'Your chart of accounts structure', 'Your existing finance team and processes'])}`
           },
           {
             title: 'The Big Picture — Data Flow & Mental Model',
@@ -1106,7 +1164,8 @@ ${mlcSection('FxJS — The Formula Engine', mlcUl([
   'Finance teams can write rules in FxJS without needing engineering support'
 ]))}
 ${mlcExample('Real-World Flow', 'A bank statement arrives as a CSV (Data Source). The Connector parses it into an Input Table (Integrations → Tables). A reconciliation rule written in FxJS runs to match bank lines against GL entries (Engines). Unmatched items surface as exceptions in the AR or AP Solution (Results). The finance team reviews and resolves them, and a summary report is published to the BI tool (Exports).')}
-${mlcTakeaway('Every action in Bluecopa follows the same path: Data in → Pipes transform → Engines process → Flows orchestrate → Results out. Once you internalise this flow, any feature in the platform makes intuitive sense.')}`
+${mlcTakeaway('Every action in Bluecopa follows the same path: Data in → Pipes transform → Engines process → Flows orchestrate → Results out. Once you internalise this flow, any feature in the platform makes intuitive sense.')}
+${mlcFlow(['Data Sources (ERP, banks, vendors, files)', 'Connectors pull data on schedule', 'Data lands in Input Tables (immutable)', 'Methods (FxJS) transform & clean data', 'Engines process (reconcile, post JEs, report)', 'Results surface in Solutions & dashboards', 'Exports push back to ERP or BI tools'])}`
           }
         ]
       },
@@ -1213,7 +1272,8 @@ ${mlcSection('4 — Task & Period Engine', mlcUl([
   'Period lock prevents any further postings once the close is certified — maintaining data integrity',
   'Reporting on close cycle time (Days to Close) is built in for benchmarking and improvement'
 ]))}
-${mlcTakeaway('Each engine is independently configurable but works together seamlessly. A bank reconciliation exception flows from the Reconciliation Engine into a JE Management Engine journal, which updates a Reporting Engine dashboard, and is tracked in the Task & Period Engine close checklist — all without leaving Bluecopa.')}`
+${mlcTakeaway('Each engine is independently configurable but works together seamlessly. A bank reconciliation exception flows from the Reconciliation Engine into a JE Management Engine journal, which updates a Reporting Engine dashboard, and is tracked in the Task & Period Engine close checklist — all without leaving Bluecopa.')}
+${mlcDiagram('The Four Engines at a Glance', '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div style="padding:14px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.3);border-radius:8px"><div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:6px">🔄 Reconciliation Engine</div><div style="font-size:11px;color:rgba(255,255,255,.52);line-height:1.6">Matches records across datasets. Bank recon, AR/AP, intercompany. Rules-based + AI matching.</div></div><div style="padding:14px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px"><div style="font-size:12px;font-weight:700;color:#22c55e;margin-bottom:6px">📝 JE Management Engine</div><div style="font-size:11px;color:rgba(255,255,255,.52);line-height:1.6">Full journal entry lifecycle: creation, approval, posting back to ERP. Template-based recurring JEs.</div></div><div style="padding:14px;background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.3);border-radius:8px"><div style="font-size:12px;font-weight:700;color:#c9a227;margin-bottom:6px">📊 Reporting Engine</div><div style="font-size:11px;color:rgba(255,255,255,.52);line-height:1.6">P&L, Balance Sheet, AR/AP Aging, management packs. Always live — no manual data assembly.</div></div><div style="padding:14px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);border-radius:8px"><div style="font-size:12px;font-weight:700;color:#a855f7;margin-bottom:6px">📅 Task & Period Engine</div><div style="font-size:11px;color:rgba(255,255,255,.52);line-height:1.6">Month-end close checklist, task assignment, period lock, Days-to-Close tracking.</div></div></div>')}`
           },
           {
             title: 'The Pipes Layer — Methods & Templated Data',
@@ -1272,7 +1332,8 @@ ${mlcSection('Record-to-Report (R2R)', mlcUl([
   '<strong>Key output</strong>: Certified close checklist; Days to Close metric; signed-off reconciliation packs; published financial statements'
 ]))}
 ${mlcExample('Choosing the Right Solution', 'A company suffering from slow AP payment processing and vendor disputes starts with P2P. A company with poor cash flow visibility due to slow cash application starts with O2C. A company whose month-end close takes 15+ days starts with R2R. Most enterprise customers implement all three over time.')}
-${mlcTakeaway('Solutions are the fastest path to value in Bluecopa. They encode best-practice process design, matching rules, and workflows — configured to your business rather than built from scratch.')}`
+${mlcTakeaway('Solutions are the fastest path to value in Bluecopa. They encode best-practice process design, matching rules, and workflows — configured to your business rather than built from scratch.')}
+${mlcDiagram('Which Solution Solves Your Problem?', '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;"><div style="padding:14px;background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);border-radius:8px;text-align:center"><div style="font-size:20px;margin-bottom:8px">🛒</div><div style="font-size:12px;font-weight:700;color:#eab308;margin-bottom:8px">P2P Solution</div><div style="font-size:11px;color:rgba(255,255,255,.5);line-height:1.6;text-align:left">Use when: AP team manually matching POs, GRNs, invoices. Slow payments. Frequent vendor disputes.</div></div><div style="padding:14px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.3);border-radius:8px;text-align:center"><div style="font-size:20px;margin-bottom:8px">📦</div><div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:8px">O2C Solution</div><div style="font-size:11px;color:rgba(255,255,255,.5);line-height:1.6;text-align:left">Use when: AR team manually applying cash. High DSO. Poor collection visibility and slow dispute resolution.</div></div><div style="padding:14px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);border-radius:8px;text-align:center"><div style="font-size:20px;margin-bottom:8px">📋</div><div style="font-size:12px;font-weight:700;color:#a855f7;margin-bottom:8px">R2R Solution</div><div style="font-size:11px;color:rgba(255,255,255,.5);line-height:1.6;text-align:left">Use when: Month-end close takes 15+ days. No close task visibility. Spreadsheet-driven process.</div></div></div>')}`
           },
           {
             title: 'Studio & Samyx AI',
