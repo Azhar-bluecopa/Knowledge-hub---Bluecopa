@@ -5,7 +5,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=9">
+  <link rel="stylesheet" href="/style.css?v=10">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
 </head>
@@ -3662,70 +3662,76 @@ document.addEventListener('keydown',e=>{
 <div class="ml-overlay" id="mlOverlay">
 
   <!-- Top bar -->
-  <div class="ml-topbar">
+  <div class="ml-topbar" id="mlTopbar">
     <div class="ml-topbar-left">
+      <button class="ml-back-btn" id="mlBackBtn" onclick="mlCloseCourse()">← All Courses</button>
       <span class="ml-topbar-icon">🎓</span>
-      <span class="ml-topbar-title">MY LEARNING</span>
+      <span class="ml-topbar-title" id="mlTopbarTitle">MY LEARNING</span>
     </div>
-    <button class="ml-home-btn" onclick="mlHide();showLanding();">🏠 Home</button>
-  </div>
-
-  <!-- Hero banner -->
-  <div class="ml-hero">
-    <div class="ml-hero-inner">
-      <div class="ml-hero-tag">// Bluecopa · Delivery Team</div>
-      <h1 class="ml-hero-h1">Sharpen Your Skills</h1>
-      <p class="ml-hero-sub">Structured learning paths built from the Bluecopa knowledge base — step-by-step, self-paced, built for delivery excellence.</p>
-      <div class="ml-hero-stats">
-        <div class="ml-hero-stat"><span class="ml-stat-n">6</span><span class="ml-stat-l">Courses</span></div>
-        <div class="ml-stat-div"></div>
-        <div class="ml-hero-stat"><span class="ml-stat-n">30+</span><span class="ml-stat-l">Articles</span></div>
-        <div class="ml-stat-div"></div>
-        <div class="ml-hero-stat"><span class="ml-stat-n">∞</span><span class="ml-stat-l">Self-paced</span></div>
+    <div class="ml-topbar-right">
+      <div class="mlcv-top-progress" id="mlTopProgress" style="display:none">
+        <div class="mlcv-top-prog-track"><div class="mlcv-top-prog-fill" id="mlTopProgFill"></div></div>
+        <span class="mlcv-top-prog-label" id="mlTopProgLabel">0 / 10</span>
       </div>
-    </div>
-    <div class="ml-hero-orbs">
-      <div class="ml-orb ml-orb1"></div>
-      <div class="ml-orb ml-orb2"></div>
-      <div class="ml-orb ml-orb3"></div>
+      <button class="ml-home-btn" onclick="mlHide();showLanding();">🏠 Home</button>
     </div>
   </div>
 
-  <!-- Main content -->
-  <div class="ml-content">
-
-    <!-- Filter tabs -->
-    <div class="ml-filter-row">
-      <button class="ml-filter-btn active" data-cat="all" onclick="mlFilter('all',this)">All Courses</button>
-      <button class="ml-filter-btn" data-cat="ar" onclick="mlFilter('ar',this)">Account Receivable</button>
-      <button class="ml-filter-btn" data-cat="ap" onclick="mlFilter('ap',this)">Account Payable</button>
-      <button class="ml-filter-btn" data-cat="mis" onclick="mlFilter('mis',this)">MIS Reports</button>
-      <button class="ml-filter-btn" data-cat="p2p" onclick="mlFilter('p2p',this)">Procure-to-Pay</button>
-      <button class="ml-filter-btn" data-cat="o2c" onclick="mlFilter('o2c',this)">Order-to-Cash</button>
-      <button class="ml-filter-btn" data-cat="r2r" onclick="mlFilter('r2r',this)">Record-to-Report</button>
-    </div>
-
-    <!-- Section header -->
-    <div class="ml-section-header">
-      <div class="ml-section-title">Featured Courses</div>
-      <div class="ml-section-count" id="mlCount">6 courses</div>
-    </div>
-
-    <!-- Course grid -->
-    <div class="ml-grid" id="mlGrid"></div>
-
-    <!-- Bottom strip -->
-    <div class="ml-bottom-strip">
-      <div class="ml-bs-icon">🚀</div>
-      <div class="ml-bs-text">
-        <div class="ml-bs-title">More courses arriving soon</div>
-        <div class="ml-bs-sub">Courses are built directly from knowledge articles. As more articles are added, new courses unlock automatically.</div>
+  <!-- LIST VIEW: hero + course grid -->
+  <div id="mlListView">
+    <div class="ml-hero">
+      <div class="ml-hero-inner">
+        <div class="ml-hero-tag">// Bluecopa · Delivery Team</div>
+        <h1 class="ml-hero-h1">Sharpen Your Skills</h1>
+        <p class="ml-hero-sub">Structured learning paths built from the Bluecopa knowledge base — step-by-step, self-paced, built for delivery excellence.</p>
+        <div class="ml-hero-stats">
+          <div class="ml-hero-stat"><span class="ml-stat-n">6</span><span class="ml-stat-l">Courses</span></div>
+          <div class="ml-stat-div"></div>
+          <div class="ml-hero-stat"><span class="ml-stat-n">30+</span><span class="ml-stat-l">Articles</span></div>
+          <div class="ml-stat-div"></div>
+          <div class="ml-hero-stat"><span class="ml-stat-n">∞</span><span class="ml-stat-l">Self-paced</span></div>
+        </div>
+      </div>
+      <div class="ml-hero-orbs">
+        <div class="ml-orb ml-orb1"></div>
+        <div class="ml-orb ml-orb2"></div>
+        <div class="ml-orb ml-orb3"></div>
       </div>
     </div>
+    <div class="ml-content">
+      <div class="ml-filter-row">
+        <button class="ml-filter-btn active" data-cat="all" onclick="mlFilter('all',this)">All Courses</button>
+        <button class="ml-filter-btn" data-cat="ar" onclick="mlFilter('ar',this)">Account Receivable</button>
+        <button class="ml-filter-btn" data-cat="ap" onclick="mlFilter('ap',this)">Account Payable</button>
+        <button class="ml-filter-btn" data-cat="mis" onclick="mlFilter('mis',this)">MIS Reports</button>
+        <button class="ml-filter-btn" data-cat="p2p" onclick="mlFilter('p2p',this)">Procure-to-Pay</button>
+        <button class="ml-filter-btn" data-cat="o2c" onclick="mlFilter('o2c',this)">Order-to-Cash</button>
+        <button class="ml-filter-btn" data-cat="r2r" onclick="mlFilter('r2r',this)">Record-to-Report</button>
+      </div>
+      <div class="ml-section-header">
+        <div class="ml-section-title">Featured Courses</div>
+        <div class="ml-section-count" id="mlCount">6 courses</div>
+      </div>
+      <div class="ml-grid" id="mlGrid"></div>
+      <div class="ml-bottom-strip">
+        <div class="ml-bs-icon">🚀</div>
+        <div class="ml-bs-text">
+          <div class="ml-bs-title">More courses arriving soon</div>
+          <div class="ml-bs-sub">Courses are built directly from knowledge articles. As more articles are added, new courses unlock automatically.</div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /mlListView -->
 
-  </div><!-- /ml-content -->
+  <!-- COURSE VIEWER: sidebar + lesson/quiz pane -->
+  <div id="mlCourseViewer" class="mlcv-wrap" style="display:none">
+    <aside class="mlcv-sidebar" id="mlcvSidebar"></aside>
+    <main class="mlcv-main" id="mlcvMain"></main>
+  </div>
+
 </div><!-- /mlOverlay -->
 
-  <script src="/app.js?v=8" defer></script>
+  <script src="/courses.js?v=1" defer></script>
+  <script src="/app.js?v=9" defer></script>
 </body>
 </html>

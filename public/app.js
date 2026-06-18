@@ -4373,7 +4373,14 @@ function mlBadgeHTML(badge, cls) {
 
 function mlCardHTML(c) {
   const stars = '★★★★★';
-  return `<div class="ml-card" title="${c.title}">
+  const prog = mlGetCourseProgress(c.id);
+  const started = prog.done > 0;
+  const pct = prog.total > 0 ? Math.round(prog.done / prog.total * 100) : 0;
+  const progHTML = started ? `<div class="ml-card-prog-wrap"><div class="ml-card-prog-track"><div class="ml-card-prog-fill" style="width:${pct}%"></div></div><span class="ml-card-prog-label">${pct}% complete</span></div>` : '';
+  const cta = prog.passed ? '✓ Completed' : (started ? 'Continue →' : 'Start Course →');
+  const ctaCls = prog.passed ? 'ml-card-cta passed' : (started ? 'ml-card-cta continue' : 'ml-card-cta');
+  const totalLessons = prog.total || c.lessons;
+  return `<div class="ml-card" onclick="mlOpenCourse('${c.id}')" style="cursor:pointer" title="Open ${c.title}">
     <div class="ml-card-thumb" style="background:${c.grad}">
       <div class="ml-card-thumb-icon">${c.icon}</div>
       <div class="ml-card-thumb-label">${c.tag}</div>
@@ -4386,13 +4393,14 @@ function mlCardHTML(c) {
       <div class="ml-card-title">${c.title}</div>
       <div class="ml-card-desc">${c.desc}</div>
       <div class="ml-card-author">By Bluecopa Delivery Team</div>
+      ${progHTML}
       <div class="ml-card-footer">
         <div class="ml-card-rating">
           <span class="ml-card-stars">${stars}</span>
           <span class="ml-card-rating-val">4.8</span>
-          <span class="ml-card-rating-ct">(Coming soon)</span>
+          <span class="ml-card-rating-ct">${totalLessons} lessons</span>
         </div>
-        <div class="ml-card-lessons">${c.lessons} lessons</div>
+        <span class="${ctaCls}">${cta}</span>
       </div>
     </div>
   </div>`;
