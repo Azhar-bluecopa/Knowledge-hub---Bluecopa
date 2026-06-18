@@ -4396,6 +4396,7 @@ function mlCardHTML(c) {
     <div class="ml-card-thumb" style="background:${c.grad}">
       <div class="ml-card-thumb-icon">${c.icon}</div>
       <div class="ml-card-thumb-label">${c.tag}</div>
+      ${prog.passed ? '<div class="ml-card-cert-badge">🏆</div>' : ''}
     </div>
     <div class="ml-card-body">
       <div class="ml-card-badges">
@@ -4433,16 +4434,26 @@ function mlFilter(cat, btn) {
   mlRender(filtered);
 }
 
+function mlUpdateHeroStats() {
+  const nEl = document.getElementById('mlStatCoursesN');
+  const lEl = document.getElementById('mlStatCoursesL');
+  if (!nEl) return;
+  const done = ML_COURSES.filter(c => mlGetCourseProgress(c.id).passed).length;
+  const total = ML_COURSES.length;
+  nEl.textContent = done;
+  lEl.textContent = done === total ? 'All Done 🎉' : `of ${total} Done`;
+}
+
 function dwGoLearning() {
   hideLanding();
   history.pushState({screen:'my-learning'}, '');
   const ol = document.getElementById('mlOverlay');
   if(ol) {
     ol.classList.add('active');
-    // reset to All tab and render
     document.querySelectorAll('.ml-filter-btn').forEach(b=>b.classList.remove('active'));
     const allBtn = document.querySelector('.ml-filter-btn[data-cat="all"]');
     if(allBtn) allBtn.classList.add('active');
+    mlUpdateHeroStats();
     mlRender(ML_COURSES);
   }
 }

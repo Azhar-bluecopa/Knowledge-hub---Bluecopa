@@ -1466,7 +1466,8 @@ function mlCloseCourse() {
   document.getElementById('mlTopbarTitle').textContent = 'MY LEARNING';
   document.getElementById('mlTopProgress').style.display = 'none';
   mlVS.courseId = null;
-  // Re-render cards to show updated progress
+  // Re-render cards and update hero stats to reflect latest progress
+  mlUpdateHeroStats();
   mlRender(ML_COURSES);
 }
 
