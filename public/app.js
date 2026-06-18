@@ -2876,20 +2876,42 @@ function mcHandleSearch(val) {
 
 function mcDoSearch(q) {
   const results = document.getElementById('mcSearchResults');
-  if (!allArticles || !allArticles.length) {
-    results.innerHTML = '<div class="mc-sr-empty">No articles loaded yet.</div>';
-    results.classList.add('open');
-    return;
-  }
   const lower = q.toLowerCase();
-  const matches = allArticles.filter(a =>
+
+  // Search knowledge articles
+  const articleMatches = (allArticles || []).filter(a =>
     (a.title||'').toLowerCase().includes(lower) ||
     (a.content||'').toLowerCase().includes(lower) ||
     (a.excerpt||'').toLowerCase().includes(lower) ||
     (a.category||'').toLowerCase().includes(lower)
-  ).slice(0, 8);
+  ).slice(0, 4);
 
-  if (!matches.length) {
+  // Search courses
+  const courseMatches = (typeof ML_COURSES !== 'undefined' ? ML_COURSES : []).filter(c =>
+    (c.title||'').toLowerCase().includes(lower) ||
+    (c.desc||'').toLowerCase().includes(lower) ||
+    (c.tag||'').toLowerCase().includes(lower) ||
+    (c.level||'').toLowerCase().includes(lower)
+  ).slice(0, 3);
+
+  // Search course lessons
+  const lessonMatches = [];
+  if (typeof MLC !== 'undefined') {
+    outer: for (const [cid, course] of Object.entries(MLC)) {
+      for (const mod of course.modules) {
+        for (const lesson of mod.lessons) {
+          if ((lesson.title||'').toLowerCase().includes(lower) ||
+              (lesson.html||'').replace(/<[^>]+>/g,'').toLowerCase().includes(lower)) {
+            const parent = ML_COURSES.find(c => c.id === cid);
+            lessonMatches.push({ courseId: cid, courseTitle: parent ? parent.title : cid, lessonTitle: lesson.title });
+            if (lessonMatches.length >= 3) break outer;
+          }
+        }
+      }
+    }
+  }
+
+  if (!articleMatches.length && !courseMatches.length && !lessonMatches.length) {
     results.innerHTML = `<div class="mc-sr-empty">No results for "<strong>${q}</strong>"</div>`;
     results.classList.add('open');
     return;
@@ -2902,8 +2924,33 @@ function mcDoSearch(q) {
     return text.replace(re, '<mark>$1</mark>');
   };
 
-  results.innerHTML = `<div class="mc-sr-header">Results for "${q}"</div>` +
-    matches.map(a => {
+  let html = `<div class="mc-sr-header">Results for "${q}"</div>`;
+
+  if (courseMatches.length) {
+    html += `<div class="mc-sr-section-label">🎓 Courses</div>`;
+    html += courseMatches.map(c => `<div class="mc-sr-item" onclick="mcOpenCourse('${c.id}')">
+      <span class="mc-sr-cat" style="background:rgba(201,162,39,.12);color:#c9a227;border:1px solid rgba(201,162,39,.3);">${c.tag||'Course'}</span>
+      <div style="flex:1;min-width:0;">
+        <div class="mc-sr-title">${highlight(c.title, q)}</div>
+        <div class="mc-sr-excerpt">${(c.desc||'').slice(0,90)}…</div>
+      </div>
+    </div>`).join('');
+  }
+
+  if (lessonMatches.length) {
+    html += `<div class="mc-sr-section-label">📖 Lessons</div>`;
+    html += lessonMatches.map(l => `<div class="mc-sr-item" onclick="mcOpenCourse('${l.courseId}')">
+      <span class="mc-sr-cat" style="background:rgba(201,162,39,.07);color:#c9a227;border:1px solid rgba(201,162,39,.2);">Lesson</span>
+      <div style="flex:1;min-width:0;">
+        <div class="mc-sr-title">${highlight(l.lessonTitle, q)}</div>
+        <div class="mc-sr-excerpt">In: ${l.courseTitle}</div>
+      </div>
+    </div>`).join('');
+  }
+
+  if (articleMatches.length) {
+    html += `<div class="mc-sr-section-label">📚 Knowledge Articles</div>`;
+    html += articleMatches.map(a => {
       const col = catColors[a.category] || '#e8c97a';
       const excerpt = (a.excerpt || a.content || '').replace(/<[^>]+>/g,'').slice(0,80) + '…';
       return `<div class="mc-sr-item" onclick="mcOpenArticle(${a.id})">
@@ -2914,6 +2961,9 @@ function mcDoSearch(q) {
         </div>
       </div>`;
     }).join('');
+  }
+
+  results.innerHTML = html;
   results.classList.add('open');
 }
 
@@ -2924,6 +2974,12 @@ function mcOpenArticle(id) {
   history.pushState({screen:'articles'}, '');
   filterCategory('All', document.getElementById('cat-all'));
   setTimeout(() => openArticle(id), 300);
+}
+
+function mcOpenCourse(id) {
+  mcClearSearch();
+  dwGoLearning();
+  setTimeout(() => mlOpenCourse(id), 350);
 }
 
 function mcClearSearch() {
