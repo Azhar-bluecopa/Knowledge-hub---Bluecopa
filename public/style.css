@@ -2072,7 +2072,7 @@ html{scroll-behavior:smooth;}
 }
 .ml-hero-inner{position:relative;z-index:2;max-width:680px;}
 .ml-hero-tag{
-  font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;
+  font-family:'DM Mono',monospace;font-size:14px;letter-spacing:.18em;
   text-transform:uppercase;color:rgba(201,162,39,.7);margin-bottom:16px;
 }
 .ml-hero-h1{
