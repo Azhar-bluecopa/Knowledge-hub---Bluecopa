@@ -2306,6 +2306,7 @@ window.addEventListener('popstate', function(e){
   closeModal();
   smDestroyCharts();
   hidePP();
+  mlHide();
   document.getElementById('dwLanding').classList.add('dw-hidden');
   document.getElementById('dw-canvas').style.display = 'none';
   dwCanvasRunning = false;
@@ -2349,6 +2350,8 @@ window.addEventListener('popstate', function(e){
     ppLoad();
   } else if(scr === 'leadership'){
     liOpen();
+  } else if(scr === 'my-learning'){
+    dwGoLearning();
   }
   // 'articles', 'article-detail', 'new-article' → main view already restored by reset
 
@@ -4290,3 +4293,141 @@ window.addEventListener('load', () => { setTimeout(liUpdateNavVisibility, 800); 
         flowObserver.observe(document.getElementById('eswFlowWrap'));
       }
     })();
+// ═══════════════════════════════════════════════════
+// MY LEARNING
+// ═══════════════════════════════════════════════════
+
+const ML_COURSES = [
+  {
+    id:'ar',
+    title:'Account Receivable Process Mastery',
+    desc:'Understand the complete AR lifecycle — from invoicing and credit management to collections, aging reports, and reconciliation.',
+    tag:'Account Receivable',
+    icon:'💰',
+    grad:'linear-gradient(145deg,#065f46 0%,#059669 60%,#34d399 100%)',
+    level:'Intermediate',
+    lessons:8,
+    badge:'Hot & New', badgeClass:'hot',
+  },
+  {
+    id:'ap',
+    title:'Account Payable Deep Dive',
+    desc:'Master vendor management, three-way matching, invoice processing and payment workflows from PO to final settlement.',
+    tag:'Account Payable',
+    icon:'📑',
+    grad:'linear-gradient(145deg,#3730a3 0%,#6d28d9 60%,#a78bfa 100%)',
+    level:'Beginner',
+    lessons:7,
+    badge:'Building', badgeClass:'building',
+  },
+  {
+    id:'mis',
+    title:'MIS Reports & Analytics',
+    desc:'Build, interpret and automate management information system reports that drive real-time decisions across finance and operations.',
+    tag:'MIS Reports',
+    icon:'📊',
+    grad:'linear-gradient(145deg,#1e3a8a 0%,#2563eb 60%,#60a5fa 100%)',
+    level:'Intermediate',
+    lessons:6,
+    badge:'Bestseller', badgeClass:'bestseller',
+  },
+  {
+    id:'p2p',
+    title:'Procure-to-Pay End-to-End',
+    desc:'Trace every step of the procurement cycle — requisition, vendor selection, PO management, GRN and final payment — with real Bluecopa scenarios.',
+    tag:'Procure-to-Pay',
+    icon:'🛒',
+    grad:'linear-gradient(145deg,#92400e 0%,#d97706 60%,#fcd34d 100%)',
+    level:'Intermediate',
+    lessons:9,
+    badge:'Hot & New', badgeClass:'hot',
+  },
+  {
+    id:'o2c',
+    title:'Order-to-Cash Complete Guide',
+    desc:'Navigate the full order lifecycle — customer order through fulfilment, billing, collections and revenue recognition — end to end.',
+    tag:'Order-to-Cash',
+    icon:'📦',
+    grad:'linear-gradient(145deg,#7f1d1d 0%,#dc2626 60%,#f87171 100%)',
+    level:'Advanced',
+    lessons:10,
+    badge:'Bestseller', badgeClass:'bestseller',
+  },
+  {
+    id:'r2r',
+    title:'Record-to-Report Fundamentals',
+    desc:'Close the financial period right — from journal entries and intercompany reconciliation to trial balance and management reporting.',
+    tag:'Record-to-Report',
+    icon:'📋',
+    grad:'linear-gradient(145deg,#1e1b4b 0%,#4338ca 60%,#818cf8 100%)',
+    level:'Intermediate',
+    lessons:8,
+    badge:'Building', badgeClass:'building',
+  },
+];
+
+function mlBadgeHTML(badge, cls) {
+  const map = {hot:'ml-badge-hot', bestseller:'ml-badge-bestseller', building:'ml-badge-building'};
+  return `<span class="ml-badge ${map[cls]||'ml-badge-building'}">${badge}</span>`;
+}
+
+function mlCardHTML(c) {
+  const stars = '★★★★★';
+  return `<div class="ml-card" title="${c.title}">
+    <div class="ml-card-thumb" style="background:${c.grad}">
+      <div class="ml-card-thumb-icon">${c.icon}</div>
+      <div class="ml-card-thumb-label">${c.tag}</div>
+    </div>
+    <div class="ml-card-body">
+      <div class="ml-card-badges">
+        ${mlBadgeHTML(c.badge, c.badgeClass)}
+        <span class="ml-badge ml-badge-level">${c.level}</span>
+      </div>
+      <div class="ml-card-title">${c.title}</div>
+      <div class="ml-card-desc">${c.desc}</div>
+      <div class="ml-card-author">By Bluecopa Delivery Team</div>
+      <div class="ml-card-footer">
+        <div class="ml-card-rating">
+          <span class="ml-card-stars">${stars}</span>
+          <span class="ml-card-rating-val">4.8</span>
+          <span class="ml-card-rating-ct">(Coming soon)</span>
+        </div>
+        <div class="ml-card-lessons">${c.lessons} lessons</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function mlRender(courses) {
+  const grid = document.getElementById('mlGrid');
+  const count = document.getElementById('mlCount');
+  if(!grid) return;
+  grid.innerHTML = courses.map(mlCardHTML).join('');
+  if(count) count.textContent = `${courses.length} course${courses.length!==1?'s':''}`;
+}
+
+function mlFilter(cat, btn) {
+  document.querySelectorAll('.ml-filter-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const filtered = cat==='all' ? ML_COURSES : ML_COURSES.filter(c=>c.id===cat);
+  mlRender(filtered);
+}
+
+function dwGoLearning() {
+  hideLanding();
+  history.pushState({screen:'my-learning'}, '');
+  const ol = document.getElementById('mlOverlay');
+  if(ol) {
+    ol.classList.add('active');
+    // reset to All tab and render
+    document.querySelectorAll('.ml-filter-btn').forEach(b=>b.classList.remove('active'));
+    const allBtn = document.querySelector('.ml-filter-btn[data-cat="all"]');
+    if(allBtn) allBtn.classList.add('active');
+    mlRender(ML_COURSES);
+  }
+}
+
+function mlHide() {
+  const ol = document.getElementById('mlOverlay');
+  if(ol) ol.classList.remove('active');
+}

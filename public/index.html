@@ -5,7 +5,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=7">
+  <link rel="stylesheet" href="/style.css?v=8">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
 </head>
@@ -2618,6 +2618,23 @@ document.addEventListener('keydown',e=>{
         <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
 
+      <!-- 06 My Learning -->
+      <div class="dw-card" style="--cr:201,162,39;--fdur:4.1s;--fdel:2.5s;" onclick="dwGoLearning()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip06')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip06">
+          <div class="dw-tooltip-title">My Learning</div>
+          <div class="dw-tooltip-text">Structured courses built from Bluecopa knowledge articles. Deep-dive into AR, AP, MIS, P2P, O2C and R2R — self-paced, practical and tailored for the delivery team.</div>
+        </div>
+        <div class="dw-card-badge">● Live</div>
+        <span class="dw-card-icon">🎓</span>
+        <div class="dw-card-num">// 06</div>
+        <div class="dw-card-name">My Learning</div>
+        <div class="dw-card-desc">Structured courses across AR, AP, MIS, P2P, O2C and R2R — built from knowledge articles.</div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
       <!-- 05 Process Puzzle -->
       <div class="dw-card" style="--cr:232,122,122;--fdur:3.6s;--fdel:2s;" onclick="dwGoProcessPuzzle()">
         <div class="dw-card-spin"></div>
@@ -3641,6 +3658,74 @@ document.addEventListener('keydown',e=>{
     <button onclick="liHide()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);border-radius:8px;padding:11px 24px;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">← Return to Home</button>
   </div>
 </div>
-  <script src="/app.js?v=7" defer></script>
+<!-- ═══ MY LEARNING OVERLAY ═══ -->
+<div class="ml-overlay" id="mlOverlay">
+
+  <!-- Top bar -->
+  <div class="ml-topbar">
+    <div class="ml-topbar-left">
+      <span class="ml-topbar-icon">🎓</span>
+      <span class="ml-topbar-title">MY LEARNING</span>
+    </div>
+    <button class="ml-home-btn" onclick="mlHide();showLanding();">🏠 Home</button>
+  </div>
+
+  <!-- Hero banner -->
+  <div class="ml-hero">
+    <div class="ml-hero-inner">
+      <div class="ml-hero-tag">// Bluecopa · Delivery Team</div>
+      <h1 class="ml-hero-h1">Sharpen Your Skills</h1>
+      <p class="ml-hero-sub">Structured learning paths built from the Bluecopa knowledge base — step-by-step, self-paced, built for delivery excellence.</p>
+      <div class="ml-hero-stats">
+        <div class="ml-hero-stat"><span class="ml-stat-n">6</span><span class="ml-stat-l">Courses</span></div>
+        <div class="ml-stat-div"></div>
+        <div class="ml-hero-stat"><span class="ml-stat-n">30+</span><span class="ml-stat-l">Articles</span></div>
+        <div class="ml-stat-div"></div>
+        <div class="ml-hero-stat"><span class="ml-stat-n">∞</span><span class="ml-stat-l">Self-paced</span></div>
+      </div>
+    </div>
+    <div class="ml-hero-orbs">
+      <div class="ml-orb ml-orb1"></div>
+      <div class="ml-orb ml-orb2"></div>
+      <div class="ml-orb ml-orb3"></div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="ml-content">
+
+    <!-- Filter tabs -->
+    <div class="ml-filter-row">
+      <button class="ml-filter-btn active" data-cat="all" onclick="mlFilter('all',this)">All Courses</button>
+      <button class="ml-filter-btn" data-cat="ar" onclick="mlFilter('ar',this)">Account Receivable</button>
+      <button class="ml-filter-btn" data-cat="ap" onclick="mlFilter('ap',this)">Account Payable</button>
+      <button class="ml-filter-btn" data-cat="mis" onclick="mlFilter('mis',this)">MIS Reports</button>
+      <button class="ml-filter-btn" data-cat="p2p" onclick="mlFilter('p2p',this)">Procure-to-Pay</button>
+      <button class="ml-filter-btn" data-cat="o2c" onclick="mlFilter('o2c',this)">Order-to-Cash</button>
+      <button class="ml-filter-btn" data-cat="r2r" onclick="mlFilter('r2r',this)">Record-to-Report</button>
+    </div>
+
+    <!-- Section header -->
+    <div class="ml-section-header">
+      <div class="ml-section-title">Featured Courses</div>
+      <div class="ml-section-count" id="mlCount">6 courses</div>
+    </div>
+
+    <!-- Course grid -->
+    <div class="ml-grid" id="mlGrid"></div>
+
+    <!-- Bottom strip -->
+    <div class="ml-bottom-strip">
+      <div class="ml-bs-icon">🚀</div>
+      <div class="ml-bs-text">
+        <div class="ml-bs-title">More courses arriving soon</div>
+        <div class="ml-bs-sub">Courses are built directly from knowledge articles. As more articles are added, new courses unlock automatically.</div>
+      </div>
+    </div>
+
+  </div><!-- /ml-content -->
+</div><!-- /mlOverlay -->
+
+  <script src="/app.js?v=8" defer></script>
 </body>
 </html>
