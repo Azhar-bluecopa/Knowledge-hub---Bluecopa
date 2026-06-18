@@ -1051,6 +1051,340 @@ ${mlcTakeaway('The trial balance is the single source of truth for all financial
       { q: 'Closing entries in accounting are used to:', opts: ['Post accruals before month-end', 'Transfer balances from temporary accounts (Revenue, Expenses) to Retained Earnings', 'Reverse prior period journals', 'Lock the period in the ERP system'], a: 1, exp: 'Closing entries zero out temporary P&L accounts (Revenue, Expenses) and transfer the net profit/loss to Retained Earnings — resetting the income statement for the next period.' },
       { q: '"Days to Close" is a key R2R KPI that measures:', opts: ['Days taken to post all vendor invoices', 'Working days from period-end to release of financial statements', 'Days from audit start to audit completion', 'Days outstanding on the trial balance before reconciliation'], a: 1, exp: 'Days to Close (or Financial Close Cycle Time) measures how quickly the finance team can lock the period and produce accurate financial statements. Best-in-class is 3–5 working days after month-end.' }
     ]
+  },
+
+  // ════════════════════════════════════════════════════
+  //  COURSE 7 — ABOUT BLUECOPA
+  // ════════════════════════════════════════════════════
+  bc: {
+    modules: [
+      {
+        title: 'What is Bluecopa?',
+        lessons: [
+          {
+            title: 'Platform Overview & Positioning',
+            dur: '8 min',
+            html: `<h2>Platform Overview & Positioning</h2>
+<p class="mlc-lead">Bluecopa is a <strong>composable finance automation platform</strong> designed to sit on top of your existing ERP and data stack — enhancing it rather than replacing it. It brings together data ingestion, reconciliation, journal entry management, and finance reporting into a single unified layer.</p>
+${mlcSection('Why Bluecopa Exists', mlcUl([
+  '<strong>The ERP Gap</strong> — ERP systems like SAP and Oracle are excellent transaction engines, but they were not built for the complexity of modern finance automation, multi-source reconciliation, or configurable AI-driven workflows',
+  '<strong>Composable Architecture</strong> — Bluecopa is designed to be assembled around your specific finance operations, not forced to fit a generic template',
+  '<strong>Finance-Specific AI</strong> — Built-in intelligence (Samyx) trained on financial data patterns — not a generic AI layer bolted on',
+  '<strong>Single Source of Truth</strong> — Aggregates data from ERPs, banks, vendors, and internal systems into one reconciled data model'
+]))}
+${mlcSection('Where Bluecopa Lives on the Customer Stack', mlcOl([
+  'Data sources (ERP, banks, vendor portals, spreadsheets) feed raw data into Bluecopa',
+  'Bluecopa processes, matches, and validates that data against your rules',
+  'Finance teams work in Bluecopa for reconciliation, JE management, and period close',
+  'Output feeds back to the ERP as journals, or to BI tools as reporting datasets'
+]))}
+${mlcExample('Positioning Example', 'A company already using SAP S/4HANA for core accounting uses Bluecopa to automate bank reconciliation, AP three-way matching, and intercompany reconciliation — three areas where SAP requires heavy manual intervention. Bluecopa does not replace SAP; it fills the automation gaps SAP leaves open.')}
+${mlcTakeaway('Bluecopa is not an ERP. It is a finance automation layer that works with your existing stack to eliminate manual work, reduce close cycles, and give finance teams real-time visibility.')}`
+          },
+          {
+            title: 'The Big Picture — Data Flow & Mental Model',
+            dur: '10 min',
+            html: `<h2>The Big Picture — Data Flow & Mental Model</h2>
+<p class="mlc-lead">Understanding how data moves through Bluecopa is the foundation for working with the platform. There are two ways to think about it: the <strong>Big Picture flow</strong> (what happens end to end) and the <strong>Mental Model</strong> (the three conceptual layers).</p>
+${mlcSection('The Big Picture Data Flow', mlcOl([
+  '<strong>Data Sources</strong> — ERP systems, bank files, vendor portals, spreadsheets, external APIs',
+  '<strong>Integrations</strong> — Connectors pull raw data into Bluecopa in structured form',
+  '<strong>Tables</strong> — Data is stored in Input Tables, View Tables, Blob storage, or External references',
+  '<strong>Engines</strong> — Processing engines (Reconciliation, JE, Reporting, Task & Period) act on the data',
+  '<strong>Results</strong> — Matched records, journal entries, reconciled reports, alerts, and exceptions',
+  '<strong>Exports</strong> — Outputs pushed back to ERP, shared via reports, or surfaced in Solutions'
+]))}
+${mlcSection('The Mental Model — Three Layers', mlcUl([
+  '<strong>Data</strong> — Everything in Bluecopa starts with data. Raw inputs from external systems land here as structured tables',
+  '<strong>Pipes</strong> — The transformation layer. Pipes reshape, filter, calculate, and enrich data using Methods (logic scripts) and Templated Data (reusable data shapes)',
+  '<strong>Flows</strong> — The workflow and automation layer. Flows trigger actions, route exceptions, and orchestrate multi-step processes across teams and systems'
+]))}
+${mlcSection('FxJS — The Formula Engine', mlcUl([
+  'Bluecopa includes <strong>FxJS</strong>, a built-in formula and expression engine for writing data transformation logic',
+  'Works like spreadsheet formulas but operates at scale across millions of rows',
+  'Used in Methods, Views, Matching rules, and conditional routing logic',
+  'Finance teams can write rules in FxJS without needing engineering support'
+]))}
+${mlcExample('Real-World Flow', 'A bank statement arrives as a CSV (Data Source). The Connector parses it into an Input Table (Integrations → Tables). A reconciliation rule written in FxJS runs to match bank lines against GL entries (Engines). Unmatched items surface as exceptions in the AR or AP Solution (Results). The finance team reviews and resolves them, and a summary report is published to the BI tool (Exports).')}
+${mlcTakeaway('Every action in Bluecopa follows the same path: Data in → Pipes transform → Engines process → Flows orchestrate → Results out. Once you internalise this flow, any feature in the platform makes intuitive sense.')}`
+          }
+        ]
+      },
+      {
+        title: 'The Foundation Layer',
+        lessons: [
+          {
+            title: 'Connectors, Extraction & Data Management',
+            dur: '9 min',
+            html: `<h2>Connectors, Extraction & Data Management</h2>
+<p class="mlc-lead">The Foundation layer is the domain-neutral substrate of the Bluecopa platform. It handles everything needed to bring data in, store it correctly, and make it available for processing — regardless of the finance use case on top.</p>
+${mlcSection('Connectors — How Data Enters Bluecopa', mlcUl([
+  '<strong>Files</strong> — CSV, Excel, XLSX, XML, fixed-width text files uploaded manually or via automation',
+  '<strong>SFTP</strong> — Scheduled file pickup from secure FTP servers (common for bank statement delivery)',
+  '<strong>Email</strong> — Attachments and inline data extracted directly from configured email inboxes',
+  '<strong>Databases</strong> — Direct query connections to SQL databases, data warehouses, and cloud storage',
+  '<strong>Apps</strong> — Pre-built connectors for ERPs (SAP, Oracle, Tally), HRMS, CRM, and finance tools',
+  '<strong>HTTP / API</strong> — REST API connections for any system that exposes a web endpoint',
+  '<strong>External</strong> — Custom connectors for non-standard sources or proprietary protocols'
+]))}
+${mlcSection('Sync Modes — How Data Is Refreshed', mlcUl([
+  '<strong>Full Refresh</strong> — Drops all existing data in the table and reloads completely from the source on every sync. Best for reference data (e.g., chart of accounts, vendor master)',
+  '<strong>Incremental</strong> — Fetches only new or changed records since the last run. Best for large transaction tables where historical data does not change',
+  '<strong>Incremental Dedup</strong> — Same as Incremental but also removes duplicate rows, keeping only the latest version of each record. Best for sources where records can be updated (e.g., invoice status changes)'
+]))}
+${mlcSection('Table Types — How Data Is Stored', mlcUl([
+  '<strong>Input Tables</strong> — Raw, as-received data from connectors. Never modified after landing',
+  '<strong>View Tables</strong> — Computed from Input Tables using transformations. Always derived, never stored manually',
+  '<strong>Blob Storage</strong> — Unstructured file storage (PDFs, images, attachments) linked to records',
+  '<strong>External Tables</strong> — Pointers to data that lives outside Bluecopa, queried in real time'
+]))}
+${mlcTakeaway('The Foundation layer is invisible when it works well — data flows in reliably, lands in the right shape, and is always fresh. Getting connectors and sync modes right upfront prevents data quality issues downstream in every engine and solution.')}`
+          },
+          {
+            title: 'Match, Evidence, Policy & Orchestration',
+            dur: '10 min',
+            html: `<h2>Match, Evidence, Policy & Orchestration</h2>
+<p class="mlc-lead">Once data is in Bluecopa, the Foundation layer provides four more critical capabilities: <strong>Match</strong> (pair records intelligently), <strong>Evidence</strong> (capture proof), <strong>Policy</strong> (govern behaviour), and <strong>Orchestration</strong> (automate end-to-end workflows).</p>
+${mlcSection('Match — Pairing Records Intelligently', mlcUl([
+  'The Match capability is the core of Bluecopa\'s reconciliation power',
+  '<strong>Rules-Based Matching</strong> — Exact-match rules using field comparisons (e.g., document number = reference number AND amount = amount)',
+  '<strong>Fuzzy Matching</strong> — Handles real-world variance: minor amount differences (within tolerance), partial reference numbers, date range windows',
+  '<strong>AI Matching (Samyx)</strong> — Machine learning trained on historical match patterns; suggests matches for items that rule-based matching cannot resolve',
+  'Match rules are written in plain configuration — no code required for standard scenarios'
+]))}
+${mlcSection('Evidence — Capturing Proof', mlcUl([
+  'Every match, exception, and action in Bluecopa generates <strong>Evidence</strong>',
+  'Evidence is the audit trail: who matched what, when, using which rule, with what confidence',
+  'Supporting documents (bank statements, invoices, contracts) are attached as evidence to records',
+  'Evidence ensures every reconciliation decision is defensible in an audit without manual spreadsheet notes'
+]))}
+${mlcSection('Policy — Governing Platform Behaviour', mlcUl([
+  'Policies define the rules that govern what users can do and how the system behaves',
+  '<strong>Tenant Policies</strong> — Global settings for the entire Bluecopa instance (data retention, user access, currency handling)',
+  '<strong>Engine Policies</strong> — Specific rules for each engine (match tolerance, period lock rules, JE posting controls)',
+  '<strong>Solution Policies</strong> — Business rules for each Solution (AP payment terms, AR credit limits, R2R close calendar)'
+]))}
+${mlcSection('Orchestration — Automating Workflows', mlcUl([
+  'Orchestration connects data processing to human action in a structured, auditable workflow',
+  '<strong>Triggers</strong> — Rules that fire when data conditions are met (e.g., unmatched item > ₹1,00,000 → escalate)',
+  '<strong>Routing</strong> — Directs exceptions and tasks to the right person or team based on configurable rules',
+  '<strong>Robots/Automation</strong> — Bots that execute repetitive steps (file pickup, posting, notification dispatch) without human intervention',
+  '<strong>Notifications</strong> — Alerts via email, in-app, or webhook when key events occur'
+]))}
+${mlcTakeaway('Match + Evidence + Policy + Orchestration is what separates Bluecopa from a simple data tool. Together, they deliver end-to-end automation with a complete, auditable record of every decision.')}`
+          }
+        ]
+      },
+      {
+        title: 'Engines & Processing',
+        lessons: [
+          {
+            title: 'The Four Processing Engines',
+            dur: '11 min',
+            html: `<h2>The Four Processing Engines</h2>
+<p class="mlc-lead">Engines are the finance-specific processing layer in Bluecopa. They sit above the Foundation and apply domain logic to data — reconciling, posting journals, generating reports, and managing period close. There are four engines, each purpose-built for a distinct finance function.</p>
+${mlcSection('1 — Reconciliation Engine', mlcUl([
+  'The most-used engine in Bluecopa',
+  'Compares two or more datasets and matches records based on configurable rules',
+  '<strong>Use cases</strong>: Bank reconciliation, AR/AP reconciliation, intercompany reconciliation, GL-to-subledger reconciliation',
+  'Supports multi-source matching (e.g., match GL line against bank statement line against vendor statement line simultaneously)',
+  'Exception management built in — unmatched items are surfaced for review, not silently dropped',
+  'Full audit trail of every match decision with evidence attached'
+]))}
+${mlcSection('2 — JE Management Engine', mlcUl([
+  'Manages the full lifecycle of journal entries — from creation to review to posting',
+  '<strong>Use cases</strong>: Accruals, reversals, provisions, intercompany postings, period-end adjustments',
+  'Supports template-based journals (recurring entries posted automatically each period)',
+  'Approval workflow built in — journals above a threshold route for senior finance review before posting',
+  'Direct integration with ERP — approved journals are posted back to SAP, Oracle, or Tally via the connector layer',
+  'Stores all supporting documentation (contracts, invoices, calculations) attached to each journal'
+]))}
+${mlcSection('3 — Reporting Engine', mlcUl([
+  'Generates financial and operational reports from reconciled, processed data',
+  '<strong>Use cases</strong>: P&L, Balance Sheet, Cash Flow, AR Aging, AP Aging, period-close packs, management dashboards',
+  'Reports are built on Views — computed from Input Tables so they always reflect current data',
+  'Scheduled distribution — reports auto-email to stakeholders on configured schedules',
+  'No manual data assembly; reports pull live from the reconciled data model'
+]))}
+${mlcSection('4 — Task & Period Engine', mlcUl([
+  'Manages the period-close process as a structured, trackable workflow',
+  '<strong>Use cases</strong>: Month-end close checklist, period lock management, close calendar, task assignment and sign-off',
+  'Each close task is assigned to an owner with a due date, status, and dependencies',
+  'Period lock prevents any further postings once the close is certified — maintaining data integrity',
+  'Reporting on close cycle time (Days to Close) is built in for benchmarking and improvement'
+]))}
+${mlcTakeaway('Each engine is independently configurable but works together seamlessly. A bank reconciliation exception flows from the Reconciliation Engine into a JE Management Engine journal, which updates a Reporting Engine dashboard, and is tracked in the Task & Period Engine close checklist — all without leaving Bluecopa.')}`
+          },
+          {
+            title: 'The Pipes Layer — Methods & Templated Data',
+            dur: '9 min',
+            html: `<h2>The Pipes Layer — Methods & Templated Data</h2>
+<p class="mlc-lead">Between the Foundation (data in) and the Engines (processing), sits the <strong>Pipes layer</strong> — a transformation and configuration layer that shapes raw data into the clean, structured form the Engines need. It has two main components: <strong>Methods</strong> and <strong>Templated Data</strong>.</p>
+${mlcSection('Methods — Logic Scripts', mlcUl([
+  'Methods are named transformation scripts written in <strong>FxJS</strong> (Bluecopa\'s formula engine)',
+  'They take raw input data and produce a transformed output — filtering, calculating, joining, splitting, or enriching records',
+  'Methods are reusable: write once, apply across multiple tables, views, or matching rules',
+  '<strong>Examples of Method logic</strong>: Extract the document number from a free-text reference field; calculate a running balance from transaction lines; flag rows where amount difference exceeds 1% tolerance',
+  'Finance teams can write and manage Methods — engineering is not required for standard transformations'
+]))}
+${mlcSection('Templated Data — Reusable Data Shapes', mlcUl([
+  'Templated Data defines the <strong>shape and structure</strong> of data that is used repeatedly across the platform',
+  'Think of it as a schema template — a defined format that data must conform to before entering an engine',
+  'Ensures consistency: every team feeding data into the Reconciliation Engine uses the same column names, types, and conventions',
+  'Reduces configuration drift: change the template once, all consumers of that template update automatically',
+  '<strong>Examples</strong>: Standard bank statement template, standard GL journal template, standard vendor invoice template'
+]))}
+${mlcSection('How Pipes Fits in the Stack', mlcUl([
+  '<strong>Foundation</strong> brings raw data in (CSV from bank, GL export from SAP)',
+  '<strong>Pipes (Methods)</strong> transform it into a standard shape (parse dates, normalise reference numbers, filter header rows)',
+  '<strong>Pipes (Templated Data)</strong> validate it conforms to the expected template',
+  '<strong>Engines</strong> process it — reconcile, post, report, close'
+]))}
+${mlcExample('Real-World Example', 'A bank statement arrives with the reference field containing "INV-2024-001 / GIVA / MUMBAI". A Method extracts just "INV-2024-001" as the document number. The Templated Data schema validates the date is in DD/MM/YYYY format. The cleaned data enters the Reconciliation Engine, where it matches against the AR subledger using the extracted document number.')}
+${mlcTakeaway('Pipes is where most of the configuration work happens when onboarding a new data source. Getting Methods and Templates right means the Engines always work with clean, consistent data — the single biggest factor in reconciliation accuracy.')}`
+          }
+        ]
+      },
+      {
+        title: 'Solutions & Samyx AI',
+        lessons: [
+          {
+            title: 'The Three Financial Solutions — P2P, O2C, R2R',
+            dur: '10 min',
+            html: `<h2>The Three Financial Solutions — P2P, O2C, R2R</h2>
+<p class="mlc-lead">Solutions are pre-built, opinionated implementations of specific financial processes built on top of the Bluecopa platform. Rather than configuring the Foundation and Engines from scratch, Solutions provide a ready-to-use starting point for the three most common enterprise finance cycles.</p>
+${mlcSection('Procure-to-Pay (P2P)', mlcUl([
+  '<strong>Covers</strong>: Purchase Requisition → Purchase Order → Goods Receipt → Vendor Invoice → Three-Way Match → Payment',
+  '<strong>Core problem solved</strong>: AP teams spend hours manually matching POs, GRNs, and vendor invoices. P2P automates three-way matching with configurable tolerance rules',
+  '<strong>Key automation</strong>: Auto-match PO lines to GRN to invoice; route mismatches to the right approver; track payment terms and flag upcoming due dates; manage vendor statements',
+  '<strong>Key output</strong>: Matched payables ready for payment run; exception list with reason codes for unmatched items; vendor reconciliation report'
+]))}
+${mlcSection('Order-to-Cash (O2C)', mlcUl([
+  '<strong>Covers</strong>: Customer Order → Fulfilment → Customer Invoice → Collections → Cash Application → AR Reconciliation',
+  '<strong>Core problem solved</strong>: AR teams manually match customer payments to outstanding invoices, often across multiple remittance formats and bank statements',
+  '<strong>Key automation</strong>: Auto-apply cash receipts to open invoices; manage deductions and short payments; AR aging with collection workflow; credit management alerts',
+  '<strong>Key output</strong>: Real-time AR aging dashboard; cash application rate; collection performance by customer; Days Sales Outstanding (DSO) tracking'
+]))}
+${mlcSection('Record-to-Report (R2R)', mlcUl([
+  '<strong>Covers</strong>: Journal Entry → Subledger Reconciliation → GL Reconciliation → Adjustments → Period Close → Financial Reporting',
+  '<strong>Core problem solved</strong>: Period close is a manual, spreadsheet-driven process with no visibility into who has done what and what is still outstanding',
+  '<strong>Key automation</strong>: Close task management with owner assignment and due dates; automated reconciliation checks; journal posting with approval workflow; financial statement generation',
+  '<strong>Key output</strong>: Certified close checklist; Days to Close metric; signed-off reconciliation packs; published financial statements'
+]))}
+${mlcExample('Choosing the Right Solution', 'A company suffering from slow AP payment processing and vendor disputes starts with P2P. A company with poor cash flow visibility due to slow cash application starts with O2C. A company whose month-end close takes 15+ days starts with R2R. Most enterprise customers implement all three over time.')}
+${mlcTakeaway('Solutions are the fastest path to value in Bluecopa. They encode best-practice process design, matching rules, and workflows — configured to your business rather than built from scratch.')}`
+          },
+          {
+            title: 'Studio & Samyx AI',
+            dur: '8 min',
+            html: `<h2>Studio & Samyx AI</h2>
+<p class="mlc-lead"><strong>Studio</strong> is Bluecopa's extension surface — where finance teams and configuration owners build and customise beyond the standard Solutions. <strong>Samyx</strong> is Bluecopa's embedded AI layer, applying machine learning and language intelligence to the finance automation context.</p>
+${mlcSection('Studio — The Extension Surface', mlcUl([
+  'Studio is where advanced users configure, extend, and customise the platform without writing code',
+  '<strong>Pipeline Studio</strong> — Build and manage data pipelines: connectors, sync schedules, transformation methods, templated data schemas',
+  '<strong>Data Studio</strong> — Explore and manage tables, views, and data quality checks',
+  '<strong>Accounting Studio</strong> — Configure reconciliation rules, matching logic, journal templates, and period-close workflows',
+  '<strong>Portal Builder</strong> — Create custom dashboards and operational views for business stakeholders (non-finance users)',
+  'Studio is primarily used by <strong>Finance Ops</strong>, <strong>Configuration Owners</strong>, and <strong>IT Finance</strong> — not typically by end-users performing day-to-day tasks'
+]))}
+${mlcSection('Samyx — The AI Layer', mlcUl([
+  'Samyx is Bluecopa\'s embedded AI, trained on financial data patterns and purpose-built for finance automation',
+  '<strong>Extract</strong> — Reads unstructured documents (PDFs, scanned invoices, bank statements) and extracts structured data without manual data entry',
+  '<strong>Recon</strong> — AI-assisted matching that learns from historical human match decisions; suggests matches for items rules cannot resolve',
+  '<strong>Narrate</strong> — Generates natural-language explanations of reconciliation results, exception summaries, and period-close status — readable by non-finance stakeholders',
+  '<strong>Build</strong> — AI-assisted configuration: suggests matching rules, transformation logic, and workflow designs based on your data patterns',
+  '<strong>Evidence</strong> — AI validation of supporting documents: confirms an invoice image matches the posted transaction amount and vendor details'
+]))}
+${mlcSection('Tenancy Model', mlcUl([
+  'Bluecopa is <strong>single-tenant</strong> — each customer runs on their own isolated instance',
+  'No shared infrastructure between customers; data never co-mingles',
+  'Configuration is isolated: your matching rules, policies, and data models are invisible to any other customer',
+  'This is intentional for financial data — the risk of shared-tenant data leakage in a finance context is unacceptable'
+]))}
+${mlcTakeaway('Studio is where the platform becomes yours — configured to your exact process, not a generic template. Samyx is what makes Bluecopa intelligent — moving beyond rules-based automation to adaptive, learning-based processing that improves over time.')}`
+          }
+        ]
+      },
+      {
+        title: 'Navigating the Platform',
+        lessons: [
+          {
+            title: 'Core Navigation — Home, Inbox, Workspace & Library',
+            dur: '7 min',
+            html: `<h2>Core Navigation — Home, Inbox, Workspace & Library</h2>
+<p class="mlc-lead">Bluecopa's navigation is organised around how finance teams actually work — with a clear separation between personal work (Inbox, Workspace), shared resources (Library), and operational configuration (Operations). The top navigation bar is your starting point for everything.</p>
+${mlcSection('Top-Level Navigation Items', mlcUl([
+  '<strong>Home</strong> — Your personalised dashboard. Key metrics, recent activity, and assigned tasks visible at a glance. The first screen you see after login',
+  '<strong>Inbox</strong> — Tasks and exceptions routed to you for action. AP mismatches needing approval, reconciliation exceptions assigned to your review, journal entries awaiting your sign-off — all land here',
+  '<strong>Workspace</strong> — Your personal working area. In-progress reconciliations, draft journal entries, and saved views you are actively working on',
+  '<strong>Solutions</strong> — Access to the P2P, O2C, and R2R solution modules configured for your organisation',
+  '<strong>Operations</strong> — Configuration and management of the platform (connectors, pipelines, engines, matching rules). Primarily for Finance Ops and configuration owners',
+  '<strong>Library</strong> — Shared resources: report templates, document templates, reference data, and published reports accessible to the whole team'
+]))}
+${mlcSection('Inbox — Your Action Centre', mlcUl([
+  'Inbox is the most important screen for day-to-day finance work',
+  'Items appear here when a matching rule creates an exception, a workflow routes a task, or an approval is required',
+  'Each inbox item shows: what it is, why it was routed to you, the due date, and the relevant data',
+  'You can action, reassign, comment, or escalate directly from the inbox without navigating elsewhere',
+  'Inbox is cleared as items are resolved — a clean inbox means no outstanding actions'
+]))}
+${mlcSection('Library — Shared Knowledge', mlcUl([
+  'Library stores assets that are used across the team — not personal to any individual user',
+  '<strong>Report Templates</strong> — Pre-built report layouts that anyone can run against current data',
+  '<strong>Document Templates</strong> — Standard formats for JEs, reconciliation packs, and management reports',
+  '<strong>Reference Data</strong> — Shared lookup tables (cost centres, entity codes, currency rates) used in matching rules and transformations'
+]))}
+${mlcTakeaway('Home, Inbox, and Workspace are the daily work surfaces for finance teams. Operations and Library are the configuration and shared resource layer. Solutions is where the pre-built process automation lives. Understanding this separation makes it easy to navigate to the right place for any task.')}`
+          },
+          {
+            title: 'Accounting Studio, Operations & Settings',
+            dur: '9 min',
+            html: `<h2>Accounting Studio, Operations & Settings</h2>
+<p class="mlc-lead">The operational and configuration areas of Bluecopa — Operations and Settings — are where Finance Ops and IT Finance teams manage the platform. Accounting Studio within Operations is the heart of reconciliation and journal configuration.</p>
+${mlcSection('Operations — Platform Configuration', mlcUl([
+  'Operations is the configuration hub for running the platform',
+  '<strong>Pipeline Studio</strong> — Manage data connectors, sync schedules, and data pipelines. Add new sources, monitor sync health, debug data quality issues',
+  '<strong>Data Studio</strong> — Browse Input Tables and View Tables. Run queries, inspect data, build and test transformation methods',
+  '<strong>Accounting Studio</strong> — Configure the Reconciliation Engine (matching rules, tolerance bands) and Allocation Engine (allocation Methods and Templated Data). The primary workspace for Finance Ops',
+  '<strong>Reporting & Analytics</strong> — Build, schedule, and distribute reports. Configure dashboards for business stakeholders',
+  '<strong>Portal Builder</strong> — Design custom operational views and self-service dashboards for non-finance users (operations teams, business unit heads)'
+]))}
+${mlcSection('Accounting Studio — Reconciliation Engine', mlcUl([
+  'Set up reconciliation scenarios: define which two (or more) datasets to reconcile',
+  'Configure matching rules in priority order: exact match rules first, then tolerance-band rules, then AI-suggested matches',
+  'Define match keys: the fields used to pair records (document number, amount, date, cost centre)',
+  'Set tolerance rules: match if amount difference < 1% or < ₹500 (whichever is lower)',
+  'Configure exception routing: unmatched items above ₹X route to senior reviewer; items below route to analyst'
+]))}
+${mlcSection('Accounting Studio — Allocation Engine', mlcUl([
+  'The Allocation Engine distributes costs or revenue across multiple cost centres, entities, or periods',
+  '<strong>Methods</strong> — The allocation logic written in FxJS (e.g., allocate IT costs proportional to headcount per department)',
+  '<strong>Templated Data</strong> — The allocation keys and driver data (headcount table, revenue table, square footage table) that the Methods reference',
+  'Allocation runs produce a journal entry per allocation rule — posted via the JE Management Engine'
+]))}
+${mlcSection('Settings & Administration', mlcUl([
+  '<strong>Tenant Settings</strong> — Organisation-wide configuration: base currency, fiscal year, period calendar, data retention policy',
+  '<strong>User Management</strong> — Create, edit, and deactivate users. Assign roles and permissions',
+  '<strong>Engine Settings</strong> — Engine-specific configuration: matching defaults, JE numbering, period lock rules, close calendar',
+  '<strong>Solution Settings</strong> — Solution-specific parameters: AP payment terms, AR dunning schedules, R2R close checklist template'
+]))}
+${mlcTakeaway('Operations is where the platform is maintained and evolved. Finance Ops teams spend the most time in Accounting Studio configuring matching rules and allocation logic. Administrators manage the broader platform through Settings. End-users (AR analysts, AP clerks, accountants) rarely need to enter Operations — their work lives in Home, Inbox, and the Solutions.')}`
+          }
+        ]
+      }
+    ],
+    quiz: [
+      { q: 'Which of the following best describes Bluecopa\'s positioning?', opts: ['An ERP system replacing SAP and Oracle', 'A composable finance automation platform that sits on top of the existing ERP stack', 'A standalone accounting software for small businesses', 'A data warehousing and BI reporting tool'], a: 1, exp: 'Bluecopa is a composable finance automation platform designed to complement and extend existing ERP systems like SAP and Oracle — not replace them. It fills automation gaps the ERP leaves open.' },
+      { q: 'How many layers make up the Bluecopa platform architecture?', opts: ['Two — Foundation and Engines', 'Three — Data, Pipes, and Flows', 'Four — Foundation, Engines, Solutions, and Studio', 'Five — Connectors, Data, Processing, Solutions, and UI'], a: 2, exp: 'Bluecopa\'s platform has four distinct layers: Foundation (domain-neutral substrate), Engines (finance-specific processing), Solutions (pre-built process implementations), and Studio (extension and configuration surface).' },
+      { q: 'Which Foundation capability is responsible for pairing records from two or more datasets?', opts: ['Extraction', 'Orchestration', 'Match', 'Policy'], a: 2, exp: 'Match is the Foundation capability that pairs records intelligently — using rules-based matching, fuzzy tolerance matching, and AI-assisted matching (Samyx) to reconcile data across sources.' },
+      { q: 'Which sync mode removes all existing data and reloads completely from the source on every run?', opts: ['Incremental', 'Incremental Dedup', 'Full Refresh', 'Snapshot Merge'], a: 2, exp: 'Full Refresh drops all existing data in the table and reloads it completely each time. It is best suited for small reference datasets like chart of accounts or vendor master that need to stay fully current.' },
+      { q: 'FxJS in Bluecopa is best described as:', opts: ['A third-party JavaScript library for financial reporting', 'Bluecopa\'s built-in formula and expression engine for data transformation', 'An integration connector for foreign exchange data sources', 'The frontend rendering engine for the Bluecopa UI'], a: 1, exp: 'FxJS is Bluecopa\'s built-in formula engine — similar to spreadsheet formulas but operating at scale across large datasets. Finance teams use it to write matching rules, transformation methods, and allocation logic.' },
+      { q: 'Which Bluecopa Engine specifically manages journal entry lifecycle from creation through approval to posting?', opts: ['Reconciliation Engine', 'JE Management Engine', 'Task & Period Engine', 'Reporting Engine'], a: 1, exp: 'The JE Management Engine handles the full journal entry lifecycle: template-based creation, approval routing for journals above thresholds, and direct posting back to the ERP via the connector layer.' },
+      { q: 'The three pre-built financial Solutions in Bluecopa cover which process cycles?', opts: ['AP, AR, and Payroll', 'Forecasting, Budgeting, and Reporting', 'Procure-to-Pay, Order-to-Cash, and Record-to-Report', 'Invoicing, Collections, and Period Close'], a: 2, exp: 'Bluecopa\'s three Solutions — P2P (Procure-to-Pay), O2C (Order-to-Cash), and R2R (Record-to-Report) — cover the three core enterprise finance cycles and are the fastest path to automation value.' },
+      { q: 'Samyx is Bluecopa\'s AI layer. Which of the following is NOT one of Samyx\'s listed capabilities?', opts: ['Extract', 'Narrate', 'Predict', 'Build'], a: 2, exp: 'Samyx\'s five capabilities are: Extract (unstructured document reading), Recon (AI-assisted matching), Narrate (natural-language summaries), Build (AI-assisted configuration), and Evidence (document validation). "Predict" is not a Samyx capability.' },
+      { q: 'In Bluecopa\'s navigation, where would a finance user go to configure a new reconciliation matching rule?', opts: ['Library → Reconciliation', 'Operations → Accounting Studio → Reconciliation Engine', 'Inbox → Configuration', 'Solutions → Match Engine'], a: 1, exp: 'Matching rules are configured in Operations → Accounting Studio → Reconciliation Engine. This is the configuration area for Finance Ops — end users working day-to-day do not need to go here.' },
+      { q: 'Bluecopa\'s tenancy model is best described as:', opts: ['Multi-tenant SaaS shared by all customers on shared infrastructure', 'Single-tenant, with each customer on their own isolated instance', 'Hybrid — shared compute with isolated storage', 'On-premises only with no cloud deployment option'], a: 1, exp: 'Bluecopa is single-tenant: each customer has their own isolated instance. No data or configuration is shared between customers. This is a deliberate design choice for financial data security and compliance.' }
+    ]
   }
 };
 

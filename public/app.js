@@ -4364,6 +4364,17 @@ const ML_COURSES = [
     lessons:8,
     badge:'Building', badgeClass:'building',
   },
+  {
+    id:'bc',
+    title:'About Bluecopa',
+    desc:'Understand the Bluecopa platform from the ground up — its four-layer architecture, Foundation capabilities, Processing Engines, pre-built Solutions, and the Samyx AI layer.',
+    tag:'Platform Overview',
+    icon:'🔵',
+    grad:'linear-gradient(145deg,#0c4a6e 0%,#0284c7 60%,#38bdf8 100%)',
+    level:'Beginner',
+    lessons:10,
+    badge:'Hot & New', badgeClass:'hot',
+  },
 ];
 
 function mlBadgeHTML(badge, cls) {
