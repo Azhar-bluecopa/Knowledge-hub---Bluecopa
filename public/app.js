@@ -4371,6 +4371,7 @@ const ML_COURSES = [
     desc:'Understand the Bluecopa platform from the ground up — its four-layer architecture, Foundation capabilities, Processing Engines, pre-built Solutions, and the Samyx AI layer.',
     tag:'Platform Overview',
     icon:'🔵',
+    img:'/bluecopa-logo.png',
     grad:'linear-gradient(145deg,#0c4a6e 0%,#0284c7 60%,#38bdf8 100%)',
     level:'Beginner',
     lessons:10,
@@ -4394,7 +4395,7 @@ function mlCardHTML(c) {
   const totalLessons = prog.total || c.lessons;
   return `<div class="ml-card" onclick="mlOpenCourse('${c.id}')" style="cursor:pointer" title="Open ${c.title}">
     <div class="ml-card-thumb" style="background:${c.grad}">
-      <div class="ml-card-thumb-icon">${c.icon}</div>
+      ${c.img ? `<img class="ml-card-thumb-img" src="${c.img}" alt="${c.title}">` : `<div class="ml-card-thumb-icon">${c.icon}</div>`}
       <div class="ml-card-thumb-label">${c.tag}</div>
       ${prog.passed ? '<div class="ml-card-cert-badge">🏆</div>' : ''}
     </div>

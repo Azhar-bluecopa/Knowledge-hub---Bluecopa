@@ -2153,6 +2153,7 @@ html{scroll-behavior:smooth;}
   overflow:hidden;
 }
 .ml-card-thumb-icon{font-size:48px;line-height:1;margin-bottom:10px;filter:drop-shadow(0 2px 12px rgba(0,0,0,.5));}
+.ml-card-thumb-img{max-width:62%;max-height:72px;object-fit:contain;margin-bottom:10px;filter:drop-shadow(0 2px 12px rgba(0,0,0,.4));}
 .ml-card-thumb-label{
   font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;
   text-transform:uppercase;color:rgba(255,255,255,.55);font-weight:500;
