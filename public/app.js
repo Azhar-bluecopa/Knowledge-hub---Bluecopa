@@ -2158,6 +2158,15 @@ function dwCountUp(el,target,dur){
 }
 
 async function updateLandingStats(){
+  // 0. My Learning courses
+  const cEl=document.getElementById('dwStatCourses');
+  const cSubEl=document.getElementById('dwStatCoursesSub');
+  if(cEl&&typeof ML_COURSES!=='undefined'){
+    const total=ML_COURSES.length;
+    const done=ML_COURSES.filter(c=>mlGetCourseProgress(c.id).passed).length;
+    dwCountUp(cEl,total,800);
+    if(cSubEl)cSubEl.textContent=done>0?`${done} completed`:'self-paced';
+  }
   // 1. Articles posted + planned from roadmap
   const posted=allArticles.length||0;
   const planned=typeof ROADMAP_DATA!=='undefined'?ROADMAP_DATA.reduce((s,t)=>s+(t.articles?t.articles.length:0),0):0;
