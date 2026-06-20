@@ -199,7 +199,9 @@ app.post('/api/categories', async (req, res) => {
   if (!db.categories) db.categories = [];
   if (db.categories.find(c => c.name.toLowerCase() === name.trim().toLowerCase()))
     return res.status(409).json({ error: 'Category already exists' });
-  const cat = { id: Date.now(), name: name.trim(), color: color || '#7a7a96' };
+  const hex = color || '#7a7a96';
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  const cat = { id: Date.now(), name: name.trim(), color: hex, bg: `rgba(${r},${g},${b},0.15)` };
   db.categories.push(cat);
   await saveDB(db);
   res.status(201).json(cat);
