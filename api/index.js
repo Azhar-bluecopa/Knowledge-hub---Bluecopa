@@ -5,7 +5,7 @@ const path    = require('path');
 const fs      = require('fs');
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // ── Persistent store — MongoDB (primary) with data.json fallback ──────────────
 let mongoCol = null;
