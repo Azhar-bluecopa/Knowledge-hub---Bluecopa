@@ -2407,6 +2407,94 @@ function _readKey() { const u = getUser(); return u ? `kb_read_${u.name}` : 'kb_
 function getReadArticles() { try { return new Set(JSON.parse(localStorage.getItem(_readKey()) || '[]')); } catch(e) { return new Set(); } }
 function markArticleRead(id) { const s = getReadArticles(); s.add(Number(id)); localStorage.setItem(_readKey(), JSON.stringify([...s])); }
 
+// ── Lifecycle journey animation ───────────────────────────────────────────────
+(function() {
+  const STAGES = [
+    { num:'01', icon:'🎓', title:'Build Foundation',      desc:'Start with My Learning — 7 structured courses across AR, AP, MIS, P2P, O2C and R2R. Self-paced, quiz-assessed, and built from real delivery knowledge.' },
+    { num:'02', icon:'📚', title:'Get Deep Knowledge',    desc:'Explore Knowledge Articles — step-by-step guides, best practices, and process documentation written by and for the delivery team.' },
+    { num:'03', icon:'🧠', title:'Upskill Yourself',      desc:'Use the Skill Matrix to track and grow your competencies across six process areas and five skill levels — updated and visible every month.' },
+    { num:'04', icon:'📊', title:'Track How You Perform', desc:'Stay on top of your goals with the KPI Dashboard — real-time visibility into individual performance, delivery metrics, and personal targets.' },
+    { num:'05', icon:'🗺️', title:'Make Your Work Easy',   desc:'Tap into the Delivery Journey — a growing library of past implementation stories, project experiences, and reusable delivery assets.' },
+    { num:'06', icon:'🏆', title:'Enjoy Success',         desc:'Compete in weekly Process Puzzles — scenario-based challenges, team leaderboards, and the satisfaction of mastering your craft.' },
+  ];
+  const HOLD_MS = 2800, TYPE_MS = 42, FADE_MS = 350;
+  let typeTimer = null, holdTimer = null, barTimer = null, barStart = null;
+
+  function el(id) { return document.getElementById(id); }
+
+  function clearAllTimers() {
+    clearTimeout(typeTimer); clearTimeout(holdTimer); clearInterval(barTimer);
+  }
+  function updateDots(idx) {
+    document.querySelectorAll('.dw-lc-dot').forEach((d, i) => d.classList.toggle('lc-dot-active', i === idx));
+  }
+  function animateBar(durationMs) {
+    const fill = el('lcBarFill'); if (!fill) return;
+    fill.style.transition = 'none'; fill.style.width = '0%';
+    barStart = Date.now(); clearInterval(barTimer);
+    barTimer = setInterval(() => {
+      const pct = Math.min(100, ((Date.now() - barStart) / durationMs) * 100);
+      fill.style.width = pct + '%';
+      if (pct >= 100) clearInterval(barTimer);
+    }, 30);
+  }
+  function typeText(text, cb) {
+    const titleEl = el('lcTitle'), cursor = el('lcCursor');
+    if (!titleEl) return;
+    titleEl.textContent = '';
+    if (cursor) cursor.classList.remove('lc-hidden');
+    let i = 0;
+    (function tick() {
+      if (i <= text.length) { titleEl.textContent = text.slice(0, i++); typeTimer = setTimeout(tick, TYPE_MS); }
+      else if (cb) cb();
+    })();
+  }
+  function showStage(idx) {
+    const s = STAGES[idx];
+    const stage = el('lcStage'), numEl = el('lcNum'), iconEl = el('lcIcon');
+    const descEl = el('lcDesc'), cursor = el('lcCursor');
+    if (!stage) return;
+    descEl.classList.remove('lc-visible');
+    descEl.textContent = s.desc;
+    numEl.textContent  = s.num;
+    iconEl.textContent = s.icon;
+    stage.classList.add('lc-active');
+    updateDots(idx);
+    animateBar(s.title.length * TYPE_MS + 400 + HOLD_MS + FADE_MS);
+    typeText(s.title, () => {
+      typeTimer = setTimeout(() => {
+        if (cursor) cursor.classList.add('lc-hidden');
+        descEl.classList.add('lc-visible');
+        holdTimer = setTimeout(() => {
+          stage.style.opacity = '0';
+          stage.style.transition = 'opacity ' + FADE_MS + 'ms';
+          holdTimer = setTimeout(() => {
+            stage.style.opacity = '1';
+            showStage((idx + 1) % STAGES.length);
+          }, FADE_MS);
+        }, HOLD_MS);
+      }, 400);
+    });
+  }
+
+  function initLifecycleDom() {
+    const dotsEl = el('lcDots'); if (!dotsEl) return;
+    STAGES.forEach((_, i) => {
+      const d = document.createElement('div');
+      d.className = 'dw-lc-dot' + (i === 0 ? ' lc-dot-active' : '');
+      d.onclick = () => { clearAllTimers(); showStage(i); };
+      dotsEl.appendChild(d);
+    });
+    setTimeout(() => showStage(0), 600);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initLifecycleDom);
+  } else {
+    initLifecycleDom();
+  }
+})();
+
 // ── Article Feedback (global scope — must be outside IIFE for onclick to work) ──
 let _fbFormOpen = false;
 
@@ -2763,6 +2851,24 @@ async function updateFeedbackStatus(id) {
           <div class="dw-h-stat-l">Games Hosted</div>
         </div>
       </div>
+    </div>
+
+    <!-- Lifecycle journey -->
+    <div class="dw-lifecycle" id="dwLifecycle">
+      <div class="dw-lc-eyebrow">Your Delivery Journey</div>
+      <div class="dw-lc-stage" id="lcStage">
+        <div class="dw-lc-left">
+          <div class="dw-lc-num" id="lcNum">01</div>
+          <div class="dw-lc-icon-wrap" id="lcIcon">🎓</div>
+          <div class="dw-lc-vline"></div>
+        </div>
+        <div class="dw-lc-content">
+          <span class="dw-lc-title" id="lcTitle"></span><span class="dw-lc-cursor" id="lcCursor"></span>
+          <div class="dw-lc-desc" id="lcDesc"></div>
+        </div>
+      </div>
+      <div class="dw-lc-bar"><div class="dw-lc-bar-fill" id="lcBarFill"></div></div>
+      <div class="dw-lc-dots" id="lcDots"></div>
     </div>
 
     <!-- Section cards -->
