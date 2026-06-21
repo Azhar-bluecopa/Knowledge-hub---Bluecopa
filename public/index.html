@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=27">
+  <link rel="stylesheet" href="/style.css?v=28">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
 </head>
@@ -326,6 +326,7 @@
 <!-- ── View Article Modal ── -->
 <div class="modal-overlay" id="viewModalOverlay">
   <div class="modal">
+    <div class="art-prog-track"><div id="articleProgressBar" class="art-prog-fill"></div></div>
     <div class="modal-header">
       <div class="modal-title" id="viewTitle" style="line-height:1.3;padding-right:16px"></div>
       <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
@@ -1159,6 +1160,19 @@ async function viewArticle(id) {
     document.getElementById('viewModalOverlay').classList.add('open');
     if (typeof markArticleRead === 'function') markArticleRead(id);
     loadComments(id);
+    // reading progress bar
+    const _pm = document.querySelector('#viewModalOverlay .modal');
+    const _pb = document.getElementById('articleProgressBar');
+    if (_pm && _pb) {
+      _pb.style.width = '0%';
+      _pm.scrollTop = 0;
+      if (_pm._progScroll) _pm.removeEventListener('scroll', _pm._progScroll);
+      _pm._progScroll = function() {
+        const max = _pm.scrollHeight - _pm.clientHeight;
+        _pb.style.width = (max > 0 ? (_pm.scrollTop / max * 100) : 0) + '%';
+      };
+      _pm.addEventListener('scroll', _pm._progScroll);
+    }
   } catch(e) { showToast('Could not load article.','error'); }
 }
 // ── Comments ─────────────────────────────────────────────────────────────────
@@ -1316,6 +1330,10 @@ function closeViewModal(){
   document.getElementById('maximizeBtn').textContent = '⛶';
   document.getElementById('maximizeBtn').title = 'Maximize';
   viewingId=null;
+  const _pm = document.querySelector('#viewModalOverlay .modal');
+  if (_pm && _pm._progScroll) { _pm.removeEventListener('scroll', _pm._progScroll); _pm._progScroll = null; }
+  const _pb = document.getElementById('articleProgressBar');
+  if (_pb) _pb.style.width = '0%';
   // Reset feedback form
   _fbFormOpen = false;
   const fw = document.getElementById('feedbackFormWrap');
