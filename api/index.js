@@ -1260,8 +1260,15 @@ app.get('/api/rocketlane/projects', async (req, res) => {
 // ── Article Feedback ──────────────────────────────────────────────────────────
 function ensureFeedback() { if (!db.feedback) db.feedback = []; }
 
-app.get('/api/feedback', (req, res) => {
+app.get('/api/feedback', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  if (mongoCol) {
+    try {
+      const doc = await mongoCol.findOne({ _id: 'main' }, { projection: { feedback: 1 } });
+      const feedback = doc?.feedback || [];
+      return res.json([...feedback].sort((a,b) => new Date(b.submittedAt)-new Date(a.submittedAt)));
+    } catch(e) { console.error('[GET feedback/mongo]', e.message); }
+  }
   ensureFeedback();
   res.json([...db.feedback].sort((a,b) => new Date(b.submittedAt)-new Date(a.submittedAt)));
 });
