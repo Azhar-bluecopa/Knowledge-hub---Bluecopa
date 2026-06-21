@@ -174,7 +174,21 @@ app.put('/api/articles/:id', async (req, res) => {
   if (initials) a.initials = initials;
   if (content)  { a.content = content; a.excerpt = content.replace(/<style[\s\S]*?<\/style>/gi,'').replace(/<script[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,180)+'…'; }
   if (tags !== undefined) a.tags = Array.isArray(tags) ? tags : (tags||'').split(',').map(t=>t.trim()).filter(Boolean);
-  await saveDB(db);
+  // Targeted update: only modify this article's array element in MongoDB.
+  // Avoids the race condition where a stale serverless instance overwrites the
+  // whole document (replaceOne) and reverts updates made by other instances.
+  if (mongoCol) {
+    try {
+      await mongoCol.updateOne(
+        { _id: 'main' },
+        { $set: { [`articles.${idx}`]: a } }
+      );
+    } catch(e) {
+      console.error('[PUT article/mongo]', e.message);
+      // Fall back to full document replace only if targeted update fails
+      try { await saveDB(db); } catch(_) {}
+    }
+  }
   res.json(a);
 });
 
