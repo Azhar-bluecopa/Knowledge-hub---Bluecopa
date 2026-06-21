@@ -63,6 +63,7 @@
       <div class="topbar-meta" id="pageMeta">Browse and manage your team's knowledge base</div>
     </div>
     <div class="topbar-actions">
+      <div class="topbar-greeting" id="topbarGreeting"></div>
       <!-- Expandable search bar -->
       <div class="topbar-search-wrap" id="topbarSearchWrap">
         <span style="color:var(--muted);font-size:15px;flex-shrink:0;">🔍</span>
@@ -763,6 +764,14 @@ function renderUserInfo() {
   const u = getUser();
   document.getElementById('userName').textContent   = u ? u.name : 'Anonymous';
   document.getElementById('userAvatar').textContent = u ? u.initials : '?';
+  const greetEl = document.getElementById('topbarGreeting');
+  if (greetEl && u) {
+    const h = new Date().getHours();
+    const period = h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening';
+    const emoji  = h < 12 ? '☀️' : h < 17 ? '🌤️' : '🌙';
+    greetEl.textContent = `Good ${period}, ${u.name.split(' ')[0]} ${emoji}`;
+    greetEl.style.display = 'block';
+  }
   const isAdm = !!getAdminPwd();
   document.getElementById('adminBadge').style.display = isAdm ? 'inline-flex' : 'none';
   document.getElementById('exportBtn').style.display  = isAdm ? 'inline-flex' : 'none';
