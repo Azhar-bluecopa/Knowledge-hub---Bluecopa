@@ -2214,6 +2214,17 @@ function dwGoSkillMatrix(){
   showSkillMatrix();
 }
 
+function dwGoRoadmap(){
+  hideLanding();
+  history.pushState({screen:'roadmap'}, '');
+  document.getElementById('dwRoadmapOverlay').classList.add('active');
+}
+
+function closeRoadmap(){
+  document.getElementById('dwRoadmapOverlay').classList.remove('active');
+  showLanding();
+}
+
 
 const DW_CS_CONFIG = {
   'KPIs': {

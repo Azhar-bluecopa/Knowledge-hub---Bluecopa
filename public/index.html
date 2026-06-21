@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=28">
+  <link rel="stylesheet" href="/style.css?v=29">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
 </head>
@@ -2959,6 +2959,26 @@ async function updateFeedbackStatus(id) {
 
     </div><!-- /dw-cards-grid -->
 
+    <!-- ═══ ROADMAP BANNER ═══ -->
+    <div class="dw-rm-banner" onclick="dwGoRoadmap()">
+      <div class="dw-rm-banner-icon">🗺️</div>
+      <div class="dw-rm-banner-body">
+        <div class="dw-rm-banner-title">Website Roadmap</div>
+        <div class="dw-rm-banner-sub">Milestones, timelines &amp; the vision behind every upcoming feature for Delivery Wikipedia</div>
+      </div>
+      <div class="dw-rm-banner-phases">
+        <div class="dw-rm-ph dw-rm-ph-active"><span>26 Jun</span><span class="dw-rm-ph-label">Foundation</span></div>
+        <div class="dw-rm-ph-conn"></div>
+        <div class="dw-rm-ph"><span>1 Jul</span><span class="dw-rm-ph-label">Skills</span></div>
+        <div class="dw-rm-ph-conn"></div>
+        <div class="dw-rm-ph"><span>1 Oct</span><span class="dw-rm-ph-label">Personal</span></div>
+        <div class="dw-rm-ph-conn"></div>
+        <div class="dw-rm-ph"><span>7 Oct</span><span class="dw-rm-ph-label">Performance</span></div>
+        <div class="dw-rm-ph-conn"></div>
+        <div class="dw-rm-ph dw-rm-ph-goal"><span>🎯</span><span class="dw-rm-ph-label">15 Oct</span></div>
+      </div>
+      <div class="dw-rm-banner-cta">View Full Roadmap <span class="dw-rm-arr">→</span></div>
+    </div>
 
     <!-- ═══ TRUSTED BY — Infinite Logo Carousel ═══ -->
 
@@ -4037,7 +4057,221 @@ async function updateFeedbackStatus(id) {
 
 </div><!-- /mlOverlay -->
 
+<!-- ═══ WEBSITE ROADMAP OVERLAY ═══ -->
+<div class="rm-overlay" id="dwRoadmapOverlay">
+
+  <!-- Topbar -->
+  <div class="rm-topbar">
+    <button class="rm-back" onclick="closeRoadmap()">← Home</button>
+    <div class="rm-topbar-center">
+      <div class="rm-topbar-title">🗺️ Website Roadmap</div>
+      <div class="rm-topbar-sub">The journey to building Delivery Wikipedia's full vision</div>
+    </div>
+    <div class="rm-topbar-meta">
+      <div class="rm-meta-label">Go-Live Target</div>
+      <div class="rm-meta-date">15 Oct 2026</div>
+    </div>
+  </div>
+
+  <!-- Vision tagline strip -->
+  <div class="rm-vision-strip">
+    <span class="rm-vs">Learn</span><span class="rm-va">→</span>
+    <span class="rm-vs">Upskill</span><span class="rm-va">→</span>
+    <span class="rm-vs">Perform</span><span class="rm-va">→</span>
+    <span class="rm-vs">Track Progress</span><span class="rm-va">→</span>
+    <span class="rm-vs">Get Recognized</span><span class="rm-va">→</span>
+    <span class="rm-vs rm-vs-final">Deliver Success 🚀</span>
+  </div>
+
+  <!-- Timeline body -->
+  <div class="rm-body">
+    <div class="rm-timeline">
+
+      <!-- ── Phase 1 ── -->
+      <div class="rm-phase">
+        <div class="rm-marker">
+          <div class="rm-dot rm-dot-next"></div>
+          <div class="rm-connector"></div>
+        </div>
+        <div class="rm-content">
+          <div class="rm-meta-row">
+            <span class="rm-date">26 Jun 2026</span>
+            <span class="rm-badge rm-badge-next">⚡ Next Up</span>
+            <span class="rm-phase-num">Phase 1</span>
+          </div>
+          <div class="rm-card rm-card-next">
+            <div class="rm-card-heading">Learning &amp; Engagement Foundation</div>
+            <div class="rm-groups">
+              <div class="rm-group">
+                <div class="rm-group-label">📚 Expand Learning Content</div>
+                <ul class="rm-list">
+                  <li>Add more Product Training modules</li>
+                  <li>Add more Implementation Training content</li>
+                  <li>Enhance My Learning with richer learning resources</li>
+                </ul>
+              </div>
+              <div class="rm-group">
+                <div class="rm-group-label">📖 Knowledge Repository Expansion</div>
+                <ul class="rm-list">
+                  <li>Increase Knowledge Articles to <strong>40+ articles</strong></li>
+                  <li>Deeper insights, best practices &amp; implementation guidance</li>
+                </ul>
+              </div>
+              <div class="rm-group">
+                <div class="rm-group-label">🎉 Employee Engagement Hub</div>
+                <ul class="rm-list">
+                  <li>Work Anniversary &amp; Birthday celebrations</li>
+                  <li>Certification achievements, team recognition &amp; milestones</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Phase 2 ── -->
+      <div class="rm-phase">
+        <div class="rm-marker">
+          <div class="rm-dot"></div>
+          <div class="rm-connector"></div>
+        </div>
+        <div class="rm-content">
+          <div class="rm-meta-row">
+            <span class="rm-date">01 Jul 2026</span>
+            <span class="rm-badge">Planned</span>
+            <span class="rm-phase-num">Phase 2</span>
+          </div>
+          <div class="rm-card">
+            <div class="rm-card-heading">Skill Development</div>
+            <div class="rm-groups">
+              <div class="rm-group">
+                <div class="rm-group-label">🚀 Team Skill Matrix</div>
+                <ul class="rm-list">
+                  <li>Add skill data for the entire implementation team</li>
+                  <li>Create visibility into competencies &amp; proficiency levels</li>
+                  <li>Identify skill gaps and development opportunities</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Phase 3 ── -->
+      <div class="rm-phase">
+        <div class="rm-marker">
+          <div class="rm-dot"></div>
+          <div class="rm-connector"></div>
+        </div>
+        <div class="rm-content">
+          <div class="rm-meta-row">
+            <span class="rm-date">01 Oct 2026</span>
+            <span class="rm-badge">Planned</span>
+            <span class="rm-phase-num">Phase 3</span>
+          </div>
+          <div class="rm-card">
+            <div class="rm-card-heading">Personalized Experience</div>
+            <div class="rm-groups">
+              <div class="rm-group">
+                <div class="rm-group-label">👤 Individual Dashboard</div>
+                <ul class="rm-list">
+                  <li>Assigned work and project responsibilities</li>
+                  <li>Learning &amp; training status with skill progression</li>
+                  <li>Opportunity areas &amp; personal growth recommendations</li>
+                </ul>
+              </div>
+              <div class="rm-group">
+                <div class="rm-group-label">🏆 Leaderboard</div>
+                <ul class="rm-list">
+                  <li>Top performers &amp; learning champions</li>
+                  <li>Certification achievers &amp; delivery excellence contributors</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Phase 4 ── -->
+      <div class="rm-phase">
+        <div class="rm-marker">
+          <div class="rm-dot"></div>
+          <div class="rm-connector"></div>
+        </div>
+        <div class="rm-content">
+          <div class="rm-meta-row">
+            <span class="rm-date">07 Oct 2026</span>
+            <span class="rm-badge">Planned</span>
+            <span class="rm-phase-num">Phase 4</span>
+          </div>
+          <div class="rm-card">
+            <div class="rm-card-heading">Performance &amp; Delivery Excellence</div>
+            <div class="rm-groups">
+              <div class="rm-group">
+                <div class="rm-group-label">📈 KPI Dashboard</div>
+                <ul class="rm-list">
+                  <li>Individual KPIs, performance trends &amp; delivery metrics</li>
+                  <li>Goal achievement progress and period-over-period trends</li>
+                </ul>
+              </div>
+              <div class="rm-group">
+                <div class="rm-group-label">🗂️ Delivery Journey Repository</div>
+                <ul class="rm-list">
+                  <li>Project success stories &amp; lessons learned</li>
+                  <li>Best practices, reusable templates &amp; reference materials</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Phase 5 — Go-Live ── -->
+      <div class="rm-phase">
+        <div class="rm-marker">
+          <div class="rm-dot rm-dot-golive"></div>
+        </div>
+        <div class="rm-content">
+          <div class="rm-meta-row">
+            <span class="rm-date">15 Oct 2026</span>
+            <span class="rm-badge rm-badge-golive">🎯 Go-Live</span>
+            <span class="rm-phase-num">Final Phase</span>
+          </div>
+          <div class="rm-card rm-card-golive">
+            <div class="rm-card-heading">🌟 Full Platform Launch</div>
+            <div class="rm-groups">
+              <div class="rm-group">
+                <div class="rm-group-label" style="font-size:11px;text-transform:uppercase;letter-spacing:.07em;">All Capabilities Live</div>
+                <div class="rm-caps-grid">
+                  <span class="rm-cap">🎓 Learning Hub</span>
+                  <span class="rm-cap">📚 Knowledge Articles</span>
+                  <span class="rm-cap">🧠 Skill Matrix</span>
+                  <span class="rm-cap">👤 Individual Dashboards</span>
+                  <span class="rm-cap">📊 KPI Tracking</span>
+                  <span class="rm-cap">🏆 Leaderboards</span>
+                  <span class="rm-cap">🎉 Engagement Hub</span>
+                  <span class="rm-cap">🏛️ Delivery Journey</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Final Vision Node ── -->
+      <div class="rm-vision-node">
+        <div class="rm-vision-orb"></div>
+        <div class="rm-vision-node-label">Final Vision</div>
+        <div class="rm-vision-tagline">Learn → Upskill → Perform → Track Progress → Get Recognized → Deliver Success</div>
+        <div class="rm-vision-desc">A single platform for Learning, Growth, Performance, Recognition &amp; Delivery Excellence</div>
+      </div>
+
+    </div><!-- /rm-timeline -->
+  </div><!-- /rm-body -->
+
+</div><!-- /dwRoadmapOverlay -->
+
   <script src="/courses.js?v=5" defer></script>
-  <script src="/app.js?v=19" defer></script>
+  <script src="/app.js?v=20" defer></script>
 </body>
 </html>
