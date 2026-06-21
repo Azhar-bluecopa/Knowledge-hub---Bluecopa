@@ -774,6 +774,8 @@ function renderSidebar() {
   document.getElementById('allCount').textContent  = allArticles.length;
   document.getElementById('catCount').textContent  = allCategories.length;
   document.getElementById('totalCount').textContent = allArticles.length;
+  const _dwA = document.getElementById('dwStatArticleCount'); if (_dwA) _dwA.textContent = allArticles.length;
+  const _dwC = document.getElementById('dwStatCatCount');     if (_dwC) _dwC.textContent = allCategories.length;
   const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local timezone
   document.getElementById('todayCount').textContent = allArticles.filter(a => {
     if (!a.created_at) return false;
@@ -2609,8 +2611,8 @@ document.addEventListener('keydown',e=>{
           <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Always up to date with the product</div>
         </div>
         <div class="dw-card-stat-row">
-          <div class="dw-card-stat"><div class="dw-card-stat-n">30+</div><div class="dw-card-stat-l">Articles</div></div>
-          <div class="dw-card-stat"><div class="dw-card-stat-n">6</div><div class="dw-card-stat-l">Categories</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n" id="dwStatArticleCount">—</div><div class="dw-card-stat-l">Articles</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n" id="dwStatCatCount">—</div><div class="dw-card-stat-l">Categories</div></div>
           <div class="dw-card-stat"><div class="dw-card-stat-n">🔍</div><div class="dw-card-stat-l">Searchable</div></div>
         </div>
         <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
