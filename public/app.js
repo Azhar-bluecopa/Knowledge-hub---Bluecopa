@@ -2168,13 +2168,16 @@ async function updateLandingStats(){
     dwCountUp(cEl,total,800);
     if(cSubEl)cSubEl.textContent=done>0?`${done} completed`:'self-paced';
   }
-  // 1. Articles posted + planned from roadmap
+  // 1. Articles — total + personal unread count
   const posted=allArticles.length||0;
-  const planned=typeof ROADMAP_DATA!=='undefined'?ROADMAP_DATA.reduce((s,t)=>s+(t.articles?t.articles.length:0),0):0;
   const artEl=document.getElementById('dwStatArticles');
   const planEl=document.getElementById('dwStatPlanned');
   if(artEl){if(posted)dwCountUp(artEl,posted,900);else artEl.textContent='—';}
-  if(planEl)planEl.textContent=planned?`+ ${planned} planned`:'';
+  if(planEl){
+    const read=typeof getReadArticles==='function'?getReadArticles():new Set();
+    const unread=Math.max(0,posted-read.size);
+    planEl.textContent=unread>0?`+ ${unread} unread`:'✓ all read';
+  }
   // 2. Skill matrix people
   let smCount=null;
   if(typeof smData!=='undefined'&&smData&&smData.employees)smCount=smData.employees.length;

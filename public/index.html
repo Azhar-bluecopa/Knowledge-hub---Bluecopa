@@ -30,12 +30,6 @@
       </div>
       <div id="categoryList"></div>
     </div>
-    <div class="sidebar-section" style="margin-top:4px;padding-bottom:8px;">
-      <div class="sidebar-section-label">Quick Links</div>
-      <div class="category-item" id="sidebarRoadmapBtn" onclick="showRoadmap()">
-        <span style="font-size:15px;">🗺</span> Roadmap
-      </div>
-    </div>
   </div>
   <div class="read-only-banner" id="readOnlyBanner">🔒 Read-only mode — posting disabled</div>
   <button class="new-article-btn" id="newArticleBtn" onclick="openModal()">✦ New Article</button>
@@ -1163,6 +1157,7 @@ async function viewArticle(id) {
     document.getElementById('commentsList').innerHTML='';
     document.getElementById('commentsCount').textContent='';
     document.getElementById('viewModalOverlay').classList.add('open');
+    if (typeof markArticleRead === 'function') markArticleRead(id);
     loadComments(id);
   } catch(e) { showToast('Could not load article.','error'); }
 }
@@ -2406,6 +2401,11 @@ document.addEventListener('keydown',e=>{
   setInterval(() => { if (allArticles.length) renderSidebar(); }, 60000);
   refreshRequestBadge();
 })();
+
+// ── Per-user read tracking ────────────────────────────────────────────────────
+function _readKey() { const u = getUser(); return u ? `kb_read_${u.name}` : 'kb_read_anon'; }
+function getReadArticles() { try { return new Set(JSON.parse(localStorage.getItem(_readKey()) || '[]')); } catch(e) { return new Set(); } }
+function markArticleRead(id) { const s = getReadArticles(); s.add(Number(id)); localStorage.setItem(_readKey(), JSON.stringify([...s])); }
 
 // ── Article Feedback (global scope — must be outside IIFE for onclick to work) ──
 let _fbFormOpen = false;
@@ -4020,6 +4020,6 @@ async function updateFeedbackStatus(id) {
 </div><!-- /mlOverlay -->
 
   <script src="/courses.js?v=5" defer></script>
-  <script src="/app.js?v=17" defer></script>
+  <script src="/app.js?v=18" defer></script>
 </body>
 </html>
