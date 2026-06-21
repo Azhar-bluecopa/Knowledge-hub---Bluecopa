@@ -4531,3 +4531,7 @@ function mlHide() {
   const ol = document.getElementById('mlOverlay');
   if(ol) ol.classList.remove('active');
 }
+
+
+// Populate greeting on landing page (runs after full DOM is ready since app.js is defer)
+if (typeof renderUserInfo === 'function') renderUserInfo();

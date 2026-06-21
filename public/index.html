@@ -764,13 +764,15 @@ function renderUserInfo() {
   const u = getUser();
   document.getElementById('userName').textContent   = u ? u.name : 'Anonymous';
   document.getElementById('userAvatar').textContent = u ? u.initials : '?';
-  const greetEl = document.getElementById('topbarGreeting');
-  if (greetEl && u) {
+  if (u) {
     const h = new Date().getHours();
     const period = h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening';
     const emoji  = h < 12 ? '☀️' : h < 17 ? '🌤️' : '🌙';
-    greetEl.textContent = `Good ${period}, ${u.name.split(' ')[0]} ${emoji}`;
-    greetEl.style.display = 'block';
+    const text   = `Good ${period}, ${u.name.split(' ')[0]} ${emoji}`;
+    const greetEl = document.getElementById('topbarGreeting');
+    if (greetEl) { greetEl.textContent = text; greetEl.style.display = 'block'; }
+    const mcGreet = document.getElementById('mcGreeting');
+    if (mcGreet) { mcGreet.textContent = text; mcGreet.style.display = 'block'; }
   }
   const isAdm = !!getAdminPwd();
   document.getElementById('adminBadge').style.display = isAdm ? 'inline-flex' : 'none';
@@ -2637,6 +2639,7 @@ async function updateFeedbackStatus(id) {
   <div class="dw-sweep"></div>
 
 <div class="dw-page">
+    <div class="topbar-greeting mc-greeting" id="mcGreeting"></div>
 
     <!-- Header row: nav left + logo center -->
     <div class="dw-header-row">
