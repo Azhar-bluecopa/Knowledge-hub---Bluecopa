@@ -63,7 +63,6 @@
       <div class="topbar-meta" id="pageMeta">Browse and manage your team's knowledge base</div>
     </div>
     <div class="topbar-actions">
-      <div class="topbar-greeting" id="topbarGreeting"></div>
       <!-- Expandable search bar -->
       <div class="topbar-search-wrap" id="topbarSearchWrap">
         <span style="color:var(--muted);font-size:15px;flex-shrink:0;">🔍</span>
@@ -769,8 +768,6 @@ function renderUserInfo() {
     const period = h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening';
     const emoji  = h < 12 ? '☀️' : h < 17 ? '🌤️' : '🌙';
     const text   = `Good ${period}, ${u.name.split(' ')[0]} ${emoji}`;
-    const greetEl = document.getElementById('topbarGreeting');
-    if (greetEl) { greetEl.textContent = text; greetEl.style.display = 'block'; }
     const mcGreet = document.getElementById('mcGreeting');
     if (mcGreet) { mcGreet.textContent = text; mcGreet.style.display = 'block'; }
   }
@@ -2615,10 +2612,13 @@ async function updateFeedbackStatus(id) {
 
 
 
-  <!-- Admin shortcut for JS compat -->
-  <button class="dw-admin-fab" id="dwAdminFab" onclick="openAdminPanel()">
-    ⚙ Admin Panel<span class="dw-afab-dot" id="dwAdminFabDot"></span>
-  </button>
+  <!-- Admin shortcut + greeting row -->
+  <div class="dw-top-right">
+    <div class="mc-greeting" id="mcGreeting"></div>
+    <button class="dw-admin-fab" id="dwAdminFab" onclick="openAdminPanel()">
+      ⚙ Admin Panel<span class="dw-afab-dot" id="dwAdminFabDot"></span>
+    </button>
+  </div>
 
   <!-- Tech character rain layer -->
   <div class="dw-tech-layer" id="dwTechLayer"></div>
@@ -2639,8 +2639,6 @@ async function updateFeedbackStatus(id) {
   <div class="dw-sweep"></div>
 
 <div class="dw-page">
-    <div class="topbar-greeting mc-greeting" id="mcGreeting"></div>
-
     <!-- Header row: nav left + logo center -->
     <div class="dw-header-row">
       <!-- Left: logo + Browse + Search -->
