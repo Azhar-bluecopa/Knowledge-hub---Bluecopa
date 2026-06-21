@@ -1418,6 +1418,7 @@ function switchAdminTab(tab, btn, noHistory) {
   if(panel) panel.classList.add('active');
   if(tab==='skillmatrix') smAdmLoad();
   if(tab==='requests') loadRequestsTab();
+  if(tab==='feedback') loadFeedbackTab();
 };
 /* ── Landing overlay JS ── */
 // ══════════════════════════════════════════════════════

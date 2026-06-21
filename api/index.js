@@ -1257,6 +1257,65 @@ app.get('/api/rocketlane/projects', async (req, res) => {
   }
 });
 
+// ── Article Feedback ──────────────────────────────────────────────────────────
+function ensureFeedback() { if (!db.feedback) db.feedback = []; }
+
+app.get('/api/feedback', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureFeedback();
+  res.json([...db.feedback].sort((a,b) => new Date(b.submittedAt)-new Date(a.submittedAt)));
+});
+
+app.post('/api/feedback', async (req, res) => {
+  ensureFeedback();
+  const { articleId, articleTitle, submittedBy, submittedByInitials, type, description } = req.body;
+  if (!articleId || !type || !description?.trim())
+    return res.status(400).json({ error: 'articleId, type, and description required' });
+  const now = new Date().toISOString();
+  const fb = {
+    id: Date.now(),
+    articleId, articleTitle: articleTitle || '',
+    submittedBy: submittedBy || 'Anonymous',
+    submittedByInitials: submittedByInitials || 'AN',
+    submittedAt: now, type,
+    description: description.trim(),
+    status: 'open', resolutionNotes: '',
+    history: [{ status: 'open', at: now, by: 'system', note: 'Feedback submitted' }]
+  };
+  db.feedback.push(fb);
+  if (mongoCol) {
+    try {
+      await mongoCol.updateOne({ _id: 'main' }, { $push: { feedback: fb } }, { upsert: false });
+    } catch(e) { console.error('[POST feedback/mongo]', e.message); try { await saveDB(db); } catch(_){} }
+  }
+  res.status(201).json(fb);
+});
+
+app.put('/api/feedback/:id', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureFeedback();
+  const id = parseInt(req.params.id);
+  const idx = db.feedback.findIndex(f => f.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  const { status, resolutionNotes, adminName } = req.body;
+  const fb = { ...db.feedback[idx] };
+  const now = new Date().toISOString();
+  if (status && status !== fb.status) {
+    fb.history = [...(fb.history || []), { status, at: now, by: adminName || 'Admin', note: resolutionNotes || '' }];
+    fb.status = status;
+    if (status === 'resolved') fb.resolvedAt = now;
+    if (status === 'closed')   fb.closedAt = now;
+  }
+  if (resolutionNotes !== undefined) fb.resolutionNotes = resolutionNotes;
+  db.feedback[idx] = fb;
+  if (mongoCol) {
+    try {
+      await mongoCol.updateOne({ _id: 'main' }, { $set: { [`feedback.${idx}`]: fb } });
+    } catch(e) { console.error('[PUT feedback/mongo]', e.message); try { await saveDB(db); } catch(_){} }
+  }
+  res.json(fb);
+});
+
 // ── Rocketlane Snapshots ──────────────────────────────────────────────────────
 function ensureRL() {
   if (!db.rocketlane) db.rocketlane = { snapshots: [], nextSnapshotId: 1 };
