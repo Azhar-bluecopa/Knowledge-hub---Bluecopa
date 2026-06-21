@@ -2176,7 +2176,7 @@ async function updateLandingStats(){
   if(planEl){
     const read=typeof getReadArticles==='function'?getReadArticles():new Set();
     const unread=Math.max(0,posted-read.size);
-    planEl.textContent=unread>0?`+ ${unread} unread`:'✓ all read';
+    planEl.textContent=unread>0?`${unread} unread`:'✓ all read';
   }
   // 2. Skill matrix people
   let smCount=null;
