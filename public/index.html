@@ -370,16 +370,7 @@
 
     <!-- ── Article Feedback ── -->
     <div class="feedback-section" id="articleFeedbackSection">
-      <div class="feedback-trigger-card" onclick="toggleFeedbackForm()">
-        <div class="feedback-trigger-left">
-          <div class="feedback-trigger-icon">✍️</div>
-          <div class="feedback-trigger-text">
-            <div class="feedback-trigger-title">Found an issue with this article?</div>
-            <div class="feedback-trigger-sub">Report incorrect info, missing content, or suggest improvements</div>
-          </div>
-        </div>
-        <button class="feedback-report-btn" id="feedbackToggleBtn" onclick="event.stopPropagation();toggleFeedbackForm()">📝 Submit Feedback</button>
-      </div>
+      <button class="btn-primary feedback-report-btn" id="feedbackToggleBtn" onclick="toggleFeedbackForm()">✏️ Report issue with article</button>
       <div id="feedbackFormWrap" style="display:none">
         <div class="feedback-form-wrap">
           <div class="feedback-form-title">Report an Issue</div>
