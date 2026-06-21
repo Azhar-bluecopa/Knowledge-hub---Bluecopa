@@ -2507,10 +2507,17 @@ html{scroll-behavior:smooth;}
       .rl2-project-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:12px 14px;}
 /* ── Article Feedback Widget ─────────────────────────────────────────────── */
 .feedback-section{margin-top:24px;padding-top:24px;border-top:1px solid var(--border);}
-.feedback-sec-header{display:flex;align-items:center;justify-content:space-between;}
-.feedback-sec-title{font-size:14px;font-weight:600;color:var(--text);}
-.feedback-report-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .18s;}
-.feedback-report-btn:hover{border-color:var(--accent);color:var(--accent);}
+.feedback-trigger-card{display:flex;align-items:center;justify-content:space-between;gap:16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px 20px;cursor:pointer;transition:border-color .18s,box-shadow .18s;}
+.feedback-trigger-card:hover{border-color:var(--accent);box-shadow:0 0 0 1px rgba(201,162,39,.18);}
+.feedback-trigger-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0;}
+.feedback-trigger-icon{font-size:22px;flex-shrink:0;line-height:1;}
+.feedback-trigger-text{min-width:0;}
+.feedback-trigger-title{font-size:13px;font-weight:600;color:var(--text);line-height:1.3;}
+.feedback-trigger-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4;}
+.feedback-report-btn{background:#c9a227;color:#0f0f13;border:none;border-radius:8px;padding:9px 18px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:background .18s,transform .12s,box-shadow .18s;}
+.feedback-report-btn:hover{background:#d4ae35;transform:translateY(-1px);box-shadow:0 4px 12px rgba(201,162,39,.28);}
+.feedback-report-btn:active{transform:translateY(0);}
+.feedback-form-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;}
 .feedback-form-wrap{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:12px;}
 .feedback-type-select,.feedback-desc-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;box-sizing:border-box;}
 .feedback-type-select{margin-bottom:10px;cursor:pointer;}

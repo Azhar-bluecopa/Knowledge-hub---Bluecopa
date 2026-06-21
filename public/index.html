@@ -370,12 +370,19 @@
 
     <!-- ── Article Feedback ── -->
     <div class="feedback-section" id="articleFeedbackSection">
-      <div class="feedback-sec-header">
-        <span class="feedback-sec-title">📝 Article Feedback</span>
-        <button class="feedback-report-btn" id="feedbackToggleBtn" onclick="toggleFeedbackForm()">Report an issue</button>
+      <div class="feedback-trigger-card" onclick="toggleFeedbackForm()">
+        <div class="feedback-trigger-left">
+          <div class="feedback-trigger-icon">✍️</div>
+          <div class="feedback-trigger-text">
+            <div class="feedback-trigger-title">Found an issue with this article?</div>
+            <div class="feedback-trigger-sub">Report incorrect info, missing content, or suggest improvements</div>
+          </div>
+        </div>
+        <button class="feedback-report-btn" id="feedbackToggleBtn" onclick="event.stopPropagation();toggleFeedbackForm()">📝 Submit Feedback</button>
       </div>
       <div id="feedbackFormWrap" style="display:none">
         <div class="feedback-form-wrap">
+          <div class="feedback-form-title">Report an Issue</div>
           <select class="feedback-type-select" id="feedbackTypeSelect">
             <option value="">Select issue type…</option>
             <option value="incorrect_info">❌ Incorrect Information</option>
@@ -2392,17 +2399,24 @@ document.addEventListener('keydown',e=>{
   setInterval(refreshRequestBadge, 60000);
   // Refresh stats every 60s so "Added Today" stays accurate
   setInterval(() => { if (allArticles.length) renderSidebar(); }, 60000);
+  refreshRequestBadge();
+})();
 
-// ── Article Feedback ──────────────────────────────────────────────────────────
+// ── Article Feedback (global scope — must be outside IIFE for onclick to work) ──
 let _fbFormOpen = false;
 
 function toggleFeedbackForm() {
   _fbFormOpen = !_fbFormOpen;
-  document.getElementById('feedbackFormWrap').style.display = _fbFormOpen ? 'block' : 'none';
-  document.getElementById('feedbackToggleBtn').textContent = _fbFormOpen ? 'Cancel' : 'Report an issue';
+  const wrap = document.getElementById('feedbackFormWrap');
+  const btn  = document.getElementById('feedbackToggleBtn');
+  if (wrap) wrap.style.display = _fbFormOpen ? 'block' : 'none';
+  if (btn)  btn.textContent = _fbFormOpen ? '✕ Cancel' : '📝 Submit Feedback';
   if (_fbFormOpen) {
-    document.getElementById('feedbackTypeSelect').value = '';
-    document.getElementById('feedbackDescInput').value = '';
+    const sel = document.getElementById('feedbackTypeSelect');
+    const ta  = document.getElementById('feedbackDescInput');
+    if (sel) sel.value = '';
+    if (ta)  ta.value  = '';
+    setTimeout(() => { if (sel) sel.focus(); }, 50);
   }
 }
 
@@ -2429,7 +2443,7 @@ async function submitFeedback() {
     });
     if (!r.ok) throw new Error('Failed');
     showToast('✓ Feedback submitted — thank you!', 'success');
-    _fbFormOpen = true; toggleFeedbackForm(); // reset & close
+    _fbFormOpen = true; toggleFeedbackForm();
   } catch(e) { showToast('Could not submit feedback. Please try again.', 'error'); }
   finally { btn.disabled = false; btn.textContent = 'Submit Feedback'; }
 }
@@ -2438,7 +2452,7 @@ async function submitFeedback() {
 let _fbFilter = 'all';
 let _fbAll    = [];
 
-const FB_TYPES = { incorrect_info:'❌ Incorrect Information', missing_content:'📋 Missing Content', needs_detail:'🔍 Needs More Detail', other:'💬 Other / Suggestion' };
+const FB_TYPES  = { incorrect_info:'❌ Incorrect Information', missing_content:'📋 Missing Content', needs_detail:'🔍 Needs More Detail', other:'💬 Other / Suggestion' };
 const FB_ST_CLS = { open:'fb-st-open', in_progress:'fb-st-in_progress', resolved:'fb-st-resolved', closed:'fb-st-closed' };
 const FB_ST_LBL = { open:'● Open', in_progress:'◐ In Progress', resolved:'✓ Resolved', closed:'✕ Closed' };
 
@@ -2463,8 +2477,7 @@ async function loadFeedbackTab() {
     document.getElementById('fbCountResolved').textContent   = counts.resolved;
     document.getElementById('fbCountClosed').textContent     = counts.closed;
     const badge = document.getElementById('fbOpenBadge');
-    if (counts.open > 0) { badge.textContent = counts.open; badge.style.display = 'inline'; }
-    else { badge.style.display = 'none'; }
+    if (badge) { badge.textContent = counts.open; badge.style.display = counts.open > 0 ? 'inline' : 'none'; }
     renderFeedbackList();
   } catch(e) { el.innerHTML = '<div class="fb-empty">Error loading feedback.</div>'; }
 }
@@ -2534,8 +2547,6 @@ async function updateFeedbackStatus(id) {
     loadFeedbackTab();
   } catch(e) { showToast('Could not update feedback.', 'error'); }
 }
-  refreshRequestBadge();
-})();
 </script>
 
 <!-- ── AI Chat Widget ── -->
