@@ -2063,6 +2063,7 @@ function switchAdminTab(tab, el) {
   el.classList.add('active');
   document.getElementById(`tab-${tab}`).classList.add('active');
   if (tab === 'requests') loadRequestsTab();
+  if (tab === 'feedback') loadFeedbackTab();
 }
 
 // ── Article Requests (admin) ──────────────────────────────────────────────────
