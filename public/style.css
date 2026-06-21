@@ -2556,6 +2556,11 @@ html{scroll-behavior:smooth;}
 .fb-trail-entry{display:flex;gap:8px;font-size:11px;color:var(--muted);margin-bottom:5px;line-height:1.5;align-items:flex-start;}
 .fb-trail-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px;}
 .fb-empty{text-align:center;padding:40px 0;color:var(--muted);font-size:13px;}
+/* ── Floating gold particles ── */
+.dw-particles-bg{position:fixed;inset:0;z-index:5;pointer-events:none;overflow:hidden;}
+.dw-p{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(232,201,122,1) 0%,rgba(201,162,39,.7) 55%,transparent 100%);opacity:0;animation:dwParticleRise linear infinite;}
+.dw-p-star{box-shadow:0 0 8px 2px rgba(232,201,122,.4),0 0 2px 0px rgba(255,248,200,.8);}
+@keyframes dwParticleRise{0%{transform:translateY(0) translateX(0);opacity:0;}8%{opacity:var(--op,.5);}88%{opacity:var(--op,.5);}100%{transform:translateY(-110vh) translateX(var(--dx,0px));opacity:0;}}
 /* ── Article reading progress bar ── */
 .art-prog-track{position:sticky;top:0;height:3px;margin:-32px -32px 24px;background:rgba(255,255,255,.05);z-index:10;overflow:hidden;border-radius:18px 18px 0 0;}
 .art-prog-fill{height:100%;width:0%;background:linear-gradient(90deg,#c9a227,#e8d68a,#c9a227);background-size:200% 100%;transition:width .06s linear;}

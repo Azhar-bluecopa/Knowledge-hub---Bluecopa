@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=30">
+  <link rel="stylesheet" href="/style.css?v=31">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
 </head>
@@ -2643,6 +2643,54 @@ async function updateFeedbackStatus(id) {
   <!-- Tech character rain layer -->
   <div class="dw-tech-layer" id="dwTechLayer"></div>
   <div class="dw-scan-line" id="dwScanLine"></div>
+
+  <!-- Floating gold particle background -->
+  <div class="dw-particles-bg" id="dwParticlesBg"></div>
+  <script>
+  (function(){
+    var bg=document.getElementById('dwParticlesBg');
+    if(!bg)return;
+    // [left%, top%, size(px), dur(s), negDelay(s), driftX(px), opacity, isStar]
+    var P=[
+      [3,  88, 2,   9.4, 0,   14,  0.55, 0],
+      [8,  65, 1.5, 12,  1.8, -20, 0.38, 0],
+      [14, 92, 1,   8.2, 3.4,  8,  0.45, 0],
+      [19, 75, 2.5, 10.8,0.6, -12, 0.6,  1],
+      [24, 82, 1,   14,  4.2,  22, 0.3,  0],
+      [29, 55, 2,   11.2,2.0,  -8, 0.5,  0],
+      [35, 90, 1.5, 9,   5.6,  18, 0.4,  0],
+      [40, 68, 3,   7.8, 1.1, -25, 0.7,  1],
+      [45, 78, 1,   13.4,3.8,  10, 0.35, 0],
+      [50, 85, 2,   10,  0.4, -14, 0.5,  0],
+      [54, 60, 1.5, 11.6,6.2,  20, 0.4,  0],
+      [58, 94, 2,   8.6, 2.4, -18, 0.55, 0],
+      [63, 72, 1,   15,  4.0,  12, 0.3,  0],
+      [67, 80, 2.5, 9.2, 1.6, -22, 0.6,  1],
+      [72, 62, 1.5, 12.4,5.0,  16, 0.38, 0],
+      [77, 88, 1,   8,   0.8, -10, 0.45, 0],
+      [82, 70, 3,   10.4,3.2,  24, 0.7,  1],
+      [87, 84, 2,   11,  7.0, -16, 0.5,  0],
+      [91, 76, 1.5, 13,  1.4,   8, 0.4,  0],
+      [95, 91, 2,   9.8, 4.8, -20, 0.55, 0],
+      [11, 95, 1,   14.2,2.6,  14, 0.3,  0],
+      [32, 50, 2,   16,  0.2,  -8, 0.35, 0],
+      [48, 96, 1.5, 10.6,6.8,  20, 0.4,  0],
+      [61, 58, 1,   12.8,3.6, -12, 0.3,  0],
+      [76, 93, 2,   8.4, 1.0,  16, 0.5,  0],
+      [89, 65, 1.5, 11.4,5.4, -24, 0.38, 0],
+      [6,  72, 2.5, 7.6, 8.2,  10, 0.6,  1],
+      [44, 54, 1,   15.6,2.2, -18, 0.28, 0],
+      [69, 48, 2,   13.2,0.9,  22, 0.45, 0],
+      [84, 57, 1.5, 9.6, 4.4, -14, 0.4,  0]
+    ];
+    P.forEach(function(c){
+      var d=document.createElement('div');
+      d.className='dw-p'+(c[7]?' dw-p-star':'');
+      d.style.cssText='left:'+c[0]+'%;top:'+c[1]+'%;width:'+c[2]+'px;height:'+c[2]+'px;animation-duration:'+c[3]+'s;animation-delay:-'+c[4]+'s;--dx:'+c[5]+'px;--op:'+c[6];
+      bg.appendChild(d);
+    });
+  })();
+  </script>
   <div class="dw-sys-status" id="dwSysStatus">
     <span class="dw-sys-dot"></span>
     <span>SYS ONLINE · v2.0.26 · DELIVERY WIKIPEDIA</span>
