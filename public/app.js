@@ -2225,6 +2225,119 @@ function closeRoadmap(){
   showLanding();
 }
 
+function dwGoCertificates(){
+  hideLanding();
+  history.pushState({screen:'certificates'},'');
+  document.getElementById('dwCertOverlay').classList.add('active');
+  certRender();
+}
+
+function closeCertificates(){
+  document.getElementById('dwCertOverlay').classList.remove('active');
+  showLanding();
+}
+
+function certRender(){
+  const user = JSON.parse(localStorage.getItem('kb_user')||'{}');
+  const userName = user.name || 'Team Member';
+  const prog = JSON.parse(localStorage.getItem('ml_prog')||'{}');
+  const courses = typeof ML_COURSES !== 'undefined' ? ML_COURSES : [];
+  const earned = courses.filter(c => prog[c.id] && prog[c.id].passed);
+
+  const badge = document.getElementById('certCountBadge');
+  if(badge) badge.textContent = earned.length + ' Earned';
+  const statEl = document.getElementById('dwStatCertCount');
+  if(statEl) statEl.textContent = earned.length;
+
+  const emptyEl = document.getElementById('certEmpty');
+  const gridEl  = document.getElementById('certGrid');
+  if(!emptyEl || !gridEl) return;
+
+  if(!earned.length){
+    emptyEl.style.display='flex';
+    gridEl.style.display='none';
+    return;
+  }
+  emptyEl.style.display='none';
+  gridEl.style.display='grid';
+
+  gridEl.innerHTML = earned.map(c => {
+    const cp = prog[c.id]||{};
+    const dateStr = cp.passedAt
+      ? new Date(cp.passedAt).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})
+      : 'Completed';
+    const score = cp.score||0;
+    return `<div class="cert-card" onclick="certViewFull('${c.id}')">
+      <div class="cert-card-header" style="background:${c.grad||'linear-gradient(135deg,#1a1a2e,#16213e)'}">
+        <div class="cert-card-icon">${c.icon||'🏆'}</div>
+        <div class="cert-card-tag">${c.tag||c.title}</div>
+      </div>
+      <div class="cert-card-body">
+        <div class="cert-card-label">Certificate of Completion</div>
+        <div class="cert-card-course">${c.title}</div>
+        <div class="cert-card-name">${userName}</div>
+        <div class="cert-card-meta">
+          <span class="cert-card-date">${dateStr}</span>
+          <span class="cert-card-score">Score: ${score}%</span>
+        </div>
+        <div class="cert-card-seal">🏆 CERTIFIED</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function certViewFull(courseId){
+  const user = JSON.parse(localStorage.getItem('kb_user')||'{}');
+  const userName = user.name||'Team Member';
+  const prog = JSON.parse(localStorage.getItem('ml_prog')||'{}');
+  const courses = typeof ML_COURSES !== 'undefined' ? ML_COURSES : [];
+  const c = courses.find(x=>x.id===courseId);
+  if(!c) return;
+  const cp = prog[courseId]||{};
+  const dateStr = cp.passedAt
+    ? new Date(cp.passedAt).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})
+    : new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const score = cp.score||0;
+
+  const existing = document.getElementById('certModalOverlay');
+  if(existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.className='cert-modal-overlay'; modal.id='certModalOverlay';
+  modal.onclick = e => { if(e.target===modal) modal.remove(); };
+  modal.innerHTML = `
+  <div class="cert-modal">
+    <button class="cert-modal-close" onclick="document.getElementById('certModalOverlay').remove()">✕</button>
+    <div class="cert-full">
+      <div class="cert-full-top-bar"></div>
+      <div class="cert-full-header">
+        <div class="cert-full-logo">🏆</div>
+        <div class="cert-full-issuer">BLUECOPA · DELIVERY TEAM</div>
+        <div class="cert-full-headline">Certificate of Completion</div>
+      </div>
+      <div class="cert-full-body">
+        <div class="cert-full-presented">This certifies that</div>
+        <div class="cert-full-name">${userName}</div>
+        <div class="cert-full-desc">has successfully completed</div>
+        <div class="cert-full-course">${c.title}</div>
+        <div class="cert-full-tag">${c.tag||''}</div>
+      </div>
+      <div class="cert-full-footer">
+        <div class="cert-full-meta"><div class="cert-full-date">${dateStr}</div><div class="cert-full-date-label">Date Completed</div></div>
+        <div class="cert-full-seal">
+          <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" width="72" height="72">
+            <circle cx="40" cy="40" r="36" stroke="rgba(201,162,39,0.45)" stroke-width="2" stroke-dasharray="6 3"/>
+            <circle cx="40" cy="40" r="27" fill="rgba(201,162,39,0.09)" stroke="rgba(201,162,39,0.6)" stroke-width="2"/>
+            <text x="40" y="48" text-anchor="middle" font-size="22">🏆</text>
+          </svg>
+        </div>
+        <div class="cert-full-meta"><div class="cert-full-date">${score}%</div><div class="cert-full-date-label">Assessment Score</div></div>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
 
 const DW_CS_CONFIG = {
   'KPIs': {

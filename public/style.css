@@ -2663,3 +2663,59 @@ html{scroll-behavior:smooth;}
 .rm-vision-node-label{font-size:10px;font-weight:700;color:#8a92a0;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;}
 .rm-vision-tagline{font-size:15px;font-weight:700;color:#c9a227;letter-spacing:.02em;margin-bottom:10px;line-height:1.5;}
 .rm-vision-desc{font-size:13px;color:#8a92a0;max-width:480px;line-height:1.7;}
+
+/* ══════════════════════════════════════════════════════════
+   MY CERTIFICATES OVERLAY
+   ══════════════════════════════════════════════════════════ */
+.cert-overlay{position:fixed;inset:0;z-index:900;background:#08080d;display:none;flex-direction:column;font-family:'DM Sans',sans-serif;}
+.cert-overlay.active{display:flex;}
+.cert-topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid rgba(201,162,39,0.15);background:rgba(8,8,13,0.92);backdrop-filter:blur(12px);flex-shrink:0;position:relative;}
+.cert-topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(201,162,39,0.28),transparent);}
+.cert-back{background:rgba(201,162,39,0.08);border:1px solid rgba(201,162,39,0.22);color:#e8c97a;border-radius:8px;padding:8px 16px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .18s;}
+.cert-back:hover{background:rgba(201,162,39,0.18);border-color:rgba(201,162,39,0.45);}
+.cert-topbar-center{text-align:center;}
+.cert-topbar-title{font-family:'DM Mono',monospace;font-size:14px;font-weight:600;color:#e8c97a;letter-spacing:.1em;}
+.cert-topbar-sub{font-size:12px;color:rgba(122,122,150,.65);margin-top:2px;}
+.cert-count-badge{background:rgba(201,162,39,0.12);border:1px solid rgba(201,162,39,0.25);color:#e8c97a;border-radius:99px;padding:5px 14px;font-size:12px;font-family:'DM Mono',monospace;font-weight:600;letter-spacing:.05em;}
+.cert-body{flex:1;overflow-y:auto;padding:48px;}
+.cert-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:65%;gap:20px;text-align:center;}
+.cert-empty-seal{opacity:.85;}
+.cert-empty-title{font-size:22px;font-weight:700;color:rgba(232,232,240,.92);margin-top:4px;}
+.cert-empty-sub{font-size:14px;color:rgba(122,122,150,.8);max-width:400px;line-height:1.75;}
+.cert-cta-btn{background:linear-gradient(135deg,#c9a227,#e8d68a);color:#0f0f13;border:none;border-radius:8px;padding:12px 28px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:4px;}
+.cert-cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(201,162,39,0.32);}
+.cert-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;max-width:1100px;margin:0 auto;}
+.cert-card{background:rgba(15,15,22,0.95);border:1px solid rgba(201,162,39,0.2);border-radius:16px;overflow:hidden;cursor:pointer;transition:all .22s;}
+.cert-card:hover{transform:translateY(-4px);border-color:rgba(201,162,39,0.5);box-shadow:0 14px 40px rgba(0,0,0,.5),0 0 0 1px rgba(201,162,39,0.1);}
+.cert-card-header{padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;min-height:110px;justify-content:center;position:relative;}
+.cert-card-icon{font-size:34px;}
+.cert-card-tag{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;color:rgba(255,255,255,.5);text-transform:uppercase;}
+.cert-card-body{padding:18px 20px 20px;border-top:1px solid rgba(255,255,255,.05);}
+.cert-card-label{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.15em;color:rgba(201,162,39,.55);text-transform:uppercase;margin-bottom:6px;}
+.cert-card-course{font-size:14px;font-weight:700;color:rgba(232,232,240,.95);line-height:1.4;margin-bottom:4px;}
+.cert-card-name{font-size:13px;color:#e8c97a;font-weight:600;margin-bottom:10px;}
+.cert-card-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.cert-card-date{font-size:11px;color:rgba(122,122,150,.7);}
+.cert-card-score{font-size:11px;color:rgba(122,232,180,.85);font-family:'DM Mono',monospace;font-weight:600;}
+.cert-card-seal{display:inline-block;background:rgba(201,162,39,0.1);border:1px solid rgba(201,162,39,0.25);color:#e8c97a;border-radius:6px;padding:4px 10px;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;letter-spacing:.1em;}
+.cert-modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:24px;}
+.cert-modal{position:relative;max-width:620px;width:100%;}
+.cert-modal-close{position:absolute;top:-14px;right:-14px;background:rgba(30,30,40,.95);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.65);border-radius:50%;width:36px;height:36px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;z-index:2;}
+.cert-modal-close:hover{background:rgba(255,255,255,.12);}
+.cert-full{background:linear-gradient(160deg,#0f0e18 0%,#110f1d 50%,#0c0b14 100%);border:1px solid rgba(201,162,39,0.32);border-radius:20px;overflow:hidden;position:relative;}
+.cert-full::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 15% 15%,rgba(201,162,39,0.05) 0%,transparent 55%),radial-gradient(circle at 85% 85%,rgba(201,162,39,0.04) 0%,transparent 55%);pointer-events:none;}
+.cert-full-top-bar{height:3px;background:linear-gradient(90deg,transparent,#c9a227 30%,#e8d68a 60%,transparent);}
+.cert-full-header{padding:36px 40px 28px;text-align:center;border-bottom:1px solid rgba(201,162,39,0.1);}
+.cert-full-logo{font-size:38px;margin-bottom:10px;}
+.cert-full-issuer{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.24em;color:rgba(201,162,39,.45);text-transform:uppercase;margin-bottom:12px;}
+.cert-full-headline{font-size:22px;font-weight:700;color:rgba(232,232,240,.95);}
+.cert-full-body{padding:32px 40px;text-align:center;border-bottom:1px solid rgba(201,162,39,0.08);}
+.cert-full-presented{font-size:12px;color:rgba(122,122,150,.65);margin-bottom:10px;}
+.cert-full-name{font-size:30px;font-weight:800;color:#e8c97a;letter-spacing:.01em;margin-bottom:12px;}
+.cert-full-desc{font-size:12px;color:rgba(122,122,150,.65);margin-bottom:12px;}
+.cert-full-course{font-size:18px;font-weight:700;color:rgba(232,232,240,.95);margin-bottom:6px;}
+.cert-full-tag{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;color:rgba(201,162,39,.45);text-transform:uppercase;}
+.cert-full-footer{padding:24px 40px;display:flex;align-items:center;justify-content:space-between;}
+.cert-full-meta{text-align:center;}
+.cert-full-date{font-size:15px;font-weight:700;color:rgba(232,232,240,.9);}
+.cert-full-date-label{font-size:10px;color:rgba(122,122,150,.55);font-family:'DM Mono',monospace;letter-spacing:.08em;margin-top:3px;}

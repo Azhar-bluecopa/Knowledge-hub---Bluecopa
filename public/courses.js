@@ -1728,6 +1728,7 @@ function mlShowResult() {
     if (!prog[id].passed || score > (prog[id].score||0)) {
       prog[id].passed = true;
       prog[id].score = score;
+      if (!prog[id].passedAt) prog[id].passedAt = new Date().toISOString();
       mlSaveProg(prog);
     }
   }

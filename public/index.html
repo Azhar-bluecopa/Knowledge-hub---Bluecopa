@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=33">
+  <link rel="stylesheet" href="/style.css?v=34">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
 </head>
@@ -2723,6 +2723,11 @@ async function updateFeedbackStatus(id) {
           <div class="mc-drop-text"><div class="mc-drop-title">My Learning</div><div class="mc-drop-sub">Structured courses across AR, AP & more</div></div>
           <span class="mc-drop-badge mc-drop-live">Live</span>
         </div>
+        <div class="mc-drop-item" onclick="dwGoCertificates();mcCloseBrowse()">
+          <div class="mc-drop-icon" style="background:rgba(201,162,39,.1);">🏆</div>
+          <div class="mc-drop-text"><div class="mc-drop-title">My Certificates</div><div class="mc-drop-sub">Your earned course certificates</div></div>
+          <span class="mc-drop-badge mc-drop-live">Live</span>
+        </div>
         <div class="mc-drop-item" onclick="mcGoTo('knowledge');mcCloseBrowse()">
           <div class="mc-drop-icon" style="background:rgba(0,200,204,.1);">📚</div>
           <div class="mc-drop-text"><div class="mc-drop-title">Knowledge Articles</div><div class="mc-drop-sub">Guides, how-tos & best practices</div></div>
@@ -3001,6 +3006,35 @@ async function updateFeedbackStatus(id) {
           <div class="dw-card-stat"><div class="dw-card-stat-n">10+</div><div class="dw-card-stat-l">Game Modes</div></div>
           <div class="dw-card-stat"><div class="dw-card-stat-n">Weekly</div><div class="dw-card-stat-l">Challenges</div></div>
           <div class="dw-card-stat"><div class="dw-card-stat-n">🏆</div><div class="dw-card-stat-l">Leaderboard</div></div>
+        </div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+
+      <!-- 07 My Certificates -->
+      <div class="dw-card" style="--cr:201,162,39;--fdur:3.8s;--fdel:3s;" onclick="dwGoCertificates()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip06')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip06">
+          <div class="dw-tooltip-title">My Certificates</div>
+          <div class="dw-tooltip-text">A personal record of every course you've completed — personalized certificates showcasing your expertise. Complete a course in My Learning to earn your first.</div>
+        </div>
+        <div class="dw-card-badge">● Live</div>
+        <span class="dw-card-icon">🏆</span>
+        <div class="dw-card-num">07</div>
+        <div class="dw-card-name">My Certificates</div>
+        <div class="dw-card-desc">Personalized completion certificates for every course you've mastered.</div>
+        <div class="dw-card-tags"><span class="dw-card-tag">AR</span><span class="dw-card-tag">AP</span><span class="dw-card-tag">MIS</span><span class="dw-card-tag">P2P</span><span class="dw-card-tag">O2C</span><span class="dw-card-tag">R2R</span></div>
+        <div class="dw-card-features">
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Earned on course completion</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Personalized with your name</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Gallery of all your achievements</div>
+        </div>
+        <div class="dw-card-stat-row">
+          <div class="dw-card-stat"><div class="dw-card-stat-n" id="dwStatCertCount">0</div><div class="dw-card-stat-l">Earned</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">7</div><div class="dw-card-stat-l">Courses</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">🏆</div><div class="dw-card-stat-l">Certified</div></div>
         </div>
         <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
@@ -4331,6 +4365,45 @@ async function updateFeedbackStatus(id) {
   </div><!-- /rm-body -->
 
 </div><!-- /dwRoadmapOverlay -->
+
+<!-- ═══ MY CERTIFICATES OVERLAY ═══ -->
+<div class="cert-overlay" id="dwCertOverlay">
+
+  <div class="cert-topbar">
+    <button class="cert-back" onclick="closeCertificates()">← Home</button>
+    <div class="cert-topbar-center">
+      <div class="cert-topbar-title">🏆 My Certificates</div>
+      <div class="cert-topbar-sub">Your personalized course completion certificates</div>
+    </div>
+    <span id="certCountBadge" class="cert-count-badge">0 Earned</span>
+  </div>
+
+  <div class="cert-body">
+
+    <!-- Empty state -->
+    <div class="cert-empty" id="certEmpty">
+      <div class="cert-empty-seal">
+        <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" width="120" height="120">
+          <circle cx="60" cy="60" r="55" stroke="rgba(201,162,39,0.18)" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <circle cx="60" cy="60" r="42" stroke="rgba(201,162,39,0.28)" stroke-width="1.5"/>
+          <circle cx="60" cy="60" r="30" fill="rgba(201,162,39,0.07)" stroke="rgba(201,162,39,0.4)" stroke-width="1.5"/>
+          <text x="60" y="70" text-anchor="middle" font-size="30">🏆</text>
+          <line x1="14" y1="60" x2="26" y2="60" stroke="rgba(201,162,39,0.22)" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="94" y1="60" x2="106" y2="60" stroke="rgba(201,162,39,0.22)" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="60" y1="5" x2="60" y2="18" stroke="rgba(201,162,39,0.18)" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="60" y1="102" x2="60" y2="115" stroke="rgba(201,162,39,0.18)" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="cert-empty-title">No Certificates Yet</div>
+      <div class="cert-empty-sub">Complete a course in My Learning to earn your first personalized certificate. Every course you finish adds a certificate to your gallery here.</div>
+      <button class="cert-cta-btn" onclick="closeCertificates();dwGoLearning()">🎓 Start a Course →</button>
+    </div>
+
+    <!-- Certificate grid -->
+    <div class="cert-grid" id="certGrid"></div>
+
+  </div>
+</div><!-- /dwCertOverlay -->
 
   <script src="/courses.js?v=5" defer></script>
   <script src="/app.js?v=20" defer></script>
