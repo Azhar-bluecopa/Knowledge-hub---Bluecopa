@@ -2225,7 +2225,12 @@ function closeRoadmap(){
   showLanding();
 }
 
-function dwGoCertificates(){
+let _certSource = 'landing';
+
+function dwGoCertificates(source){
+  _certSource = source || 'landing';
+  const ml = document.getElementById('mlOverlay');
+  if(ml) ml.classList.remove('active');
   hideLanding();
   history.pushState({screen:'certificates'},'');
   document.getElementById('dwCertOverlay').classList.add('active');
@@ -2234,7 +2239,11 @@ function dwGoCertificates(){
 
 function closeCertificates(){
   document.getElementById('dwCertOverlay').classList.remove('active');
-  showLanding();
+  if(_certSource === 'my-learning'){
+    dwGoLearning();
+  } else {
+    showLanding();
+  }
 }
 
 function certRender(){
@@ -2256,6 +2265,15 @@ function certRender(){
   if(!earned.length){
     emptyEl.style.display='flex';
     gridEl.style.display='none';
+    const nameEl = document.getElementById('certEmptyName');
+    if(nameEl) nameEl.textContent = userName + ' — no certifications under your belt yet.';
+    const listEl = document.getElementById('certCourseList');
+    if(listEl) listEl.innerHTML = courses.map(c=>`
+      <div class="cert-course-row" onclick="closeCertificates();dwGoLearning()">
+        <span class="cert-course-row-icon">${c.icon||'📘'}</span>
+        <span class="cert-course-row-name">${c.title}</span>
+        <span class="cert-course-row-arr">→</span>
+      </div>`).join('');
     return;
   }
   emptyEl.style.display='none';
@@ -2489,6 +2507,9 @@ window.addEventListener('popstate', function(e){
     liOpen();
   } else if(scr === 'my-learning'){
     dwGoLearning();
+  } else if(scr === 'certificates'){
+    document.getElementById('dwCertOverlay').classList.add('active');
+    certRender();
   }
   // 'articles', 'article-detail', 'new-article' → main view already restored by reset
 

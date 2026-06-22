@@ -4065,7 +4065,7 @@ async function updateFeedbackStatus(id) {
         <div class="mlcv-top-prog-track"><div class="mlcv-top-prog-fill" id="mlTopProgFill"></div></div>
         <span class="mlcv-top-prog-label" id="mlTopProgLabel">0 / 10</span>
       </div>
-      <button class="ml-cert-btn" onclick="mlHide();dwGoCertificates();">🏆 My Certificates</button>
+      <button class="ml-cert-btn" onclick="dwGoCertificates('my-learning')">🏆 My Certificates</button>
       <button class="ml-home-btn" onclick="mlHide();showLanding();">🏠 Home</button>
     </div>
   </div>
@@ -4367,9 +4367,10 @@ async function updateFeedbackStatus(id) {
           <line x1="60" y1="102" x2="60" y2="115" stroke="rgba(201,162,39,0.18)" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
       </div>
-      <div class="cert-empty-title">No Certificates Yet</div>
-      <div class="cert-empty-sub">Complete a course in My Learning to earn your first personalized certificate. Every course you finish adds a certificate to your gallery here.</div>
-      <button class="cert-cta-btn" onclick="closeCertificates();dwGoLearning()">🎓 Start a Course →</button>
+      <div class="cert-empty-title" id="certEmptyName">No certifications under your belt yet.</div>
+      <div class="cert-empty-sub">Complete any of the courses below to earn your personalized certificate.</div>
+      <div class="cert-course-list" id="certCourseList"></div>
+      <button class="cert-cta-btn" onclick="closeCertificates();dwGoLearning()">🎓 Go to My Learning →</button>
     </div>
 
     <!-- Certificate grid -->
@@ -4379,6 +4380,6 @@ async function updateFeedbackStatus(id) {
 </div><!-- /dwCertOverlay -->
 
   <script src="/courses.js?v=5" defer></script>
-  <script src="/app.js?v=20" defer></script>
+  <script src="/app.js?v=21" defer></script>
 </body>
 </html>
