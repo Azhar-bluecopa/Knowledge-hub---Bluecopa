@@ -2082,6 +2082,13 @@ html{scroll-behavior:smooth;}
   padding:7px 14px;cursor:pointer;transition:all .18s;
 }
 .ml-home-btn:hover{background:rgba(255,255,255,.1);color:#fff;}
+.ml-cert-btn{
+  background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.28);
+  color:#e8c97a;font-family:'DM Sans',sans-serif;
+  font-size:13px;font-weight:600;border-radius:8px;
+  padding:7px 14px;cursor:pointer;transition:all .18s;
+}
+.ml-cert-btn:hover{background:rgba(201,162,39,.2);border-color:rgba(201,162,39,.5);}
 
 /* ── Hero ── */
 .ml-hero{
