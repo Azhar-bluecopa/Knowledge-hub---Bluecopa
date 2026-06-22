@@ -602,8 +602,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .mc-nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none;flex-shrink:0;padding:0 14px;}
 .mc-nav-logo img{height:28px;filter:brightness(1.1);}
 /* Browse button */
-.mc-browse-btn{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:8px;padding:9px 16px;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap;flex-shrink:0;margin-right:12px;position:relative;}
-.mc-browse-btn:hover{background:rgba(255,255,255,.14);}
+.mc-browse-btn{display:flex;align-items:center;gap:7px;background:rgba(201,162,39,.12);border:1px solid rgba(201,162,39,.35);color:#e8c97a;border-radius:8px;padding:9px 16px;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap;flex-shrink:0;margin-right:12px;position:relative;}
+.mc-browse-btn:hover{background:rgba(201,162,39,.22);border-color:rgba(201,162,39,.6);}
 .mc-browse-chevron{font-size:10px;transition:transform .2s;display:inline-block;}
 .mc-browse-btn.open .mc-browse-chevron{transform:rotate(180deg);}
 /* Browse dropdown */
