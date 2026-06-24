@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=36">
+  <link rel="stylesheet" href="/style.css?v=37">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
 </head>
@@ -4062,6 +4062,7 @@ async function updateFeedbackStatus(id) {
         <span class="mlcv-top-prog-label" id="mlTopProgLabel">0 / 10</span>
       </div>
       <button class="ml-cert-btn" onclick="dwGoCertificates('my-learning')">🏆 My Certificates</button>
+      <button class="ml-admin-btn" id="mlAdminBtn" onclick="mlGoAdminLearning()" style="display:none">📋 Manage</button>
       <button class="ml-home-btn" onclick="mlHide();showLanding();">🏠 Home</button>
     </div>
   </div>
@@ -4087,9 +4088,28 @@ async function updateFeedbackStatus(id) {
         <div class="ml-orb ml-orb3"></div>
       </div>
     </div>
+    <!-- Personal learning dashboard strip (shown when user has assignments) -->
+    <div class="ml-dash-strip" id="mlDashStrip" style="display:none">
+      <div class="ml-dash-stat"><div class="ml-dash-n" id="mlDashAssigned">0</div><div class="ml-dash-l">Assigned</div></div>
+      <div class="ml-dash-div"></div>
+      <div class="ml-dash-stat"><div class="ml-dash-n ml-dash-green" id="mlDashCompleted">0</div><div class="ml-dash-l">Completed</div></div>
+      <div class="ml-dash-div"></div>
+      <div class="ml-dash-stat"><div class="ml-dash-n ml-dash-amber" id="mlDashInProgress">0</div><div class="ml-dash-l">In Progress</div></div>
+      <div class="ml-dash-div"></div>
+      <div class="ml-dash-stat"><div class="ml-dash-n ml-dash-red" id="mlDashOverdue">0</div><div class="ml-dash-l">Overdue</div></div>
+      <div class="ml-dash-div"></div>
+      <div class="ml-dash-stat"><div class="ml-dash-n ml-dash-gold" id="mlDashCerts">0</div><div class="ml-dash-l">Certificates</div></div>
+      <div class="ml-dash-progress-wrap">
+        <div class="ml-dash-progress-label">Mandatory Completion</div>
+        <div class="ml-dash-progress-track"><div class="ml-dash-progress-fill" id="mlDashProgressFill" style="width:0%"></div></div>
+        <div class="ml-dash-progress-pct" id="mlDashProgressPct">0%</div>
+      </div>
+    </div>
+
     <div class="ml-content">
       <div class="ml-filter-row">
         <button class="ml-filter-btn active" data-cat="all" onclick="mlFilter('all',this)">All Courses</button>
+        <button class="ml-filter-btn ml-filter-assign" id="mlFilterAssigned" data-cat="assigned" onclick="mlFilter('assigned',this)" style="display:none">📌 My Assignments</button>
         <button class="ml-filter-btn" data-cat="ap" onclick="mlFilter('ap',this)">Account Payable</button>
         <button class="ml-filter-btn" data-cat="ar" onclick="mlFilter('ar',this)">Account Receivable</button>
         <button class="ml-filter-btn" data-cat="mis" onclick="mlFilter('mis',this)">MIS Reports</button>
@@ -4335,6 +4355,121 @@ async function updateFeedbackStatus(id) {
 
 </div><!-- /dwRoadmapOverlay -->
 
+<!-- ═══ ADMIN LEARNING MANAGEMENT OVERLAY ═══ -->
+<div class="lm-admin-overlay" id="lmAdminOverlay">
+  <div class="lm-admin-topbar">
+    <button class="lm-admin-back" onclick="lmAdminClose()">← My Learning</button>
+    <div class="lm-admin-topbar-title">📋 Learning Management</div>
+    <div class="lm-admin-tabs">
+      <button class="lm-tab active" id="lmTab0" onclick="lmTabSwitch(0)">Team Progress</button>
+      <button class="lm-tab" id="lmTab1" onclick="lmTabSwitch(1)">Assign Training</button>
+      <button class="lm-tab" id="lmTab2" onclick="lmTabSwitch(2)">Learning Paths</button>
+    </div>
+  </div>
+
+  <!-- ── Team Progress ── -->
+  <div class="lm-panel active" id="lmPanel0">
+    <div class="lm-team-stats" id="lmTeamStats">
+      <div class="lm-ts-card"><div class="lm-ts-n" id="lmTsTotal">—</div><div class="lm-ts-l">Team Members</div></div>
+      <div class="lm-ts-card"><div class="lm-ts-n" id="lmTsAssigned">—</div><div class="lm-ts-l">Enrolled</div></div>
+      <div class="lm-ts-card lm-ts-green"><div class="lm-ts-n" id="lmTsCompleted">—</div><div class="lm-ts-l">Completed</div></div>
+      <div class="lm-ts-card lm-ts-red"><div class="lm-ts-n" id="lmTsOverdue">—</div><div class="lm-ts-l">Overdue</div></div>
+      <div class="lm-ts-card lm-ts-gold"><div class="lm-ts-n" id="lmTsCompliance">—%</div><div class="lm-ts-l">Compliance</div></div>
+    </div>
+    <div class="lm-team-search-row">
+      <input class="lm-search-input" id="lmTeamSearch" placeholder="Search team member..." oninput="lmFilterTeam(this.value)">
+      <select class="lm-select" id="lmTeamFilter" onchange="lmFilterTeam(document.getElementById('lmTeamSearch').value)">
+        <option value="all">All Members</option>
+        <option value="enrolled">Enrolled</option>
+        <option value="overdue">Overdue</option>
+        <option value="not-enrolled">Not Enrolled</option>
+      </select>
+    </div>
+    <div class="lm-table-wrap">
+      <table class="lm-table">
+        <thead><tr><th>Team Member</th><th>Assigned</th><th>Completed</th><th>Overdue</th><th>Progress</th><th>Last Active</th></tr></thead>
+        <tbody id="lmTeamBody"><tr><td colspan="6" class="lm-table-loading">Loading team data…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Assign Training ── -->
+  <div class="lm-panel" id="lmPanel1">
+    <div class="lm-assign-layout">
+      <div class="lm-assign-form-wrap">
+        <div class="lm-form-section-title">Assign Training</div>
+        <div class="lm-form-group">
+          <label class="lm-label">Team Member</label>
+          <select class="lm-select" id="lmFormUser"><option value="">— select member —</option></select>
+        </div>
+        <div class="lm-form-group">
+          <label class="lm-label">Courses</label>
+          <div class="lm-course-checks" id="lmCourseChecks"></div>
+        </div>
+        <div class="lm-form-row">
+          <div class="lm-form-group">
+            <label class="lm-label">Training Type</label>
+            <select class="lm-select" id="lmFormType">
+              <option value="mandatory">Mandatory</option>
+              <option value="optional">Optional</option>
+            </select>
+          </div>
+          <div class="lm-form-group">
+            <label class="lm-label">Due Date</label>
+            <input class="lm-input" type="date" id="lmFormDue">
+          </div>
+        </div>
+        <button class="lm-btn-primary" onclick="lmAssignSubmit()">Assign Training</button>
+        <div class="lm-form-msg" id="lmFormMsg"></div>
+      </div>
+      <div class="lm-recent-assignments-wrap">
+        <div class="lm-form-section-title">Recent Assignments</div>
+        <div class="lm-recent-list" id="lmRecentList"><div class="lm-table-loading">Loading…</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Learning Paths ── -->
+  <div class="lm-panel" id="lmPanel2">
+    <div class="lm-paths-layout">
+      <div class="lm-path-card">
+        <div class="lm-path-header">
+          <div class="lm-path-icon">🎓</div>
+          <div>
+            <div class="lm-path-name">New Joiner Learning Path</div>
+            <div class="lm-path-sub">Mandatory onboarding curriculum — all 7 modules</div>
+          </div>
+          <div class="lm-path-badge">Recommended</div>
+        </div>
+        <div class="lm-path-modules">
+          <span class="lm-path-mod">🔵 About Bluecopa</span>
+          <span class="lm-path-mod">📑 Account Payable</span>
+          <span class="lm-path-mod">💰 Account Receivable</span>
+          <span class="lm-path-mod">📊 MIS Reports</span>
+          <span class="lm-path-mod">📦 Order-to-Cash</span>
+          <span class="lm-path-mod">🛒 Procure-to-Pay</span>
+          <span class="lm-path-mod">📋 Record-to-Report</span>
+        </div>
+        <div class="lm-enroll-form">
+          <div class="lm-form-section-title" style="margin-top:0">Enroll Team Member</div>
+          <div class="lm-form-row">
+            <select class="lm-select" id="lmEnrollUser"><option value="">— select member —</option></select>
+            <input class="lm-input" type="date" id="lmEnrollDue" placeholder="Due date">
+            <button class="lm-btn-primary" onclick="lmEnrollNewJoiner()">Enroll</button>
+          </div>
+          <div class="lm-form-msg" id="lmEnrollMsg"></div>
+          <div class="lm-enroll-divider">or</div>
+          <button class="lm-btn-secondary" onclick="lmEnrollAll()">Enroll All Team Members in New Joiner Path</button>
+        </div>
+        <div class="lm-enrolled-list-wrap">
+          <div class="lm-form-section-title">Currently Enrolled</div>
+          <div id="lmEnrolledList" class="lm-enrolled-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /lmAdminOverlay -->
+
 <!-- ═══ MY CERTIFICATES OVERLAY ═══ -->
 <div class="cert-overlay" id="dwCertOverlay">
 
@@ -4376,6 +4511,6 @@ async function updateFeedbackStatus(id) {
 </div><!-- /dwCertOverlay -->
 
   <script src="/courses.js?v=5" defer></script>
-  <script src="/app.js?v=21" defer></script>
+  <script src="/app.js?v=22" defer></script>
 </body>
 </html>

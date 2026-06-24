@@ -2732,3 +2732,138 @@ html{scroll-behavior:smooth;}
 .cert-full-meta{text-align:center;}
 .cert-full-date{font-size:15px;font-weight:700;color:rgba(232,232,240,.9);}
 .cert-full-date-label{font-size:10px;color:rgba(122,122,150,.55);font-family:'DM Mono',monospace;letter-spacing:.08em;margin-top:3px;}
+
+/* ═══════════════════════════════════════════════════════════════
+   LEARNING MANAGEMENT SYSTEM — Personal Dashboard + Admin Overlay
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Personal Dashboard Strip ── */
+.ml-dash-strip{display:flex;align-items:center;gap:0;background:rgba(201,162,39,.06);border-bottom:1px solid rgba(201,162,39,.15);padding:16px 32px;flex-wrap:wrap;gap:8px;}
+.ml-dash-stat{display:flex;flex-direction:column;align-items:center;min-width:80px;}
+.ml-dash-n{font-size:22px;font-weight:800;color:#f0f0f6;font-family:'DM Sans',sans-serif;}
+.ml-dash-l{font-size:11px;color:rgba(140,140,168,.7);font-family:'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase;margin-top:2px;}
+.ml-dash-green{color:#22c55e;}
+.ml-dash-amber{color:#f59e0b;}
+.ml-dash-red{color:#ef4444;}
+.ml-dash-gold{color:#c9a227;}
+.ml-dash-div{width:1px;height:36px;background:rgba(255,255,255,.08);margin:0 16px;}
+.ml-dash-progress-wrap{margin-left:auto;display:flex;flex-direction:column;gap:6px;min-width:200px;}
+.ml-dash-progress-label{font-size:11px;color:rgba(140,140,168,.7);font-family:'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase;}
+.ml-dash-progress-track{height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;}
+.ml-dash-progress-fill{height:100%;background:linear-gradient(90deg,#c9a227,#e8d68a);border-radius:99px;transition:width .6s ease;}
+.ml-dash-progress-pct{font-size:13px;font-weight:700;color:#e8c97a;}
+
+/* ── My Assignments filter tab ── */
+.ml-filter-assign{border-color:rgba(201,162,39,.4);color:#e8c97a;}
+.ml-filter-assign.active{background:rgba(201,162,39,.18);border-color:#c9a227;color:#e8c97a;}
+
+/* ── Assignment badges on course cards ── */
+.ml-assign-strip{display:flex;align-items:center;gap:6px;padding:8px 12px 0;flex-wrap:wrap;}
+.ml-assign-badge{font-size:10px;font-family:'DM Mono',monospace;font-weight:700;letter-spacing:.06em;padding:3px 8px;border-radius:4px;text-transform:uppercase;}
+.ml-assign-mandatory{background:rgba(201,162,39,.15);color:#e8c97a;border:1px solid rgba(201,162,39,.3);}
+.ml-assign-optional{background:rgba(99,102,241,.12);color:#a5b4fc;border:1px solid rgba(99,102,241,.25);}
+.ml-assign-due{font-size:11px;color:rgba(140,140,168,.8);margin-left:auto;}
+.ml-assign-overdue{color:#ef4444;font-weight:700;}
+
+/* ── Admin button in ML topbar ── */
+.ml-admin-btn{background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.28);color:#a5b4fc;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border-radius:8px;padding:7px 14px;cursor:pointer;transition:all .18s;}
+.ml-admin-btn:hover{background:rgba(99,102,241,.22);border-color:rgba(99,102,241,.5);}
+
+/* ══════════════════════════════════════════════════
+   ADMIN LEARNING MANAGEMENT OVERLAY
+   ══════════════════════════════════════════════════ */
+.lm-admin-overlay{position:fixed;inset:0;z-index:910;background:#09090f;display:none;flex-direction:column;font-family:'DM Sans',sans-serif;}
+.lm-admin-overlay.active{display:flex;}
+
+/* Top bar */
+.lm-admin-topbar{display:flex;align-items:center;gap:16px;padding:0 32px;height:60px;background:#0f0f18;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;}
+.lm-admin-back{background:none;border:1px solid rgba(255,255,255,.12);color:rgba(240,240,246,.7);font-size:13px;padding:6px 14px;border-radius:8px;cursor:pointer;transition:all .18s;font-family:'DM Sans',sans-serif;}
+.lm-admin-back:hover{border-color:rgba(255,255,255,.25);color:#f0f0f6;}
+.lm-admin-topbar-title{font-size:15px;font-weight:700;color:#f0f0f6;letter-spacing:.02em;}
+.lm-admin-tabs{display:flex;gap:4px;margin-left:auto;}
+.lm-tab{background:none;border:1px solid rgba(255,255,255,.1);color:rgba(240,240,246,.55);font-size:13px;font-weight:600;padding:7px 18px;border-radius:8px;cursor:pointer;transition:all .18s;font-family:'DM Sans',sans-serif;}
+.lm-tab:hover{border-color:rgba(255,255,255,.22);color:rgba(240,240,246,.8);}
+.lm-tab.active{background:rgba(201,162,39,.12);border-color:rgba(201,162,39,.4);color:#e8c97a;}
+
+/* Panels */
+.lm-panel{display:none;flex:1;overflow-y:auto;padding:28px 32px;flex-direction:column;gap:20px;}
+.lm-panel.active{display:flex;}
+
+/* Team stats row */
+.lm-team-stats{display:flex;gap:12px;flex-wrap:wrap;}
+.lm-ts-card{flex:1;min-width:120px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 20px;display:flex;flex-direction:column;gap:6px;}
+.lm-ts-n{font-size:28px;font-weight:800;color:#f0f0f6;}
+.lm-ts-l{font-size:11px;color:rgba(140,140,168,.7);font-family:'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase;}
+.lm-ts-green .lm-ts-n{color:#22c55e;}
+.lm-ts-red   .lm-ts-n{color:#ef4444;}
+.lm-ts-gold  .lm-ts-n{color:#c9a227;}
+
+/* Search + filter row */
+.lm-team-search-row{display:flex;gap:12px;align-items:center;}
+.lm-search-input{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:9px 14px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .18s;}
+.lm-search-input:focus{border-color:rgba(201,162,39,.45);}
+.lm-select{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:9px 14px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer;transition:border-color .18s;}
+.lm-select:focus{border-color:rgba(201,162,39,.45);}
+.lm-select option{background:#1a1d27;color:#f0f0f6;}
+
+/* Team table */
+.lm-table-wrap{overflow-x:auto;border-radius:12px;border:1px solid rgba(255,255,255,.07);}
+.lm-table{width:100%;border-collapse:collapse;font-size:13px;}
+.lm-table thead tr{background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07);}
+.lm-table th{padding:12px 16px;text-align:left;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.08em;color:rgba(140,140,168,.7);text-transform:uppercase;font-weight:600;}
+.lm-table td{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04);color:rgba(240,240,246,.85);vertical-align:middle;}
+.lm-table tr:last-child td{border-bottom:none;}
+.lm-table tr:hover td{background:rgba(255,255,255,.025);}
+.lm-table-loading{text-align:center;color:rgba(140,140,168,.6);padding:32px;font-style:italic;}
+.lm-prog-mini-wrap{display:flex;align-items:center;gap:8px;}
+.lm-prog-mini-track{flex:1;height:5px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;min-width:60px;}
+.lm-prog-mini-fill{height:100%;background:linear-gradient(90deg,#22c55e,#4ade80);border-radius:99px;}
+.lm-prog-mini-pct{font-size:11px;color:rgba(140,140,168,.7);min-width:28px;}
+.lm-badge-overdue{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.25);font-size:10px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;}
+.lm-badge-ontrack{background:rgba(34,197,94,.1);color:#4ade80;border:1px solid rgba(34,197,94,.2);font-size:10px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;}
+
+/* Assign form layout */
+.lm-assign-layout{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;}
+.lm-assign-form-wrap,.lm-recent-assignments-wrap{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:24px;}
+.lm-form-section-title{font-size:14px;font-weight:700;color:#f0f0f6;margin-bottom:16px;}
+.lm-form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.lm-label{font-size:12px;font-weight:600;color:rgba(140,140,168,.9);font-family:'DM Mono',monospace;letter-spacing:.04em;text-transform:uppercase;}
+.lm-input{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:9px 14px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .18s;width:100%;box-sizing:border-box;}
+.lm-input:focus{border-color:rgba(201,162,39,.45);}
+.lm-input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.6);}
+.lm-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.lm-course-checks{display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto;padding-right:4px;}
+.lm-course-check-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;cursor:pointer;transition:background .15s;}
+.lm-course-check-item:hover{background:rgba(255,255,255,.06);}
+.lm-course-check-item input[type=checkbox]{accent-color:#c9a227;width:15px;height:15px;cursor:pointer;}
+.lm-course-check-label{font-size:13px;color:rgba(240,240,246,.8);cursor:pointer;}
+.lm-btn-primary{background:linear-gradient(135deg,#c9a227,#e8d68a);color:#0f0f13;border:none;border-radius:8px;padding:11px 24px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;width:100%;}
+.lm-btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(201,162,39,.3);}
+.lm-btn-secondary{background:rgba(255,255,255,.05);color:rgba(240,240,246,.8);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;font-family:'DM Sans',sans-serif;width:100%;}
+.lm-btn-secondary:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.22);}
+.lm-form-msg{min-height:20px;font-size:12px;margin-top:10px;text-align:center;border-radius:6px;padding:0 4px;}
+.lm-form-msg.ok{color:#4ade80;}
+.lm-form-msg.err{color:#f87171;}
+.lm-recent-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.lm-recent-item:last-child{border-bottom:none;}
+.lm-recent-name{flex:1;font-size:13px;color:rgba(240,240,246,.85);}
+.lm-recent-course{font-size:11px;color:rgba(140,140,168,.7);}
+.lm-recent-remove{background:none;border:none;color:rgba(239,68,68,.6);cursor:pointer;font-size:16px;padding:4px;border-radius:4px;transition:color .15s;}
+.lm-recent-remove:hover{color:#ef4444;}
+
+/* Learning Paths */
+.lm-paths-layout{display:flex;flex-direction:column;gap:16px;}
+.lm-path-card{background:rgba(255,255,255,.03);border:1px solid rgba(201,162,39,.18);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:16px;}
+.lm-path-header{display:flex;align-items:center;gap:16px;}
+.lm-path-icon{font-size:32px;}
+.lm-path-name{font-size:16px;font-weight:700;color:#f0f0f6;}
+.lm-path-sub{font-size:13px;color:rgba(140,140,168,.7);margin-top:2px;}
+.lm-path-badge{margin-left:auto;background:rgba(201,162,39,.12);color:#e8c97a;border:1px solid rgba(201,162,39,.3);font-size:11px;font-family:'DM Mono',monospace;padding:4px 12px;border-radius:99px;}
+.lm-path-modules{display:flex;flex-wrap:wrap;gap:8px;}
+.lm-path-mod{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:5px 12px;font-size:12px;color:rgba(240,240,246,.75);}
+.lm-enroll-form{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:20px;}
+.lm-enroll-divider{text-align:center;font-size:12px;color:rgba(140,140,168,.5);margin:12px 0;}
+.lm-enrolled-list{display:flex;flex-wrap:wrap;gap:8px;}
+.lm-enrolled-chip{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:6px;padding:5px 12px;font-size:12px;color:rgba(240,240,246,.8);display:flex;align-items:center;gap:6px;}
+.lm-enrolled-chip-remove{background:none;border:none;color:rgba(239,68,68,.5);cursor:pointer;font-size:14px;padding:0;line-height:1;}
+.lm-enrolled-chip-remove:hover{color:#ef4444;}

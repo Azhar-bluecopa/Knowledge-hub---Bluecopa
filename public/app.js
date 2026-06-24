@@ -4607,7 +4607,14 @@ function mlCardHTML(c) {
   const cta = prog.passed ? '✓ Completed' : (started ? 'Continue →' : 'Start Course →');
   const ctaCls = prog.passed ? 'ml-card-cta passed' : (started ? 'ml-card-cta continue' : 'ml-card-cta');
   const totalLessons = prog.total || c.lessons;
+  // Assignment context
+  const assign = mlAssignmentForCourse(c.id);
+  const assignStrip = assign ? `<div class="ml-assign-strip">
+    <span class="ml-assign-badge ${assign.type === 'mandatory' ? 'ml-assign-mandatory' : 'ml-assign-optional'}">${assign.type}</span>
+    ${mlDueDateLabel(assign.dueDate, prog.passed)}
+  </div>` : '';
   return `<div class="ml-card" onclick="mlOpenCourse('${c.id}')" style="cursor:pointer" title="Open ${c.title}">
+    ${assignStrip}
     <div class="ml-card-thumb" style="background:${c.grad}">
       ${c.img ? `<img class="ml-card-thumb-img" src="${c.img}" alt="${c.title}">` : `<div class="ml-card-thumb-icon">${c.icon}</div>`}
       <div class="ml-card-thumb-label">${c.tag}</div>
@@ -4661,6 +4668,392 @@ function mlUpdateHeroStats() {
   if (catsEl) catsEl.textContent = new Set(ML_COURSES.map(c => c.cat || c.id)).size;
 }
 
+/* ══════════════════════════════════════════════════════
+   LEARNING MANAGEMENT SYSTEM
+   ══════════════════════════════════════════════════════ */
+
+// Module-level cache of the current user's assignments
+let mlAssignments = [];
+let lmTeamData    = null; // admin cache
+
+// ── Load user's assignments from server ────────────────
+async function mlLoadAssignments() {
+  const user = JSON.parse(localStorage.getItem('kb_user') || '{}');
+  if (!user.name) return;
+  try {
+    const r = await fetch(`/api/learning/assignments?user=${encodeURIComponent(user.name)}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    mlAssignments = d.assignments || [];
+    mlRenderPersonalDash();
+    // Show/hide "My Assignments" tab and "Manage" button
+    const tab = document.getElementById('mlFilterAssigned');
+    if (tab) tab.style.display = mlAssignments.length ? 'inline-flex' : 'none';
+    const adminBtn = document.getElementById('mlAdminBtn');
+    if (adminBtn) adminBtn.style.display = getAdminPwd() ? 'inline-flex' : 'none';
+  } catch(e) {}
+}
+
+// ── Render personal dashboard strip ───────────────────
+function mlRenderPersonalDash() {
+  const strip = document.getElementById('mlDashStrip');
+  if (!strip) return;
+  if (!mlAssignments.length) { strip.style.display = 'none'; return; }
+  strip.style.display = 'flex';
+
+  const prog  = JSON.parse(localStorage.getItem('ml_prog') || '{}');
+  const now   = new Date();
+  let completed = 0, overdue = 0, inProgress = 0;
+  let mandatoryTotal = 0, mandatoryDone = 0;
+
+  mlAssignments.forEach(a => {
+    const cp    = prog[a.courseId] || {};
+    const done  = cp.passed === true;
+    const started = (cp.lessons || []).length > 0;
+    const isOverdue = a.dueDate && !done && new Date(a.dueDate) < now;
+    if (done)          completed++;
+    else if (isOverdue) overdue++;
+    else if (started)   inProgress++;
+    if (a.type === 'mandatory') {
+      mandatoryTotal++;
+      if (done) mandatoryDone++;
+    }
+  });
+
+  const certs = Object.values(prog).filter(p => p.passed).length;
+  const pct   = mandatoryTotal ? Math.round(mandatoryDone / mandatoryTotal * 100) : 0;
+
+  document.getElementById('mlDashAssigned').textContent  = mlAssignments.length;
+  document.getElementById('mlDashCompleted').textContent = completed;
+  document.getElementById('mlDashInProgress').textContent = inProgress;
+  document.getElementById('mlDashOverdue').textContent   = overdue;
+  document.getElementById('mlDashCerts').textContent     = certs;
+  const fill = document.getElementById('mlDashProgressFill');
+  const pctEl = document.getElementById('mlDashProgressPct');
+  if (fill)  fill.style.width = pct + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
+}
+
+// ── Enhanced mlCardHTML — shows assignment badges ──────
+function mlAssignmentForCourse(courseId) {
+  return mlAssignments.find(a => a.courseId === courseId) || null;
+}
+
+function mlDueDateLabel(dueDate, passed) {
+  if (!dueDate || passed) return '';
+  const due = new Date(dueDate);
+  const now = new Date();
+  const overdue = due < now;
+  const days = Math.ceil((due - now) / 86400000);
+  const label = overdue
+    ? `Overdue ${Math.abs(days)}d ago`
+    : (days === 0 ? 'Due today' : `Due in ${days}d`);
+  const cls = overdue ? 'ml-assign-overdue' : '';
+  return `<span class="ml-assign-due ${cls}">${label}</span>`;
+}
+
+// ── Filter: "assigned" shows only user's assigned courses ──
+function mlFilter(cat, btn) {
+  document.querySelectorAll('.ml-filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  let filtered;
+  if (cat === 'assigned') {
+    const ids = mlAssignments.map(a => a.courseId);
+    filtered = ML_COURSES.filter(c => ids.includes(c.id));
+  } else {
+    filtered = cat === 'all' ? ML_COURSES : ML_COURSES.filter(c => (c.cat || c.id) === cat);
+  }
+  mlRender(filtered);
+}
+
+/* ══════════════════════════════════════════════════════
+   ADMIN LEARNING MANAGEMENT OVERLAY
+   ══════════════════════════════════════════════════════ */
+
+function mlGoAdminLearning() {
+  document.getElementById('mlOverlay').classList.remove('active');
+  document.getElementById('lmAdminOverlay').classList.add('active');
+  lmLoadTeam();
+  lmPopulateUserDropdowns();
+  lmRenderCourseChecks();
+}
+
+function lmAdminClose() {
+  document.getElementById('lmAdminOverlay').classList.remove('active');
+  document.getElementById('mlOverlay').classList.add('active');
+}
+
+function lmTabSwitch(idx) {
+  [0,1,2].forEach(i => {
+    document.getElementById(`lmTab${i}`).classList.toggle('active', i === idx);
+    document.getElementById(`lmPanel${i}`).classList.toggle('active', i === idx);
+  });
+  if (idx === 1) lmRenderRecent();
+  if (idx === 2) lmRenderEnrolled();
+}
+
+// ── Load team data ─────────────────────────────────────
+async function lmLoadTeam() {
+  const pwd = getAdminPwd();
+  if (!pwd) return;
+  try {
+    const r = await fetch('/api/learning/team', { headers: { 'x-admin-password': pwd } });
+    if (!r.ok) return;
+    lmTeamData = await r.json();
+    lmRenderTeamStats();
+    lmRenderTeamTable(lmTeamData.employees || [], lmTeamData.assignments || []);
+    lmRenderEnrolled();
+  } catch(e) {}
+}
+
+function lmRenderTeamStats() {
+  if (!lmTeamData) return;
+  const { employees = [], assignments = [] } = lmTeamData;
+  const prog = JSON.parse(localStorage.getItem('ml_prog') || '{}');
+  const now  = new Date();
+  const enrolledSet = new Set(assignments.map(a => a.userName.toLowerCase()));
+  let overdue = 0, completed = 0;
+  assignments.forEach(a => {
+    if (a.dueDate && new Date(a.dueDate) < now) overdue++;
+    if (prog[a.courseId]?.passed) completed++;
+  });
+  const mandatory = assignments.filter(a => a.type === 'mandatory');
+  const mandDone  = mandatory.filter(a => prog[a.courseId]?.passed).length;
+  const compliance = mandatory.length ? Math.round(mandDone / mandatory.length * 100) : 100;
+
+  document.getElementById('lmTsTotal').textContent     = employees.length;
+  document.getElementById('lmTsAssigned').textContent  = enrolledSet.size;
+  document.getElementById('lmTsCompleted').textContent = completed;
+  document.getElementById('lmTsOverdue').textContent   = overdue;
+  document.getElementById('lmTsCompliance').textContent = compliance + '%';
+}
+
+function lmRenderTeamTable(employees, assignments) {
+  const tbody  = document.getElementById('lmTeamBody');
+  if (!tbody) return;
+  const prog   = JSON.parse(localStorage.getItem('ml_prog') || '{}');
+  const now    = new Date();
+
+  if (!employees.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="lm-table-loading">No team members found — load skill matrix first.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = employees.map(emp => {
+    const name   = emp.name || emp;
+    const myA    = assignments.filter(a => a.userName.toLowerCase() === name.toLowerCase());
+    const total  = myA.length;
+    const done   = myA.filter(a => prog[a.courseId]?.passed).length;
+    const overdue= myA.filter(a => a.dueDate && !prog[a.courseId]?.passed && new Date(a.dueDate) < now).length;
+    const pct    = total ? Math.round(done / total * 100) : 0;
+    const nextDue = myA
+      .filter(a => a.dueDate && !prog[a.courseId]?.passed)
+      .map(a => new Date(a.dueDate))
+      .sort((x,y)=>x-y)[0];
+    const nextDueStr = nextDue
+      ? nextDue.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
+      : '—';
+    const badge = overdue > 0
+      ? `<span class="lm-badge-overdue">${overdue} overdue</span>`
+      : (total ? `<span class="lm-badge-ontrack">On track</span>` : '');
+    const progBar = total
+      ? `<div class="lm-prog-mini-wrap"><div class="lm-prog-mini-track"><div class="lm-prog-mini-fill" style="width:${pct}%"></div></div><span class="lm-prog-mini-pct">${pct}%</span></div>`
+      : '<span style="color:rgba(140,140,168,.5);font-size:12px;">Not enrolled</span>';
+    return `<tr>
+      <td><strong>${name}</strong></td>
+      <td>${total || '—'}</td>
+      <td>${total ? done : '—'}</td>
+      <td>${badge}</td>
+      <td>${progBar}</td>
+      <td style="font-size:12px;color:rgba(140,140,168,.7)">${nextDueStr}</td>
+    </tr>`;
+  }).join('');
+}
+
+function lmFilterTeam(q) {
+  if (!lmTeamData) return;
+  const filter = document.getElementById('lmTeamFilter')?.value || 'all';
+  const prog   = JSON.parse(localStorage.getItem('ml_prog') || '{}');
+  const now    = new Date();
+  const { employees = [], assignments = [] } = lmTeamData;
+  let filtered = [...employees];
+  if (q) {
+    const lq = q.toLowerCase();
+    filtered = filtered.filter(e => (e.name || e).toLowerCase().includes(lq));
+  }
+  if (filter === 'enrolled') {
+    filtered = filtered.filter(e => assignments.some(a => a.userName.toLowerCase() === (e.name || e).toLowerCase()));
+  } else if (filter === 'overdue') {
+    filtered = filtered.filter(e => assignments.some(a =>
+      a.userName.toLowerCase() === (e.name || e).toLowerCase() &&
+      a.dueDate && !prog[a.courseId]?.passed && new Date(a.dueDate) < now
+    ));
+  } else if (filter === 'not-enrolled') {
+    filtered = filtered.filter(e => !assignments.some(a => a.userName.toLowerCase() === (e.name || e).toLowerCase()));
+  }
+  lmRenderTeamTable(filtered, assignments);
+}
+
+// ── Populate user dropdowns with skill matrix employees ─
+function lmPopulateUserDropdowns() {
+  if (!lmTeamData) {
+    const pwd = getAdminPwd();
+    if (!pwd) return;
+    fetch('/api/learning/team', { headers: { 'x-admin-password': pwd } })
+      .then(r => r.json()).then(d => { lmTeamData = d; lmPopulateUserDropdowns(); }).catch(()=>{});
+    return;
+  }
+  const employees = lmTeamData.employees || [];
+  ['lmFormUser','lmEnrollUser'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— select member —</option>' +
+      employees.map(e => `<option value="${(e.name||e).replace(/"/g,'&quot;')}">${e.name||e}</option>`).join('');
+  });
+}
+
+// ── Render course checkboxes in Assign form ────────────
+function lmRenderCourseChecks() {
+  const wrap = document.getElementById('lmCourseChecks');
+  if (!wrap) return;
+  wrap.innerHTML = ML_COURSES.map(c =>
+    `<label class="lm-course-check-item">
+      <input type="checkbox" value="${c.id}" class="lm-course-chk">
+      <span class="lm-course-check-label">${c.icon||''} ${c.title}</span>
+    </label>`
+  ).join('');
+}
+
+// ── Submit single assignment ───────────────────────────
+async function lmAssignSubmit() {
+  const pwd  = getAdminPwd();
+  const user = document.getElementById('lmFormUser')?.value;
+  const type = document.getElementById('lmFormType')?.value;
+  const due  = document.getElementById('lmFormDue')?.value;
+  const checked = [...document.querySelectorAll('.lm-course-chk:checked')].map(c => c.value);
+  const msg  = document.getElementById('lmFormMsg');
+
+  if (!user)           { lmShowMsg(msg, 'Select a team member.', 'err'); return; }
+  if (!checked.length) { lmShowMsg(msg, 'Select at least one course.', 'err'); return; }
+
+  try {
+    await fetch('/api/learning/bulk-assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': pwd },
+      body: JSON.stringify({ userNames: [user], courseIds: checked, type, dueDate: due || null })
+    });
+    lmShowMsg(msg, `✓ ${checked.length} course(s) assigned to ${user}`, 'ok');
+    document.querySelectorAll('.lm-course-chk').forEach(c => c.checked = false);
+    lmLoadTeam();
+    lmRenderRecent();
+  } catch(e) { lmShowMsg(msg, 'Error — try again.', 'err'); }
+}
+
+// ── Render recent assignments list ─────────────────────
+function lmRenderRecent() {
+  const wrap = document.getElementById('lmRecentList');
+  if (!wrap || !lmTeamData) { if(wrap) wrap.innerHTML = '<div class="lm-table-loading">Loading…</div>'; return; }
+  const recent = [...(lmTeamData.assignments || [])]
+    .sort((a,b) => new Date(b.assignedAt) - new Date(a.assignedAt))
+    .slice(0, 20);
+  if (!recent.length) { wrap.innerHTML = '<div class="lm-table-loading">No assignments yet.</div>'; return; }
+  const courseMap = Object.fromEntries(ML_COURSES.map(c => [c.id, c]));
+  wrap.innerHTML = recent.map(a => {
+    const c = courseMap[a.courseId];
+    return `<div class="lm-recent-item">
+      <span style="font-size:18px">${c?.icon||'📘'}</span>
+      <div><div class="lm-recent-name">${a.userName}</div><div class="lm-recent-course">${c?.title||a.courseId} · ${a.type}</div></div>
+      <button class="lm-recent-remove" onclick="lmDeleteAssignment(${a.id})" title="Remove">✕</button>
+    </div>`;
+  }).join('');
+}
+
+async function lmDeleteAssignment(id) {
+  const pwd = getAdminPwd();
+  if (!confirm('Remove this assignment?')) return;
+  await fetch(`/api/learning/assignments/${id}`, {
+    method: 'DELETE', headers: { 'x-admin-password': pwd }
+  });
+  await lmLoadTeam();
+  lmRenderRecent();
+}
+
+// ── Enroll in New Joiner Path ──────────────────────────
+async function lmEnrollNewJoiner() {
+  const pwd  = getAdminPwd();
+  const user = document.getElementById('lmEnrollUser')?.value;
+  const due  = document.getElementById('lmEnrollDue')?.value;
+  const msg  = document.getElementById('lmEnrollMsg');
+  if (!user) { lmShowMsg(msg, 'Select a team member.', 'err'); return; }
+  const courseIds = ['bc','ap','ar','mis','o2c','p2p','r2r'];
+  try {
+    const r = await fetch('/api/learning/bulk-assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': pwd },
+      body: JSON.stringify({ userNames: [user], courseIds, pathId: 'new-joiner', type: 'mandatory', dueDate: due || null })
+    });
+    const d = await r.json();
+    lmShowMsg(msg, `✓ ${user} enrolled in New Joiner Path`, 'ok');
+    lmLoadTeam();
+  } catch(e) { lmShowMsg(msg, 'Error — try again.', 'err'); }
+}
+
+async function lmEnrollAll() {
+  const pwd = getAdminPwd();
+  if (!lmTeamData?.employees?.length) { alert('Load team data first.'); return; }
+  if (!confirm(`Enroll all ${lmTeamData.employees.length} team members in the New Joiner Learning Path?`)) return;
+  const msg = document.getElementById('lmEnrollMsg');
+  const userNames = lmTeamData.employees.map(e => e.name || e);
+  const courseIds = ['bc','ap','ar','mis','o2c','p2p','r2r'];
+  try {
+    const r = await fetch('/api/learning/bulk-assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': pwd },
+      body: JSON.stringify({ userNames, courseIds, pathId: 'new-joiner', type: 'mandatory' })
+    });
+    const d = await r.json();
+    lmShowMsg(msg, `✓ ${d.created} new assignments created across ${userNames.length} members`, 'ok');
+    lmLoadTeam();
+    lmRenderEnrolled();
+  } catch(e) { lmShowMsg(msg, 'Error — try again.', 'err'); }
+}
+
+function lmRenderEnrolled() {
+  const wrap = document.getElementById('lmEnrolledList');
+  if (!wrap || !lmTeamData) return;
+  const njUsers = [...new Set(
+    (lmTeamData.assignments || [])
+      .filter(a => a.pathId === 'new-joiner')
+      .map(a => a.userName)
+  )];
+  if (!njUsers.length) { wrap.innerHTML = '<span style="color:rgba(140,140,168,.5);font-size:13px">No one enrolled yet.</span>'; return; }
+  wrap.innerHTML = njUsers.map(u =>
+    `<div class="lm-enrolled-chip">${u}
+      <button class="lm-enrolled-chip-remove" onclick="lmUnenroll('${u.replace(/'/g,"\\'")}')">✕</button>
+    </div>`
+  ).join('');
+}
+
+async function lmUnenroll(userName) {
+  const pwd = getAdminPwd();
+  if (!lmTeamData || !confirm(`Remove ${userName} from the New Joiner Path?`)) return;
+  const toDelete = lmTeamData.assignments.filter(
+    a => a.userName.toLowerCase() === userName.toLowerCase() && a.pathId === 'new-joiner'
+  );
+  for (const a of toDelete) {
+    await fetch(`/api/learning/assignments/${a.id}`, { method: 'DELETE', headers: { 'x-admin-password': pwd } });
+  }
+  await lmLoadTeam();
+  lmRenderEnrolled();
+}
+
+function lmShowMsg(el, text, type) {
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'lm-form-msg ' + type;
+  setTimeout(() => { el.textContent = ''; el.className = 'lm-form-msg'; }, 4000);
+}
+
 function dwGoLearning() {
   hideLanding();
   history.pushState({screen:'my-learning'}, '');
@@ -4672,6 +5065,7 @@ function dwGoLearning() {
     if(allBtn) allBtn.classList.add('active');
     mlUpdateHeroStats();
     mlRender(ML_COURSES);
+    mlLoadAssignments(); // load user's LMS assignments & show dashboard strip
   }
 }
 
