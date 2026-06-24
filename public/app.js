@@ -4649,12 +4649,7 @@ function mlRender(courses) {
   if(count) count.textContent = `${courses.length} course${courses.length!==1?'s':''}`;
 }
 
-function mlFilter(cat, btn) {
-  document.querySelectorAll('.ml-filter-btn').forEach(b=>b.classList.remove('active'));
-  if(btn) btn.classList.add('active');
-  const filtered = cat==='all' ? ML_COURSES : ML_COURSES.filter(c=>(c.cat||c.id)===cat);
-  mlRender(filtered);
-}
+// mlFilter — defined in LMS section below (handles 'assigned' tab)
 
 function mlUpdateHeroStats() {
   const nEl = document.getElementById('mlStatCoursesN');
@@ -4686,11 +4681,9 @@ async function mlLoadAssignments() {
     const d = await r.json();
     mlAssignments = d.assignments || [];
     mlRenderPersonalDash();
-    // Show/hide "My Assignments" tab and "Manage" button
+    // Show "My Assignments" tab only when user has assignments
     const tab = document.getElementById('mlFilterAssigned');
     if (tab) tab.style.display = mlAssignments.length ? 'inline-flex' : 'none';
-    const adminBtn = document.getElementById('mlAdminBtn');
-    if (adminBtn) adminBtn.style.display = getAdminPwd() ? 'inline-flex' : 'none';
   } catch(e) {}
 }
 
@@ -4771,6 +4764,12 @@ function mlFilter(cat, btn) {
    ══════════════════════════════════════════════════════ */
 
 function mlGoAdminLearning() {
+  let pwd = getAdminPwd();
+  if (!pwd) {
+    pwd = prompt('Enter admin password to access Learning Management:');
+    if (!pwd) return;
+    localStorage.setItem('kb_admin_pwd', pwd);
+  }
   document.getElementById('mlOverlay').classList.remove('active');
   document.getElementById('lmAdminOverlay').classList.add('active');
   lmLoadTeam();
