@@ -4794,15 +4794,35 @@ function lmTabSwitch(idx) {
 // ── Load team data ─────────────────────────────────────
 async function lmLoadTeam() {
   const pwd = getAdminPwd();
-  if (!pwd) return;
+  const tbody = document.getElementById('lmTeamBody');
+  if (!pwd) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="lm-table-loading">No admin password — click ← My Learning and re-open Manage.</td></tr>';
+    return;
+  }
+  if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="lm-table-loading">Loading team data…</td></tr>';
   try {
     const r = await fetch('/api/learning/team', { headers: { 'x-admin-password': pwd } });
-    if (!r.ok) return;
+    if (r.status === 401) {
+      localStorage.removeItem('kb_admin_pwd');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="lm-table-loading" style="color:#f87171">Wrong admin password. Close and re-click 📋 Manage to re-enter.</td></tr>';
+      return;
+    }
+    if (!r.ok) {
+      if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="lm-table-loading" style="color:#f87171">Server error (${r.status}). Try refreshing.</td></tr>`;
+      return;
+    }
     lmTeamData = await r.json();
     lmRenderTeamStats();
-    lmRenderTeamTable(lmTeamData.employees || [], lmTeamData.assignments || []);
+    const emps = lmTeamData.employees || [];
+    if (!emps.length) {
+      if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="lm-table-loading">No team members found. Upload the skill matrix first (Skill Matrix → Admin).</td></tr>';
+    } else {
+      lmRenderTeamTable(emps, lmTeamData.assignments || []);
+    }
     lmRenderEnrolled();
-  } catch(e) {}
+  } catch(e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="lm-table-loading" style="color:#f87171">Could not reach server. Check your connection.</td></tr>`;
+  }
 }
 
 function lmRenderTeamStats() {
