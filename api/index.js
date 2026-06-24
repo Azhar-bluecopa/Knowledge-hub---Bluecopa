@@ -1356,4 +1356,132 @@ app.delete('/api/rocketlane/snapshots/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Learning Management ────────────────────────────────────────────────────────
+function ensureLearning() {
+  if (!db.learning) db.learning = {
+    assignments: [],
+    nextAssignmentId: 1,
+    paths: [
+      {
+        id: 'new-joiner',
+        name: 'New Joiner Learning Path',
+        description: 'Mandatory onboarding curriculum for all new team members',
+        courseIds: ['bc', 'ap', 'ar', 'mis', 'o2c', 'p2p', 'r2r'],
+        durationDays: 30
+      }
+    ]
+  };
+}
+
+app.get('/api/learning/assignments', (req, res) => {
+  ensureLearning();
+  const { user } = req.query;
+  if (user) {
+    const list = db.learning.assignments.filter(
+      a => a.userName.toLowerCase() === user.toLowerCase()
+    );
+    return res.json({ assignments: list });
+  }
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  res.json({ assignments: db.learning.assignments, paths: db.learning.paths });
+});
+
+app.post('/api/learning/assignments', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureLearning();
+  const { userName, courseId, type, dueDate, pathId } = req.body;
+  if (!userName || !courseId) return res.status(400).json({ error: 'userName and courseId required' });
+  const existing = db.learning.assignments.find(
+    a => a.userName.toLowerCase() === userName.toLowerCase() && a.courseId === courseId
+  );
+  if (existing) {
+    if (type) existing.type = type;
+    if (dueDate !== undefined) existing.dueDate = dueDate;
+    if (pathId) existing.pathId = pathId;
+    await saveDB(db);
+    return res.json(existing);
+  }
+  const a = {
+    id: db.learning.nextAssignmentId++,
+    userName, courseId,
+    type: type || 'mandatory',
+    dueDate: dueDate || null,
+    assignedAt: new Date().toISOString(),
+    pathId: pathId || null
+  };
+  db.learning.assignments.push(a);
+  await saveDB(db);
+  res.json(a);
+});
+
+app.put('/api/learning/assignments/:id', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureLearning();
+  const id = parseInt(req.params.id);
+  const a  = db.learning.assignments.find(x => x.id === id);
+  if (!a) return res.status(404).json({ error: 'Not found' });
+  const { type, dueDate } = req.body;
+  if (type) a.type = type;
+  if (dueDate !== undefined) a.dueDate = dueDate;
+  await saveDB(db);
+  res.json(a);
+});
+
+app.delete('/api/learning/assignments/:id', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureLearning();
+  const id = parseInt(req.params.id);
+  db.learning.assignments = db.learning.assignments.filter(a => a.id !== id);
+  await saveDB(db);
+  res.json({ ok: true });
+});
+
+app.post('/api/learning/bulk-assign', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureLearning();
+  const { userNames, courseIds, pathId, type, dueDate } = req.body;
+  if (!Array.isArray(userNames) || !Array.isArray(courseIds))
+    return res.status(400).json({ error: 'userNames[] and courseIds[] required' });
+  let created = 0;
+  for (const userName of userNames) {
+    for (const courseId of courseIds) {
+      const exists = db.learning.assignments.find(
+        a => a.userName.toLowerCase() === userName.toLowerCase() && a.courseId === courseId
+      );
+      if (exists) {
+        if (type)    exists.type    = type;
+        if (dueDate) exists.dueDate = dueDate;
+      } else {
+        db.learning.assignments.push({
+          id: db.learning.nextAssignmentId++,
+          userName, courseId,
+          type:       type    || 'mandatory',
+          dueDate:    dueDate || null,
+          assignedAt: new Date().toISOString(),
+          pathId:     pathId  || null
+        });
+        created++;
+      }
+    }
+  }
+  await saveDB(db);
+  res.json({ ok: true, created });
+});
+
+app.get('/api/learning/team', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureLearning();
+  ensureSM();
+  res.json({
+    assignments: db.learning.assignments,
+    paths:       db.learning.paths,
+    employees:   db.skillMatrix.employees
+  });
+});
+
+app.get('/api/learning/paths', (req, res) => {
+  ensureLearning();
+  res.json(db.learning.paths);
+});
+
 module.exports = app;
