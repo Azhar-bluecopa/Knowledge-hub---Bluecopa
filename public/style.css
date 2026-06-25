@@ -2988,3 +2988,15 @@ html{scroll-behavior:smooth;}
   .pd-metrics{grid-template-columns:repeat(4,1fr);}
   .pd-grid{grid-template-columns:1fr;}
 }
+
+/* ── Dashboard Full-Screen Overlay ── */
+.pd-overlay{position:fixed;inset:0;z-index:900;background:#08080d;display:none;flex-direction:column;overflow-y:auto;font-family:'DM Sans',sans-serif;}
+.pd-overlay.active{display:flex;}
+.pd-ov-topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:56px;background:#08080d;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;}
+.pd-ov-topbar-left{display:flex;align-items:center;gap:10px;}
+.pd-ov-back{background:transparent;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);border-radius:8px;padding:7px 14px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .18s;}
+.pd-ov-back:hover{background:rgba(255,255,255,.08);color:#fff;}
+.pd-ov-icon{font-size:20px;}
+.pd-ov-title{font-size:12px;font-weight:700;color:rgba(255,255,255,.45);letter-spacing:.12em;font-family:'DM Mono',monospace;}
+.pd-ov-body{flex:1;padding:40px 48px;max-width:1200px;width:100%;margin:0 auto;box-sizing:border-box;}
+@media(max-width:768px){.pd-ov-body{padding:24px 20px;}.pd-ov-topbar{padding:0 20px;}}

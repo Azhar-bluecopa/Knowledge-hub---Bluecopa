@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=43">
+  <link rel="stylesheet" href="/style.css?v=44">
   <script src="https://accounts.google.com/gsi/client" async></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
@@ -2519,15 +2519,13 @@ function getReadArticles() { try { return new Set(JSON.parse(localStorage.getIte
 function markArticleRead(id) { const s = getReadArticles(); s.add(Number(id)); localStorage.setItem(_readKey(), JSON.stringify([...s])); }
 
 // ── Personalized Dashboard ──────────────────────────────────────────────────
-let _pdOpen = false;
-function pdToggleDashboard() {
-  _pdOpen = !_pdOpen;
-  const panel = document.getElementById('pdPanel');
-  const chevron = document.getElementById('mcDashChevron');
-  const btn = document.getElementById('mcDashBtn');
-  if (panel) panel.style.display = _pdOpen ? '' : 'none';
-  if (chevron) chevron.textContent = _pdOpen ? '▴' : '▾';
-  if (btn) btn.classList.toggle('mc-dash-active', _pdOpen);
+function pdShowDashboard() {
+  if(!_dwNavFlag) history.pushState({screen:'dashboard'}, '');
+  document.getElementById('pdOverlay').classList.add('active');
+}
+function pdHideDashboard() {
+  document.getElementById('pdOverlay').classList.remove('active');
+  showLanding();
 }
 
 async function pdLoadDashboard() {
@@ -3124,8 +3122,8 @@ async function updateFeedbackStatus(id) {
       <div class="mc-search-results" id="mcSearchResults"></div>
     </div>
     <div class="mc-nav-right">
-      <button class="mc-nav-btn mc-dash-btn" id="mcDashBtn" onclick="pdToggleDashboard()" style="display:none;">
-        My Dashboard <span class="mc-dash-chevron" id="mcDashChevron">▾</span>
+      <button class="mc-nav-btn mc-dash-btn" id="mcDashBtn" onclick="pdShowDashboard()" style="display:none;">
+        My Dashboard
       </button>
       <button class="mc-nav-btn" id="mcAdminBtn" onclick="openAdminPanel()" style="display:none;">⚙ Admin</button>
     </div>
@@ -3146,101 +3144,6 @@ async function updateFeedbackStatus(id) {
     </div><!-- /dw-header-row -->
 
     <!-- ══ My Dashboard Panel (collapsible) ══ -->
-    <div class="pd-panel" id="pdPanel" style="display:none">
-
-      <!-- Welcome Banner -->
-      <div class="pd-welcome">
-        <div class="pd-welcome-left">
-          <div class="pd-greeting" id="pdGreeting">Good morning!</div>
-          <div class="pd-sub" id="pdSub">Here's a snapshot of your progress today.</div>
-        </div>
-        <img id="pdAvatar" class="pd-welcome-avatar" referrerpolicy="no-referrer" style="display:none" alt="">
-      </div>
-
-      <!-- Quick Metrics Strip -->
-      <div class="pd-metrics">
-        <div class="pd-metric" onclick="dwGoLearning()">
-          <div class="pd-metric-n" id="pdMAssigned">—</div>
-          <div class="pd-metric-l">Assigned</div>
-        </div>
-        <div class="pd-metric pd-green" onclick="dwGoLearning()">
-          <div class="pd-metric-n" id="pdMDone">—</div>
-          <div class="pd-metric-l">Completed</div>
-        </div>
-        <div class="pd-metric pd-amber" onclick="dwGoLearning()">
-          <div class="pd-metric-n" id="pdMInProgress">—</div>
-          <div class="pd-metric-l">In Progress</div>
-        </div>
-        <div class="pd-metric pd-red" onclick="dwGoLearning()">
-          <div class="pd-metric-n" id="pdMOverdue">—</div>
-          <div class="pd-metric-l">Overdue</div>
-        </div>
-        <div class="pd-metric pd-gold" onclick="dwGoCertificates('home')">
-          <div class="pd-metric-n" id="pdMCerts">—</div>
-          <div class="pd-metric-l">Certificates</div>
-        </div>
-        <div class="pd-metric" onclick="dwGoSkillMatrix()">
-          <div class="pd-metric-n" id="pdMSkill">—</div>
-          <div class="pd-metric-l">Skill Score</div>
-        </div>
-        <div class="pd-metric" onclick="dwGoKnowledge()">
-          <div class="pd-metric-n" id="pdMRead">—</div>
-          <div class="pd-metric-l">Articles Read</div>
-        </div>
-      </div>
-
-      <!-- Cards Grid -->
-      <div class="pd-grid">
-
-        <!-- My Learning -->
-        <div class="pd-card">
-          <div class="pd-card-hd">
-            <div class="pd-card-icon">📚</div>
-            <div class="pd-card-title-wrap">
-              <div class="pd-card-title">My Learning</div>
-              <div class="pd-card-sub" id="pdLSub">Loading...</div>
-            </div>
-            <button class="pd-card-cta" onclick="dwGoLearning()">View All →</button>
-          </div>
-          <div class="pd-progress-wrap" id="pdLProgressWrap" style="display:none">
-            <div class="pd-progress-label">
-              <span>Mandatory Completion</span>
-              <span class="pd-progress-pct" id="pdLProgressPct">0%</span>
-            </div>
-            <div class="pd-progress-track"><div class="pd-progress-fill" id="pdLProgressFill"></div></div>
-          </div>
-          <div class="pd-assign-list" id="pdAssignList"></div>
-        </div>
-
-        <!-- My Skill Profile -->
-        <div class="pd-card">
-          <div class="pd-card-hd">
-            <div class="pd-card-icon">🎯</div>
-            <div class="pd-card-title-wrap">
-              <div class="pd-card-title">My Skill Profile</div>
-              <div class="pd-card-sub" id="pdSSub">Loading...</div>
-            </div>
-            <button class="pd-card-cta" onclick="dwGoSkillMatrix()">View →</button>
-          </div>
-          <div class="pd-skill-list" id="pdSkillList"></div>
-        </div>
-
-        <!-- My Achievements (full width) -->
-        <div class="pd-card pd-card-wide">
-          <div class="pd-card-hd">
-            <div class="pd-card-icon">🏆</div>
-            <div class="pd-card-title-wrap">
-              <div class="pd-card-title">My Achievements</div>
-              <div class="pd-card-sub" id="pdASub">Your milestones and badges</div>
-            </div>
-            <button class="pd-card-cta" onclick="dwGoCertificates('home')">View Certificates →</button>
-          </div>
-          <div class="pd-achiev-grid" id="pdAchievGrid"></div>
-        </div>
-
-      </div><!-- /pd-grid -->
-    </div><!-- /pdPanel -->
-
     <!-- Hero -->
     <div class="dw-hero">
       <div class="dw-hero-title-wrap">
@@ -4962,6 +4865,118 @@ async function updateFeedbackStatus(id) {
 
   </div>
 </div><!-- /dwCertOverlay -->
+
+<!-- ═══ MY DASHBOARD OVERLAY ═══ -->
+<div class="pd-overlay" id="pdOverlay">
+
+  <!-- Top bar -->
+  <div class="pd-ov-topbar">
+    <div class="pd-ov-topbar-left">
+      <button class="pd-ov-back" onclick="pdHideDashboard()">← Home</button>
+      <span class="pd-ov-icon">📊</span>
+      <span class="pd-ov-title">MY DASHBOARD</span>
+    </div>
+    <div class="pd-ov-topbar-right">
+      <div class="pd-ov-user" id="pdOvUser"></div>
+    </div>
+  </div>
+
+  <!-- Scrollable body -->
+  <div class="pd-ov-body">
+
+    <!-- Welcome Banner -->
+    <div class="pd-welcome">
+      <div class="pd-welcome-left">
+        <div class="pd-greeting" id="pdGreeting">Good morning!</div>
+        <div class="pd-sub" id="pdSub">Here's a snapshot of your progress today.</div>
+      </div>
+      <img id="pdAvatar" class="pd-welcome-avatar" referrerpolicy="no-referrer" style="display:none" alt="">
+    </div>
+
+    <!-- Quick Metrics Strip -->
+    <div class="pd-metrics">
+      <div class="pd-metric" onclick="pdHideDashboard();dwGoLearning()">
+        <div class="pd-metric-n" id="pdMAssigned">—</div>
+        <div class="pd-metric-l">Assigned</div>
+      </div>
+      <div class="pd-metric pd-green" onclick="pdHideDashboard();dwGoLearning()">
+        <div class="pd-metric-n" id="pdMDone">—</div>
+        <div class="pd-metric-l">Completed</div>
+      </div>
+      <div class="pd-metric pd-amber" onclick="pdHideDashboard();dwGoLearning()">
+        <div class="pd-metric-n" id="pdMInProgress">—</div>
+        <div class="pd-metric-l">In Progress</div>
+      </div>
+      <div class="pd-metric pd-red" onclick="pdHideDashboard();dwGoLearning()">
+        <div class="pd-metric-n" id="pdMOverdue">—</div>
+        <div class="pd-metric-l">Overdue</div>
+      </div>
+      <div class="pd-metric pd-gold" onclick="pdHideDashboard();dwGoCertificates('home')">
+        <div class="pd-metric-n" id="pdMCerts">—</div>
+        <div class="pd-metric-l">Certificates</div>
+      </div>
+      <div class="pd-metric" onclick="pdHideDashboard();dwGoSkillMatrix()">
+        <div class="pd-metric-n" id="pdMSkill">—</div>
+        <div class="pd-metric-l">Skill Score</div>
+      </div>
+      <div class="pd-metric" onclick="pdHideDashboard();dwGoKnowledge()">
+        <div class="pd-metric-n" id="pdMRead">—</div>
+        <div class="pd-metric-l">Articles Read</div>
+      </div>
+    </div>
+
+    <!-- Cards Grid -->
+    <div class="pd-grid">
+
+      <!-- My Learning -->
+      <div class="pd-card">
+        <div class="pd-card-hd">
+          <div class="pd-card-icon">📚</div>
+          <div class="pd-card-title-wrap">
+            <div class="pd-card-title">My Learning</div>
+            <div class="pd-card-sub" id="pdLSub">Loading...</div>
+          </div>
+          <button class="pd-card-cta" onclick="pdHideDashboard();dwGoLearning()">View All →</button>
+        </div>
+        <div class="pd-progress-wrap" id="pdLProgressWrap" style="display:none">
+          <div class="pd-progress-label">
+            <span>Mandatory Completion</span>
+            <span class="pd-progress-pct" id="pdLProgressPct">0%</span>
+          </div>
+          <div class="pd-progress-track"><div class="pd-progress-fill" id="pdLProgressFill"></div></div>
+        </div>
+        <div class="pd-assign-list" id="pdAssignList"></div>
+      </div>
+
+      <!-- My Skill Profile -->
+      <div class="pd-card">
+        <div class="pd-card-hd">
+          <div class="pd-card-icon">🎯</div>
+          <div class="pd-card-title-wrap">
+            <div class="pd-card-title">My Skill Profile</div>
+            <div class="pd-card-sub" id="pdSSub">Loading...</div>
+          </div>
+          <button class="pd-card-cta" onclick="pdHideDashboard();dwGoSkillMatrix()">View →</button>
+        </div>
+        <div class="pd-skill-list" id="pdSkillList"></div>
+      </div>
+
+      <!-- My Achievements (full width) -->
+      <div class="pd-card pd-card-wide">
+        <div class="pd-card-hd">
+          <div class="pd-card-icon">🏆</div>
+          <div class="pd-card-title-wrap">
+            <div class="pd-card-title">My Achievements</div>
+            <div class="pd-card-sub" id="pdASub">Your milestones and badges</div>
+          </div>
+          <button class="pd-card-cta" onclick="pdHideDashboard();dwGoCertificates('home')">View Certificates →</button>
+        </div>
+        <div class="pd-achiev-grid" id="pdAchievGrid"></div>
+      </div>
+
+    </div><!-- /pd-grid -->
+  </div><!-- /pd-ov-body -->
+</div><!-- /pdOverlay -->
 
   <script src="/courses.js?v=5" defer></script>
   <script src="/app.js?v=24" defer></script>
