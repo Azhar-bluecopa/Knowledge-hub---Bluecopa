@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=46">
+  <link rel="stylesheet" href="/style.css?v=47">
   <script src="https://accounts.google.com/gsi/client" async></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
@@ -2522,6 +2522,7 @@ function markArticleRead(id) { const s = getReadArticles(); s.add(Number(id)); l
 function pdShowDashboard() {
   if(!_dwNavFlag) history.pushState({screen:'dashboard'}, '');
   document.getElementById('pdOverlay').classList.add('active');
+  if (!_rlLoaded) pdLoadRocketlane();
 }
 function pdHideDashboard() {
   document.getElementById('pdOverlay').classList.remove('active');
@@ -2769,6 +2770,106 @@ function pdRenderAchievements(certs, assignments, completed, overdue, inProgress
     else if (completed > 0) subEl.textContent = 'Complete a course with 80%+ to earn your first certificate.';
     else subEl.textContent = 'Your milestones and badges — start a course to earn achievements.';
   }
+}
+
+// ── Rocketlane My Work ────────────────────────────────────────────────────────
+let _rlLoaded = false;
+async function pdLoadRocketlane() {
+  const u = getUser();
+  if (!u || !u.email) return;
+  const sec = document.getElementById('pdRLSection');
+  if (sec) sec.style.display = '';
+
+  try {
+    const r = await fetch('/api/rocketlane/my-work?email=' + encodeURIComponent(u.email));
+    if (!r.ok) { _pdRLError('Unable to load project data'); return; }
+    const d = await r.json();
+    const projects = d.projects || [];
+    const tasks = d.tasks || [];
+
+    // Sub-header
+    const subEl = document.getElementById('pdRLSub');
+    if (subEl) {
+      if (!projects.length) subEl.textContent = 'No projects assigned to you in Rocketlane';
+      else subEl.textContent = projects.length + ' project' + (projects.length > 1 ? 's' : '') + ' · ' + tasks.length + ' tasks';
+    }
+
+    // Render project cards
+    const projEl = document.getElementById('pdRLProjects');
+    if (projEl) {
+      if (!projects.length) {
+        projEl.innerHTML = '<div class="pd-empty-state">No projects found for ' + escHtml(u.email) + '</div>';
+      } else {
+        projEl.innerHTML = projects.map(function(p) {
+          var statusCls = p.status.label === 'Completed' ? 'pd-rl-status-done'
+            : p.status.label === 'In progress' ? 'pd-rl-status-active'
+            : 'pd-rl-status-default';
+          var dueStr = p.dueDate ? new Date(p.dueDate).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : 'No due date';
+          var startStr = p.startDate ? new Date(p.startDate).toLocaleDateString('en-GB', {day:'numeric',month:'short'}) : '—';
+          var pct = p.completionPct || 0;
+          var pctColor = pct >= 80 ? 'var(--success)' : pct >= 40 ? '#f9a74f' : 'var(--accent)';
+          var openTasks = tasks.filter(function(t){ return t.projectId === p.projectId && t.status.label !== 'Completed'; }).length;
+          var overdueTasks = tasks.filter(function(t){ return t.projectId === p.projectId && t.overdue; }).length;
+          return '<div class="pd-rl-project">' +
+            '<div class="pd-rl-proj-top">' +
+              '<div class="pd-rl-proj-info">' +
+                '<div class="pd-rl-proj-name">' + escHtml(p.projectName) + '</div>' +
+                (p.customer ? '<div class="pd-rl-proj-customer">🏢 ' + escHtml(p.customer) + '</div>' : '') +
+              '</div>' +
+              '<div class="pd-rl-proj-meta">' +
+                '<span class="pd-rl-status ' + statusCls + '">' + escHtml(p.status.label) + '</span>' +
+                (overdueTasks > 0 ? '<span class="pd-rl-overdue-badge">⚠ ' + overdueTasks + ' overdue</span>' : '') +
+              '</div>' +
+            '</div>' +
+            '<div class="pd-rl-proj-dates">📅 ' + startStr + ' → ' + dueStr + '&nbsp;&nbsp;·&nbsp;&nbsp;' + openTasks + ' open tasks</div>' +
+            '<div class="pd-rl-prog-wrap">' +
+              '<div class="pd-rl-prog-bar" style="width:' + pct + '%;background:' + pctColor + '"></div>' +
+            '</div>' +
+            '<div class="pd-rl-prog-label"><span>Overall completion</span><span style="color:' + pctColor + '">' + pct + '%</span></div>' +
+          '</div>';
+        }).join('');
+      }
+    }
+
+    // Render open task list (exclude completed, show overdue first)
+    var openTasks = tasks.filter(function(t){ return t.status.label !== 'Completed'; });
+    var taskHdEl = document.getElementById('pdRLTasksHd');
+    var taskCntEl = document.getElementById('pdRLTaskCount');
+    var taskListEl = document.getElementById('pdRLTaskList');
+    if (taskHdEl && openTasks.length) { taskHdEl.style.display = ''; }
+    if (taskCntEl) taskCntEl.textContent = openTasks.length + ' open';
+    if (taskListEl) {
+      if (!openTasks.length) {
+        taskListEl.innerHTML = '<div class="pd-empty-state">All tasks completed 🎉</div>';
+      } else {
+        var toShow = openTasks.slice(0, 20);
+        taskListEl.innerHTML = toShow.map(function(t) {
+          var cls = t.overdue ? 'pd-rl-task-overdue' : t.status.label === 'In progress' ? 'pd-rl-task-active' : '';
+          var icon = t.overdue ? '⚠️' : t.status.label === 'In progress' ? '🔄' : '○';
+          var dueStr = t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+          var statusCls = t.overdue ? 'pd-status-overdue' : t.status.label === 'In progress' ? 'pd-status-progress' : 'pd-status-assigned';
+          var statusLbl = t.overdue ? 'Overdue' : t.status.label;
+          return '<div class="pd-rl-task-row ' + cls + '">' +
+            '<span class="pd-rl-task-icon">' + icon + '</span>' +
+            '<span class="pd-rl-task-name">' + escHtml(t.taskName) + '</span>' +
+            '<span class="pd-rl-task-proj">' + escHtml(t.projectName) + '</span>' +
+            '<span class="pd-assign-badge ' + statusCls + '">' + escHtml(statusLbl) + '</span>' +
+            '<span class="pd-rl-task-due">📅 ' + dueStr + '</span>' +
+          '</div>';
+        }).join('');
+        if (openTasks.length > 20) {
+          taskListEl.innerHTML += '<div class="pd-rl-more">+ ' + (openTasks.length - 20) + ' more tasks — <a href="https://app.rocketlane.com" target="_blank" rel="noopener">view in Rocketlane ↗</a></div>';
+        }
+      }
+    }
+    _rlLoaded = true;
+  } catch(e) {
+    _pdRLError('Failed to load: ' + e.message);
+  }
+}
+function _pdRLError(msg) {
+  var subEl = document.getElementById('pdRLSub');
+  if (subEl) { subEl.textContent = msg; subEl.style.color = 'var(--danger)'; }
 }
 
 // ── Article Feedback (global scope — must be outside IIFE for onclick to work) ──
@@ -5011,6 +5112,23 @@ async function updateFeedbackStatus(id) {
       </div>
 
     </div><!-- /pd-grid -->
+
+    <!-- My Rocketlane Work -->
+    <div class="pd-rl-section" id="pdRLSection" style="display:none">
+      <div class="pd-rl-section-hd">
+        <div class="pd-rl-section-icon">🚀</div>
+        <div class="pd-rl-section-title">My Project Work</div>
+        <div class="pd-rl-section-sub" id="pdRLSub">Loading from Rocketlane…</div>
+        <a class="pd-card-cta pd-rl-link" href="https://app.rocketlane.com" target="_blank" rel="noopener">Open Rocketlane ↗</a>
+      </div>
+      <div id="pdRLProjects"></div>
+      <div class="pd-rl-tasks-hd" id="pdRLTasksHd" style="display:none">
+        <span>Open Tasks</span>
+        <span class="pd-rl-task-count" id="pdRLTaskCount"></span>
+      </div>
+      <div class="pd-rl-task-list" id="pdRLTaskList"></div>
+    </div>
+
   </div><!-- /pd-content -->
 </div><!-- /pdOverlay -->
 

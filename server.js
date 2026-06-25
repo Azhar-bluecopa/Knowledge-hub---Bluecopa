@@ -1109,6 +1109,30 @@ app.get('/api/puzzle/analytics', (req, res) => {
 let rlCache = null, rlCacheAt = 0;
 const RL_CACHE_TTL = 5 * 60 * 1000;
 
+let rlAllTasksCache = null, rlAllTasksCacheAt = 0;
+const RL_TASKS_CACHE_TTL = 5 * 60 * 1000;
+
+async function rlFetchAllTasks(apiKey) {
+  const now = Date.now();
+  if (rlAllTasksCache && (now - rlAllTasksCacheAt) < RL_TASKS_CACHE_TTL) return rlAllTasksCache;
+  const tasks = [];
+  let pageToken = null, hasMore = true;
+  while (hasMore) {
+    const url = 'https://api.rocketlane.com/api/1.0/tasks?pageSize=100' + (pageToken ? `&pageToken=${pageToken}` : '');
+    try {
+      const r = await fetch(url, { headers: { 'api-key': apiKey, 'Accept': 'application/json' } });
+      if (!r.ok) break;
+      const d = await r.json();
+      (d.data || []).forEach(t => tasks.push(t));
+      hasMore = d.pagination?.hasMore || false;
+      pageToken = d.pagination?.nextPageToken || null;
+    } catch { break; }
+  }
+  rlAllTasksCache = tasks;
+  rlAllTasksCacheAt = now;
+  return tasks;
+}
+
 async function rlFetchCompletionMap(apiKey) {
   const map = {};
   let pageToken = null, hasMore = true;
@@ -1163,6 +1187,71 @@ app.get('/api/rocketlane/projects', async (req, res) => {
     rlCache = data; rlCacheAt = now;
     res.json({ ...data, cached: false, fetchedAt: now });
   } catch (e) { res.status(500).json({ error: 'fetch_failed', message: e.message }); }
+});
+
+// ── Rocketlane My Work ────────────────────────────────────────────────────────
+app.get('/api/rocketlane/my-work', async (req, res) => {
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) return res.status(503).json({ error: 'not_configured' });
+
+  const email = (req.query.email || '').trim().toLowerCase();
+  if (!email) return res.status(400).json({ error: 'email query param required' });
+
+  try {
+    const [projResp, allTasks] = await Promise.all([
+      fetch('https://api.rocketlane.com/api/1.0/projects?pageSize=100', {
+        headers: { 'api-key': apiKey, 'Accept': 'application/json' }
+      }),
+      rlFetchAllTasks(apiKey)
+    ]);
+
+    const projData = await projResp.json();
+    const allProjects = projData.data || [];
+
+    const myProjects = allProjects.filter(p =>
+      (p.teamMembers?.members || []).some(m => (m.emailId || '').toLowerCase() === email)
+    );
+
+    const myProjectIds = new Set(myProjects.map(p => p.projectId));
+    const now = new Date();
+
+    const myTasks = allTasks
+      .filter(t => !t.archived && myProjectIds.has(t.project?.projectId))
+      .map(t => ({
+        taskId: t.taskId,
+        taskName: t.taskName,
+        startDate: t.startDate || null,
+        dueDate: t.dueDate || null,
+        status: { value: t.status?.value, label: t.status?.label || 'Unknown' },
+        projectId: t.project?.projectId,
+        projectName: t.project?.projectName,
+        overdue: !!(t.dueDate && t.status?.label !== 'Completed' && new Date(t.dueDate) < now)
+      }))
+      .sort((a, b) => {
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate) - new Date(b.dueDate);
+      });
+
+    const projects = myProjects.map(p => {
+      const ptasks = allTasks.filter(t => t.project?.projectId === p.projectId);
+      const done = ptasks.filter(t => t.status?.label === 'Completed').length;
+      const inprog = ptasks.filter(t => t.status?.label === 'In progress').length;
+      return {
+        projectId: p.projectId,
+        projectName: p.projectName,
+        startDate: p.startDate || null,
+        dueDate: p.dueDate || null,
+        status: { value: p.status?.value, label: p.status?.label || 'Unknown' },
+        customer: p.customer?.companyName || null,
+        completionPct: ptasks.length ? Math.round((done + inprog * 0.5) / ptasks.length * 100) : 0
+      };
+    });
+
+    res.json({ projects, tasks: myTasks });
+  } catch (e) {
+    res.status(500).json({ error: 'fetch_failed', message: e.message });
+  }
 });
 
 // ── Rocketlane Snapshots ──────────────────────────────────────────────────────

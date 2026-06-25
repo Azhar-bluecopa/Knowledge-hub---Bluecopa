@@ -3030,6 +3030,50 @@ html{scroll-behavior:smooth;}
 /* Section divider */
 .pd-section-divider{height:1px;background:rgba(255,255,255,.05);margin:28px 0 24px;}
 
+/* ── Rocketlane My Work Section ── */
+.pd-rl-section{margin-top:28px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,.2);}
+.pd-rl-section-hd{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.05);}
+.pd-rl-section-icon{width:36px;height:36px;border-radius:10px;background:rgba(122,158,232,.1);border:1px solid rgba(122,158,232,.2);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.pd-rl-section-title{font-size:14px;font-weight:700;color:rgba(255,255,255,.85);}
+.pd-rl-section-sub{flex:1;font-size:11px;color:rgba(255,255,255,.3);font-family:'DM Mono',monospace;margin-left:4px;}
+.pd-rl-link{flex-shrink:0;}
+
+/* Project cards */
+.pd-rl-project{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:18px 20px;margin-bottom:12px;transition:border-color .2s;}
+.pd-rl-project:last-child{margin-bottom:0;}
+.pd-rl-project:hover{border-color:rgba(122,158,232,.2);}
+.pd-rl-proj-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:10px;}
+.pd-rl-proj-info{flex:1;min-width:0;}
+.pd-rl-proj-name{font-size:14px;font-weight:700;color:rgba(255,255,255,.85);margin-bottom:4px;}
+.pd-rl-proj-customer{font-size:11px;color:rgba(255,255,255,.35);font-family:'DM Mono',monospace;}
+.pd-rl-proj-meta{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.pd-rl-proj-dates{font-size:11px;color:rgba(255,255,255,.3);font-family:'DM Mono',monospace;margin-bottom:12px;}
+
+.pd-rl-status{font-size:10px;font-weight:600;font-family:'DM Mono',monospace;padding:3px 9px;border-radius:6px;text-transform:uppercase;letter-spacing:.04em;}
+.pd-rl-status-active{background:rgba(122,158,232,.12);color:#7a9ee8;border:1px solid rgba(122,158,232,.25);}
+.pd-rl-status-done{background:rgba(122,232,180,.1);color:var(--success);border:1px solid rgba(122,232,180,.2);}
+.pd-rl-status-default{background:rgba(255,255,255,.05);color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.08);}
+.pd-rl-overdue-badge{font-size:10px;font-weight:600;font-family:'DM Mono',monospace;padding:3px 9px;border-radius:6px;background:rgba(232,122,122,.12);color:var(--danger);border:1px solid rgba(232,122,122,.2);}
+
+.pd-rl-prog-wrap{height:5px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;margin-bottom:6px;}
+.pd-rl-prog-bar{height:100%;border-radius:99px;transition:width .8s cubic-bezier(.4,0,.2,1);}
+.pd-rl-prog-label{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.25);font-family:'DM Mono',monospace;}
+
+/* Task list */
+.pd-rl-tasks-hd{display:flex;align-items:center;gap:10px;margin:20px 0 10px;font-size:12px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.04em;}
+.pd-rl-task-count{font-size:10px;font-family:'DM Mono',monospace;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:99px;padding:2px 8px;color:rgba(255,255,255,.35);}
+.pd-rl-task-row{display:grid;grid-template-columns:20px 1fr auto auto auto;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:4px;background:rgba(255,255,255,.02);border:1px solid transparent;transition:background .15s;}
+.pd-rl-task-row:hover{background:rgba(255,255,255,.04);}
+.pd-rl-task-overdue{background:rgba(232,122,122,.04);border-color:rgba(232,122,122,.1);}
+.pd-rl-task-active{background:rgba(249,167,79,.03);border-color:rgba(249,167,79,.08);}
+.pd-rl-task-icon{font-size:13px;text-align:center;flex-shrink:0;}
+.pd-rl-task-name{font-size:12px;color:rgba(255,255,255,.75);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.pd-rl-task-proj{font-size:10px;color:rgba(255,255,255,.25);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:180px;}
+.pd-rl-task-due{font-size:10px;color:rgba(255,255,255,.3);font-family:'DM Mono',monospace;white-space:nowrap;flex-shrink:0;}
+.pd-rl-more{font-size:11px;color:rgba(255,255,255,.3);text-align:center;padding:12px 0 4px;font-family:'DM Mono',monospace;}
+.pd-rl-more a{color:rgba(122,158,232,.7);text-decoration:none;}
+.pd-rl-more a:hover{color:#7a9ee8;}
+
 /* Responsive */
 @media(max-width:1100px){.pd-achiev-grid{grid-template-columns:repeat(3,1fr);}}
 @media(max-width:900px){
