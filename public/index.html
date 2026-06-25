@@ -3112,6 +3112,12 @@ async function updateFeedbackStatus(id) {
         </div>
       </div>
     </div>
+    <div class="mc-nav-right">
+      <button class="mc-nav-btn mc-dash-btn" id="mcDashBtn" onclick="pdShowDashboard()" style="display:none;">
+        My Dashboard
+      </button>
+      <button class="mc-nav-btn" id="mcAdminBtn" onclick="openAdminPanel()" style="display:none;">⚙ Admin</button>
+    </div>
     <div class="mc-search-wrap">
       <span class="mc-search-icon">🔍</span>
       <input class="mc-search-input" id="mcSearchInput" type="text"
@@ -3120,12 +3126,6 @@ async function updateFeedbackStatus(id) {
         onkeydown="if(event.key==='Escape'){mcClearSearch();}"
         autocomplete="off">
       <div class="mc-search-results" id="mcSearchResults"></div>
-    </div>
-    <div class="mc-nav-right">
-      <button class="mc-nav-btn mc-dash-btn" id="mcDashBtn" onclick="pdShowDashboard()" style="display:none;">
-        My Dashboard
-      </button>
-      <button class="mc-nav-btn" id="mcAdminBtn" onclick="openAdminPanel()" style="display:none;">⚙ Admin</button>
     </div>
   </nav>
 
