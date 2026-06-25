@@ -8,7 +8,8 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=39">
+  <link rel="stylesheet" href="/style.css?v=40">
+  <script src="https://accounts.google.com/gsi/client" async></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
 </head>
@@ -35,7 +36,7 @@
   <button class="new-article-btn" id="newArticleBtn" onclick="openModal()">✦ New Article</button>
   <button class="request-article-btn" onclick="openRequestModal()">📩 Request an Article</button>
   <div class="sidebar-footer">
-    <div class="avatar" id="userAvatar" title="Change name" onclick="openIdentityModal()">?</div>
+    <div class="avatar" id="userAvatar" title="Account" onclick="toggleUserMenu()" style="cursor:pointer;overflow:hidden;">?</div>
     <div style="flex:1;min-width:0">
       <div style="font-size:13px;color:var(--text);font-weight:500;display:flex;align-items:center;gap:6px">
         <span id="userName">Loading…</span>
@@ -45,6 +46,12 @@
     </div>
     <div class="admin-btn-wrap">
       <span class="admin-btn-dot" id="adminBtnDot"></span>
+    </div>
+    <!-- User dropdown menu -->
+    <div class="user-menu" id="userMenu">
+      <div class="user-menu-header" id="userMenuHeader"></div>
+      <div class="user-menu-divider"></div>
+      <div class="user-menu-item" onclick="signOut()">⎋ Sign out</div>
     </div>
   </div>
 </aside>
@@ -759,6 +766,7 @@ let viewingId      = null;
 let selectedColor  = COLOR_PALETTE[0];
 
 // ── Identity ──────────────────────────────────────────────────────────────────
+const GOOGLE_CLIENT_ID = '717453689746-5idsgi5ia5uc838fb0si0546mk4bhdkd.apps.googleusercontent.com';
 function getUser()  { const s=localStorage.getItem('kb_user');  return s?JSON.parse(s):null; }
 function getAdminPwd() { return localStorage.getItem('kb_admin_pwd') || null; }
 function setAdminPwd(p){ if(p) localStorage.setItem('kb_admin_pwd',p); else localStorage.removeItem('kb_admin_pwd'); }
@@ -766,46 +774,91 @@ function initials(n){ return n.trim().split(/\s+/).map(w=>w[0]).join('').toUpper
 
 function renderUserInfo() {
   const u = getUser();
-  document.getElementById('userName').textContent   = u ? u.name : 'Anonymous';
-  document.getElementById('userAvatar').textContent = u ? u.initials : '?';
+  const avatarEl = document.getElementById('userAvatar');
   if (u) {
+    document.getElementById('userName').textContent = u.name;
+    if (u.picture && avatarEl) {
+      avatarEl.innerHTML = `<img src="${u.picture}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" referrerpolicy="no-referrer">`;
+    } else if (avatarEl) {
+      avatarEl.textContent = u.initials || initials(u.name);
+    }
+    const menuHeader = document.getElementById('userMenuHeader');
+    if (menuHeader) menuHeader.innerHTML = `<strong>${u.name}</strong><br><span style="font-size:11px;color:#8a92a0">${u.email||''}</span>`;
     const h = new Date().getHours();
     const period = h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening';
     const emoji  = h < 12 ? '☀️' : h < 17 ? '🌤️' : '🌙';
     const first  = u.name.split(' ')[0];
     const name   = first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
-    const text   = `Good ${period}, ${name} ${emoji}`;
     const mcGreet = document.getElementById('mcGreeting');
-    if (mcGreet) { mcGreet.textContent = text; mcGreet.style.display = 'block'; }
+    if (mcGreet) { mcGreet.textContent = `Good ${period}, ${name} ${emoji}`; mcGreet.style.display = 'block'; }
+  } else {
+    if (avatarEl) avatarEl.textContent = '?';
+    document.getElementById('userName').textContent = 'Not signed in';
   }
   const isAdm = !!getAdminPwd();
   document.getElementById('adminBadge').style.display = isAdm ? 'inline-flex' : 'none';
   document.getElementById('exportBtn').style.display  = isAdm ? 'inline-flex' : 'none';
-  // Admin FAB always visible — clicking prompts for password if not logged in
   const fab = document.getElementById('dwAdminFab');
-  if (fab) {
-    fab.style.display = 'flex';
-    // Visual distinction: gold when logged in, subtle when not
-    fab.style.opacity = isAdm ? '1' : '0.55';
-    fab.title = isAdm ? 'Admin Panel' : 'Login as Admin';
-  }
-  // Also hide/show nav admin btn
+  if (fab) { fab.style.display='flex'; fab.style.opacity=isAdm?'1':'0.55'; fab.title=isAdm?'Admin Panel':'Login as Admin'; }
   const mcAdminBtn = document.getElementById('mcAdminBtn');
   if (mcAdminBtn) mcAdminBtn.style.display = 'none';
 }
-function openIdentityModal() {
-  const u = getUser();
-  document.getElementById('identityName').value = u?.name || '';
-  document.getElementById('identityModalOverlay').classList.add('open');
-  setTimeout(()=>document.getElementById('identityName').focus(),100);
+
+function toggleUserMenu() {
+  const m = document.getElementById('userMenu');
+  if (!m) return;
+  const isOpen = m.classList.toggle('open');
+  if (isOpen) {
+    setTimeout(() => document.addEventListener('click', closeUserMenuOutside, {once:true}), 0);
+  }
 }
-function saveIdentity() {
-  const name = document.getElementById('identityName').value.trim();
-  if (!name) return;
-  localStorage.setItem('kb_user', JSON.stringify({ name, initials: initials(name) }));
-  document.getElementById('identityModalOverlay').classList.remove('open');
+function closeUserMenuOutside(e) {
+  const m = document.getElementById('userMenu');
+  const a = document.getElementById('userAvatar');
+  if (m && !m.contains(e.target) && e.target !== a) m.classList.remove('open');
+}
+
+function parseJwt(token) {
+  const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+  return JSON.parse(decodeURIComponent(atob(base64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+}
+
+async function handleGoogleSignIn(response) {
+  const { name, email, picture, sub } = parseJwt(response.credential);
+  let role = 'member';
+  try {
+    const r = await fetch('/api/auth/google', {
+      method: 'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name, email, picture, googleId: sub })
+    });
+    if (r.ok) { const d = await r.json(); role = d.user?.role || 'member'; }
+  } catch(e) {}
+  localStorage.setItem('kb_user', JSON.stringify({ name, email, picture, googleId: sub, initials: initials(name), role }));
+  const overlay = document.getElementById('gSigninOverlay');
+  if (overlay) overlay.style.display = 'none';
   renderUserInfo();
 }
+
+function signOut() {
+  if (typeof google !== 'undefined') google.accounts.id.disableAutoSelect();
+  localStorage.removeItem('kb_user');
+  window.location.reload();
+}
+
+function gsiInit() {
+  const u = getUser();
+  const overlay = document.getElementById('gSigninOverlay');
+  if (u) { if (overlay) overlay.style.display = 'none'; return; }
+  if (overlay) overlay.style.display = 'flex';
+  if (typeof google === 'undefined') { setTimeout(gsiInit, 300); return; }
+  google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleSignIn, auto_select: false });
+  google.accounts.id.renderButton(document.getElementById('g_id_signin'), {
+    theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'rectangular', width: 280
+  });
+}
+
+function openIdentityModal() { toggleUserMenu(); }
+function saveIdentity() {}
 
 // ── Date helper ───────────────────────────────────────────────────────────────
 function relDate(iso) {
@@ -2441,9 +2494,9 @@ document.addEventListener('keydown',e=>{
     } catch(e) { /* server unreachable, leave as-is */ }
   }
 
+  gsiInit();
   const u=getUser();
-  if(!u){ document.getElementById('identityModalOverlay').classList.add('open'); setTimeout(()=>document.getElementById('identityName').focus(),100); }
-  else renderUserInfo();
+  if(u) renderUserInfo();
   loadAll();
   connectWS();
   // Poll for new requests every 60s when admin is logged in
@@ -2660,6 +2713,18 @@ async function updateFeedbackStatus(id) {
      DELIVERY WIKIPEDIA LANDING OVERLAY
 ═══════════════════════════════════════════ -->
 <canvas id="dw-canvas"></canvas>
+<!-- ── Google Sign-In Overlay ── -->
+<div id="gSigninOverlay">
+  <div class="gsi-card">
+    <div class="gsi-logo">🏛</div>
+    <div class="gsi-title">Delivery Wikipedia</div>
+    <div class="gsi-sub">Bluecopa's team knowledge &amp; learning hub</div>
+    <div class="gsi-divider"></div>
+    <div id="g_id_signin"></div>
+    <p class="gsi-hint">Sign in with your Google account to continue</p>
+  </div>
+</div>
+
 <div id="dwLanding">
 
 

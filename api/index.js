@@ -1356,6 +1356,53 @@ app.delete('/api/rocketlane/snapshots/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── User Management (Google Auth) ─────────────────────────────────────────────
+function ensureUsers() {
+  if (!db.users) db.users = [];
+}
+
+app.post('/api/auth/google', async (req, res) => {
+  ensureUsers();
+  const { name, email, picture, googleId } = req.body;
+  if (!email) return res.status(400).json({ error: 'email required' });
+  let user = db.users.find(u => u.email === email);
+  if (!user) {
+    user = {
+      email, name, picture, googleId,
+      role: db.users.length === 0 ? 'admin' : 'member',
+      joinedAt: new Date().toISOString(),
+      lastSeen: new Date().toISOString()
+    };
+    db.users.push(user);
+  } else {
+    user.name = name;
+    user.picture = picture;
+    if (googleId) user.googleId = googleId;
+    user.lastSeen = new Date().toISOString();
+  }
+  await saveDB(db);
+  res.json({ user: { email: user.email, name: user.name, role: user.role, picture: user.picture } });
+});
+
+app.get('/api/users', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureUsers();
+  res.json(db.users.map(u => ({
+    email: u.email, name: u.name, role: u.role,
+    picture: u.picture, joinedAt: u.joinedAt, lastSeen: u.lastSeen
+  })));
+});
+
+app.patch('/api/users/:email/role', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureUsers();
+  const user = db.users.find(u => u.email === decodeURIComponent(req.params.email));
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  user.role = req.body.role;
+  await saveDB(db);
+  res.json({ email: user.email, name: user.name, role: user.role });
+});
+
 // ── Learning Management ────────────────────────────────────────────────────────
 function ensureLearning() {
   if (!db.learning) db.learning = {
