@@ -2719,64 +2719,24 @@ async function updateFeedbackStatus(id) {
 <!-- ── Google Sign-In Overlay ── -->
 <div id="gSigninOverlay">
   <div class="gsi-bg-particles" id="gsiParticles"></div>
-  <div class="gsi-scan-line"></div>
-
-  <div class="gsi-wrap">
-    <!-- Left panel -->
-    <div class="gsi-left">
-      <div class="gsi-brand-row">
-        <img src="/bluecopa-logo.png" class="gsi-brand-img" alt="Bluecopa" referrerpolicy="no-referrer">
-        <span class="gsi-brand-text">bluecopa</span>
-      </div>
-      <div class="gsi-headline">Delivery<br>Wikipedia</div>
-      <div class="gsi-tagline">Everything You Need,<br>In One Place.</div>
-      <div class="gsi-desc">The single source of truth for Bluecopa's delivery team — knowledge, learning, skills, and metrics all in one place.</div>
-      <div class="gsi-feat-grid">
-        <div class="gsi-feat"><span class="gsi-feat-icon">📚</span><span>Knowledge Base</span></div>
-        <div class="gsi-feat"><span class="gsi-feat-icon">🎓</span><span>Learning Hub</span></div>
-        <div class="gsi-feat"><span class="gsi-feat-icon">📊</span><span>Skill Matrix</span></div>
-        <div class="gsi-feat"><span class="gsi-feat-icon">📈</span><span>KPI Monitor</span></div>
-        <div class="gsi-feat"><span class="gsi-feat-icon">🗺</span><span>Delivery Journey</span></div>
-        <div class="gsi-feat"><span class="gsi-feat-icon">🤖</span><span>AI Assistant</span></div>
-      </div>
-    </div>
-
-    <!-- Right panel — sign in card -->
-    <div class="gsi-right">
-      <div class="gsi-card">
-        <div class="gsi-card-icon">🏛</div>
-        <div class="gsi-card-title">Welcome back</div>
-        <div class="gsi-card-sub">Sign in to access your personalised<br>delivery hub</div>
-        <div class="gsi-card-divider"></div>
-        <div id="g_id_signin"></div>
-        <p class="gsi-hint">Works with any Google account</p>
-        <div class="gsi-stats-row">
-          <div class="gsi-stat"><strong>76</strong><span>Team Members</span></div>
-          <div class="gsi-stat-div"></div>
-          <div class="gsi-stat"><strong>27</strong><span>Articles</span></div>
-          <div class="gsi-stat-div"></div>
-          <div class="gsi-stat"><strong>7</strong><span>Courses</span></div>
-        </div>
-      </div>
-    </div>
+  <div class="gsi-card">
+    <img src="/bluecopa-logo.png" class="gsi-logo-img" alt="Bluecopa">
+    <div class="gsi-divider-line"></div>
+    <div class="gsi-title">Delivery Wikipedia</div>
+    <div class="gsi-sub">Everything You Need, In One Place</div>
+    <div id="g_id_signin"></div>
+    <p class="gsi-hint">Sign in with your Google account to continue</p>
   </div>
 </div>
 <script>
 (function(){
-  var pc = document.getElementById('gsiParticles');
-  if(!pc) return;
-  var pts = [
-    [5,15,1.5,12,0,10,.4],[12,70,1,9,2,−8,.3],[18,40,2,14,1,15,.5],
-    [25,85,1.5,11,3,−12,.35],[32,25,1,8,0.5,8,.4],[40,60,2,13,1.5,−15,.45],
-    [48,90,1,10,2.5,12,.3],[55,35,1.5,15,0,−10,.4],[62,75,2,9,1,14,.5],
-    [70,20,1,12,3,−8,.35],[78,55,1.5,11,0.5,10,.4],[85,80,2,14,2,−12,.45],
-    [92,45,1,8,1.5,8,.3],[15,50,1.5,13,0,−15,.4],[60,10,2,10,2.5,12,.5],
-    [35,95,1,11,1,−10,.3],[80,30,1.5,12,0,14,.4],[45,68,1,9,2,−8,.35]
-  ];
-  pts.forEach(function(p){
-    var d=document.createElement('div');
-    d.className='gsi-particle';
-    d.style.cssText='left:'+p[0]+'%;top:'+p[1]+'%;width:'+p[2]+'px;height:'+p[2]+'px;animation-duration:'+p[3]+'s;animation-delay:-'+p[4]+'s;opacity:'+p[6];
+  var pc=document.getElementById('gsiParticles');if(!pc)return;
+  [[5,80,2,11,0],[14,45,1.5,14,2],[22,90,1,9,4],[31,30,2,13,1],[40,65,1.5,10,3],
+   [50,20,1,12,0],[58,75,2,8,2],[67,50,1.5,15,1],[75,85,1,11,3],[83,35,2,9,0],
+   [90,60,1.5,13,2],[10,15,1,10,1],[45,95,2,12,4],[70,10,1.5,14,0],[28,55,1,8,3]
+  ].forEach(function(p){
+    var d=document.createElement('div');d.className='gsi-particle';
+    d.style.cssText='left:'+p[0]+'%;top:'+p[1]+'%;width:'+p[2]+'px;height:'+p[2]+'px;animation-duration:'+p[3]+'s;animation-delay:-'+p[4]+'s';
     pc.appendChild(d);
   });
 })();

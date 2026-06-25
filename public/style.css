@@ -2871,40 +2871,18 @@ html{scroll-behavior:smooth;}
 .lm-enrolled-chip-remove:hover{color:#ef4444;}
 
 /* ── Google Sign-In Overlay ── */
+@keyframes gsiParticleRise{0%{opacity:0;transform:translateY(0)}15%{opacity:1}85%{opacity:.5}100%{opacity:0;transform:translateY(-100vh)}}
+@keyframes gsiFadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 #gSigninOverlay{position:fixed;inset:0;z-index:9999;background:#08080d;display:none;align-items:center;justify-content:center;overflow:hidden;}
-@keyframes gsiParticleRise{0%{transform:translateY(0) translateX(0);opacity:0}20%{opacity:1}80%{opacity:.6}100%{transform:translateY(-100vh) translateX(20px);opacity:0}}
-@keyframes gsiScan{0%{top:-2px}100%{top:100%}}
-@keyframes gsiFadeUp{0%{opacity:0;transform:translateY(24px)}100%{opacity:1;transform:translateY(0)}}
-@keyframes gsiPulse{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:.7;transform:scale(1.04)}}
-@keyframes gsiShimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
-.gsi-bg-particles{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
-.gsi-particle{position:absolute;border-radius:50%;background:#c9a227;animation:gsiParticleRise linear infinite;}
-.gsi-scan-line{position:absolute;left:0;right:0;height:2px;background:rgba(201,162,39,.06);animation:gsiScan 8s linear infinite;pointer-events:none;}
-.gsi-wrap{display:flex;align-items:center;gap:80px;padding:48px;max-width:1100px;width:100%;animation:gsiFadeUp .6s ease both;}
-.gsi-left{flex:1;color:#f0f0f6;}
-.gsi-brand-row{display:flex;align-items:center;gap:12px;margin-bottom:40px;}
-.gsi-brand-img{height:36px;filter:brightness(0) invert(1);opacity:.9;}
-.gsi-brand-text{font-family:'DM Sans',sans-serif;font-size:20px;font-weight:700;color:#ffffff;letter-spacing:-.3px;}
-.gsi-headline{font-family:'Playfair Display',serif;font-size:64px;font-weight:700;line-height:1.05;color:#c9a227;margin-bottom:16px;letter-spacing:-1px;}
-.gsi-tagline{font-family:'DM Sans',sans-serif;font-size:20px;font-weight:600;color:#f0f0f6;margin-bottom:20px;opacity:.9;}
-.gsi-desc{font-size:14px;color:#8a92a0;line-height:1.7;margin-bottom:36px;max-width:420px;}
-.gsi-feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.gsi-feat{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px 16px;font-size:13px;color:#8a92a0;font-weight:500;transition:all .2s;}
-.gsi-feat:hover{background:rgba(201,162,39,.06);border-color:rgba(201,162,39,.2);color:#f0f0f6;}
-.gsi-feat-icon{font-size:18px;}
-.gsi-right{flex-shrink:0;width:340px;}
-.gsi-card{background:#0f0f16;border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:40px 36px;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(201,162,39,.05);}
-.gsi-card-icon{font-size:40px;margin-bottom:16px;}
-.gsi-card-title{font-family:'DM Sans',sans-serif;font-size:22px;font-weight:800;color:#f0f0f6;margin-bottom:8px;}
-.gsi-card-sub{font-size:13px;color:#8a92a0;margin-bottom:28px;line-height:1.6;}
-.gsi-card-divider{height:1px;background:rgba(255,255,255,.06);margin:0 0 28px;}
-#g_id_signin{display:flex;justify-content:center;margin-bottom:16px;}
-.gsi-hint{font-size:11px;color:rgba(138,146,160,.6);font-family:'DM Mono',monospace;margin-bottom:28px;}
-.gsi-stats-row{display:flex;align-items:center;justify-content:center;gap:0;border-top:1px solid rgba(255,255,255,.06);padding-top:20px;margin-top:4px;}
-.gsi-stat{flex:1;text-align:center;}
-.gsi-stat strong{display:block;font-size:20px;font-weight:800;color:#c9a227;font-family:'DM Sans',sans-serif;}
-.gsi-stat span{font-size:10px;color:#8a92a0;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;}
-.gsi-stat-div{width:1px;height:32px;background:rgba(255,255,255,.07);}
+.gsi-bg-particles{position:absolute;inset:0;pointer-events:none;}
+.gsi-particle{position:absolute;width:2px;height:2px;border-radius:50%;background:#c9a227;opacity:.5;animation:gsiParticleRise linear infinite;}
+.gsi-card{position:relative;z-index:1;background:#0f0f16;border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:48px 44px;text-align:center;width:380px;box-shadow:0 40px 80px rgba(0,0,0,.7);animation:gsiFadeUp .5s ease both;}
+.gsi-logo-img{height:48px;margin-bottom:24px;display:block;margin-left:auto;margin-right:auto;}
+.gsi-divider-line{width:40px;height:2px;background:#c9a227;border-radius:2px;margin:0 auto 24px;}
+.gsi-title{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:#f0f0f6;margin-bottom:8px;letter-spacing:-.3px;}
+.gsi-sub{font-size:13px;color:#8a92a0;margin-bottom:32px;font-family:'DM Sans',sans-serif;}
+#g_id_signin{display:flex;justify-content:center;margin-bottom:12px;}
+.gsi-hint{font-size:11px;color:rgba(138,146,160,.5);font-family:'DM Mono',monospace;margin:0;}
 
 /* ── User menu dropdown ── */
 .user-menu{position:absolute;bottom:64px;left:12px;width:220px;background:#1a1d27;border:1px solid rgba(255,255,255,0.1);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4);display:none;flex-direction:column;overflow:hidden;z-index:500;}
