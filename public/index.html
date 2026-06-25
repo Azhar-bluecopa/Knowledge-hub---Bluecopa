@@ -846,13 +846,15 @@ function signOut() {
 }
 
 function gsiInit() {
-  const u = getUser();
   const overlay = document.getElementById('gSigninOverlay');
-  if (u) { if (overlay) overlay.style.display = 'none'; return; }
-  if (overlay) overlay.style.display = 'flex';
-  if (typeof google === 'undefined') { setTimeout(gsiInit, 300); return; }
+  if (!overlay) { setTimeout(gsiInit, 100); return; } // DOM not fully parsed yet
+  const u = getUser();
+  if (u) { overlay.style.display = 'none'; return; }
+  overlay.style.display = 'flex';
+  if (typeof google === 'undefined') { setTimeout(gsiInit, 300); return; } // GIS script not loaded yet
   google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleSignIn, auto_select: false });
-  google.accounts.id.renderButton(document.getElementById('g_id_signin'), {
+  const btnEl = document.getElementById('g_id_signin');
+  if (btnEl) google.accounts.id.renderButton(btnEl, {
     theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'rectangular', width: 280
   });
 }
