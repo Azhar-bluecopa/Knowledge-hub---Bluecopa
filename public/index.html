@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=44">
+  <link rel="stylesheet" href="/style.css?v=45">
   <script src="https://accounts.google.com/gsi/client" async></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
@@ -2533,15 +2533,35 @@ async function pdLoadDashboard() {
   if (!u || !u.name) return;
 
   // Greeting
-  const h = new Date().getHours();
+  const now = new Date();
+  const h = now.getHours();
   const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
   const firstName = u.name.split(' ')[0];
   const gEl = document.getElementById('pdGreeting');
   if (gEl) gEl.textContent = `${greet}, ${firstName}!`;
 
-  // Avatar
-  const av = document.getElementById('pdAvatar');
-  if (av && u.picture) { av.src = u.picture; av.style.display = ''; }
+  // Date line
+  const dateEl = document.getElementById('pdWelcomeDate');
+  if (dateEl) dateEl.textContent = now.toLocaleDateString('en-GB', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // Welcome initials / avatar
+  const initials = u.initials || u.name.split(' ').map(function(n){return n[0];}).join('').toUpperCase().slice(0,2);
+  const wiEl = document.getElementById('pdWelcomeInitials');
+  const wrapEl = document.getElementById('pdWelcomeAvatarWrap');
+  if (wrapEl && u.picture) {
+    wrapEl.innerHTML = '<img class="pd-welcome-avatar" referrerpolicy="no-referrer" src="'+u.picture+'" alt="">';
+  } else if (wiEl) {
+    wiEl.textContent = initials;
+  }
+
+  // Topbar user chip
+  const ovUser = document.getElementById('pdOvUser');
+  if (ovUser) {
+    const avatarHtml = u.picture
+      ? '<img class="pd-ov-user-avatar" referrerpolicy="no-referrer" src="'+u.picture+'" alt="">'
+      : '<div class="pd-ov-user-initials">'+initials+'</div>';
+    ovUser.innerHTML = avatarHtml + '<span class="pd-ov-user-name">'+u.name+'</span>';
+  }
 
   // Articles read
   const readCount = getReadArticles().size;
@@ -4873,53 +4893,69 @@ async function updateFeedbackStatus(id) {
   <div class="pd-ov-topbar">
     <div class="pd-ov-topbar-left">
       <button class="pd-ov-back" onclick="pdHideDashboard()">← Home</button>
+      <div class="pd-ov-sep"></div>
       <span class="pd-ov-icon">📊</span>
-      <span class="pd-ov-title">MY DASHBOARD</span>
+      <span class="pd-ov-title">My Dashboard</span>
     </div>
     <div class="pd-ov-topbar-right">
-      <div class="pd-ov-user" id="pdOvUser"></div>
+      <div class="pd-ov-user-chip" id="pdOvUser"></div>
     </div>
   </div>
 
-  <!-- Scrollable body -->
-  <div class="pd-ov-body">
-
-    <!-- Welcome Banner -->
-    <div class="pd-welcome">
+  <!-- Welcome Hero Banner -->
+  <div class="pd-welcome">
+    <div class="pd-welcome-inner">
       <div class="pd-welcome-left">
+        <div class="pd-welcome-eyebrow">Personal Overview</div>
         <div class="pd-greeting" id="pdGreeting">Good morning!</div>
         <div class="pd-sub" id="pdSub">Here's a snapshot of your progress today.</div>
+        <div class="pd-welcome-date" id="pdWelcomeDate"></div>
       </div>
-      <img id="pdAvatar" class="pd-welcome-avatar" referrerpolicy="no-referrer" style="display:none" alt="">
+      <div class="pd-welcome-right">
+        <div class="pd-welcome-avatar-wrap" id="pdWelcomeAvatarWrap">
+          <div class="pd-welcome-initials" id="pdWelcomeInitials"></div>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Content -->
+  <div class="pd-content">
 
     <!-- Quick Metrics Strip -->
     <div class="pd-metrics">
       <div class="pd-metric" onclick="pdHideDashboard();dwGoLearning()">
+        <span class="pd-metric-icon">📋</span>
         <div class="pd-metric-n" id="pdMAssigned">—</div>
         <div class="pd-metric-l">Assigned</div>
       </div>
       <div class="pd-metric pd-green" onclick="pdHideDashboard();dwGoLearning()">
+        <span class="pd-metric-icon">✅</span>
         <div class="pd-metric-n" id="pdMDone">—</div>
         <div class="pd-metric-l">Completed</div>
       </div>
       <div class="pd-metric pd-amber" onclick="pdHideDashboard();dwGoLearning()">
+        <span class="pd-metric-icon">🔄</span>
         <div class="pd-metric-n" id="pdMInProgress">—</div>
         <div class="pd-metric-l">In Progress</div>
       </div>
       <div class="pd-metric pd-red" onclick="pdHideDashboard();dwGoLearning()">
+        <span class="pd-metric-icon">⚠️</span>
         <div class="pd-metric-n" id="pdMOverdue">—</div>
         <div class="pd-metric-l">Overdue</div>
       </div>
       <div class="pd-metric pd-gold" onclick="pdHideDashboard();dwGoCertificates('home')">
+        <span class="pd-metric-icon">🏅</span>
         <div class="pd-metric-n" id="pdMCerts">—</div>
         <div class="pd-metric-l">Certificates</div>
       </div>
       <div class="pd-metric" onclick="pdHideDashboard();dwGoSkillMatrix()">
+        <span class="pd-metric-icon">⭐</span>
         <div class="pd-metric-n" id="pdMSkill">—</div>
         <div class="pd-metric-l">Skill Score</div>
       </div>
       <div class="pd-metric" onclick="pdHideDashboard();dwGoKnowledge()">
+        <span class="pd-metric-icon">📖</span>
         <div class="pd-metric-n" id="pdMRead">—</div>
         <div class="pd-metric-l">Articles Read</div>
       </div>
@@ -4931,7 +4967,7 @@ async function updateFeedbackStatus(id) {
       <!-- My Learning -->
       <div class="pd-card">
         <div class="pd-card-hd">
-          <div class="pd-card-icon">📚</div>
+          <div class="pd-card-icon-wrap">📚</div>
           <div class="pd-card-title-wrap">
             <div class="pd-card-title">My Learning</div>
             <div class="pd-card-sub" id="pdLSub">Loading...</div>
@@ -4951,7 +4987,7 @@ async function updateFeedbackStatus(id) {
       <!-- My Skill Profile -->
       <div class="pd-card">
         <div class="pd-card-hd">
-          <div class="pd-card-icon">🎯</div>
+          <div class="pd-card-icon-wrap">🎯</div>
           <div class="pd-card-title-wrap">
             <div class="pd-card-title">My Skill Profile</div>
             <div class="pd-card-sub" id="pdSSub">Loading...</div>
@@ -4964,10 +5000,10 @@ async function updateFeedbackStatus(id) {
       <!-- My Achievements (full width) -->
       <div class="pd-card pd-card-wide">
         <div class="pd-card-hd">
-          <div class="pd-card-icon">🏆</div>
+          <div class="pd-card-icon-wrap">🏆</div>
           <div class="pd-card-title-wrap">
             <div class="pd-card-title">My Achievements</div>
-            <div class="pd-card-sub" id="pdASub">Your milestones and badges</div>
+            <div class="pd-card-sub" id="pdASub">Your milestones and badges — start a course to earn achievements.</div>
           </div>
           <button class="pd-card-cta" onclick="pdHideDashboard();dwGoCertificates('home')">View Certificates →</button>
         </div>
@@ -4975,7 +5011,7 @@ async function updateFeedbackStatus(id) {
       </div>
 
     </div><!-- /pd-grid -->
-  </div><!-- /pd-ov-body -->
+  </div><!-- /pd-content -->
 </div><!-- /pdOverlay -->
 
   <script src="/courses.js?v=5" defer></script>
