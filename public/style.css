@@ -2891,3 +2891,95 @@ html{scroll-behavior:smooth;}
 .user-menu-divider{height:1px;background:rgba(255,255,255,0.07);margin:0;}
 .user-menu-item{padding:12px 16px;font-size:13px;color:#8a92a0;cursor:pointer;transition:all .15s;}
 .user-menu-item:hover{background:rgba(255,255,255,0.05);color:#f0f0f6;}
+
+/* ══════════════════════════════════════════════════════
+   PERSONALIZED DASHBOARD
+   ══════════════════════════════════════════════════════ */
+
+/* Section wrapper */
+.pd-section{animation:fadeUp .4s ease both;}
+
+/* Welcome banner */
+.pd-welcome{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+.pd-greeting{font-size:24px;font-weight:700;color:var(--text);line-height:1.2;font-family:'DM Sans',sans-serif;}
+.pd-sub{font-size:13px;color:var(--muted);margin-top:4px;transition:color .3s;}
+.pd-welcome-avatar{width:48px;height:48px;border-radius:50%;border:2px solid var(--border);object-fit:cover;flex-shrink:0;}
+
+/* Quick metrics strip */
+.pd-metrics{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-bottom:20px;}
+.pd-metric{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 8px;text-align:center;cursor:pointer;transition:border-color .18s,transform .18s,box-shadow .18s;}
+.pd-metric:hover{border-color:rgba(232,201,122,.3);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.2),0 1px 4px rgba(0,0,0,.1);}
+.pd-metric-n{font-size:24px;font-weight:700;color:var(--text);font-family:'DM Sans',sans-serif;line-height:1;}
+.pd-metric-l{font-size:10px;color:var(--muted);margin-top:6px;font-family:'DM Mono',monospace;letter-spacing:.04em;text-transform:uppercase;}
+.pd-metric.pd-green .pd-metric-n{color:var(--success);}
+.pd-metric.pd-amber .pd-metric-n{color:#f9a74f;}
+.pd-metric.pd-red   .pd-metric-n{color:var(--danger);}
+.pd-metric.pd-gold  .pd-metric-n{color:var(--accent);}
+
+/* Cards grid */
+.pd-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:0;}
+.pd-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;transition:border-color .18s;}
+.pd-card:hover{border-color:rgba(232,201,122,.12);}
+.pd-card-wide{grid-column:1/-1;}
+
+/* Card header */
+.pd-card-hd{display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;}
+.pd-card-icon{font-size:18px;flex-shrink:0;margin-top:2px;}
+.pd-card-title-wrap{flex:1;min-width:0;}
+.pd-card-title{font-size:13px;font-weight:700;color:var(--text);}
+.pd-card-sub{font-size:11px;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace;}
+.pd-card-cta{flex-shrink:0;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.pd-card-cta:hover{border-color:var(--accent);color:var(--accent);}
+
+/* Progress bar */
+.pd-progress-wrap{margin-bottom:14px;}
+.pd-progress-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.pd-progress-label span{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+.pd-progress-pct{color:var(--accent);}
+.pd-progress-track{height:4px;background:var(--border);border-radius:99px;overflow:hidden;}
+.pd-progress-fill{height:100%;background:var(--accent);border-radius:99px;transition:width .7s ease;width:0;}
+
+/* Assignment list */
+.pd-assign-list{display:flex;flex-direction:column;}
+.pd-assign-item{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid rgba(42,42,56,.6);transition:background .12s;}
+.pd-assign-item:last-child{border-bottom:none;padding-bottom:0;}
+.pd-assign-item:hover{opacity:.85;}
+.pd-assign-name{flex:1;font-size:12px;color:var(--text);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pd-assign-badge{flex-shrink:0;font-size:10px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:6px;}
+.pd-status-done    {background:rgba(122,232,180,.1);color:var(--success);border:1px solid rgba(122,232,180,.22);}
+.pd-status-overdue {background:rgba(232,122,122,.1);color:var(--danger);border:1px solid rgba(232,122,122,.22);}
+.pd-status-progress{background:rgba(249,167,79,.1);color:#f9a74f;border:1px solid rgba(249,167,79,.22);}
+.pd-status-assigned{background:rgba(42,42,56,.5);color:var(--muted);border:1px solid var(--border);}
+.pd-assign-due{font-size:10px;color:var(--muted);flex-shrink:0;font-family:'DM Mono',monospace;}
+
+/* Skill bars */
+.pd-skill-list{display:flex;flex-direction:column;gap:10px;}
+.pd-skill-item{}
+.pd-skill-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.pd-skill-name{font-size:12px;color:var(--text);}
+.pd-skill-lv{font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);}
+.pd-skill-track{height:4px;background:var(--border);border-radius:99px;overflow:hidden;}
+.pd-skill-fill{height:100%;border-radius:99px;transition:width .6s ease;width:0;}
+
+/* Achievements */
+.pd-achiev-grid{display:flex;flex-wrap:wrap;gap:10px;}
+.pd-achiev-item{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;flex:1;min-width:140px;transition:border-color .15s,transform .15s;}
+.pd-achiev-item:hover{border-color:rgba(232,201,122,.2);transform:translateY(-1px);}
+.pd-achiev-item.pd-achiev-earned{border-color:rgba(122,232,180,.22);background:rgba(122,232,180,.04);}
+.pd-achiev-icon{font-size:22px;flex-shrink:0;}
+.pd-achiev-info{min-width:0;}
+.pd-achiev-val{font-size:18px;font-weight:700;color:var(--accent);font-family:'DM Sans',sans-serif;line-height:1;}
+.pd-achiev-earned .pd-achiev-val{color:var(--success);}
+.pd-achiev-lbl{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;text-transform:uppercase;letter-spacing:.04em;}
+
+/* Section divider */
+.pd-section-divider{height:1px;background:var(--border);margin:28px 0 24px;}
+
+/* Empty state */
+.pd-empty-state{font-size:11px;color:var(--muted);text-align:center;padding:20px 0;font-family:'DM Mono',monospace;}
+
+/* Responsive — collapse to 1 column on narrow viewports */
+@media(max-width:900px){
+  .pd-metrics{grid-template-columns:repeat(4,1fr);}
+  .pd-grid{grid-template-columns:1fr;}
+}

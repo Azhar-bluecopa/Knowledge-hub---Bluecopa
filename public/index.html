@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=41">
+  <link rel="stylesheet" href="/style.css?v=42">
   <script src="https://accounts.google.com/gsi/client" async></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
@@ -85,6 +85,105 @@
     </div>
   </div>
   <div class="content">
+
+    <!-- ══ Personalized Dashboard ══ -->
+    <div class="pd-section" id="pdSection" style="display:none">
+
+      <!-- Welcome Banner -->
+      <div class="pd-welcome">
+        <div class="pd-welcome-left">
+          <div class="pd-greeting" id="pdGreeting">Good morning!</div>
+          <div class="pd-sub" id="pdSub">Here's a snapshot of your progress today.</div>
+        </div>
+        <img id="pdAvatar" class="pd-welcome-avatar" referrerpolicy="no-referrer" style="display:none" alt="">
+      </div>
+
+      <!-- Quick Metrics Strip -->
+      <div class="pd-metrics">
+        <div class="pd-metric" onclick="dwGoLearning()">
+          <div class="pd-metric-n" id="pdMAssigned">—</div>
+          <div class="pd-metric-l">Assigned</div>
+        </div>
+        <div class="pd-metric pd-green" onclick="dwGoLearning()">
+          <div class="pd-metric-n" id="pdMDone">—</div>
+          <div class="pd-metric-l">Completed</div>
+        </div>
+        <div class="pd-metric pd-amber" onclick="dwGoLearning()">
+          <div class="pd-metric-n" id="pdMInProgress">—</div>
+          <div class="pd-metric-l">In Progress</div>
+        </div>
+        <div class="pd-metric pd-red" onclick="dwGoLearning()">
+          <div class="pd-metric-n" id="pdMOverdue">—</div>
+          <div class="pd-metric-l">Overdue</div>
+        </div>
+        <div class="pd-metric pd-gold" onclick="dwGoCertificates('home')">
+          <div class="pd-metric-n" id="pdMCerts">—</div>
+          <div class="pd-metric-l">Certificates</div>
+        </div>
+        <div class="pd-metric" onclick="dwGoSkillMatrix()">
+          <div class="pd-metric-n" id="pdMSkill">—</div>
+          <div class="pd-metric-l">Skill Score</div>
+        </div>
+        <div class="pd-metric" onclick="dwGoKnowledge()">
+          <div class="pd-metric-n" id="pdMRead">—</div>
+          <div class="pd-metric-l">Articles Read</div>
+        </div>
+      </div>
+
+      <!-- Cards Grid -->
+      <div class="pd-grid">
+
+        <!-- My Learning -->
+        <div class="pd-card">
+          <div class="pd-card-hd">
+            <div class="pd-card-icon">📚</div>
+            <div class="pd-card-title-wrap">
+              <div class="pd-card-title">My Learning</div>
+              <div class="pd-card-sub" id="pdLSub">Loading...</div>
+            </div>
+            <button class="pd-card-cta" onclick="dwGoLearning()">View All →</button>
+          </div>
+          <div class="pd-progress-wrap" id="pdLProgressWrap" style="display:none">
+            <div class="pd-progress-label">
+              <span>Mandatory Completion</span>
+              <span class="pd-progress-pct" id="pdLProgressPct">0%</span>
+            </div>
+            <div class="pd-progress-track"><div class="pd-progress-fill" id="pdLProgressFill"></div></div>
+          </div>
+          <div class="pd-assign-list" id="pdAssignList"></div>
+        </div>
+
+        <!-- My Skill Profile -->
+        <div class="pd-card">
+          <div class="pd-card-hd">
+            <div class="pd-card-icon">🎯</div>
+            <div class="pd-card-title-wrap">
+              <div class="pd-card-title">My Skill Profile</div>
+              <div class="pd-card-sub" id="pdSSub">Loading...</div>
+            </div>
+            <button class="pd-card-cta" onclick="dwGoSkillMatrix()">View →</button>
+          </div>
+          <div class="pd-skill-list" id="pdSkillList"></div>
+        </div>
+
+        <!-- My Achievements (full width) -->
+        <div class="pd-card pd-card-wide">
+          <div class="pd-card-hd">
+            <div class="pd-card-icon">🏆</div>
+            <div class="pd-card-title-wrap">
+              <div class="pd-card-title">My Achievements</div>
+              <div class="pd-card-sub" id="pdASub">Your milestones and badges</div>
+            </div>
+            <button class="pd-card-cta" onclick="dwGoCertificates('home')">View Certificates →</button>
+          </div>
+          <div class="pd-achiev-grid" id="pdAchievGrid"></div>
+        </div>
+
+      </div><!-- /pd-grid -->
+
+      <div class="pd-section-divider"></div>
+    </div><!-- /pdSection -->
+
     <div class="stats-row">
       <div class="stat-card"><div class="stat-num" id="totalCount">—</div><div class="stat-label">Total Articles</div></div>
       <div class="stat-card"><div class="stat-num" id="catCount">—</div><div class="stat-label">Categories</div></div>
@@ -2501,6 +2600,7 @@ document.addEventListener('keydown',e=>{
   const u=getUser();
   if(u) renderUserInfo();
   loadAll();
+  pdLoadDashboard();
   connectWS();
   // Poll for new requests every 60s when admin is logged in
   setInterval(refreshRequestBadge, 60000);
@@ -2513,6 +2613,233 @@ document.addEventListener('keydown',e=>{
 function _readKey() { const u = getUser(); return u ? `kb_read_${u.name}` : 'kb_read_anon'; }
 function getReadArticles() { try { return new Set(JSON.parse(localStorage.getItem(_readKey()) || '[]')); } catch(e) { return new Set(); } }
 function markArticleRead(id) { const s = getReadArticles(); s.add(Number(id)); localStorage.setItem(_readKey(), JSON.stringify([...s])); }
+
+// ── Personalized Dashboard ──────────────────────────────────────────────────
+async function pdLoadDashboard() {
+  const u = getUser();
+  const sec = document.getElementById('pdSection');
+  if (!sec) return;
+  if (!u || !u.name) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+
+  // Greeting
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const firstName = u.name.split(' ')[0];
+  const gEl = document.getElementById('pdGreeting');
+  if (gEl) gEl.textContent = `${greet}, ${firstName}!`;
+
+  // Avatar
+  const av = document.getElementById('pdAvatar');
+  if (av && u.picture) { av.src = u.picture; av.style.display = ''; }
+
+  // Articles read
+  const readCount = getReadArticles().size;
+  const rdEl = document.getElementById('pdMRead');
+  if (rdEl) rdEl.textContent = readCount;
+
+  // ── Learning data ──
+  try {
+    const r = await fetch('/api/learning/assignments?user=' + encodeURIComponent(u.name));
+    if (r.ok) {
+      const d = await r.json();
+      const assignments = d.assignments || [];
+      const prog = JSON.parse(localStorage.getItem('ml_prog') || '{}');
+      const now = new Date();
+      let completed = 0, overdue = 0, inProgress = 0, mandatoryTotal = 0, mandatoryDone = 0;
+
+      assignments.forEach(function(a) {
+        const cp = prog[a.courseId] || {};
+        const done = cp.passed === true;
+        const started = (cp.lessons || []).length > 0;
+        const isOverdue = a.dueDate && !done && new Date(a.dueDate) < now;
+        if (done) completed++;
+        else if (isOverdue) overdue++;
+        else if (started) inProgress++;
+        if (a.type === 'mandatory') { mandatoryTotal++; if (done) mandatoryDone++; }
+      });
+
+      const certs = Object.values(prog).filter(function(p){ return p.passed; }).length;
+      const pct = mandatoryTotal ? Math.round(mandatoryDone / mandatoryTotal * 100) : 0;
+
+      // Quick metrics
+      var el;
+      el = document.getElementById('pdMAssigned'); if (el) el.textContent = assignments.length;
+      el = document.getElementById('pdMDone');     if (el) el.textContent = completed;
+      el = document.getElementById('pdMInProgress'); if (el) el.textContent = inProgress;
+      el = document.getElementById('pdMOverdue');  if (el) el.textContent = overdue;
+      el = document.getElementById('pdMCerts');    if (el) el.textContent = certs;
+
+      // Sub-message
+      const subEl = document.getElementById('pdSub');
+      if (subEl) {
+        if (overdue > 0) {
+          subEl.textContent = 'You have ' + overdue + ' overdue training' + (overdue > 1 ? 's' : '') + ' — let\'s catch up today.';
+          subEl.style.color = 'var(--danger)';
+        } else if (assignments.length > 0 && completed === assignments.length) {
+          subEl.textContent = 'Great work! All your assigned trainings are complete.';
+          subEl.style.color = 'var(--success)';
+        } else if (inProgress > 0) {
+          subEl.textContent = 'Continue your learning and delivery excellence journey.';
+        } else {
+          subEl.textContent = "Here's a snapshot of your progress today.";
+        }
+      }
+
+      // My Learning card sub + progress bar
+      const lSubEl = document.getElementById('pdLSub');
+      if (lSubEl) lSubEl.textContent = assignments.length ? (completed + ' of ' + assignments.length + ' complete') : 'No assignments yet';
+      const progressWrap = document.getElementById('pdLProgressWrap');
+      if (progressWrap && mandatoryTotal > 0) {
+        progressWrap.style.display = '';
+        el = document.getElementById('pdLProgressFill'); if (el) el.style.width = pct + '%';
+        el = document.getElementById('pdLProgressPct');  if (el) el.textContent = pct + '%';
+      }
+
+      // Assignment list (overdue first, then in-progress, then pending, done last — top 6)
+      const listEl = document.getElementById('pdAssignList');
+      if (listEl) {
+        if (!assignments.length) {
+          listEl.innerHTML = '<div class="pd-empty-state">No assignments yet — <span onclick="dwGoLearning()" style="color:var(--accent);cursor:pointer">explore courses →</span></div>';
+        } else {
+          var sorted = assignments.map(function(a) {
+            const cp = prog[a.courseId] || {};
+            const done = cp.passed === true;
+            const started = (cp.lessons || []).length > 0;
+            const isOverdue = a.dueDate && !done && new Date(a.dueDate) < now;
+            return Object.assign({}, a, { done: done, started: started, isOverdue: isOverdue });
+          }).sort(function(a, b) {
+            if (a.isOverdue && !b.isOverdue) return -1;
+            if (!a.isOverdue && b.isOverdue) return 1;
+            if (a.started && !b.started && !a.done && !b.done) return -1;
+            if (!a.started && b.started && !a.done && !b.done) return 1;
+            if (!a.done && b.done) return -1;
+            if (a.done && !b.done) return 1;
+            return 0;
+          }).slice(0, 6);
+
+          listEl.innerHTML = sorted.map(function(a) {
+            var statusHtml, statusCls;
+            if (a.done)          { statusHtml = '✓ Done';       statusCls = 'pd-status-done'; }
+            else if (a.isOverdue){ statusHtml = '⚠ Overdue';    statusCls = 'pd-status-overdue'; }
+            else if (a.started)  { statusHtml = '⟳ In Progress'; statusCls = 'pd-status-progress'; }
+            else                 { statusHtml = 'Assigned';      statusCls = 'pd-status-assigned'; }
+            var dueStr = '';
+            if (a.dueDate) {
+              var d = new Date(a.dueDate);
+              dueStr = d.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+            }
+            return '<div class="pd-assign-item" onclick="dwGoLearning()" style="cursor:pointer">' +
+              '<span class="pd-assign-name">' + escHtml(a.courseName || a.courseId) + '</span>' +
+              '<span class="pd-assign-badge ' + statusCls + '">' + statusHtml + '</span>' +
+              (dueStr ? '<span class="pd-assign-due">' + escHtml(dueStr) + '</span>' : '') +
+              '</div>';
+          }).join('');
+        }
+      }
+
+      // Achievements
+      pdRenderAchievements(certs, assignments, completed, overdue, inProgress, readCount, prog, mandatoryTotal, mandatoryDone);
+    }
+  } catch(e) {}
+
+  // ── Skill matrix ──
+  try {
+    const r2 = await fetch('/api/skillmatrix');
+    if (r2.ok) {
+      const sm = await r2.json();
+      const employees = sm.employees || [];
+      const processAreas = sm.processAreas || [];
+      const currentScores = sm.currentScores || {};
+      const emp = employees.find(function(e){ return e.name === u.name; });
+
+      if (emp && processAreas.length) {
+        var scores = processAreas.map(function(pa) {
+          return { name: pa, score: currentScores[emp.id + '_' + pa] || 0 };
+        });
+        var scoredItems = scores.filter(function(s){ return s.score > 0; });
+        var avg = scoredItems.length ? (scoredItems.reduce(function(s,r){ return s + r.score; }, 0) / scoredItems.length) : 0;
+
+        el = document.getElementById('pdMSkill');
+        if (el) el.textContent = avg ? avg.toFixed(1) : '—';
+
+        const skillSubEl = document.getElementById('pdSSub');
+        if (skillSubEl) {
+          if (avg) {
+            var lvl = avg <= 1.5 ? 'Beginner' : avg <= 2.5 ? 'Intermediate' : avg <= 3.5 ? 'Advanced' : 'Expert';
+            var pending = scores.filter(function(s){ return s.score === 0; }).length;
+            skillSubEl.textContent = lvl + ' avg · ' + (scores.length - pending) + '/' + scores.length + ' areas scored';
+          } else {
+            skillSubEl.textContent = 'Not yet scored in the skill matrix';
+          }
+        }
+
+        const skillListEl = document.getElementById('pdSkillList');
+        if (skillListEl) {
+          if (!scoredItems.length) {
+            skillListEl.innerHTML = '<div class="pd-empty-state">No scores recorded yet — ask your admin to assess your skills</div>';
+          } else {
+            var SM_COLORS = { 0:'var(--border)', 1:'#e87a7a', 2:'#f9a74f', 3:'#7ae8b4', 4:'#7a9ee8' };
+            var SM_LEVELS = ['', 'Beginner', 'Intermediate', 'Advanced', 'Expert'];
+            skillListEl.innerHTML = scores.map(function(s) {
+              var pct2 = s.score ? (s.score / 4 * 100) : 0;
+              var clr  = SM_COLORS[Math.round(s.score)] || SM_COLORS[0];
+              var lv   = SM_LEVELS[Math.round(s.score)] || '';
+              return '<div class="pd-skill-item">' +
+                '<div class="pd-skill-hd">' +
+                  '<span class="pd-skill-name">' + escHtml(s.name) + '</span>' +
+                  '<span class="pd-skill-lv">' + (s.score ? (s.score + ' · ' + lv) : 'Not scored') + '</span>' +
+                '</div>' +
+                '<div class="pd-skill-track"><div class="pd-skill-fill" style="width:' + pct2 + '%;background:' + clr + '"></div></div>' +
+                '</div>';
+            }).join('');
+          }
+        }
+      } else {
+        el = document.getElementById('pdMSkill'); if (el) el.textContent = '—';
+        const sSubEl = document.getElementById('pdSSub');
+        if (sSubEl) sSubEl.textContent = 'Your name is not in the skill matrix yet';
+        const sListEl = document.getElementById('pdSkillList');
+        if (sListEl) sListEl.innerHTML = '<div class="pd-empty-state">Contact your admin to be added to the skill matrix</div>';
+      }
+    }
+  } catch(e2) {}
+}
+
+function pdRenderAchievements(certs, assignments, completed, overdue, inProgress, readCount, prog, mandatoryTotal, mandatoryDone) {
+  const achEl = document.getElementById('pdAchievGrid');
+  if (!achEl) return;
+
+  var certCourses = Object.values(prog).filter(function(p){ return p.passed; }).length;
+  var allMandatoryDone = mandatoryTotal > 0 && mandatoryDone === mandatoryTotal;
+  var noOverdue = assignments.length > 0 && overdue === 0;
+
+  var items = [
+    { icon: '🏆', val: certCourses, lbl: 'Certificates', earned: certCourses > 0, onclick: "dwGoCertificates('home')" },
+    { icon: '📚', val: completed, lbl: 'Courses Completed', earned: completed > 0, onclick: 'dwGoLearning()' },
+    { icon: '📖', val: readCount, lbl: 'Articles Read', earned: readCount > 0, onclick: 'dwGoKnowledge()' },
+    { icon: '🎓', val: mandatoryTotal ? (mandatoryDone + '/' + mandatoryTotal) : '—', lbl: 'Mandatory Training', earned: allMandatoryDone, onclick: 'dwGoLearning()' },
+    { icon: '⚡', val: inProgress > 0 ? inProgress : (completed > 0 ? '✓' : '—'), lbl: 'In Progress', earned: false, onclick: 'dwGoLearning()' },
+    { icon: '✅', val: noOverdue ? 'On Track' : (overdue > 0 ? overdue + ' overdue' : '—'), lbl: 'Delivery Status', earned: noOverdue, onclick: 'dwGoLearning()' }
+  ];
+
+  achEl.innerHTML = items.map(function(it) {
+    return '<div class="pd-achiev-item' + (it.earned ? ' pd-achiev-earned' : '') + '" onclick="' + it.onclick + '" style="cursor:pointer">' +
+      '<div class="pd-achiev-icon">' + it.icon + '</div>' +
+      '<div class="pd-achiev-info">' +
+        '<div class="pd-achiev-val">' + it.val + '</div>' +
+        '<div class="pd-achiev-lbl">' + it.lbl + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  const subEl = document.getElementById('pdASub');
+  if (subEl) {
+    if (certCourses > 0) subEl.textContent = certCourses + ' certificate' + (certCourses !== 1 ? 's' : '') + ' earned — keep going!';
+    else if (completed > 0) subEl.textContent = 'Complete a course with 80%+ to earn your first certificate.';
+    else subEl.textContent = 'Your milestones and badges — start a course to earn achievements.';
+  }
+}
 
 // ── Article Feedback (global scope — must be outside IIFE for onclick to work) ──
 let _fbFormOpen = false;
