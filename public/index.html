@@ -2093,14 +2093,22 @@ function showAdminPanel() {
 }
 function closeAdminPanel(){
   const overlay = document.getElementById('adminPanelOverlay');
+  const modal = overlay.querySelector('.modal');
   overlay.classList.remove('open','view-fullscreen');
+  if(modal) modal.style.width = '640px';
   const btn = document.getElementById('adminMaxBtn');
-  if(btn){ btn.title='Maximize'; btn.classList.remove('is-restored'); }
+  if(btn){
+    btn.title='Maximize';
+    btn.querySelector('.icon-expand').style.display = '';
+    btn.querySelector('.icon-restore').style.display = 'none';
+  }
 }
 function toggleAdminMaximize(){
   const overlay = document.getElementById('adminPanelOverlay');
+  const modal = overlay.querySelector('.modal');
   const btn = document.getElementById('adminMaxBtn');
   const isMax = overlay.classList.toggle('view-fullscreen');
+  if(modal) modal.style.width = isMax ? '' : '640px';
   if(btn){
     btn.title = isMax ? 'Restore' : 'Maximize';
     btn.querySelector('.icon-expand').style.display = isMax ? 'none' : '';
