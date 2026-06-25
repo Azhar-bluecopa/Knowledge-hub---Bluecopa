@@ -2896,8 +2896,13 @@ html{scroll-behavior:smooth;}
    PERSONALIZED DASHBOARD
    ══════════════════════════════════════════════════════ */
 
-/* Section wrapper */
-.pd-section{animation:fadeUp .4s ease both;}
+/* Nav button */
+.mc-dash-btn{background:rgba(232,201,122,.07);border-color:rgba(232,201,122,.22);color:rgba(232,201,122,.8);}
+.mc-dash-btn:hover,.mc-dash-btn.mc-dash-active{background:rgba(232,201,122,.14);border-color:rgba(232,201,122,.4);color:#e8c97a;}
+.mc-dash-chevron{font-size:10px;margin-left:4px;display:inline-block;transition:transform .2s;}
+
+/* Collapsible panel on landing page */
+.pd-panel{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:28px 32px 24px;margin-bottom:24px;animation:fadeUp .3s ease both;}
 
 /* Welcome banner */
 .pd-welcome{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
