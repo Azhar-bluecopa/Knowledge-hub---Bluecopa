@@ -849,7 +849,8 @@ function gsiInit() {
   const overlay = document.getElementById('gSigninOverlay');
   if (!overlay) { setTimeout(gsiInit, 100); return; } // DOM not fully parsed yet
   const u = getUser();
-  if (u) { overlay.style.display = 'none'; return; }
+  if (u && u.googleId) { overlay.style.display = 'none'; return; } // valid Google session
+  if (u && !u.googleId) localStorage.removeItem('kb_user'); // clear old pre-Google sessions
   overlay.style.display = 'flex';
   if (typeof google === 'undefined') { setTimeout(gsiInit, 300); return; } // GIS script not loaded yet
   google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleSignIn, auto_select: false });
