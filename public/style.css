@@ -2876,8 +2876,8 @@ html{scroll-behavior:smooth;}
 #gSigninOverlay{position:fixed;inset:0;z-index:9999;background:#08080d;display:none;align-items:center;justify-content:center;overflow:hidden;}
 .gsi-bg-particles{position:absolute;inset:0;pointer-events:none;}
 .gsi-particle{position:absolute;width:2px;height:2px;border-radius:50%;background:#c9a227;opacity:.5;animation:gsiParticleRise linear infinite;}
-.gsi-card{position:relative;z-index:1;background:#0f0f16;border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:48px 44px;text-align:center;width:380px;box-shadow:0 40px 80px rgba(0,0,0,.7);animation:gsiFadeUp .5s ease both;}
-.gsi-logo-img{height:48px;margin-bottom:24px;display:block;margin-left:auto;margin-right:auto;}
+.gsi-card{position:relative;z-index:1;background:#0f0f16;border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:48px 44px;text-align:center;width:460px;max-width:92vw;box-shadow:0 40px 80px rgba(0,0,0,.7);animation:gsiFadeUp .5s ease both;}
+.gsi-logo-img{max-width:200px;width:100%;height:auto;margin-bottom:24px;display:block;margin-left:auto;margin-right:auto;image-rendering:auto;}
 .gsi-divider-line{width:40px;height:2px;background:#c9a227;border-radius:2px;margin:0 auto 24px;}
 .gsi-title{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:#f0f0f6;margin-bottom:8px;letter-spacing:-.3px;}
 .gsi-sub{font-size:13px;color:#8a92a0;margin-bottom:32px;font-family:'DM Sans',sans-serif;}
