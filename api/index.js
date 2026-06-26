@@ -82,7 +82,10 @@ app.use(async (req, res, next) => {
 });
 
 function isAdmin(req) {
-  return req.headers['x-admin-password'] === (db.settings && db.settings.adminPassword);
+  const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  if (!email) return false;
+  const adminEmails = (db.settings && db.settings.adminEmails) || ['azhar.m@bluecopa.com'];
+  return adminEmails.map(e => e.toLowerCase()).includes(email);
 }
 
 function getWeekNumber(d) {
@@ -255,23 +258,24 @@ app.get('/api/settings', (req, res) => {
 
 app.put('/api/settings', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
-  const { restrictions, adminPassword, siteTitle, aboutText } = req.body;
+  const { restrictions, adminEmails, siteTitle, aboutText } = req.body;
   if (!db.settings) db.settings = {};
-  if (restrictions)          db.settings.restrictions = { ...db.settings.restrictions, ...restrictions };
-  if (adminPassword?.trim()) db.settings.adminPassword = adminPassword.trim();
-  if (siteTitle?.trim())     db.settings.siteTitle = siteTitle.trim();
-  if (aboutText !== undefined) db.settings.aboutText = aboutText;
+  if (restrictions)                                      db.settings.restrictions = { ...db.settings.restrictions, ...restrictions };
+  if (Array.isArray(adminEmails) && adminEmails.length)  db.settings.adminEmails = adminEmails.map(e => e.trim().toLowerCase());
+  if (siteTitle?.trim())                                 db.settings.siteTitle = siteTitle.trim();
+  if (aboutText !== undefined)                           db.settings.aboutText = aboutText;
   await saveDB(db);
   res.json(db.settings);
 });
 
 // ── Admin login ───────────────────────────────────────────────────────────────
 app.post('/api/admin/login', (req, res) => {
-  const { password } = req.body;
-  if (password === (db.settings && db.settings.adminPassword))
-    res.json({ success: true });
-  else
-    res.status(401).json({ error: 'Invalid password' });
+  const email = (req.body.email || '').toLowerCase().trim();
+  if (!email) return res.status(400).json({ error: 'Email required' });
+  const adminEmails = (db.settings && db.settings.adminEmails) || ['azhar.m@bluecopa.com'];
+  if (adminEmails.map(e => e.toLowerCase()).includes(email))
+    return res.json({ ok: true });
+  return res.status(403).json({ error: 'Not authorized' });
 });
 
 // ── Analytics ─────────────────────────────────────────────────────────────────

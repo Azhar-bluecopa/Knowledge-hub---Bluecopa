@@ -497,25 +497,7 @@
   </div>
 </div>
 
-<!-- ── Admin Login Modal ── -->
-<div class="modal-overlay" id="adminLoginOverlay">
-  <div class="modal modal-sm">
-    <div class="modal-header">
-      <div class="modal-title">⚑ Admin Access</div>
-      <button class="modal-close" onclick="closeAdminLogin()">✕</button>
-    </div>
-    <p style="color:var(--muted);font-size:14px;margin-bottom:24px;line-height:1.6">Enter the admin password to manage categories, restrictions, and settings.</p>
-    <div class="form-group">
-      <label class="form-label">Admin Password</label>
-      <input class="form-input" type="password" id="adminPasswordInput" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')submitAdminLogin()"/>
-    </div>
-    <div id="adminLoginError" style="color:var(--danger);font-size:13px;margin-bottom:12px;display:none">Incorrect password.</div>
-    <div class="modal-footer">
-      <button class="btn-ghost" onclick="closeAdminLogin()">Cancel</button>
-      <button class="btn-primary" onclick="submitAdminLogin()">Unlock Admin</button>
-    </div>
-  </div>
-</div>
+<!-- Admin Login Modal removed — access is now determined by Google email -->
 
 <!-- ── Request Article Modal ── -->
 <div class="modal-overlay" id="requestModalOverlay" onclick="if(event.target===this)closeRequestModal()">
@@ -575,7 +557,7 @@
       <button class="admin-tab active" onclick="switchAdminTab('categories',this)">🏷 Categories</button>
       <button class="admin-tab" onclick="switchAdminTab('requests',this)" id="requestsTab">📩 Requests</button>
       <button class="admin-tab" onclick="switchAdminTab('settings',this)">⚙ Site Settings</button>
-      <button class="admin-tab" onclick="switchAdminTab('password',this)">🔑 Password</button>
+      <button class="admin-tab" onclick="switchAdminTab('admins',this)">👥 Admins</button>
       <button class="admin-tab" onclick="switchAdminTab('skillmatrix',this)">📈 Skill Matrix</button>
       <button class="admin-tab" onclick="switchAdminTab('auditlog',this)" id="auditLogTab">🔍 Audit Log</button>
       <button class="admin-tab" onclick="switchAdminTab('leadership',this)" id="leadershipAdminTab">👑 Leadership Access</button>
@@ -629,20 +611,16 @@
       </div>
     </div>
 
-    <!-- Tab: Password -->
-    <div class="admin-tab-panel" id="tab-password">
+    <!-- Tab: Admins -->
+    <div class="admin-tab-panel" id="tab-admins">
       <div class="settings-section">
-        <div class="settings-section-title">Change Admin Password</div>
-        <p style="color:var(--muted);font-size:13px;margin-bottom:16px;line-height:1.6">All current admin sessions will need to re-enter the new password.</p>
-        <div class="form-group">
-          <label class="form-label">New Password</label>
-          <input class="form-input" type="password" id="newAdminPwd" placeholder="Enter new password"/>
+        <div class="settings-section-title">Admin Email Access</div>
+        <p style="color:var(--muted);font-size:13px;margin-bottom:16px;line-height:1.6">Users who sign in with these Google email addresses will have admin access. At least one email must remain.</p>
+        <div id="adminEmailsList" style="margin-bottom:16px;"></div>
+        <div style="display:flex;gap:10px;">
+          <input class="form-input" type="email" id="newAdminEmail" placeholder="Add email address" style="flex:1"/>
+          <button class="btn-primary" onclick="addAdminEmail()" style="white-space:nowrap;padding:10px 18px">+ Add</button>
         </div>
-        <div class="form-group">
-          <label class="form-label">Confirm Password</label>
-          <input class="form-input" type="password" id="confirmAdminPwd" placeholder="Confirm new password"/>
-        </div>
-        <button class="btn-primary" onclick="changeAdminPassword()">Update Password</button>
       </div>
     </div>
 
@@ -769,8 +747,7 @@ let selectedColor  = COLOR_PALETTE[0];
 // ── Identity ──────────────────────────────────────────────────────────────────
 const GOOGLE_CLIENT_ID = '717453689746-5idsgi5ia5uc838fb0si0546mk4bhdkd.apps.googleusercontent.com';
 function getUser()  { const s=localStorage.getItem('kb_user');  return s?JSON.parse(s):null; }
-function getAdminPwd() { return localStorage.getItem('kb_admin_pwd') || null; }
-function setAdminPwd(p){ if(p) localStorage.setItem('kb_admin_pwd',p); else localStorage.removeItem('kb_admin_pwd'); }
+function getAdminPwd() { const u = getUser(); return (u && u.role === 'admin') ? u.email : null; }
 function initials(n){ return n.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2)||'??'; }
 
 function renderUserInfo() {
@@ -955,7 +932,7 @@ function applyFilters() {
 function adminHeaders(extra={}) {
   const h = {'Content-Type':'application/json',...extra};
   const p = getAdminPwd();
-  if (p) h['X-Admin-Password'] = p;
+  if (p) h['x-user-email'] = p;
   return h;
 }
 
@@ -1312,7 +1289,7 @@ async function deleteComment(commentId) {
   try {
     const r = await fetch(`/api/articles/${currentArticleId}/comments/${commentId}`, {
       method: 'DELETE',
-      headers: { 'x-admin-password': getAdminPwd() },
+      headers: { 'x-user-email': getAdminPwd() },
     });
     if (!r.ok) throw new Error('Failed');
     document.getElementById(`comment-${commentId}`)?.remove();
@@ -1381,7 +1358,7 @@ async function saveAboutText(){
   try {
     const r = await fetch('/api/settings', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'x-admin-password': getAdminPwd() },
+      headers: adminHeaders(),
       body: JSON.stringify({ aboutText: text })
     });
     if (!r.ok) { if(r.status===401) { handleAdminRequired(); return; } throw new Error(); }
@@ -2044,30 +2021,24 @@ function timeAgo(date) {
 }
 
 // ── Admin login ───────────────────────────────────────────────────────────────
-function showAdminLoginModal() {
-  document.getElementById('adminLoginOverlay').classList.add('open');
-  document.getElementById('adminLoginError').style.display='none';
-  document.getElementById('adminPasswordInput').value='';
-  setTimeout(()=>document.getElementById('adminPasswordInput').focus(),100);
-}
-
 async function openAdminPanel() {
-  const cached = getAdminPwd();
-  if (cached) {
-    // Verify the cached password is still valid before opening panel
-    try {
-      const r = await fetch('/api/admin/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:cached})});
-      if (r.ok) { showAdminPanel(); return; }
-      // Cached password is wrong — clear it and prompt re-login
-      setAdminPwd(null);
+  const u = getUser();
+  if (!u || !u.email) { showToast('Please sign in to access admin', 'error'); return; }
+  if (u.role === 'admin') { showAdminPanel(); return; }
+  try {
+    const r = await fetch('/api/admin/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email: u.email})});
+    if (r.ok) {
+      u.role = 'admin';
+      localStorage.setItem('kb_user', JSON.stringify(u));
       renderUserInfo();
-      showToast('Session expired. Please log in again.', 'error');
-    } catch { showToast('Server unreachable', 'error'); return; }
-  }
-  showAdminLoginModal();
+      showAdminPanel();
+    } else {
+      showToast('You do not have admin access', 'error');
+    }
+  } catch { showToast('Server unreachable', 'error'); }
 }
 
-function closeAdminLogin(){ document.getElementById('adminLoginOverlay').classList.remove('open'); }
+function closeAdminLogin(){}
 
 // ── Article Request ───────────────────────────────────────────────────────────
 function openRequestModal(){
@@ -2123,25 +2094,12 @@ async function submitArticleRequest(){
   }
 }
 
-async function submitAdminLogin() {
-  const pwd = document.getElementById('adminPasswordInput').value;
-  try {
-    const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})});
-    if (!r.ok) { document.getElementById('adminLoginError').style.display='block'; return; }
-    setAdminPwd(pwd);
-    closeAdminLogin();
-    renderUserInfo();
-    applyRestrictions();
-    showAdminPanel();
-  } catch { showToast('Server error','error'); }
-}
-
 // Auto-handle "Admin required" errors from any API call
 async function handleAdminRequired() {
-  setAdminPwd(null);
+  const u = getUser();
+  if (u) { u.role = null; localStorage.setItem('kb_user', JSON.stringify(u)); }
   renderUserInfo();
-  showToast('Admin session expired. Please log in again.', 'error');
-  showAdminLoginModal();
+  showToast('Admin session expired. Please sign in again.', 'error');
 }
 
 function showAdminPanel() {
@@ -2182,6 +2140,7 @@ function switchAdminTab(tab, el) {
   document.getElementById(`tab-${tab}`).classList.add('active');
   if (tab === 'requests') loadRequestsTab();
   if (tab === 'feedback') loadFeedbackTab();
+  if (tab === 'admins')   renderAdminEmailsList();
 }
 
 // ── Article Requests (admin) ──────────────────────────────────────────────────
@@ -2189,7 +2148,7 @@ async function loadRequestsTab() {
   const el = document.getElementById('requestsList');
   el.innerHTML = '<div class="req-empty" style="color:var(--muted)">Loading…</div>';
   try {
-    const r = await fetch('/api/article-requests', { headers: { 'x-admin-password': getAdminPwd() } });
+    const r = await fetch('/api/article-requests', { headers: { 'x-user-email': getAdminPwd() } });
     if (!r.ok) { el.innerHTML = '<div class="req-empty">Could not load requests.</div>'; return; }
     const requests = await r.json();
     updateRequestBadge(requests);
@@ -2224,7 +2183,7 @@ async function resolveRequest(id) {
   try {
     const r = await fetch(`/api/article-requests/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-admin-password': getAdminPwd() },
+      headers: adminHeaders(),
       body: JSON.stringify({ status: 'resolved' })
     });
     if (!r.ok) throw new Error('Failed');
@@ -2255,7 +2214,7 @@ async function refreshRequestBadge() {
   const pwd = getAdminPwd();
   if (!pwd) return;
   try {
-    const r = await fetch('/api/article-requests', { headers: { 'x-admin-password': pwd } });
+    const r = await fetch('/api/article-requests', { headers: { 'x-user-email': pwd } });
     if (!r.ok) return;
     updateRequestBadge(await r.json());
   } catch {}
@@ -2308,6 +2267,7 @@ function loadAdminPanel() {
     el.querySelector('input').checked = v===wp;
   });
   document.getElementById('siteTitleInput').value = siteSettings.siteTitle||'KnowledgeHub';
+  renderAdminEmailsList();
 }
 
 // ── Categories ────────────────────────────────────────────────────────────────
@@ -2408,21 +2368,48 @@ async function saveSettings() {
   } catch(e){ showToast(e.message,'error'); }
 }
 
-async function changeAdminPassword() {
-  const np  = document.getElementById('newAdminPwd').value;
-  const cp  = document.getElementById('confirmAdminPwd').value;
-  if (!np)        { showToast('Enter a new password','error'); return; }
-  if (np !== cp)  { showToast('Passwords do not match','error'); return; }
-  if (np.length<4){ showToast('Password must be at least 4 characters','error'); return; }
+function renderAdminEmailsList() {
+  const el = document.getElementById('adminEmailsList');
+  if (!el) return;
+  const emails = siteSettings.adminEmails || ['azhar.m@bluecopa.com'];
+  el.innerHTML = emails.map(e => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;">
+      <span style="font-size:14px;color:var(--text)">${escHtml(e)}</span>
+      <button onclick="removeAdminEmail('${escHtml(e)}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;line-height:1;" title="Remove">✕</button>
+    </div>
+  `).join('');
+}
+
+async function addAdminEmail() {
+  const input = document.getElementById('newAdminEmail');
+  const email = (input?.value || '').trim().toLowerCase();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email address', 'error'); return; }
+  const current = siteSettings.adminEmails || ['azhar.m@bluecopa.com'];
+  if (current.includes(email)) { showToast('Email already in the list', 'error'); return; }
+  const updated = [...current, email];
   try {
-    const r=await fetch('/api/settings',{method:'PUT',headers:adminHeaders(),body:JSON.stringify({adminPassword:np})});
+    const r = await fetch('/api/settings', {method:'PUT', headers:adminHeaders(), body:JSON.stringify({adminEmails: updated})});
     if (r.status===401) { await handleAdminRequired(); return; }
     if (!r.ok) throw new Error((await r.json()).error);
-    setAdminPwd(np);
-    document.getElementById('newAdminPwd').value='';
-    document.getElementById('confirmAdminPwd').value='';
-    showToast('Password updated','success');
-  } catch(e){ showToast(e.message,'error'); }
+    siteSettings.adminEmails = updated;
+    if (input) input.value = '';
+    renderAdminEmailsList();
+    showToast('Admin email added', 'success');
+  } catch(e) { showToast(e.message || 'Error saving', 'error'); }
+}
+
+async function removeAdminEmail(email) {
+  const current = siteSettings.adminEmails || ['azhar.m@bluecopa.com'];
+  if (current.length <= 1) { showToast('At least one admin email must remain', 'error'); return; }
+  const updated = current.filter(e => e !== email);
+  try {
+    const r = await fetch('/api/settings', {method:'PUT', headers:adminHeaders(), body:JSON.stringify({adminEmails: updated})});
+    if (r.status===401) { await handleAdminRequired(); return; }
+    if (!r.ok) throw new Error((await r.json()).error);
+    siteSettings.adminEmails = updated;
+    renderAdminEmailsList();
+    showToast('Admin email removed', 'success');
+  } catch(e) { showToast(e.message || 'Error saving', 'error'); }
 }
 
 // ── WebSocket ─────────────────────────────────────────────────────────────────
@@ -2489,17 +2476,6 @@ document.addEventListener('keydown',e=>{
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 (async function init(){
-  // Auto-verify cached admin password on every page load — clear if stale
-  const cached = getAdminPwd();
-  if (cached) {
-    try {
-      const r = await fetch('/api/admin/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:cached})});
-      if (!r.ok) {
-        setAdminPwd(null); // wipe the bad cached password silently
-      }
-    } catch(e) { /* server unreachable, leave as-is */ }
-  }
-
   gsiInit();
   const u=getUser();
   if(u) renderUserInfo();
@@ -2937,7 +2913,7 @@ async function loadFeedbackTab() {
   const el = document.getElementById('fbList');
   el.innerHTML = '<div class="fb-empty">Loading…</div>';
   try {
-    const r = await fetch('/api/feedback', { headers: { 'x-admin-password': getAdminPwd() } });
+    const r = await fetch('/api/feedback', { headers: { 'x-user-email': getAdminPwd() } });
     if (!r.ok) { el.innerHTML = '<div class="fb-empty">Could not load feedback.</div>'; return; }
     _fbAll = await r.json();
     const counts = { open:0, in_progress:0, resolved:0, closed:0 };
@@ -3009,7 +2985,7 @@ async function updateFeedbackStatus(id) {
   try {
     const r = await fetch(`/api/feedback/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'x-admin-password': getAdminPwd() },
+      headers: adminHeaders(),
       body: JSON.stringify({ status, resolutionNotes: notes, adminName: u?.name || 'Admin' })
     });
     if (!r.ok) throw new Error('Failed');

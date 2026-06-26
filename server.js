@@ -104,10 +104,14 @@ function migrate() {
   }
   if (!db.settings) {
     db.settings = {
-      adminPassword: 'admin123',
-      siteTitle:     'KnowledgeHub',
-      restrictions:  { whoCanPost: 'anyone' }  // 'anyone' | 'admins_only' | 'disabled'
+      adminEmails:  ['azhar.m@bluecopa.com'],
+      siteTitle:    'KnowledgeHub',
+      restrictions: { whoCanPost: 'anyone' }
     };
+    dirty = true;
+  }
+  if (db.settings && !db.settings.adminEmails) {
+    db.settings.adminEmails = ['azhar.m@bluecopa.com'];
     dirty = true;
   }
   // add views to existing articles
@@ -150,7 +154,10 @@ function broadcast(data) {
   wss.clients.forEach(c => { if (c.readyState === 1) c.send(msg); });
 }
 function isAdmin(req) {
-  return req.headers['x-admin-password'] === db.settings.adminPassword;
+  const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  if (!email) return false;
+  const adminEmails = (db.settings && db.settings.adminEmails) || ['azhar.m@bluecopa.com'];
+  return adminEmails.map(e => e.toLowerCase()).includes(email);
 }
 
 // ── Articles ──────────────────────────────────────────────────────────────────
@@ -330,21 +337,23 @@ app.get('/api/settings', (req, res) => {
 
 app.put('/api/settings', (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
-  const { restrictions, adminPassword, siteTitle, aboutText } = req.body;
-  if (restrictions)           db.settings.restrictions = { ...db.settings.restrictions, ...restrictions };
-  if (adminPassword?.trim())  db.settings.adminPassword = adminPassword.trim();
-  if (siteTitle?.trim())      db.settings.siteTitle = siteTitle.trim();
-  if (aboutText !== undefined) db.settings.aboutText = aboutText;
+  const { restrictions, adminEmails, siteTitle, aboutText } = req.body;
+  if (restrictions)                                      db.settings.restrictions = { ...db.settings.restrictions, ...restrictions };
+  if (Array.isArray(adminEmails) && adminEmails.length)  db.settings.adminEmails = adminEmails.map(e => e.trim().toLowerCase());
+  if (siteTitle?.trim())                                 db.settings.siteTitle = siteTitle.trim();
+  if (aboutText !== undefined)                           db.settings.aboutText = aboutText;
   saveDB(db);
-  const { adminPassword: _, ...pub } = db.settings;
-  broadcast({ type: 'settings_updated', settings: pub });
-  res.json(pub);
+  broadcast({ type: 'settings_updated', settings: db.settings });
+  res.json(db.settings);
 });
 
 app.post('/api/admin/login', (req, res) => {
-  const { password } = req.body;
-  if (password === db.settings.adminPassword) res.json({ success: true });
-  else res.status(401).json({ error: 'Invalid password' });
+  const email = (req.body.email || '').toLowerCase().trim();
+  if (!email) return res.status(400).json({ error: 'Email required' });
+  const adminEmails = (db.settings && db.settings.adminEmails) || ['azhar.m@bluecopa.com'];
+  if (adminEmails.map(e => e.toLowerCase()).includes(email))
+    return res.json({ ok: true });
+  return res.status(403).json({ error: 'Not authorized' });
 });
 
 // ── Comments ──────────────────────────────────────────────────────────────────
@@ -730,7 +739,7 @@ initDB().then(() => {
     const PORT = process.env.PORT || 3000;
     server.listen(PORT, () => {
       console.log(`\n  KnowledgeHub → http://localhost:${PORT}`);
-      console.log(`  Admin password: ${db.settings?.adminPassword || 'admin123'}\n`);
+      console.log(`  Admin emails: ${(db.settings?.adminEmails || ['azhar.m@bluecopa.com']).join(', ')}\n`);
     });
   }
 }).catch(e => {
