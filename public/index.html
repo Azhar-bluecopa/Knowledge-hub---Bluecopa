@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=50">
+  <link rel="stylesheet" href="/style.css?v=51">
   <script src="https://accounts.google.com/gsi/client" async></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
@@ -563,6 +563,7 @@
       <button class="admin-tab" onclick="switchAdminTab('auditlog',this)" id="auditLogTab">🔍 Audit Log</button>
       <button class="admin-tab" onclick="switchAdminTab('leadership',this)" id="leadershipAdminTab">👑 Leadership Access</button>
       <button class="admin-tab" onclick="switchAdminTab('feedback',this)" id="feedbackAdminTab">📋 Feedback <span id="fbOpenBadge" style="display:none;background:#f87171;color:#fff;border-radius:99px;padding:1px 7px;font-size:10px;margin-left:4px;font-weight:700;"></span></button>
+      <button class="admin-tab" onclick="switchAdminTab('proxy',this)" id="proxyLoginTab">👁 Proxy Login</button>
     </div>
 
     <!-- Tab: Categories -->
@@ -723,10 +724,34 @@
       <div id="fbList"></div>
     </div>
 
+    <!-- Tab: Proxy Login -->
+    <div class="admin-tab-panel" id="tab-proxy">
+      <div style="margin-bottom:16px;">
+        <div class="settings-section-title" style="margin-bottom:4px;">👁 Proxy Login</div>
+        <div style="font-size:12px;color:var(--muted)">Select a team member to view the site as them. Your session is logged. All writes are blocked during proxy.</div>
+      </div>
+      <div class="proxy-search-row">
+        <input type="text" class="form-input" id="proxySearchInput" placeholder="Search by name or email…" oninput="proxyFilterUsers(this.value)" style="max-width:380px;width:100%"/>
+      </div>
+      <div id="proxyUserList" class="proxy-user-list"></div>
+      <div style="margin-top:28px;">
+        <div class="settings-section-title" style="margin-bottom:10px;">Recent Proxy Sessions</div>
+        <div id="proxySessionLogs"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Proxy Login Banner -->
+<div id="proxyBanner" class="proxy-banner">
+  <span class="proxy-banner-icon">👁</span>
+  <span class="proxy-banner-text">Proxy Mode — Viewing as <strong id="proxyBannerName"></strong><span class="proxy-banner-email" id="proxyBannerEmail"></span></span>
+  <span class="proxy-banner-readonly">Read-only · Admin only</span>
+  <button class="proxy-exit-btn" onclick="exitProxy()">✕ Exit Proxy</button>
+</div>
 
 <script>
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -748,7 +773,14 @@ let selectedColor  = COLOR_PALETTE[0];
 // ── Identity ──────────────────────────────────────────────────────────────────
 const GOOGLE_CLIENT_ID = '717453689746-5idsgi5ia5uc838fb0si0546mk4bhdkd.apps.googleusercontent.com';
 function getUser()  { const s=localStorage.getItem('kb_user');  return s?JSON.parse(s):null; }
-function getAdminPwd() { const u = getUser(); return (u && u.role === 'admin') ? u.email : null; }
+function getAdminPwd() {
+  // During proxy mode, kb_user is the target user (not admin). Use kb_real_admin instead.
+  try { const ra = JSON.parse(localStorage.getItem('kb_real_admin')||'null'); if (ra && ra.role === 'admin') return ra.email; } catch(_){}
+  const u = getUser(); return (u && u.role === 'admin') ? u.email : null;
+}
+function isProxyActive() { return !!localStorage.getItem('kb_proxy_session'); }
+function getProxySession() { try { return JSON.parse(localStorage.getItem('kb_proxy_session')||'null'); } catch { return null; } }
+function getRealAdmin() { try { return JSON.parse(localStorage.getItem('kb_real_admin')||'null'); } catch { return null; } }
 function initials(n){ return n.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2)||'??'; }
 
 function renderUserInfo() {
@@ -2142,7 +2174,191 @@ function switchAdminTab(tab, el) {
   if (tab === 'requests') loadRequestsTab();
   if (tab === 'feedback') loadFeedbackTab();
   if (tab === 'admins')   renderAdminEmailsList();
+  if (tab === 'proxy')    loadProxyTab();
 }
+
+// ── Proxy Login ───────────────────────────────────────────────────────────────
+let _proxyUsers = [];
+const _proxyAvatarColors = ['#7a9ee8','#e87a9e','#7ae8b4','#c97ae8','#e8a87a','#22c55e'];
+
+async function loadProxyTab() {
+  const listEl = document.getElementById('proxyUserList');
+  const logsEl = document.getElementById('proxySessionLogs');
+  listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">Loading team members…</div>';
+  logsEl.innerHTML = '<div style="color:var(--muted);font-size:12px">Loading…</div>';
+  try {
+    const [usersRes, logsRes] = await Promise.all([
+      fetch('/api/proxy/users', { headers: { 'x-user-email': getAdminPwd() } }),
+      fetch('/api/proxy/logs',  { headers: { 'x-user-email': getAdminPwd() } })
+    ]);
+    if (usersRes.ok) {
+      const d = await usersRes.json();
+      _proxyUsers = d.users || [];
+      proxyFilterUsers('');
+    } else {
+      listEl.innerHTML = '<div style="color:var(--danger);font-size:13px">Could not load team members.</div>';
+    }
+    if (logsRes.ok) {
+      const logs = await logsRes.json();
+      renderProxyLogs(logsEl, logs);
+    }
+  } catch(e) {
+    listEl.innerHTML = '<div style="color:var(--danger);font-size:13px">Error: ' + escHtml(e.message) + '</div>';
+  }
+}
+
+function proxyFilterUsers(q) {
+  const listEl = document.getElementById('proxyUserList');
+  if (!listEl) return;
+  const query = (q || '').toLowerCase();
+  const filtered = query
+    ? _proxyUsers.filter(u => (u.name||'').toLowerCase().includes(query) || (u.email||'').toLowerCase().includes(query))
+    : _proxyUsers;
+  if (!filtered.length) {
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">No team members found.</div>';
+    return;
+  }
+  const currentEmail = (getUser()||{}).email || '';
+  listEl.innerHTML = filtered.map((u, i) => {
+    const col = _proxyAvatarColors[i % _proxyAvatarColors.length];
+    const isSelf = u.email.toLowerCase() === currentEmail.toLowerCase();
+    return `<div class="proxy-user-row">
+      <div class="proxy-user-avatar" style="background:${col}">${escHtml(u.initials||u.name[0]||'?')}</div>
+      <div class="proxy-user-info">
+        <div class="proxy-user-name">${escHtml(u.name)}${isSelf ? ' <span style="font-size:10px;color:var(--muted)">(you)</span>' : ''}</div>
+        <div class="proxy-user-email">${escHtml(u.email)}</div>
+      </div>
+      ${u.role ? `<div class="proxy-user-role">${escHtml(u.role)}</div>` : ''}
+      ${!isSelf ? `<button class="proxy-view-btn" onclick="startProxy(${JSON.stringify(JSON.stringify(u))})">View as →</button>` : '<div style="font-size:11px;color:var(--muted);padding:0 8px">This is you</div>'}
+    </div>`;
+  }).join('');
+}
+
+function renderProxyLogs(el, logs) {
+  if (!logs || !logs.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--muted)">No proxy sessions recorded yet.</div>';
+    return;
+  }
+  el.innerHTML = logs.slice(0, 20).map(l => {
+    const start = l.startedAt ? new Date(l.startedAt).toLocaleString('en-GB', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+    return `<div class="proxy-log-row">
+      <div class="proxy-log-target">👤 ${escHtml(l.targetName)} <span style="font-size:10px;color:var(--muted)">${escHtml(l.targetEmail)}</span></div>
+      <div class="proxy-log-admin">by ${escHtml(l.adminName)}</div>
+      <div class="proxy-log-time">${start}</div>
+      <div class="proxy-log-dur">${l.endedAt ? (l.duration || '—') : '<span style="color:#fbbf24">Active</span>'}</div>
+    </div>`;
+  }).join('');
+}
+
+async function startProxy(userJson) {
+  const targetUser = JSON.parse(userJson);
+  const realAdmin = getUser();
+  if (!realAdmin || !getAdminPwd()) { showToast('Admin access required.'); return; }
+
+  const sessionId = Date.now();
+  const session = {
+    sessionId,
+    adminName: realAdmin.name,
+    adminEmail: realAdmin.email,
+    targetName: targetUser.name,
+    targetEmail: targetUser.email,
+    startedAt: new Date().toISOString()
+  };
+
+  // Persist real admin before switching
+  localStorage.setItem('kb_real_admin', JSON.stringify(realAdmin));
+  localStorage.setItem('kb_proxy_session', JSON.stringify(session));
+
+  // Switch kb_user to target (role: 'user' so admin panel is not shown as target)
+  const proxyUserObj = {
+    name: targetUser.name,
+    email: targetUser.email,
+    initials: targetUser.initials || (targetUser.name||'?').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2),
+    role: 'user'
+  };
+  localStorage.setItem('kb_user', JSON.stringify(proxyUserObj));
+
+  // Log to server (use real admin email in header)
+  try {
+    await fetch('/api/proxy/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-email': realAdmin.email },
+      body: JSON.stringify({ event: 'start', ...session })
+    });
+  } catch(e) { console.warn('proxy log start failed', e); }
+
+  // Reset loaded state so content reloads as target user
+  if (typeof _rlLoaded !== 'undefined') _rlLoaded = false;
+
+  closeAdminPanel();
+  showProxyBanner(session);
+  renderUserInfo();
+  showLanding();
+  showToast('👁 Viewing as ' + targetUser.name);
+}
+
+async function exitProxy() {
+  const session = getProxySession();
+  const realAdmin = getRealAdmin();
+  if (!session || !realAdmin) return;
+
+  // Log exit to server
+  try {
+    await fetch('/api/proxy/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-email': realAdmin.email },
+      body: JSON.stringify({ event: 'end', sessionId: session.sessionId })
+    });
+  } catch(e) { console.warn('proxy log end failed', e); }
+
+  // Restore real admin
+  localStorage.setItem('kb_user', JSON.stringify(realAdmin));
+  localStorage.removeItem('kb_proxy_session');
+  localStorage.removeItem('kb_real_admin');
+
+  if (typeof _rlLoaded !== 'undefined') _rlLoaded = false;
+
+  hideProxyBanner();
+  renderUserInfo();
+  showLanding();
+  showToast('Returned to your account (' + realAdmin.name + ')');
+}
+
+function showProxyBanner(session) {
+  const s = session || getProxySession();
+  if (!s) return;
+  document.body.classList.add('proxy-active');
+  const el = document.getElementById('proxyBanner');
+  el.classList.add('active');
+  const nameEl = document.getElementById('proxyBannerName');
+  const emailEl = document.getElementById('proxyBannerEmail');
+  if (nameEl) nameEl.textContent = s.targetName;
+  if (emailEl) emailEl.textContent = '(' + s.targetEmail + ')';
+}
+
+function hideProxyBanner() {
+  document.body.classList.remove('proxy-active');
+  const el = document.getElementById('proxyBanner');
+  if (el) el.classList.remove('active');
+}
+
+// ── Read-only fetch interceptor for proxy mode ────────────────────────────────
+(function() {
+  const _realFetch = window.fetch.bind(window);
+  window.fetch = function(url, opts) {
+    if (isProxyActive()) {
+      const method = ((opts && opts.method) || 'GET').toUpperCase();
+      const isWrite = ['POST','PUT','DELETE','PATCH'].includes(method);
+      const urlStr = typeof url === 'string' ? url : (url.url || '');
+      if (isWrite && !urlStr.startsWith('/api/proxy/')) {
+        if (typeof showToast === 'function') showToast('Read-only during proxy — exit proxy to make changes.');
+        return Promise.resolve(new Response(JSON.stringify({error:'proxy_readonly'}),
+          {status:403, headers:{'Content-Type':'application/json'}}));
+      }
+    }
+    return _realFetch(url, opts);
+  };
+})();
 
 // ── Article Requests (admin) ──────────────────────────────────────────────────
 async function loadRequestsTab() {
@@ -2480,6 +2696,7 @@ document.addEventListener('keydown',e=>{
   gsiInit();
   const u=getUser();
   if(u) renderUserInfo();
+  if (isProxyActive()) showProxyBanner();
   loadAll();
   pdLoadDashboard();
   connectWS();

@@ -1296,6 +1296,60 @@ app.delete('/api/rocketlane/snapshots/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Proxy Login ───────────────────────────────────────────────────────────────
+function ensureProxyLogs() { if (!db.proxyLogs) db.proxyLogs = []; }
+
+app.get('/api/proxy/users', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) {
+    const emails = db.settings?.adminEmails || [];
+    return res.json({ users: emails.map(e => ({ name: e.split('@')[0], email: e, role: 'Admin', initials: (e[0]||'?').toUpperCase() })), source: 'settings' });
+  }
+  try {
+    const r = await fetch('https://api.rocketlane.com/api/1.0/users?pageSize=500', {
+      headers: { 'api-key': apiKey, 'Accept': 'application/json' }
+    });
+    if (!r.ok) throw new Error('Rocketlane users API ' + r.status);
+    const d = await r.json();
+    const users = (d.data || []).map(u => {
+      const name = u.name || [u.firstName, u.lastName].filter(Boolean).join(' ') || u.emailId || 'Unknown';
+      const email = (u.emailId || u.email || '').toLowerCase();
+      const role = u.role || u.designation || null;
+      const initials = name.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase() || '?';
+      return { name, email, role, initials };
+    }).filter(u => u.email);
+    res.json({ users, source: 'rocketlane' });
+  } catch(e) {
+    res.status(500).json({ error: e.message, users: [], source: 'error' });
+  }
+});
+
+app.post('/api/proxy/log', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureProxyLogs();
+  const { event, adminName, adminEmail, targetName, targetEmail, sessionId, startedAt } = req.body;
+  const now = new Date().toISOString();
+  if (event === 'start') {
+    db.proxyLogs.push({ id: Number(sessionId)||Date.now(), adminName: adminName||'', adminEmail: adminEmail||'', targetName: targetName||'', targetEmail: targetEmail||'', startedAt: startedAt||now, endedAt: null, duration: null });
+  } else if (event === 'end') {
+    const entry = db.proxyLogs.find(l => l.id === Number(sessionId));
+    if (entry && !entry.endedAt) {
+      entry.endedAt = now;
+      const ms = new Date(now) - new Date(entry.startedAt);
+      entry.duration = ms < 60000 ? '<1 min' : Math.round(ms/60000) + ' min';
+    }
+  }
+  try { await saveDB(db); } catch(_){}
+  res.json({ ok: true });
+});
+
+app.get('/api/proxy/logs', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureProxyLogs();
+  res.json([...db.proxyLogs].reverse().slice(0, 200));
+});
+
 // ── Learning Management ────────────────────────────────────────────────────────
 function ensureLearning() {
   if (!db.learning) db.learning = {
