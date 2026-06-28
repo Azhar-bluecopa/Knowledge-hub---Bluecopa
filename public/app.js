@@ -2106,6 +2106,15 @@ async function ppGenerateGame() {
 // ── History API: prevents pushState during popstate handling ──
 let _dwNavFlag = false;
 
+// Safe back navigation — uses history.back() when possible, falls back to landing
+function navBack() {
+  if (history.length > 1) {
+    history.back();
+  } else {
+    showLanding();
+  }
+}
+
 function showLanding(){
   if(!_dwNavFlag) history.pushState({screen:'landing'}, '');
   document.getElementById('dwLanding').classList.remove('dw-hidden');
@@ -2216,7 +2225,7 @@ function dwGoSkillMatrix(){
 
 function dwGoRoadmap(){
   hideLanding();
-  history.pushState({screen:'roadmap'}, '');
+  if(!_dwNavFlag) history.pushState({screen:'dw-roadmap'}, '');
   document.getElementById('dwRoadmapOverlay').classList.add('active');
 }
 
@@ -2473,6 +2482,15 @@ window.addEventListener('popstate', function(e){
   if(dv) dv.classList.remove('active');
   if(rv) rv.classList.remove('active');
   if(mainEl) mainEl.style.display = '';
+  // Close full-screen overlays not caught above
+  const _ro = document.getElementById('dwRoadmapOverlay');
+  if(_ro) _ro.classList.remove('active');
+  const _co = document.getElementById('dwCertOverlay');
+  if(_co) _co.classList.remove('active');
+  const _pdo = document.getElementById('pdOverlay');
+  if(_pdo) _pdo.classList.remove('active');
+  const _lio = document.getElementById('liOverlay');
+  if(_lio) _lio.style.display = 'none';
 
   // ── Activate the target screen ──
   if(scr === 'landing'){
@@ -2491,10 +2509,16 @@ window.addEventListener('popstate', function(e){
     if(dv) dv.classList.add('active');
     if(mainEl) mainEl.style.display = 'none';
     loadDashboard();
+  } else if(scr === 'pd-dashboard'){
+    if(_pdo) _pdo.classList.add('active');
+    if(typeof pdLoadDashboard === 'function') pdLoadDashboard();
+    if(!_rlLoaded && typeof pdLoadRocketlane === 'function') pdLoadRocketlane();
   } else if(scr === 'roadmap'){
     if(rv) rv.classList.add('active');
     if(mainEl) mainEl.style.display = 'none';
     renderRoadmap();
+  } else if(scr === 'dw-roadmap'){
+    if(_ro) _ro.classList.add('active');
   } else if(scr === 'about'){
     // Popping forward to about — reopen the modal
     openAbout();
@@ -2508,7 +2532,7 @@ window.addEventListener('popstate', function(e){
   } else if(scr === 'my-learning'){
     dwGoLearning();
   } else if(scr === 'certificates'){
-    document.getElementById('dwCertOverlay').classList.add('active');
+    if(_co) _co.classList.add('active');
     certRender();
   }
   // 'articles', 'article-detail', 'new-article' → main view already restored by reset

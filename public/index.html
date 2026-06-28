@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=48">
+  <link rel="stylesheet" href="/style.css?v=49">
   <script src="https://accounts.google.com/gsi/client" async></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
@@ -253,7 +253,8 @@
       <button class="sm-tab" id="smTabDash" onclick="smSwitchTab('dashboard')">📊 Dashboard</button>
       <button class="sm-tab" id="smTabAudit" onclick="smSwitchTab('audit')" style="display:none;">📋 Audit Log</button>
     </div>
-    <button class="btn-home" onclick="hideSkillMatrix();showLanding();" title="Home">🏠 <span>Home</span></button>
+    <button class="nav-back-btn" onclick="navBack()" style="margin-right:4px;">← Back</button>
+    <button class="btn-home" onclick="hideSkillMatrix();showLanding();" title="Home">⌂ <span>Home</span></button>
   </div>
 
   <!-- Self-Assessment Panel -->
@@ -2496,7 +2497,7 @@ function markArticleRead(id) { const s = getReadArticles(); s.add(Number(id)); l
 
 // ── Personalized Dashboard ──────────────────────────────────────────────────
 function pdShowDashboard() {
-  if(!_dwNavFlag) history.pushState({screen:'dashboard'}, '');
+  if(!_dwNavFlag) history.pushState({screen:'pd-dashboard'}, '');
   document.getElementById('pdOverlay').classList.add('active');
   if (!_rlLoaded) pdLoadRocketlane();
 }
@@ -3561,7 +3562,8 @@ async function updateFeedbackStatus(id) {
       <span class="pp-topbar-title">Process Puzzle</span>
     </div>
     <div class="pp-topbar-right">
-      <button class="pp-btn-home" onclick="hidePP()">← Exit</button>
+      <button class="nav-back-btn" onclick="navBack()" style="margin-right:4px;">← Back</button>
+      <button class="pp-btn-home" onclick="hidePP()">⌂ Home</button>
     </div>
   </div>
   <!-- Admin bar -->
@@ -3937,7 +3939,8 @@ async function updateFeedbackStatus(id) {
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
       <div id="liUserChip" style="font-size:12px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.4);letter-spacing:.06em;"></div>
-      <button onclick="liHide()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);border-radius:7px;padding:7px 16px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .18s;" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">← Exit</button>
+      <button onclick="navBack()" class="nav-back-btn">← Back</button>
+      <button onclick="liHide()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);border-radius:7px;padding:7px 16px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .18s;" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">⌂ Home</button>
     </div>
   </div>
 
@@ -4516,7 +4519,8 @@ async function updateFeedbackStatus(id) {
       </div>
       <button class="ml-cert-btn" onclick="dwGoCertificates('my-learning')">🏆 My Certificates</button>
       <button class="ml-admin-btn" id="mlAdminBtn" onclick="mlGoAdminLearning()">📋 Manage</button>
-      <button class="ml-home-btn" onclick="mlHide();showLanding();">🏠 Home</button>
+      <button class="nav-back-btn" onclick="navBack()" style="margin-right:4px;">← Back</button>
+      <button class="ml-home-btn" onclick="mlHide();showLanding();">⌂ Home</button>
     </div>
   </div>
 
@@ -4599,7 +4603,8 @@ async function updateFeedbackStatus(id) {
 
   <!-- Topbar -->
   <div class="rm-topbar">
-    <button class="rm-back" onclick="closeRoadmap()">← Home</button>
+    <button class="nav-back-btn" onclick="navBack()">← Back</button>
+    <button class="rm-back" onclick="closeRoadmap()">⌂ Home</button>
     <div class="rm-topbar-center">
       <div class="rm-topbar-title">🗺️ Website Roadmap</div>
       <div class="rm-topbar-sub">The journey to building Delivery Wikipedia's full vision</div>
@@ -4927,7 +4932,8 @@ async function updateFeedbackStatus(id) {
 <div class="cert-overlay" id="dwCertOverlay">
 
   <div class="cert-topbar">
-    <button class="cert-back" onclick="closeCertificates()">← Home</button>
+    <button class="nav-back-btn-gold" onclick="navBack()">← Back</button>
+    <button class="cert-back" onclick="closeCertificates()">⌂ Home</button>
     <div class="cert-topbar-center">
       <div class="cert-topbar-title">🏆 My Certificates</div>
       <div class="cert-topbar-sub">Your personalized course completion certificates</div>
@@ -4969,7 +4975,8 @@ async function updateFeedbackStatus(id) {
   <!-- Top bar -->
   <div class="pd-ov-topbar">
     <div class="pd-ov-topbar-left">
-      <button class="pd-ov-back" onclick="pdHideDashboard()">← Home</button>
+      <button class="nav-back-btn" onclick="navBack()">← Back</button>
+      <button class="pd-ov-back" onclick="pdHideDashboard()">⌂ Home</button>
       <div class="pd-ov-sep"></div>
       <span class="pd-ov-icon">📊</span>
       <span class="pd-ov-title">My Dashboard</span>
@@ -5109,6 +5116,6 @@ async function updateFeedbackStatus(id) {
 </div><!-- /pdOverlay -->
 
   <script src="/courses.js?v=5" defer></script>
-  <script src="/app.js?v=24" defer></script>
+  <script src="/app.js?v=25" defer></script>
 </body>
 </html>

@@ -2913,6 +2913,12 @@ html{scroll-behavior:smooth;}
 .pd-ov-topbar-left{display:flex;align-items:center;gap:12px;}
 .pd-ov-back{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:8px;padding:7px 14px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .18s;letter-spacing:.01em;}
 .pd-ov-back:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.9);border-color:rgba(255,255,255,.2);}
+/* Shared "← Back" button usable on any dark full-screen overlay */
+.nav-back-btn{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.45);border-radius:8px;padding:7px 14px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .18s;letter-spacing:.01em;}
+.nav-back-btn:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.2);}
+/* Variant for pages with lighter topbars */
+.nav-back-btn-gold{display:inline-flex;align-items:center;gap:6px;background:rgba(201,162,39,.06);border:1px solid rgba(201,162,39,.2);color:#e8c97a;border-radius:8px;padding:7px 14px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .18s;}
+.nav-back-btn-gold:hover{background:rgba(201,162,39,.16);border-color:rgba(201,162,39,.4);}
 .pd-ov-sep{width:1px;height:20px;background:rgba(255,255,255,.08);}
 .pd-ov-icon{font-size:18px;opacity:.7;}
 .pd-ov-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:.14em;font-family:'DM Mono',monospace;text-transform:uppercase;}
