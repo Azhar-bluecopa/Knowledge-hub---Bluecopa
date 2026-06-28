@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=51">
+  <link rel="stylesheet" href="/style.css?v=52">
   <script src="https://accounts.google.com/gsi/client" async></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
@@ -3081,98 +3081,123 @@ function pdRenderTimeline(projects, tasks) {
   if (!projects || !projects.length) { el.style.display = 'none'; return; }
   el.style.display = '';
 
-  var now = new Date(); now.setHours(0,0,0,0);
-  var minD = new Date(now.getTime() - 14 * 86400000);
-  var maxD = new Date(now.getTime() + 90 * 86400000);
+  var COLORS = ['#7a9ee8','#e87a9e','#a78bfa','#34d399','#f9a74f','#60a5fa','#f472b6','#4ade80'];
 
+  var now = new Date(); now.setHours(0,0,0,0);
+  var minD = new Date(now.getTime() - 7*86400000);
+  var maxD = new Date(now.getTime() + 90*86400000);
   projects.forEach(function(p) {
-    if (p.startDate) { var d = new Date(p.startDate); if (d < minD) minD = new Date(d); }
-    if (p.dueDate)   { var d = new Date(p.dueDate);   if (d > maxD) maxD = new Date(d); }
+    if (p.startDate) { var sd = new Date(p.startDate); if (sd < minD) minD = new Date(sd); }
+    if (p.dueDate)   { var dd = new Date(p.dueDate);   if (dd > maxD) maxD = new Date(dd); }
   });
-  maxD = new Date(maxD.getTime() + 14 * 86400000);
+  minD = new Date(new Date(minD.getFullYear(), minD.getMonth(), 1));
+  maxD = new Date(maxD.getTime() + 21*86400000);
   var span = maxD - minD;
 
-  function tlPct(dateVal) {
-    if (!dateVal) return -1;
-    return Math.max(0, Math.min(100, (new Date(dateVal) - minD) / span * 100));
+  function tlPct(d) {
+    if (!d) return -1;
+    return Math.max(0, Math.min(100, (new Date(d) - minD) / span * 100));
   }
-
   var todayP = tlPct(now);
 
-  // Month header labels
   var months = [];
   var cur = new Date(minD.getFullYear(), minD.getMonth(), 1);
   while (cur <= maxD) {
     var cp = tlPct(cur);
-    months.push({ p: cp, label: cur.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) });
+    if (cp >= 0 && cp <= 100) months.push({ p: cp, label: cur.toLocaleDateString('en-GB', {month:'short', year:'numeric'}) });
     cur.setMonth(cur.getMonth() + 1);
   }
-
   var monthsHtml = months.map(function(m) {
-    return '<div class="pd-rl-tl-month" style="left:' + m.p.toFixed(1) + '%">' + m.label + '</div>';
+    return '<div class="pd-rl-tl-month" style="left:'+m.p.toFixed(1)+'%">'+m.label+'</div>';
   }).join('');
-
   var gridHtml = months.map(function(m) {
-    return '<div class="pd-rl-tl-grid-line" style="left:' + m.p.toFixed(1) + '%"></div>';
+    return '<div class="pd-rl-tl-grid-line" style="left:'+m.p.toFixed(1)+'%"></div>';
   }).join('');
-
   var todayHtml = (todayP >= 0 && todayP <= 100)
-    ? '<div class="pd-rl-tl-today" style="left:' + todayP.toFixed(1) + '%"><div class="pd-rl-tl-today-lbl">Today</div></div>'
+    ? '<div class="pd-rl-tl-today" style="left:'+todayP.toFixed(1)+'%"><div class="pd-rl-tl-today-lbl">Today</div></div>'
     : '';
 
-  var rowsHtml = projects.map(function(proj) {
-    var bs = proj.startDate ? tlPct(proj.startDate) : Math.max(0, todayP);
+  var openCount = {}, overdueCount = {};
+  tasks.forEach(function(t) {
+    if (t.status.label !== 'Completed') {
+      openCount[t.projectId] = (openCount[t.projectId]||0)+1;
+      if (t.overdue) overdueCount[t.projectId] = (overdueCount[t.projectId]||0)+1;
+    }
+  });
+
+  var rowsHtml = projects.map(function(proj, idx) {
+    var color = COLORS[idx % COLORS.length];
+    var isDone = proj.status.label === 'Completed';
+    var isActive = proj.status.label === 'In progress';
+    var bs = proj.startDate ? tlPct(proj.startDate) : Math.max(0, todayP - 5);
     var be = proj.dueDate   ? tlPct(proj.dueDate)   : 100;
     bs = Math.max(0, bs); be = Math.min(100, be);
-    var bw = Math.max(0.8, be - bs);
-
-    var bColor = proj.status.label === 'Completed' ? '#22c55e'
-      : proj.status.label === 'In progress' ? '#c9a227'
-      : 'rgba(255,255,255,0.15)';
-    var bOpacity = proj.status.label === 'Completed' ? '0.45' : '0.72';
+    var bw = Math.max(1, be - bs);
+    var pct = proj.completionPct || 0;
+    var fillW = bw * pct / 100;
 
     var projTasks = tasks.filter(function(t) { return t.projectId === proj.projectId && t.dueDate; });
-    var dotsHtml = projTasks.slice(0, 15).map(function(t) {
+    var dotsHtml = projTasks.slice(0, 20).map(function(t) {
       var tp = tlPct(t.dueDate);
       if (tp < 0 || tp > 100) return '';
-      var dc = t.overdue ? '#dc2626' : t.status.label === 'Completed' ? '#22c55e' : 'rgba(255,255,255,0.6)';
-      var lbl = escHtml(t.taskName) + (t.dueDate ? ' · due ' + new Date(t.dueDate).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '');
-      return '<div class="pd-rl-tl-dot" style="left:' + tp.toFixed(1) + '%;background:' + dc + '" title="' + lbl + '"></div>';
+      var isDoneT = t.status.label === 'Completed';
+      var isOverT = t.overdue;
+      var dc = isOverT ? '#ef4444' : isDoneT ? '#22c55e' : 'rgba(255,255,255,0.75)';
+      var ring = isOverT ? 'rgba(239,68,68,0.4)' : isDoneT ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.2)';
+      var lbl = escHtml(t.taskName) + (t.dueDate ? ' · '+new Date(t.dueDate).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '');
+      return '<div class="pd-rl-tl-dot" style="left:'+tp.toFixed(1)+'%;background:'+dc+';box-shadow:0 0 0 2px '+ring+'" title="'+lbl+'"></div>';
     }).join('');
 
-    var nm = proj.projectName.length > 22 ? proj.projectName.slice(0, 22) + '…' : proj.projectName;
-    var dStr = proj.dueDate ? new Date(proj.dueDate).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : 'No end date';
-    var cst = proj.customer ? ' · ' + escHtml(proj.customer) : '';
+    var nm = proj.projectName.length > 28 ? proj.projectName.slice(0,28)+'…' : proj.projectName;
+    var dStr = proj.dueDate ? new Date(proj.dueDate).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) : '—';
+    var openT = openCount[proj.projectId]||0;
+    var overT = overdueCount[proj.projectId]||0;
+    var statusTxt = isDone ? '✓ Completed' : isActive ? '▶ In progress' : '○ Not started';
+    var statusClr = isDone ? '#34d399' : isActive ? color : 'rgba(255,255,255,0.3)';
+    var pctHtml = pct > 0 ? '<div class="pd-rl-tl-pct" style="left:'+(bs+fillW+0.5).toFixed(1)+'%">'+pct+'%</div>' : '';
 
-    return '<div class="pd-rl-tl-row">' +
-      '<div class="pd-rl-tl-label">' +
-        '<div class="pd-rl-tl-row-name" title="' + escHtml(proj.projectName) + (proj.customer ? ' · ' + escHtml(proj.customer) : '') + '">' + escHtml(nm) + '</div>' +
-        '<div class="pd-rl-tl-row-sub">Due ' + dStr + cst + '</div>' +
-      '</div>' +
-      '<div class="pd-rl-tl-track">' +
-        gridHtml + todayHtml +
-        '<div class="pd-rl-tl-bar" style="left:' + bs.toFixed(1) + '%;width:' + bw.toFixed(1) + '%;background:' + bColor + ';opacity:' + bOpacity + '"></div>' +
-        dotsHtml +
-      '</div>' +
+    return '<div class="pd-rl-tl-row">'+
+      '<div class="pd-rl-tl-label">'+
+        '<div class="pd-rl-tl-color-dot" style="background:'+color+';box-shadow:0 0 8px '+color+'66"></div>'+
+        '<div class="pd-rl-tl-label-text">'+
+          '<div class="pd-rl-tl-row-name" title="'+escHtml(proj.projectName)+(proj.customer?' · '+escHtml(proj.customer):'')+'">'+escHtml(nm)+'</div>'+
+          '<div class="pd-rl-tl-row-sub">'+
+            '<span style="color:'+statusClr+';font-weight:600">'+statusTxt+'</span>'+
+            ' · '+dStr+
+            (overT ? ' · <span style="color:#ef4444">'+overT+' overdue</span>' : '')+
+            (!isDone && openT ? ' · '+openT+' open' : '')+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="pd-rl-tl-track">'+
+        gridHtml+todayHtml+
+        '<div class="pd-rl-tl-bar-bg" style="left:'+bs.toFixed(1)+'%;width:'+bw.toFixed(1)+'%;background:'+color+'"></div>'+
+        (fillW>0 ? '<div class="pd-rl-tl-bar-fill" style="left:'+bs.toFixed(1)+'%;width:'+fillW.toFixed(1)+'%;background:linear-gradient(90deg,'+color+'aa,'+color+')"></div>' : '')+
+        dotsHtml+
+        pctHtml+
+      '</div>'+
     '</div>';
   }).join('');
 
+  var totalOpen = tasks.filter(function(t){ return t.status.label !== 'Completed'; }).length;
   el.innerHTML =
-    '<div class="pd-rl-tl-hd"><div class="pd-rl-tl-title">Project Timeline</div></div>' +
-    '<div class="pd-rl-tl-scroll"><div class="pd-rl-tl-inner">' +
-      '<div class="pd-rl-tl-months-row">' +
-        '<div class="pd-rl-tl-name-col"></div>' +
-        '<div class="pd-rl-tl-months">' + monthsHtml + '</div>' +
-      '</div>' +
-      rowsHtml +
-    '</div></div>' +
-    '<div class="pd-rl-tl-legend">' +
-      '<div class="pd-rl-tl-leg-item"><div class="pd-rl-tl-leg-box" style="background:#c9a227"></div>In progress</div>' +
-      '<div class="pd-rl-tl-leg-item"><div class="pd-rl-tl-leg-box" style="background:#22c55e"></div>Completed</div>' +
-      '<div class="pd-rl-tl-leg-item"><div class="pd-rl-tl-leg-box" style="background:rgba(255,255,255,.15)"></div>Not started</div>' +
-      '<div class="pd-rl-tl-leg-item"><div class="pd-rl-tl-leg-circle" style="background:rgba(255,255,255,.6)"></div>Task due date</div>' +
-      '<div class="pd-rl-tl-leg-item"><div class="pd-rl-tl-leg-circle" style="background:#dc2626"></div>Overdue task</div>' +
-      '<div class="pd-rl-tl-leg-item"><div class="pd-rl-tl-leg-line"></div>Today</div>' +
+    '<div class="pd-rl-tl-hd">'+
+      '<div class="pd-rl-tl-title">Project Timeline</div>'+
+      (totalOpen>0 ? '<div class="pd-rl-tl-open-badge">'+totalOpen+' open task'+(totalOpen!==1?'s':'')+'</div>' : '')+
+    '</div>'+
+    '<div class="pd-rl-tl-scroll"><div class="pd-rl-tl-inner">'+
+      '<div class="pd-rl-tl-months-row">'+
+        '<div class="pd-rl-tl-name-col"></div>'+
+        '<div class="pd-rl-tl-months">'+monthsHtml+'</div>'+
+      '</div>'+
+      rowsHtml+
+    '</div></div>'+
+    '<div class="pd-rl-tl-legend">'+
+      '<div class="pd-rl-tl-leg-item"><div class="pd-rl-tl-leg-fill"></div>Completion</div>'+
+      '<div class="pd-rl-tl-leg-item"><div class="pd-rl-tl-leg-circle" style="background:rgba(255,255,255,.7)"></div>Task</div>'+
+      '<div class="pd-rl-tl-leg-item"><div class="pd-rl-tl-leg-circle" style="background:#22c55e"></div>Done</div>'+
+      '<div class="pd-rl-tl-leg-item"><div class="pd-rl-tl-leg-circle" style="background:#ef4444"></div>Overdue</div>'+
+      '<div class="pd-rl-tl-leg-item"><div class="pd-rl-tl-leg-line"></div>Today</div>'+
     '</div>';
 }
 
