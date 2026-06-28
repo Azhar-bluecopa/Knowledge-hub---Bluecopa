@@ -2179,6 +2179,7 @@ function switchAdminTab(tab, el) {
 
 // ── Proxy Login ───────────────────────────────────────────────────────────────
 let _proxyUsers = [];
+let _proxyFiltered = [];
 const _proxyAvatarColors = ['#7a9ee8','#e87a9e','#7ae8b4','#c97ae8','#e8a87a','#22c55e'];
 
 async function loadProxyTab() {
@@ -2214,6 +2215,7 @@ function proxyFilterUsers(q) {
   const filtered = query
     ? _proxyUsers.filter(u => (u.name||'').toLowerCase().includes(query) || (u.email||'').toLowerCase().includes(query))
     : _proxyUsers;
+  _proxyFiltered = filtered;
   if (!filtered.length) {
     listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">No team members found.</div>';
     return;
@@ -2229,7 +2231,7 @@ function proxyFilterUsers(q) {
         <div class="proxy-user-email">${escHtml(u.email)}</div>
       </div>
       ${u.role ? `<div class="proxy-user-role">${escHtml(u.role)}</div>` : ''}
-      ${!isSelf ? `<button class="proxy-view-btn" onclick="startProxy(${JSON.stringify(JSON.stringify(u))})">View as →</button>` : '<div style="font-size:11px;color:var(--muted);padding:0 8px">This is you</div>'}
+      ${!isSelf ? `<button class="proxy-view-btn" onclick="startProxy(${i})">View as →</button>` : '<div style="font-size:11px;color:var(--muted);padding:0 8px">This is you</div>'}
     </div>`;
   }).join('');
 }
@@ -2250,8 +2252,9 @@ function renderProxyLogs(el, logs) {
   }).join('');
 }
 
-async function startProxy(userJson) {
-  const targetUser = JSON.parse(userJson);
+async function startProxy(idx) {
+  const targetUser = _proxyFiltered[idx];
+  if (!targetUser) { showToast('User not found.', 'error'); return; }
   const realAdmin = getUser();
   if (!realAdmin || !getAdminPwd()) { showToast('Admin access required.'); return; }
 
