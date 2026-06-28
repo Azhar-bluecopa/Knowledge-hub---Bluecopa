@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>KnowledgeHub — Team Wiki</title>
-  <link rel="stylesheet" href="/style.css?v=49">
+  <link rel="stylesheet" href="/style.css?v=50">
   <script src="https://accounts.google.com/gsi/client" async></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
@@ -2839,11 +2839,114 @@ async function pdLoadRocketlane() {
         }
       }
     }
+    pdRenderTimeline(projects, tasks);
     _rlLoaded = true;
   } catch(e) {
     _pdRLError('Failed to load: ' + e.message);
   }
 }
+
+function pdRenderTimeline(projects, tasks) {
+  var el = document.getElementById('pdRLTimeline');
+  if (!el) return;
+  if (!projects || !projects.length) { el.style.display = 'none'; return; }
+  el.style.display = '';
+
+  var now = new Date(); now.setHours(0,0,0,0);
+  var minD = new Date(now.getTime() - 14 * 86400000);
+  var maxD = new Date(now.getTime() + 90 * 86400000);
+
+  projects.forEach(function(p) {
+    if (p.startDate) { var d = new Date(p.startDate); if (d < minD) minD = new Date(d); }
+    if (p.dueDate)   { var d = new Date(p.dueDate);   if (d > maxD) maxD = new Date(d); }
+  });
+  maxD = new Date(maxD.getTime() + 14 * 86400000);
+  var span = maxD - minD;
+
+  function tlPct(dateVal) {
+    if (!dateVal) return -1;
+    return Math.max(0, Math.min(100, (new Date(dateVal) - minD) / span * 100));
+  }
+
+  var todayP = tlPct(now);
+
+  // Month header labels
+  var months = [];
+  var cur = new Date(minD.getFullYear(), minD.getMonth(), 1);
+  while (cur <= maxD) {
+    var cp = tlPct(cur);
+    months.push({ p: cp, label: cur.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) });
+    cur.setMonth(cur.getMonth() + 1);
+  }
+
+  var monthsHtml = months.map(function(m) {
+    return '<div class="pd-rl-tl-month" style="left:' + m.p.toFixed(1) + '%">' + m.label + '</div>';
+  }).join('');
+
+  var gridHtml = months.map(function(m) {
+    return '<div class="pd-rl-tl-grid-line" style="left:' + m.p.toFixed(1) + '%"></div>';
+  }).join('');
+
+  var todayHtml = (todayP >= 0 && todayP <= 100)
+    ? '<div class="pd-rl-tl-today" style="left:' + todayP.toFixed(1) + '%"><div class="pd-rl-tl-today-lbl">Today</div></div>'
+    : '';
+
+  var rowsHtml = projects.map(function(proj) {
+    var bs = proj.startDate ? tlPct(proj.startDate) : Math.max(0, todayP);
+    var be = proj.dueDate   ? tlPct(proj.dueDate)   : 100;
+    bs = Math.max(0, bs); be = Math.min(100, be);
+    var bw = Math.max(0.8, be - bs);
+
+    var bColor = proj.status.label === 'Completed' ? '#22c55e'
+      : proj.status.label === 'In progress' ? '#c9a227'
+      : 'rgba(255,255,255,0.15)';
+    var bOpacity = proj.status.label === 'Completed' ? '0.45' : '0.72';
+
+    var projTasks = tasks.filter(function(t) { return t.projectId === proj.projectId && t.dueDate; });
+    var dotsHtml = projTasks.slice(0, 15).map(function(t) {
+      var tp = tlPct(t.dueDate);
+      if (tp < 0 || tp > 100) return '';
+      var dc = t.overdue ? '#dc2626' : t.status.label === 'Completed' ? '#22c55e' : 'rgba(255,255,255,0.6)';
+      var lbl = escHtml(t.taskName) + (t.dueDate ? ' · due ' + new Date(t.dueDate).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '');
+      return '<div class="pd-rl-tl-dot" style="left:' + tp.toFixed(1) + '%;background:' + dc + '" title="' + lbl + '"></div>';
+    }).join('');
+
+    var nm = proj.projectName.length > 22 ? proj.projectName.slice(0, 22) + '…' : proj.projectName;
+    var dStr = proj.dueDate ? new Date(proj.dueDate).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : 'No end date';
+    var cst = proj.customer ? ' · ' + escHtml(proj.customer) : '';
+
+    return '<div class="pd-rl-tl-row">' +
+      '<div class="pd-rl-tl-label">' +
+        '<div class="pd-rl-tl-row-name" title="' + escHtml(proj.projectName) + (proj.customer ? ' · ' + escHtml(proj.customer) : '') + '">' + escHtml(nm) + '</div>' +
+        '<div class="pd-rl-tl-row-sub">Due ' + dStr + cst + '</div>' +
+      '</div>' +
+      '<div class="pd-rl-tl-track">' +
+        gridHtml + todayHtml +
+        '<div class="pd-rl-tl-bar" style="left:' + bs.toFixed(1) + '%;width:' + bw.toFixed(1) + '%;background:' + bColor + ';opacity:' + bOpacity + '"></div>' +
+        dotsHtml +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  el.innerHTML =
+    '<div class="pd-rl-tl-hd"><div class="pd-rl-tl-title">Project Timeline</div></div>' +
+    '<div class="pd-rl-tl-scroll"><div class="pd-rl-tl-inner">' +
+      '<div class="pd-rl-tl-months-row">' +
+        '<div class="pd-rl-tl-name-col"></div>' +
+        '<div class="pd-rl-tl-months">' + monthsHtml + '</div>' +
+      '</div>' +
+      rowsHtml +
+    '</div></div>' +
+    '<div class="pd-rl-tl-legend">' +
+      '<div class="pd-rl-tl-leg-item"><div class="pd-rl-tl-leg-box" style="background:#c9a227"></div>In progress</div>' +
+      '<div class="pd-rl-tl-leg-item"><div class="pd-rl-tl-leg-box" style="background:#22c55e"></div>Completed</div>' +
+      '<div class="pd-rl-tl-leg-item"><div class="pd-rl-tl-leg-box" style="background:rgba(255,255,255,.15)"></div>Not started</div>' +
+      '<div class="pd-rl-tl-leg-item"><div class="pd-rl-tl-leg-circle" style="background:rgba(255,255,255,.6)"></div>Task due date</div>' +
+      '<div class="pd-rl-tl-leg-item"><div class="pd-rl-tl-leg-circle" style="background:#dc2626"></div>Overdue task</div>' +
+      '<div class="pd-rl-tl-leg-item"><div class="pd-rl-tl-leg-line"></div>Today</div>' +
+    '</div>';
+}
+
 function _pdRLError(msg) {
   var subEl = document.getElementById('pdRLSub');
   if (subEl) { subEl.textContent = msg; subEl.style.color = 'var(--danger)'; }
@@ -5105,6 +5208,7 @@ async function updateFeedbackStatus(id) {
         <a class="pd-card-cta pd-rl-link" href="https://app.rocketlane.com" target="_blank" rel="noopener">Open Rocketlane ↗</a>
       </div>
       <div id="pdRLProjects"></div>
+      <div id="pdRLTimeline" style="display:none"></div>
       <div class="pd-rl-tasks-hd" id="pdRLTasksHd" style="display:none">
         <span>Open Tasks</span>
         <span class="pd-rl-task-count" id="pdRLTaskCount"></span>
