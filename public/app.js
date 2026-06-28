@@ -2248,11 +2248,7 @@ function dwGoCertificates(source){
 
 function closeCertificates(){
   document.getElementById('dwCertOverlay').classList.remove('active');
-  if(_certSource === 'my-learning'){
-    dwGoLearning();
-  } else {
-    showLanding();
-  }
+  showLanding();
 }
 
 function certRender(){
@@ -2278,7 +2274,7 @@ function certRender(){
     if(nameEl) nameEl.textContent = userName + ' — no certifications under your belt yet.';
     const listEl = document.getElementById('certCourseList');
     if(listEl) listEl.innerHTML = courses.map(c=>`
-      <div class="cert-course-row" onclick="closeCertificates();dwGoLearning()">
+      <div class="cert-course-row" onclick="dwGoLearning()">
         <span class="cert-course-row-icon">${c.icon||'📘'}</span>
         <span class="cert-course-row-name">${c.title}</span>
         <span class="cert-course-row-arr">→</span>
@@ -5099,7 +5095,7 @@ function lmShowMsg(el, text, type) {
 
 function dwGoLearning() {
   hideLanding();
-  history.pushState({screen:'my-learning'}, '');
+  if(!_dwNavFlag) history.pushState({screen:'my-learning'}, '');
   const ol = document.getElementById('mlOverlay');
   if(ol) {
     ol.classList.add('active');

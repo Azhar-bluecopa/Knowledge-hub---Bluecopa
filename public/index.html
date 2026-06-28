@@ -2501,9 +2501,9 @@ function pdShowDashboard() {
   document.getElementById('pdOverlay').classList.add('active');
   if (!_rlLoaded) pdLoadRocketlane();
 }
-function pdHideDashboard() {
+function pdHideDashboard(skipLanding) {
   document.getElementById('pdOverlay').classList.remove('active');
-  showLanding();
+  if (!skipLanding) showLanding();
 }
 
 async function pdLoadDashboard() {
@@ -5008,37 +5008,37 @@ async function updateFeedbackStatus(id) {
 
     <!-- Quick Metrics Strip -->
     <div class="pd-metrics">
-      <div class="pd-metric" onclick="pdHideDashboard();dwGoLearning()">
+      <div class="pd-metric" onclick="pdHideDashboard(true);dwGoLearning()">
         <span class="pd-metric-icon">📋</span>
         <div class="pd-metric-n" id="pdMAssigned">—</div>
         <div class="pd-metric-l">Assigned</div>
       </div>
-      <div class="pd-metric pd-green" onclick="pdHideDashboard();dwGoLearning()">
+      <div class="pd-metric pd-green" onclick="pdHideDashboard(true);dwGoLearning()">
         <span class="pd-metric-icon">✅</span>
         <div class="pd-metric-n" id="pdMDone">—</div>
         <div class="pd-metric-l">Completed</div>
       </div>
-      <div class="pd-metric pd-amber" onclick="pdHideDashboard();dwGoLearning()">
+      <div class="pd-metric pd-amber" onclick="pdHideDashboard(true);dwGoLearning()">
         <span class="pd-metric-icon">🔄</span>
         <div class="pd-metric-n" id="pdMInProgress">—</div>
         <div class="pd-metric-l">In Progress</div>
       </div>
-      <div class="pd-metric pd-red" onclick="pdHideDashboard();dwGoLearning()">
+      <div class="pd-metric pd-red" onclick="pdHideDashboard(true);dwGoLearning()">
         <span class="pd-metric-icon">⚠️</span>
         <div class="pd-metric-n" id="pdMOverdue">—</div>
         <div class="pd-metric-l">Overdue</div>
       </div>
-      <div class="pd-metric pd-gold" onclick="pdHideDashboard();dwGoCertificates('home')">
+      <div class="pd-metric pd-gold" onclick="pdHideDashboard(true);dwGoCertificates('home')">
         <span class="pd-metric-icon">🏅</span>
         <div class="pd-metric-n" id="pdMCerts">—</div>
         <div class="pd-metric-l">Certificates</div>
       </div>
-      <div class="pd-metric" onclick="pdHideDashboard();dwGoSkillMatrix()">
+      <div class="pd-metric" onclick="pdHideDashboard(true);dwGoSkillMatrix()">
         <span class="pd-metric-icon">⭐</span>
         <div class="pd-metric-n" id="pdMSkill">—</div>
         <div class="pd-metric-l">Skill Score</div>
       </div>
-      <div class="pd-metric" onclick="pdHideDashboard();dwGoKnowledge()">
+      <div class="pd-metric" onclick="pdHideDashboard(true);dwGoKnowledge()">
         <span class="pd-metric-icon">📖</span>
         <div class="pd-metric-n" id="pdMRead">—</div>
         <div class="pd-metric-l">Articles Read</div>
@@ -5056,7 +5056,7 @@ async function updateFeedbackStatus(id) {
             <div class="pd-card-title">My Learning</div>
             <div class="pd-card-sub" id="pdLSub">Loading...</div>
           </div>
-          <button class="pd-card-cta" onclick="pdHideDashboard();dwGoLearning()">View All →</button>
+          <button class="pd-card-cta" onclick="pdHideDashboard(true);dwGoLearning()">View All →</button>
         </div>
         <div class="pd-progress-wrap" id="pdLProgressWrap" style="display:none">
           <div class="pd-progress-label">
@@ -5076,7 +5076,7 @@ async function updateFeedbackStatus(id) {
             <div class="pd-card-title">My Skill Profile</div>
             <div class="pd-card-sub" id="pdSSub">Loading...</div>
           </div>
-          <button class="pd-card-cta" onclick="pdHideDashboard();dwGoSkillMatrix()">View →</button>
+          <button class="pd-card-cta" onclick="pdHideDashboard(true);dwGoSkillMatrix()">View →</button>
         </div>
         <div class="pd-skill-list" id="pdSkillList"></div>
       </div>
@@ -5089,7 +5089,7 @@ async function updateFeedbackStatus(id) {
             <div class="pd-card-title">My Achievements</div>
             <div class="pd-card-sub" id="pdASub">Your milestones and badges — start a course to earn achievements.</div>
           </div>
-          <button class="pd-card-cta" onclick="pdHideDashboard();dwGoCertificates('home')">View Certificates →</button>
+          <button class="pd-card-cta" onclick="pdHideDashboard(true);dwGoCertificates('home')">View Certificates →</button>
         </div>
         <div class="pd-achiev-grid" id="pdAchievGrid"></div>
       </div>
@@ -5116,6 +5116,6 @@ async function updateFeedbackStatus(id) {
 </div><!-- /pdOverlay -->
 
   <script src="/courses.js?v=5" defer></script>
-  <script src="/app.js?v=25" defer></script>
+  <script src="/app.js?v=26" defer></script>
 </body>
 </html>
