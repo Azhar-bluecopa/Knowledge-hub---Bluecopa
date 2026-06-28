@@ -1419,6 +1419,7 @@ function switchAdminTab(tab, btn, noHistory) {
   if(tab==='skillmatrix') smAdmLoad();
   if(tab==='requests') loadRequestsTab();
   if(tab==='feedback') loadFeedbackTab();
+  if(tab==='proxy') loadProxyTab();
 };
 /* ── Landing overlay JS ── */
 // ══════════════════════════════════════════════════════
