@@ -2292,6 +2292,7 @@ async function startProxy(idx) {
 
   // Reset loaded state so content reloads as target user
   if (typeof _rlLoaded !== 'undefined') _rlLoaded = false;
+  _pdLoadedForUser = null;
 
   closeAdminPanel();
   showProxyBanner(session);
@@ -2320,6 +2321,7 @@ async function exitProxy() {
   localStorage.removeItem('kb_real_admin');
 
   if (typeof _rlLoaded !== 'undefined') _rlLoaded = false;
+  _pdLoadedForUser = null;
 
   hideProxyBanner();
   renderUserInfo();
@@ -2716,9 +2718,16 @@ function getReadArticles() { try { return new Set(JSON.parse(localStorage.getIte
 function markArticleRead(id) { const s = getReadArticles(); s.add(Number(id)); localStorage.setItem(_readKey(), JSON.stringify([...s])); }
 
 // ── Personalized Dashboard ──────────────────────────────────────────────────
+let _pdLoadedForUser = null;
 function pdShowDashboard() {
   if(!_dwNavFlag) history.pushState({screen:'pd-dashboard'}, '');
   document.getElementById('pdOverlay').classList.add('active');
+  const currentUser = (getUser() || {}).email || '';
+  if (_pdLoadedForUser !== currentUser) {
+    _pdLoadedForUser = currentUser;
+    pdLoadDashboard();
+    _rlLoaded = false;
+  }
   if (!_rlLoaded) pdLoadRocketlane();
 }
 function pdHideDashboard(skipLanding) {
