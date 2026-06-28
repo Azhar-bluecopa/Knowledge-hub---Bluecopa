@@ -1304,24 +1304,35 @@ app.get('/api/proxy/users', async (req, res) => {
   const apiKey = process.env.ROCKETLANE_API_KEY;
   if (!apiKey) {
     const emails = db.settings?.adminEmails || [];
-    return res.json({ users: emails.map(e => ({ name: e.split('@')[0], email: e, role: 'Admin', initials: (e[0]||'?').toUpperCase() })), source: 'settings' });
+    return res.json({ users: emails.map(e => ({ name: e.split('@')[0], email: e, role: null, initials: (e[0]||'?').toUpperCase() })), source: 'settings' });
   }
   try {
-    const r = await fetch('https://api.rocketlane.com/api/1.0/users?pageSize=500', {
-      headers: { 'api-key': apiKey, 'Accept': 'application/json' }
-    });
-    if (!r.ok) throw new Error('Rocketlane users API ' + r.status);
-    const d = await r.json();
-    const users = (d.data || []).map(u => {
-      const name = u.name || [u.firstName, u.lastName].filter(Boolean).join(' ') || u.emailId || 'Unknown';
-      const email = (u.emailId || u.email || '').toLowerCase();
-      const role = u.role || u.designation || null;
-      const initials = name.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase() || '?';
-      return { name, email, role, initials };
-    }).filter(u => u.email);
-    res.json({ users, source: 'rocketlane' });
+    const memberMap = new Map();
+    let pageToken = null;
+    let hasMore = true;
+    while (hasMore) {
+      const url = 'https://api.rocketlane.com/api/1.0/projects?pageSize=100' + (pageToken ? '&pageToken=' + pageToken : '');
+      const r = await fetch(url, { headers: { 'api-key': apiKey, 'Accept': 'application/json' } });
+      if (!r.ok) throw new Error('Rocketlane projects API ' + r.status);
+      const d = await r.json();
+      (d.data || []).forEach(p => {
+        (p.teamMembers?.members || []).forEach(m => {
+          const email = (m.emailId || m.email || '').toLowerCase().trim();
+          if (!email || memberMap.has(email)) return;
+          const name = m.name || [m.firstName, m.lastName].filter(Boolean).join(' ') || email.split('@')[0];
+          const role = m.designation || m.role || m.jobTitle || null;
+          const initials = name.split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').toUpperCase() || '?';
+          memberMap.set(email, { name, email, role, initials });
+        });
+      });
+      hasMore = d.pagination?.hasMore || false;
+      pageToken = d.pagination?.nextPageToken || null;
+    }
+    const users = [...memberMap.values()].sort((a, b) => a.name.localeCompare(b.name));
+    res.json({ users, source: 'rocketlane_projects' });
   } catch(e) {
-    res.status(500).json({ error: e.message, users: [], source: 'error' });
+    const emails = db.settings?.adminEmails || [];
+    res.json({ users: emails.map(e => ({ name: e.split('@')[0], email: e, role: null, initials: (e[0]||'?').toUpperCase() })), source: 'fallback', error: e.message });
   }
 });
 
