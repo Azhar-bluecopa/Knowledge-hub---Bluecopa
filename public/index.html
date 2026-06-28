@@ -2781,7 +2781,7 @@ async function pdLoadDashboard() {
     if (r.ok) {
       const d = await r.json();
       const assignments = d.assignments || [];
-      const prog = JSON.parse(localStorage.getItem('ml_prog') || '{}');
+      const prog = isProxyActive() ? {} : JSON.parse(localStorage.getItem('ml_prog') || '{}');
       const now = new Date();
       let completed = 0, overdue = 0, inProgress = 0, mandatoryTotal = 0, mandatoryDone = 0;
 
