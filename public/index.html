@@ -5916,11 +5916,11 @@ async function updateFeedbackStatus(id) {
 
     <!-- My Priorities Section -->
     <div class="pd-priorities" id="pdPriorities">
-      <div class="pd-prio-section-hd">
-        <span class="pd-prio-section-title">My Priorities</span>
-        <button class="pd-prio-assign-btn" onclick="pdShowAssignModal()">+ Assign Task</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-size:14px;font-weight:700;color:rgba(255,255,255,.7);font-family:'DM Sans',sans-serif;">My Priorities</span>
+        <button onclick="pdShowAssignModal()" style="display:inline-flex;align-items:center;gap:6px;background:#c9a227;color:#1a1d27;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;letter-spacing:.01em;transition:all .18s;">+ Assign Task</button>
       </div>
-      <div class="pd-prio-btn-row">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;">
         <div class="pd-prio-btn-card active" id="pdTabMe" onclick="pdOpenPrioPage('me')">
           <div class="pd-prio-btn-accent" style="background:#3b82f6"></div>
           <div class="pd-prio-btn-icon" style="background:rgba(59,130,246,.12);color:#60a5fa">📋</div>
