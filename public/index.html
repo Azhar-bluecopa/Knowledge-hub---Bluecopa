@@ -3617,7 +3617,16 @@ async function pdAddComment(taskId) {
 
 // ── Assign Task Modal ──────────────────────────────────────────────────────────
 function pdShowAssignModal() {
-  document.getElementById('pdAssignModal').classList.add('active');
+  var modal = document.getElementById('pdAssignModal');
+  modal.classList.add('active');
+  modal.style.display = 'flex';
+  modal.style.position = 'fixed';
+  modal.style.inset = '0';
+  modal.style.zIndex = '9999';
+  modal.style.alignItems = 'center';
+  modal.style.justifyContent = 'center';
+  modal.style.background = 'rgba(0,0,0,.75)';
+  modal.style.padding = '24px';
   pdSelectPrio('high');
   document.getElementById('pdTaskTitle').value = '';
   document.getElementById('pdTaskDesc').value = '';
@@ -3630,7 +3639,9 @@ function pdShowAssignModal() {
 }
 
 function pdHideAssignModal() {
-  document.getElementById('pdAssignModal').classList.remove('active');
+  var modal = document.getElementById('pdAssignModal');
+  modal.classList.remove('active');
+  modal.style.display = 'none';
 }
 
 function pdSelectPrio(prio) {
