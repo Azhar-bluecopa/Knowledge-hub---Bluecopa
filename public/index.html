@@ -3298,7 +3298,12 @@ function pdpSwitchCategory(cat) {
   _pdpActiveCategory = cat;
   ['me','by-me','overdue'].forEach(function(c) {
     var el = document.getElementById('pdpCard-' + c);
-    if (el) el.classList.toggle('active', c === cat);
+    if (!el) return;
+    var isActive = c === cat;
+    el.style.border        = isActive ? '1px solid rgba(255,255,255,.18)' : '1px solid rgba(255,255,255,.06)';
+    el.style.background    = isActive ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.02)';
+    el.style.transform     = isActive ? 'translateY(-2px)' : 'translateY(0)';
+    el.style.boxShadow     = isActive ? '0 8px 24px rgba(0,0,0,.4)' : 'none';
   });
   pdpRenderTaskRows(pdpFilteredTasks(cat));
 }
@@ -3314,35 +3319,39 @@ function pdpRenderTaskRows(tasks) {
   var el = document.getElementById('pdpTaskRows');
   if (!el) return;
   if (!tasks || !tasks.length) {
-    el.innerHTML = '<div class="pdp-empty-state">No tasks in this category</div>';
+    el.innerHTML = '<div style="padding:32px;text-align:center;color:rgba(255,255,255,.25);font-size:13px;font-family:\'DM Sans\',sans-serif;">No tasks in this category</div>';
     return;
   }
-  var prioColors = { high:'#ef4444', medium:'#f9a74f', low:'#22c55e' };
-  var statusColors = { completed:'#22c55e', 'in-progress':'#3b82f6', 'not-started':'rgba(255,255,255,.12)' };
+  var prioColors  = { high:'#ef4444', medium:'#f9a74f', low:'#22c55e' };
+  var statusColors = { completed:'#22c55e', 'in-progress':'#3b82f6', 'not-started':'rgba(255,255,255,.15)' };
   var statusPcts   = { completed:100, 'in-progress':50, 'not-started':0 };
   el.innerHTML = tasks.map(function(t) {
-    var prio  = (t.priority || 'medium').toLowerCase();
-    var pc    = prioColors[prio]  || prioColors.medium;
-    var sc    = statusColors[t.status] || statusColors['not-started'];
-    var pct   = statusPcts[t.status]   || 0;
-    var due   = t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—';
-    var name  = (t.assigneeName || (t.assigneeEmail || '?').split('@')[0]);
-    var ini   = name.split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
-    var overdueCls = t.isOverdue && t.status !== 'completed' ? ' pdp-tr-overdue' : '';
-    return '<div class="pdp-task-row' + overdueCls + '">' +
-      '<div class="pdp-tr-main">' +
-        '<div class="pdp-tr-prio-bar" style="background:' + pc + '"></div>' +
-        '<div class="pdp-tr-info">' +
-          '<div class="pdp-tr-name">' + (t.title || 'Untitled') + '</div>' +
-          (t.description ? '<div class="pdp-tr-desc">' + t.description.slice(0,60) + (t.description.length>60?'…':'') + '</div>' : '') +
+    var prio = (t.priority || 'medium').toLowerCase();
+    var pc   = prioColors[prio] || prioColors.medium;
+    var sc   = statusColors[t.status] || statusColors['not-started'];
+    var pct  = statusPcts[t.status] || 0;
+    var due  = t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—';
+    var name = t.assigneeName || (t.assigneeEmail||'?').split('@')[0];
+    var ini  = name.split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
+    var isOver = t.isOverdue && t.status !== 'completed';
+    var rowBg  = isOver ? 'rgba(239,68,68,.04)' : 'transparent';
+    var dueCl  = isOver ? '#ef4444' : 'rgba(255,255,255,.4)';
+    return '<div style="display:grid;grid-template-columns:1fr 90px 44px 72px 120px;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.05);background:'+rowBg+';transition:background .15s;" onmouseover="this.style.background=\'rgba(255,255,255,.03)\'" onmouseout="this.style.background=\''+rowBg+'\'">' +
+      '<div style="display:flex;align-items:center;gap:10px;min-width:0;">' +
+        '<div style="width:3px;height:36px;border-radius:2px;background:'+pc+';flex-shrink:0;"></div>' +
+        '<div style="min-width:0;">' +
+          '<div style="font-size:13px;font-weight:600;color:#f0f0f6;font-family:\'DM Sans\',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(t.title||'Untitled')+'</div>' +
+          (t.description ? '<div style="font-size:11px;color:rgba(255,255,255,.35);font-family:\'DM Sans\',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">'+t.description.slice(0,50)+(t.description.length>50?'…':'')+'</div>' : '') +
         '</div>' +
       '</div>' +
-      '<div class="pdp-tr-badge" style="background:' + pc + '18;color:' + pc + ';border:1px solid ' + pc + '44">' + prio + '</div>' +
-      '<div class="pdp-tr-avatar" title="' + name + '">' + ini + '</div>' +
-      '<div class="pdp-tr-due' + (t.isOverdue && t.status!=='completed' ? ' overdue' : '') + '">' + due + '</div>' +
-      '<div class="pdp-tr-prog-wrap">' +
-        '<div class="pdp-tr-prog-track"><div class="pdp-tr-prog-fill" style="width:' + pct + '%;background:' + sc + '"></div></div>' +
-        '<span class="pdp-tr-pct">' + pct + '%</span>' +
+      '<div style="display:inline-flex;align-items:center;justify-content:center;padding:3px 10px;border-radius:6px;font-size:10px;font-weight:700;font-family:\'DM Mono\',monospace;letter-spacing:.06em;text-transform:uppercase;background:'+pc+'22;color:'+pc+';border:1px solid '+pc+'44;">'+prio+'</div>' +
+      '<div title="'+name+'" style="width:32px;height:32px;border-radius:50%;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.25);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#c9a227;font-family:\'DM Mono\',monospace;">'+ini+'</div>' +
+      '<div style="font-size:12px;color:'+dueCl+';font-family:\'DM Mono\',monospace;text-align:center;">'+(isOver?'⚠ ':'')+due+'</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<div style="flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;">' +
+          '<div style="height:100%;width:'+pct+'%;background:'+sc+';border-radius:3px;transition:width .6s;"></div>' +
+        '</div>' +
+        '<span style="font-size:11px;color:rgba(255,255,255,.4);font-family:\'DM Mono\',monospace;width:28px;text-align:right;">'+pct+'%</span>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -3364,15 +3373,15 @@ function pdpRenderDonut(tasks) {
   if (pctEl) pctEl.textContent = pct + '%';
   var stats = document.getElementById('pdpProgressStats');
   if (stats) stats.innerHTML = [
-    {label:'Completed',  val:done,               color:'#22c55e'},
-    {label:'In Progress',val:prog,               color:'#3b82f6'},
-    {label:'Overdue',    val:over,               color:'#ef4444'},
-    {label:'Not Started',val:total-done-prog,    color:'rgba(255,255,255,.2)'}
+    {label:'Completed',  val:done,            color:'#22c55e'},
+    {label:'In Progress',val:prog,            color:'#3b82f6'},
+    {label:'Overdue',    val:over,            color:'#ef4444'},
+    {label:'Not Started',val:total-done-prog, color:'rgba(255,255,255,.25)'}
   ].map(function(s) {
-    return '<div class="pdp-stat-row">' +
-      '<span class="pdp-stat-dot" style="background:' + s.color + '"></span>' +
-      '<span class="pdp-stat-lbl">' + s.label + '</span>' +
-      '<strong class="pdp-stat-val">' + s.val + '</strong>' +
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);">' +
+      '<div style="width:8px;height:8px;border-radius:50%;background:'+s.color+';flex-shrink:0;"></div>' +
+      '<span style="flex:1;font-size:12px;color:rgba(255,255,255,.5);font-family:\'DM Sans\',sans-serif;">'+s.label+'</span>' +
+      '<strong style="font-size:13px;font-weight:700;color:#f0f0f6;font-family:\'DM Mono\',monospace;">'+s.val+'</strong>' +
     '</div>';
   }).join('');
 }
@@ -3381,7 +3390,7 @@ function pdpRenderActivities(tasks) {
   var el = document.getElementById('pdpActivities');
   if (!el) return;
   var sorted = tasks.slice().sort(function(a,b){ return (b.id||0)-(a.id||0); }).slice(0,6);
-  if (!sorted.length) { el.innerHTML = '<div class="pdp-empty-state">No recent activity</div>'; return; }
+  if (!sorted.length) { el.innerHTML = '<div style="padding:20px;text-align:center;color:rgba(255,255,255,.25);font-size:13px;font-family:\'DM Sans\',sans-serif;">No recent activity</div>'; return; }
   var labels = { completed:'Completed', 'in-progress':'In progress', 'not-started':'Not started' };
   var colors = { completed:'#22c55e', 'in-progress':'#3b82f6', 'not-started':'#8a92a0' };
   el.innerHTML = sorted.map(function(t) {
@@ -3389,13 +3398,13 @@ function pdpRenderActivities(tasks) {
     var ini  = name.split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
     var sc   = colors[t.status] || colors['not-started'];
     var sl   = labels[t.status] || 'Not started';
-    return '<div class="pdp-act-row">' +
-      '<div class="pdp-act-avatar">' + ini + '</div>' +
-      '<div class="pdp-act-info">' +
-        '<div class="pdp-act-name">' + name + '</div>' +
-        '<div class="pdp-act-task">' + (t.title||'').slice(0,32) + (t.title&&t.title.length>32?'…':'') + '</div>' +
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);">' +
+      '<div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:rgba(255,255,255,.6);font-family:\'DM Mono\',monospace;flex-shrink:0;">'+ini+'</div>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:12px;font-weight:600;color:#f0f0f6;font-family:\'DM Sans\',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+name+'</div>' +
+        '<div style="font-size:11px;color:rgba(255,255,255,.35);font-family:\'DM Sans\',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(t.title||'').slice(0,28)+(t.title&&t.title.length>28?'…':'')+'</div>' +
       '</div>' +
-      '<span class="pdp-act-status" style="color:' + sc + '">' + sl + '</span>' +
+      '<span style="font-size:10px;font-weight:600;color:'+sc+';font-family:\'DM Mono\',monospace;white-space:nowrap;">'+sl+'</span>' +
     '</div>';
   }).join('');
 }
@@ -3433,8 +3442,8 @@ function pdpUpdateCards() {
         }
       });
       memEl.innerHTML = members.slice(0,4).map(function(m,i) {
-        return '<div class="pdp-bot-avatar" style="left:' + (i*18) + 'px">' + m.ini + '</div>';
-      }).join('') + (members.length ? '<span class="pdp-bot-avatar-count" style="left:' + (Math.min(members.length,4)*18) + 'px">' + (members.length > 4 ? '+' + (members.length-4) : '') + '</span>' : '');
+        return '<div style="position:absolute;left:'+(i*18)+'px;width:24px;height:24px;border-radius:50%;background:rgba(201,162,39,.18);border:2px solid #0f0f16;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#c9a227;font-family:\'DM Mono\',monospace;">'+m.ini+'</div>';
+      }).join('') + (members.length > 4 ? '<span style="position:absolute;left:'+(4*18)+'px;font-size:10px;color:rgba(255,255,255,.4);line-height:24px;font-family:\'DM Mono\',monospace;">+' + (members.length-4) + '</span>' : '');
     }
   });
 }
@@ -6128,101 +6137,108 @@ async function updateFeedbackStatus(id) {
   </div><!-- /pdDashMain -->
 
   <!-- ── My Priorities Full Page ── -->
-  <div id="pdPrioPage" class="pdp-page" style="display:none">
+  <div id="pdPrioPage" style="display:none;flex-direction:column;height:100%;background:#08080d;font-family:'DM Sans',sans-serif;overflow:hidden;">
 
-    <!-- Page Header -->
-    <div class="pdp-hd">
-      <div class="pdp-hd-left">
-        <button class="pdp-back-btn" onclick="pdHidePrioPage()">← Dashboard</button>
-        <div class="pdp-hd-title-wrap">
-          <h2 class="pdp-title">My Priorities</h2>
-          <span class="pdp-date" id="pdpDate"></span>
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 28px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;background:#0f0f16;">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <button onclick="pdHidePrioPage()" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 14px;color:rgba(255,255,255,.55);font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.1)';this.style.color='#f0f0f6'" onmouseout="this.style.background='rgba(255,255,255,.06)';this.style.color='rgba(255,255,255,.55)'">← Dashboard</button>
+        <div>
+          <div style="font-size:10px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#c9a227;margin-bottom:4px;">Task Management</div>
+          <div style="display:flex;align-items:baseline;gap:12px;">
+            <h2 style="font-size:20px;font-weight:800;color:#f0f0f6;margin:0;letter-spacing:-.02em;">My Priorities</h2>
+            <span id="pdpDate" style="font-size:12px;color:rgba(255,255,255,.35);font-family:'DM Mono',monospace;"></span>
+          </div>
         </div>
       </div>
-      <div class="pdp-hd-right">
-        <button class="pd-assign-task-btn" onclick="pdShowAssignModal()">+ Assign Task</button>
-      </div>
+      <button onclick="pdShowAssignModal()" style="display:inline-flex;align-items:center;gap:6px;background:#c9a227;color:#1a1d27;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .18s;" onmouseover="this.style.background='#d4ae35';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='#c9a227';this.style.transform='translateY(0)'">+ Assign Task</button>
     </div>
 
-    <!-- Body: task panel (left) + side panel (right) -->
-    <div class="pdp-body">
+    <!-- Body -->
+    <div style="display:flex;flex:1;overflow:hidden;">
 
-      <!-- Left: Task list (Gantt-style) -->
-      <div class="pdp-task-panel">
-        <div class="pdp-col-hd">
-          <span class="pdp-col-task">Task</span>
-          <span class="pdp-col-prio">Priority</span>
-          <span class="pdp-col-person">Assignee</span>
-          <span class="pdp-col-due">Due Date</span>
-          <span class="pdp-col-prog">Progress</span>
+      <!-- Left: Task list -->
+      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid rgba(255,255,255,.06);">
+        <!-- Column headers -->
+        <div style="display:grid;grid-template-columns:1fr 90px 44px 72px 120px;gap:12px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);flex-shrink:0;">
+          <span style="font-size:10px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.3);">Task</span>
+          <span style="font-size:10px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.3);">Priority</span>
+          <span style="font-size:10px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.3);">Who</span>
+          <span style="font-size:10px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.3);">Due</span>
+          <span style="font-size:10px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.3);">Progress</span>
         </div>
-        <div id="pdpTaskRows">
-          <div class="pdp-empty-state">Loading tasks…</div>
+        <!-- Task rows -->
+        <div id="pdpTaskRows" style="flex:1;overflow-y:auto;">
+          <div style="padding:32px;text-align:center;color:rgba(255,255,255,.25);font-size:13px;">Loading tasks…</div>
         </div>
       </div>
 
-      <!-- Right: Donut + Activities -->
-      <div class="pdp-side-panel">
-        <div class="pdp-prog-card">
-          <div class="pdp-prog-title">Overall Progress</div>
-          <div class="pdp-prog-donut-wrap">
-            <svg class="pdp-prog-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <!-- Right: Stats -->
+      <div style="width:260px;flex-shrink:0;display:flex;flex-direction:column;overflow-y:auto;gap:0;background:#0a0a11;">
+
+        <!-- Donut card -->
+        <div style="padding:20px;border-bottom:1px solid rgba(255,255,255,.06);">
+          <div style="font-size:11px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:16px;">Overall Progress</div>
+          <div style="position:relative;width:120px;height:120px;margin:0 auto 16px;">
+            <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="width:120px;height:120px;">
               <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="12"/>
               <circle id="pdpDonutFill" cx="60" cy="60" r="50" fill="none" stroke="#3b82f6" stroke-width="12"
                 stroke-linecap="round" stroke-dasharray="0 314"
                 transform="rotate(-90 60 60)" style="transition:stroke-dasharray .8s cubic-bezier(.4,0,.2,1)"/>
             </svg>
-            <div class="pdp-prog-center">
-              <div class="pdp-prog-pct" id="pdpDonutPct">0%</div>
-              <div class="pdp-prog-lbl">Complete</div>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+              <div id="pdpDonutPct" style="font-size:22px;font-weight:800;color:#f0f0f6;font-family:'DM Sans',sans-serif;line-height:1;">0%</div>
+              <div style="font-size:10px;color:rgba(255,255,255,.35);font-family:'DM Mono',monospace;margin-top:2px;">Complete</div>
             </div>
           </div>
-          <div id="pdpProgressStats" class="pdp-prog-stats"></div>
+          <div id="pdpProgressStats"></div>
         </div>
 
-        <div class="pdp-act-card">
-          <div class="pdp-act-title">Recent Activities</div>
-          <div id="pdpActivities"><div class="pdp-empty-state">No activity yet</div></div>
+        <!-- Recent activities card -->
+        <div style="padding:20px;flex:1;">
+          <div style="font-size:11px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:12px;">Recent Activities</div>
+          <div id="pdpActivities"><div style="padding:20px 0;text-align:center;color:rgba(255,255,255,.25);font-size:13px;">No activity yet</div></div>
         </div>
       </div>
     </div>
 
     <!-- Bottom: 3 category cards -->
-    <div class="pdp-bottom-cards">
-      <div class="pdp-bot-card active" id="pdpCard-me" onclick="pdpSwitchCategory('me')">
-        <div class="pdp-bot-accent" style="background:#3b82f6"></div>
-        <div class="pdp-bot-hd">
-          <span class="pdp-bot-icon" style="background:rgba(59,130,246,.12);color:#60a5fa">📋</span>
-          <span class="pdp-bot-lbl">Assigned to Me</span>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px 20px;border-top:1px solid rgba(255,255,255,.07);background:#0f0f16;flex-shrink:0;">
+
+      <div id="pdpCard-me" onclick="pdpSwitchCategory('me')" style="position:relative;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:16px;cursor:pointer;transition:all .18s;transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4);overflow:hidden;">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:#3b82f6;border-radius:12px 12px 0 0;"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(59,130,246,.15);display:flex;align-items:center;justify-content:center;font-size:14px;">📋</div>
+          <span style="font-size:12px;font-weight:600;color:rgba(255,255,255,.7);font-family:'DM Sans',sans-serif;">Assigned to Me</span>
         </div>
-        <div class="pdp-bot-count" id="pdpCount-me">0</div>
-        <div class="pdp-bot-track"><div class="pdp-bot-fill" id="pdpBar-me" style="background:#3b82f6;width:0%"></div></div>
-        <div class="pdp-bot-meta" id="pdpMeta-me">0 of 0 completed</div>
-        <div class="pdp-bot-members" id="pdpMembers-me"></div>
+        <div id="pdpCount-me" style="font-size:28px;font-weight:800;color:#f0f0f6;font-family:'DM Sans',sans-serif;line-height:1;margin-bottom:8px;">0</div>
+        <div style="height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;margin-bottom:6px;"><div id="pdpBar-me" style="height:100%;background:#3b82f6;border-radius:2px;width:0%;transition:width .6s;"></div></div>
+        <div id="pdpMeta-me" style="font-size:11px;color:rgba(255,255,255,.35);font-family:'DM Mono',monospace;margin-bottom:10px;">0 of 0 completed</div>
+        <div id="pdpMembers-me" style="position:relative;height:24px;"></div>
       </div>
 
-      <div class="pdp-bot-card" id="pdpCard-by-me" onclick="pdpSwitchCategory('by-me')">
-        <div class="pdp-bot-accent" style="background:#a855f7"></div>
-        <div class="pdp-bot-hd">
-          <span class="pdp-bot-icon" style="background:rgba(168,85,247,.12);color:#c084fc">👥</span>
-          <span class="pdp-bot-lbl">Assigned by Me</span>
+      <div id="pdpCard-by-me" onclick="pdpSwitchCategory('by-me')" style="position:relative;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:16px;cursor:pointer;transition:all .18s;overflow:hidden;">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:#a855f7;border-radius:12px 12px 0 0;"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(168,85,247,.15);display:flex;align-items:center;justify-content:center;font-size:14px;">👥</div>
+          <span style="font-size:12px;font-weight:600;color:rgba(255,255,255,.7);font-family:'DM Sans',sans-serif;">Assigned by Me</span>
         </div>
-        <div class="pdp-bot-count" id="pdpCount-by-me">0</div>
-        <div class="pdp-bot-track"><div class="pdp-bot-fill" id="pdpBar-by-me" style="background:#a855f7;width:0%"></div></div>
-        <div class="pdp-bot-meta" id="pdpMeta-by-me">0 of 0 completed</div>
-        <div class="pdp-bot-members" id="pdpMembers-by-me"></div>
+        <div id="pdpCount-by-me" style="font-size:28px;font-weight:800;color:#f0f0f6;font-family:'DM Sans',sans-serif;line-height:1;margin-bottom:8px;">0</div>
+        <div style="height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;margin-bottom:6px;"><div id="pdpBar-by-me" style="height:100%;background:#a855f7;border-radius:2px;width:0%;transition:width .6s;"></div></div>
+        <div id="pdpMeta-by-me" style="font-size:11px;color:rgba(255,255,255,.35);font-family:'DM Mono',monospace;margin-bottom:10px;">0 of 0 completed</div>
+        <div id="pdpMembers-by-me" style="position:relative;height:24px;"></div>
       </div>
 
-      <div class="pdp-bot-card" id="pdpCard-overdue" onclick="pdpSwitchCategory('overdue')">
-        <div class="pdp-bot-accent" style="background:#ef4444"></div>
-        <div class="pdp-bot-hd">
-          <span class="pdp-bot-icon" style="background:rgba(239,68,68,.12);color:#f87171">⚠️</span>
-          <span class="pdp-bot-lbl">Overdue</span>
+      <div id="pdpCard-overdue" onclick="pdpSwitchCategory('overdue')" style="position:relative;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:16px;cursor:pointer;transition:all .18s;overflow:hidden;">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:#ef4444;border-radius:12px 12px 0 0;"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(239,68,68,.15);display:flex;align-items:center;justify-content:center;font-size:14px;">⚠️</div>
+          <span style="font-size:12px;font-weight:600;color:rgba(255,255,255,.7);font-family:'DM Sans',sans-serif;">Overdue</span>
         </div>
-        <div class="pdp-bot-count" id="pdpCount-overdue">0</div>
-        <div class="pdp-bot-track"><div class="pdp-bot-fill" id="pdpBar-overdue" style="background:#ef4444;width:0%"></div></div>
-        <div class="pdp-bot-meta" id="pdpMeta-overdue">0 overdue tasks</div>
-        <div class="pdp-bot-members" id="pdpMembers-overdue"></div>
+        <div id="pdpCount-overdue" style="font-size:28px;font-weight:800;color:#f0f0f6;font-family:'DM Sans',sans-serif;line-height:1;margin-bottom:8px;">0</div>
+        <div style="height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;margin-bottom:6px;"><div id="pdpBar-overdue" style="height:100%;background:#ef4444;border-radius:2px;width:0%;transition:width .6s;"></div></div>
+        <div id="pdpMeta-overdue" style="font-size:11px;color:rgba(255,255,255,.35);font-family:'DM Mono',monospace;margin-bottom:10px;">0 overdue tasks</div>
+        <div id="pdpMembers-overdue" style="position:relative;height:24px;"></div>
       </div>
     </div>
 
