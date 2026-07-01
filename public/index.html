@@ -3615,6 +3615,96 @@ async function pdAddComment(taskId) {
   } catch(e) {}
 }
 
+// ── Assignee Typeahead ─────────────────────────────────────────────────────────
+var _pdAssigneeSel = { email: '', name: '' };
+var _pdAssigneeHL  = -1;
+
+function pdAssigneeFocus() {
+  var inp = document.getElementById('pdAssigneeSearch');
+  if (inp) inp.style.border = '1px solid rgba(201,162,39,.5)';
+  pdAssigneeFilter(inp ? inp.value : '');
+  var dd = document.getElementById('pdAssigneeDropdown');
+  if (dd) dd.style.display = 'block';
+}
+
+function pdAssigneeBlur() {
+  setTimeout(function() {
+    var dd = document.getElementById('pdAssigneeDropdown');
+    if (dd) dd.style.display = 'none';
+    var inp = document.getElementById('pdAssigneeSearch');
+    if (inp) {
+      inp.style.border = _pdAssigneeSel.email
+        ? '1px solid rgba(201,162,39,.35)'
+        : '1px solid rgba(255,255,255,.1)';
+      inp.value = _pdAssigneeSel.name;
+    }
+  }, 200);
+}
+
+function pdAssigneeFilter(q) {
+  var dd = document.getElementById('pdAssigneeDropdown');
+  if (!dd) return;
+  dd.style.display = 'block';
+  _pdAssigneeHL = -1;
+  var list = q.trim()
+    ? _pdTeamMembers.filter(function(m) {
+        var n = (m.name||'').toLowerCase(), e = (m.email||'').toLowerCase(), s = q.toLowerCase();
+        return n.indexOf(s) !== -1 || e.indexOf(s) !== -1;
+      })
+    : _pdTeamMembers;
+  if (!list.length) {
+    dd.innerHTML = '<div style="padding:12px 14px;color:rgba(255,255,255,.35);font-size:13px;font-family:\'DM Sans\',sans-serif;">No matches</div>';
+    return;
+  }
+  dd.innerHTML = list.map(function(m) {
+    var ini = (m.name||'?').split(' ').map(function(p){return p[0]||'';}).join('').toUpperCase().slice(0,2);
+    var ee = encodeURIComponent(m.email||''), en = encodeURIComponent(m.name||m.email||'');
+    return '<div data-email="'+ee+'" data-name="'+en+'" onclick="pdAssigneeSelect(this)" '+
+      'onmouseover="this.style.background=\'rgba(255,255,255,.06)\'" onmouseout="this.style.background=\'\'" '+
+      'style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;transition:background .1s;">'+
+      '<div style="width:30px;height:30px;border-radius:50%;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.25);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#c9a227;flex-shrink:0;font-family:\'DM Mono\',monospace;">'+ini+'</div>'+
+      '<div style="min-width:0;">'+
+      '<div style="font-size:13px;color:#f0f0f6;font-family:\'DM Sans\',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(m.name||m.email)+'</div>'+
+      '<div style="font-size:11px;color:rgba(255,255,255,.3);font-family:\'DM Mono\',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(m.email||'')+'</div>'+
+      '</div></div>';
+  }).join('');
+}
+
+function pdAssigneeSelect(el) {
+  var email = decodeURIComponent(el.dataset.email||'');
+  var name  = decodeURIComponent(el.dataset.name||'');
+  _pdAssigneeSel = { email: email, name: name };
+  var hid = document.getElementById('pdTaskAssignee');
+  if (hid) hid.value = email;
+  var inp = document.getElementById('pdAssigneeSearch');
+  if (inp) { inp.value = name; inp.style.border = '1px solid rgba(201,162,39,.35)'; }
+  var dd = document.getElementById('pdAssigneeDropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+function pdAssigneeKey(e) {
+  var dd = document.getElementById('pdAssigneeDropdown');
+  if (!dd || dd.style.display === 'none') return;
+  var items = dd.querySelectorAll('[data-email]');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _pdAssigneeHL = Math.min(_pdAssigneeHL + 1, items.length - 1);
+    items.forEach(function(el, i){ el.style.background = i===_pdAssigneeHL?'rgba(255,255,255,.07)':''; });
+    items[_pdAssigneeHL].scrollIntoView({block:'nearest'});
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _pdAssigneeHL = Math.max(_pdAssigneeHL - 1, 0);
+    items.forEach(function(el, i){ el.style.background = i===_pdAssigneeHL?'rgba(255,255,255,.07)':''; });
+    items[_pdAssigneeHL].scrollIntoView({block:'nearest'});
+  } else if (e.key === 'Enter' && _pdAssigneeHL >= 0) {
+    e.preventDefault();
+    pdAssigneeSelect(items[_pdAssigneeHL]);
+  } else if (e.key === 'Escape') {
+    dd.style.display = 'none';
+  }
+}
+
 // ── Assign Task Modal ──────────────────────────────────────────────────────────
 function pdShowAssignModal() {
   var modal = document.getElementById('pdAssignModal');
@@ -3632,8 +3722,15 @@ function pdShowAssignModal() {
   document.getElementById('pdTaskDesc').value = '';
   document.getElementById('pdTaskDue').value = '';
   document.getElementById('pdTaskLink').value = '';
+  _pdAssigneeSel = { email: '', name: '' };
+  var srch = document.getElementById('pdAssigneeSearch');
+  if (srch) { srch.value = ''; srch.style.border = '1px solid rgba(255,255,255,.1)'; }
+  var hid = document.getElementById('pdTaskAssignee');
+  if (hid) hid.value = '';
+  var dd = document.getElementById('pdAssigneeDropdown');
+  if (dd) dd.style.display = 'none';
   var submitBtn = document.getElementById('pdModalSubmit');
-  if (submitBtn) submitBtn.disabled = false;
+  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Assign Task'; }
   pdLoadTeamForModal();
   setTimeout(function(){ document.getElementById('pdTaskTitle').focus(); }, 80);
 }
@@ -3687,17 +3784,8 @@ async function pdLoadTeamForModal() {
   }
 }
 
-function pdPopulateAssignee(sel) {
-  var u = getUser();
-  sel.innerHTML = '<option value="">Select team member…</option>';
-  _pdTeamMembers.forEach(function(m) {
-    var opt = document.createElement('option');
-    opt.value = m.email;
-    opt.dataset.name = m.name || m.email;
-    opt.textContent = m.name + (m.email ? ' — ' + m.email : '');
-    if (u && m.email === u.email) opt.textContent += ' (me)';
-    sel.appendChild(opt);
-  });
+function pdPopulateAssignee() {
+  // _pdTeamMembers is populated; typeahead filters on demand
 }
 
 async function pdSubmitTask() {
@@ -3705,12 +3793,11 @@ async function pdSubmitTask() {
   var desc  = (document.getElementById('pdTaskDesc').value || '').trim();
   var due   = document.getElementById('pdTaskDue').value;
   var link  = (document.getElementById('pdTaskLink').value || '').trim();
-  var sel   = document.getElementById('pdTaskAssignee');
-  var assigneeEmail = sel ? sel.value : '';
-  var assigneeName  = sel && sel.selectedOptions[0] ? (sel.selectedOptions[0].dataset.name || assigneeEmail) : assigneeEmail;
+  var assigneeEmail = _pdAssigneeSel.email;
+  var assigneeName  = _pdAssigneeSel.name || assigneeEmail;
 
   if (!title) { document.getElementById('pdTaskTitle').focus(); return; }
-  if (!assigneeEmail) { sel && sel.focus(); return; }
+  if (!assigneeEmail) { var s = document.getElementById('pdAssigneeSearch'); if (s) s.focus(); return; }
 
   var u = getUser();
   var submitBtn = document.getElementById('pdModalSubmit');
@@ -6179,10 +6266,14 @@ async function updateFeedbackStatus(id) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
         <div>
           <label style="display:block;font-size:10px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px;">Assign To <span style="color:#c9a227">*</span></label>
-          <select id="pdTaskAssignee"
-            style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 14px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;cursor:pointer;">
-            <option value="" style="background:#0f0f16;">Select team member…</option>
-          </select>
+          <div style="position:relative;">
+            <input id="pdAssigneeSearch" type="text" placeholder="Search name or email…" autocomplete="off"
+              style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 14px;padding-right:32px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;transition:border .15s;"
+              onfocus="pdAssigneeFocus()" onblur="pdAssigneeBlur()" oninput="pdAssigneeFilter(this.value)" onkeydown="pdAssigneeKey(event)">
+            <div style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.3);pointer-events:none;font-size:11px;">▾</div>
+            <input type="hidden" id="pdTaskAssignee">
+            <div id="pdAssigneeDropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#1a1d27;border:1px solid rgba(255,255,255,.12);border-radius:10px;max-height:220px;overflow-y:auto;z-index:10001;box-shadow:0 12px 32px rgba(0,0,0,.7);"></div>
+          </div>
         </div>
         <div>
           <label style="display:block;font-size:10px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px;">Due Date</label>
