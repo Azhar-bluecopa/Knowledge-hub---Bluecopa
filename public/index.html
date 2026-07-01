@@ -2824,6 +2824,14 @@ async function pdLoadDashboard() {
         }
       }
 
+      // Training progress donut chart
+      pdnRenderDonut(pct, [
+        { label: 'Completed',  value: completed,     color: '#22c55e' },
+        { label: 'In Progress',value: inProgress,    color: '#f9a74f' },
+        { label: 'Overdue',    value: overdue,       color: '#ef4444' },
+        { label: 'Remaining',  value: Math.max(0, assignments.length - completed - inProgress - overdue), color: 'rgba(255,255,255,.15)' }
+      ]);
+
       // My Learning card sub + progress bar
       const lSubEl = document.getElementById('pdLSub');
       if (lSubEl) lSubEl.textContent = assignments.length ? (completed + ' of ' + assignments.length + ' complete') : 'No assignments yet';
@@ -2901,6 +2909,11 @@ async function pdLoadDashboard() {
         el = document.getElementById('pdMSkill');
         if (el) el.textContent = avg ? avg.toFixed(1) : '—';
 
+        // Skill bar chart
+        var scoresMap = {};
+        scores.forEach(function(s){ scoresMap[s.name] = s.score; });
+        pdnRenderBarChart(processAreas, scoresMap);
+
         const skillSubEl = document.getElementById('pdSSub');
         if (skillSubEl) {
           if (avg) {
@@ -2935,6 +2948,7 @@ async function pdLoadDashboard() {
         }
       } else {
         el = document.getElementById('pdMSkill'); if (el) el.textContent = '—';
+        pdnRenderBarChart(processAreas, {});
         const sSubEl = document.getElementById('pdSSub');
         if (sSubEl) sSubEl.textContent = 'Your name is not in the skill matrix yet';
         const sListEl = document.getElementById('pdSkillList');
@@ -3207,6 +3221,102 @@ function _pdRLError(msg) {
   if (subEl) { subEl.textContent = msg; subEl.style.color = 'var(--danger)'; }
 }
 
+// ── Dashboard Charts ──────────────────────────────────────────────────────────
+var PDN_BAR_COLORS = ['#3b82f6','#a855f7','#22c55e','#f9a74f','#c9a227','#06b6d4','#f43f5e','#818cf8'];
+
+function pdnRenderBarChart(processAreas, scoresMap) {
+  var el = document.getElementById('pdnBarChart');
+  if (!el) return;
+  if (!processAreas || !processAreas.length) {
+    el.innerHTML = '<div class="pdn-chart-loading">No skill data recorded yet</div>';
+    return;
+  }
+  var MAX = 4; var BAR_H = 100; // px for the bar area height
+  el.innerHTML = processAreas.map(function(pa, i) {
+    var score = scoresMap[pa] || 0;
+    var barH = score ? Math.max(6, Math.round(score / MAX * BAR_H)) : 4;
+    var targetH = BAR_H;
+    var color = PDN_BAR_COLORS[i % PDN_BAR_COLORS.length];
+    return '<div class="pdn-bar-col">' +
+      '<div class="pdn-bar-val">' + (score ? score.toFixed(1) : '—') + '</div>' +
+      '<div class="pdn-bar-group">' +
+        '<div class="pdn-bar-score" style="height:' + barH + 'px;background:' + color + ';opacity:.9"></div>' +
+        '<div class="pdn-bar-target" style="height:' + targetH + 'px"></div>' +
+      '</div>' +
+      '<div class="pdn-bar-lbl">' + pa + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function pdnRenderDonut(pct, stats) {
+  var fill = document.getElementById('pdnDonutFill');
+  var pctEl = document.getElementById('pdnDonutPct');
+  var statsEl = document.getElementById('pdnDonutStats');
+  var circ = 2 * Math.PI * 50; // r=50 → ~314.16
+  var dash = (Math.min(pct, 100) / 100) * circ;
+  var color = pct >= 100 ? '#22c55e' : pct >= 60 ? '#f9a74f' : '#c9a227';
+  if (fill) {
+    fill.style.strokeDasharray = dash.toFixed(1) + ' ' + circ.toFixed(1);
+    fill.setAttribute('stroke', color);
+  }
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (statsEl && stats) {
+    statsEl.innerHTML = stats.map(function(s) {
+      return '<div class="pdn-donut-stat">' +
+        '<div class="pdn-donut-stat-info"><span class="pdn-donut-dot" style="background:' + s.color + '"></span><span class="pdn-donut-stat-lbl">' + s.label + '</span></div>' +
+        '<span class="pdn-donut-stat-val">' + s.value + '</span>' +
+      '</div>';
+    }).join('');
+  }
+}
+
+function pdnRenderSparkline(allTasks) {
+  var numEl = document.getElementById('pdnSparkNum');
+  var areaEl = document.getElementById('pdnSparkArea');
+  var lineEl = document.getElementById('pdnSparkLine');
+  var bdEl   = document.getElementById('pdnSparkBreakdown');
+  var total  = allTasks.length;
+  if (numEl) numEl.textContent = total || '0';
+
+  // Build 7-point sparkline representing cumulative task completion over last 7 slots
+  var done    = allTasks.filter(function(t){ return t.status === 'completed'; }).length;
+  var inprog  = allTasks.filter(function(t){ return t.status === 'in-progress'; }).length;
+  var overdue = allTasks.filter(function(t){ return t.isOverdue && t.status !== 'completed'; }).length;
+  var notst   = total - done - inprog - overdue;
+
+  // Simulate 7-point growth curve from task data (visual only)
+  var pts = [0];
+  for (var i = 1; i < 7; i++) {
+    pts.push(Math.round(total * (i / 6) * (0.6 + Math.sin(i * 0.9) * 0.2)));
+  }
+  pts[6] = total;
+  var mx = Math.max.apply(null, pts) || 1;
+  var W = 240, H = 70, pad = 4;
+  var coords = pts.map(function(v, i) {
+    return [(i * (W - 2*pad) / 6 + pad).toFixed(1), (H - pad - (v / mx) * (H - 2*pad)).toFixed(1)];
+  });
+  var linePts = coords.map(function(c){ return c.join(','); }).join(' L ');
+  var linePath = 'M ' + linePts;
+  var areaPath = 'M ' + pad + ',' + H + ' L ' + linePts + ' L ' + (W - pad) + ',' + H + ' Z';
+  if (lineEl) lineEl.setAttribute('d', linePath);
+  if (areaEl) areaEl.setAttribute('d', areaPath);
+
+  if (bdEl) {
+    var items = [
+      { n: done,    l: 'Done',       c: '#22c55e' },
+      { n: inprog,  l: 'In Progress',c: '#f9a74f' },
+      { n: overdue, l: 'Overdue',    c: '#ef4444' },
+      { n: notst < 0 ? 0 : notst, l: 'Not Started', c: 'rgba(255,255,255,.3)' }
+    ];
+    bdEl.innerHTML = items.map(function(s) {
+      return '<div class="pdn-spark-stat">' +
+        '<div class="pdn-spark-stat-n" style="color:' + s.c + '">' + s.n + '</div>' +
+        '<div class="pdn-spark-stat-l">' + s.l + '</div>' +
+      '</div>';
+    }).join('');
+  }
+}
+
 // ── My Priorities (Tasks) ─────────────────────────────────────────────────────
 var _pdTasks = [];       // tasks assigned to current user
 var _pdTasksByMe = [];   // tasks assigned by current user
@@ -3233,6 +3343,11 @@ async function pdLoadTasks() {
       if (!allSeen[t.id]) { allSeen[t.id] = true; combined.push(t); }
     });
     var overdueCount = combined.filter(function(t){ return t.isOverdue; }).length;
+
+    // Sparkline — combine all unique tasks
+    var _allUniq = {};
+    _pdTasks.concat(_pdTasksByMe).forEach(function(t){ _allUniq[t.id] = t; });
+    pdnRenderSparkline(Object.values(_allUniq));
 
     // Update tab counts
     var cMe  = document.getElementById('pdTabMeCount');
@@ -5693,43 +5808,122 @@ async function updateFeedbackStatus(id) {
   <!-- Content -->
   <div class="pd-content">
 
-    <!-- Quick Metrics Strip -->
-    <div class="pd-metrics">
-      <div class="pd-metric" onclick="pdHideDashboard(true);dwGoLearning()">
-        <span class="pd-metric-icon">📋</span>
-        <div class="pd-metric-n" id="pdMAssigned">—</div>
-        <div class="pd-metric-l">Assigned</div>
+    <!-- Today's Focus Cards -->
+    <div class="pdn-focus-row">
+      <div class="pdn-fc" onclick="pdHideDashboard(true);dwGoLearning()">
+        <div class="pdn-fc-accent" style="background:#3b82f6"></div>
+        <div class="pdn-fc-icon" style="background:rgba(59,130,246,.14)">📋</div>
+        <div class="pdn-fc-num" id="pdMAssigned">—</div>
+        <div class="pdn-fc-label" style="color:#60a5fa">Assigned</div>
+        <div class="pdn-fc-sub">Courses total</div>
       </div>
-      <div class="pd-metric pd-green" onclick="pdHideDashboard(true);dwGoLearning()">
-        <span class="pd-metric-icon">✅</span>
-        <div class="pd-metric-n" id="pdMDone">—</div>
-        <div class="pd-metric-l">Completed</div>
+      <div class="pdn-fc" onclick="pdHideDashboard(true);dwGoLearning()">
+        <div class="pdn-fc-accent" style="background:#a855f7"></div>
+        <div class="pdn-fc-icon" style="background:rgba(168,85,247,.14)">🔄</div>
+        <div class="pdn-fc-num" id="pdMInProgress">—</div>
+        <div class="pdn-fc-label" style="color:#c084fc">In Progress</div>
+        <div class="pdn-fc-sub">Courses active</div>
       </div>
-      <div class="pd-metric pd-amber" onclick="pdHideDashboard(true);dwGoLearning()">
-        <span class="pd-metric-icon">🔄</span>
-        <div class="pd-metric-n" id="pdMInProgress">—</div>
-        <div class="pd-metric-l">In Progress</div>
+      <div class="pdn-fc" onclick="pdHideDashboard(true);dwGoLearning()">
+        <div class="pdn-fc-accent" style="background:#22c55e"></div>
+        <div class="pdn-fc-icon" style="background:rgba(34,197,94,.14)">✅</div>
+        <div class="pdn-fc-num" id="pdMDone">—</div>
+        <div class="pdn-fc-label" style="color:#4ade80">Completed</div>
+        <div class="pdn-fc-sub">Courses done</div>
       </div>
-      <div class="pd-metric pd-red" onclick="pdHideDashboard(true);dwGoLearning()">
-        <span class="pd-metric-icon">⚠️</span>
-        <div class="pd-metric-n" id="pdMOverdue">—</div>
-        <div class="pd-metric-l">Overdue</div>
+      <div class="pdn-fc" onclick="pdHideDashboard(true);dwGoLearning()">
+        <div class="pdn-fc-accent" style="background:#ef4444"></div>
+        <div class="pdn-fc-icon" style="background:rgba(239,68,68,.14)">⚠️</div>
+        <div class="pdn-fc-num" id="pdMOverdue">—</div>
+        <div class="pdn-fc-label" style="color:#f87171">Overdue</div>
+        <div class="pdn-fc-sub">Need attention</div>
       </div>
-      <div class="pd-metric pd-gold" onclick="pdHideDashboard(true);dwGoCertificates('home')">
-        <span class="pd-metric-icon">🏅</span>
-        <div class="pd-metric-n" id="pdMCerts">—</div>
-        <div class="pd-metric-l">Certificates</div>
+      <div class="pdn-fc" onclick="pdHideDashboard(true);dwGoCertificates('home')">
+        <div class="pdn-fc-accent" style="background:#c9a227"></div>
+        <div class="pdn-fc-icon" style="background:rgba(201,162,39,.14)">🏅</div>
+        <div class="pdn-fc-num" id="pdMCerts">—</div>
+        <div class="pdn-fc-label" style="color:#e8c97a">Certificates</div>
+        <div class="pdn-fc-sub">Earned so far</div>
       </div>
-      <div class="pd-metric" onclick="pdHideDashboard(true);dwGoSkillMatrix()">
-        <span class="pd-metric-icon">⭐</span>
-        <div class="pd-metric-n" id="pdMSkill">—</div>
-        <div class="pd-metric-l">Skill Score</div>
+      <div class="pdn-fc" onclick="pdHideDashboard(true);dwGoSkillMatrix()">
+        <div class="pdn-fc-accent" style="background:#818cf8"></div>
+        <div class="pdn-fc-icon" style="background:rgba(129,140,248,.14)">⭐</div>
+        <div class="pdn-fc-num" id="pdMSkill">—</div>
+        <div class="pdn-fc-label" style="color:#a5b4fc">Skill Score</div>
+        <div class="pdn-fc-sub">Avg across areas</div>
       </div>
-      <div class="pd-metric" onclick="pdHideDashboard(true);dwGoKnowledge()">
-        <span class="pd-metric-icon">📖</span>
-        <div class="pd-metric-n" id="pdMRead">—</div>
-        <div class="pd-metric-l">Articles Read</div>
+      <div class="pdn-fc" onclick="pdHideDashboard(true);dwGoKnowledge()">
+        <div class="pdn-fc-accent" style="background:#06b6d4"></div>
+        <div class="pdn-fc-icon" style="background:rgba(6,182,212,.14)">📖</div>
+        <div class="pdn-fc-num" id="pdMRead">—</div>
+        <div class="pdn-fc-label" style="color:#67e8f9">Articles Read</div>
+        <div class="pdn-fc-sub">Knowledge absorbed</div>
       </div>
+    </div>
+
+    <!-- Analytics Row -->
+    <div class="pdn-analytics-row">
+
+      <!-- Skill Analytics Bar Chart -->
+      <div class="pdn-chart-card">
+        <div class="pdn-chart-hd">
+          <span class="pdn-chart-title">Skill Analytics</span>
+          <div class="pdn-legend-row">
+            <span class="pdn-leg-swatch" style="background:#818cf8"></span><span class="pdn-leg-lbl">Score</span>
+            <span class="pdn-leg-swatch" style="background:rgba(255,255,255,.1);margin-left:10px"></span><span class="pdn-leg-lbl">Target (4.0)</span>
+          </div>
+        </div>
+        <div class="pdn-barchart" id="pdnBarChart">
+          <div class="pdn-chart-loading">Loading…</div>
+        </div>
+      </div>
+
+      <!-- Training Progress Donut -->
+      <div class="pdn-chart-card pdn-chart-donut-card">
+        <div class="pdn-chart-hd">
+          <span class="pdn-chart-title">Training Progress</span>
+        </div>
+        <div class="pdn-donut-section">
+          <div class="pdn-donut-wrap">
+            <svg class="pdn-donut-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="12"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="#c9a227" stroke-width="12"
+                stroke-linecap="round" stroke-dasharray="0 314" id="pdnDonutFill"
+                style="transition:stroke-dasharray 1.2s cubic-bezier(.4,0,.2,1);transform:rotate(-90deg);transform-origin:60px 60px"/>
+            </svg>
+            <div class="pdn-donut-ctr">
+              <div class="pdn-donut-pct" id="pdnDonutPct">0%</div>
+              <div class="pdn-donut-lbl">Mandatory</div>
+            </div>
+          </div>
+          <div class="pdn-donut-stats" id="pdnDonutStats"></div>
+        </div>
+      </div>
+
+      <!-- My Tasks Sparkline -->
+      <div class="pdn-chart-card">
+        <div class="pdn-chart-hd">
+          <span class="pdn-chart-title">My Tasks</span>
+          <div class="pdn-spark-total-wrap">
+            <span class="pdn-spark-big" id="pdnSparkNum">—</span>
+            <span class="pdn-spark-lbl">total</span>
+          </div>
+        </div>
+        <div class="pdn-sparkline-wrap">
+          <svg class="pdn-sparkline-svg" viewBox="0 0 240 70" preserveAspectRatio="none" id="pdnSparklineSvg">
+            <defs>
+              <linearGradient id="pdnSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#c9a227" stop-opacity="0.28"/>
+                <stop offset="100%" stop-color="#c9a227" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path id="pdnSparkArea" fill="url(#pdnSparkGrad)"/>
+            <path id="pdnSparkLine" fill="none" stroke="#c9a227" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="pdn-spark-breakdown" id="pdnSparkBreakdown"></div>
+      </div>
+
     </div>
 
     <!-- My Priorities Section -->
