@@ -3260,6 +3260,185 @@ function pdSwitchTab(tab) {
   pdRenderTaskTab(tab);
 }
 
+// ── My Priorities Full Page ────────────────────────────────────────────────────
+var _pdpActiveCategory = 'me';
+
+function pdOpenPrioPage(cat) {
+  _pdpActiveCategory = cat || 'me';
+  document.getElementById('pdDashMain').style.display = 'none';
+  var page = document.getElementById('pdPrioPage');
+  page.style.display = 'flex';
+  // set date
+  var d = new Date();
+  var dateEl = document.getElementById('pdpDate');
+  if (dateEl) dateEl.textContent = d.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+  pdpRenderPage();
+}
+
+function pdHidePrioPage() {
+  document.getElementById('pdPrioPage').style.display = 'none';
+  document.getElementById('pdDashMain').style.display = '';
+}
+
+function pdpAllTasks() {
+  var seen = {}, all = [];
+  (_pdTasks || []).concat(_pdTasksByMe || []).forEach(function(t) {
+    if (!seen[t.id]) { seen[t.id] = true; all.push(t); }
+  });
+  return all;
+}
+
+function pdpFilteredTasks(cat) {
+  if (cat === 'me')      return _pdTasks || [];
+  if (cat === 'by-me')   return _pdTasksByMe || [];
+  return pdpAllTasks().filter(function(t) { return t.isOverdue; });
+}
+
+function pdpSwitchCategory(cat) {
+  _pdpActiveCategory = cat;
+  ['me','by-me','overdue'].forEach(function(c) {
+    var el = document.getElementById('pdpCard-' + c);
+    if (el) el.classList.toggle('active', c === cat);
+  });
+  pdpRenderTaskRows(pdpFilteredTasks(cat));
+}
+
+function pdpRenderPage() {
+  pdpSwitchCategory(_pdpActiveCategory);
+  pdpRenderDonut(pdpAllTasks());
+  pdpRenderActivities(pdpAllTasks());
+  pdpUpdateCards();
+}
+
+function pdpRenderTaskRows(tasks) {
+  var el = document.getElementById('pdpTaskRows');
+  if (!el) return;
+  if (!tasks || !tasks.length) {
+    el.innerHTML = '<div class="pdp-empty-state">No tasks in this category</div>';
+    return;
+  }
+  var prioColors = { high:'#ef4444', medium:'#f9a74f', low:'#22c55e' };
+  var statusColors = { completed:'#22c55e', 'in-progress':'#3b82f6', 'not-started':'rgba(255,255,255,.12)' };
+  var statusPcts   = { completed:100, 'in-progress':50, 'not-started':0 };
+  el.innerHTML = tasks.map(function(t) {
+    var prio  = (t.priority || 'medium').toLowerCase();
+    var pc    = prioColors[prio]  || prioColors.medium;
+    var sc    = statusColors[t.status] || statusColors['not-started'];
+    var pct   = statusPcts[t.status]   || 0;
+    var due   = t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—';
+    var name  = (t.assigneeName || (t.assigneeEmail || '?').split('@')[0]);
+    var ini   = name.split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
+    var overdueCls = t.isOverdue && t.status !== 'completed' ? ' pdp-tr-overdue' : '';
+    return '<div class="pdp-task-row' + overdueCls + '">' +
+      '<div class="pdp-tr-main">' +
+        '<div class="pdp-tr-prio-bar" style="background:' + pc + '"></div>' +
+        '<div class="pdp-tr-info">' +
+          '<div class="pdp-tr-name">' + (t.title || 'Untitled') + '</div>' +
+          (t.description ? '<div class="pdp-tr-desc">' + t.description.slice(0,60) + (t.description.length>60?'…':'') + '</div>' : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="pdp-tr-badge" style="background:' + pc + '18;color:' + pc + ';border:1px solid ' + pc + '44">' + prio + '</div>' +
+      '<div class="pdp-tr-avatar" title="' + name + '">' + ini + '</div>' +
+      '<div class="pdp-tr-due' + (t.isOverdue && t.status!=='completed' ? ' overdue' : '') + '">' + due + '</div>' +
+      '<div class="pdp-tr-prog-wrap">' +
+        '<div class="pdp-tr-prog-track"><div class="pdp-tr-prog-fill" style="width:' + pct + '%;background:' + sc + '"></div></div>' +
+        '<span class="pdp-tr-pct">' + pct + '%</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function pdpRenderDonut(tasks) {
+  var total = tasks.length;
+  var done  = tasks.filter(function(t){ return t.status === 'completed'; }).length;
+  var prog  = tasks.filter(function(t){ return t.status === 'in-progress'; }).length;
+  var over  = tasks.filter(function(t){ return t.isOverdue && t.status !== 'completed'; }).length;
+  var pct   = total ? Math.round(done / total * 100) : 0;
+  var circ  = 2 * Math.PI * 50;
+  var fill  = document.getElementById('pdpDonutFill');
+  if (fill) {
+    fill.setAttribute('stroke-dasharray', (pct/100*circ) + ' ' + (circ - pct/100*circ));
+    fill.setAttribute('stroke', pct >= 75 ? '#22c55e' : pct >= 40 ? '#f9a74f' : '#3b82f6');
+  }
+  var pctEl = document.getElementById('pdpDonutPct');
+  if (pctEl) pctEl.textContent = pct + '%';
+  var stats = document.getElementById('pdpProgressStats');
+  if (stats) stats.innerHTML = [
+    {label:'Completed',  val:done,               color:'#22c55e'},
+    {label:'In Progress',val:prog,               color:'#3b82f6'},
+    {label:'Overdue',    val:over,               color:'#ef4444'},
+    {label:'Not Started',val:total-done-prog,    color:'rgba(255,255,255,.2)'}
+  ].map(function(s) {
+    return '<div class="pdp-stat-row">' +
+      '<span class="pdp-stat-dot" style="background:' + s.color + '"></span>' +
+      '<span class="pdp-stat-lbl">' + s.label + '</span>' +
+      '<strong class="pdp-stat-val">' + s.val + '</strong>' +
+    '</div>';
+  }).join('');
+}
+
+function pdpRenderActivities(tasks) {
+  var el = document.getElementById('pdpActivities');
+  if (!el) return;
+  var sorted = tasks.slice().sort(function(a,b){ return (b.id||0)-(a.id||0); }).slice(0,6);
+  if (!sorted.length) { el.innerHTML = '<div class="pdp-empty-state">No recent activity</div>'; return; }
+  var labels = { completed:'Completed', 'in-progress':'In progress', 'not-started':'Not started' };
+  var colors = { completed:'#22c55e', 'in-progress':'#3b82f6', 'not-started':'#8a92a0' };
+  el.innerHTML = sorted.map(function(t) {
+    var name = t.assigneeName || (t.assigneeEmail||'?').split('@')[0];
+    var ini  = name.split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
+    var sc   = colors[t.status] || colors['not-started'];
+    var sl   = labels[t.status] || 'Not started';
+    return '<div class="pdp-act-row">' +
+      '<div class="pdp-act-avatar">' + ini + '</div>' +
+      '<div class="pdp-act-info">' +
+        '<div class="pdp-act-name">' + name + '</div>' +
+        '<div class="pdp-act-task">' + (t.title||'').slice(0,32) + (t.title&&t.title.length>32?'…':'') + '</div>' +
+      '</div>' +
+      '<span class="pdp-act-status" style="color:' + sc + '">' + sl + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+function pdpUpdateCards() {
+  var all   = pdpAllTasks();
+  var me    = _pdTasks    || [];
+  var byMe  = _pdTasksByMe || [];
+  var over  = all.filter(function(t){ return t.isOverdue && t.status !== 'completed'; });
+
+  [
+    {cat:'me',     list:me,   barColor:'#3b82f6'},
+    {cat:'by-me',  list:byMe, barColor:'#a855f7'},
+    {cat:'overdue',list:over, barColor:'#ef4444'}
+  ].forEach(function(x) {
+    var total = x.list.length;
+    var done  = x.list.filter(function(t){ return t.status === 'completed'; }).length;
+    var pct   = total ? Math.round(done/total*100) : 0;
+    var cnt   = document.getElementById('pdpCount-' + x.cat);
+    var bar   = document.getElementById('pdpBar-'   + x.cat);
+    var meta  = document.getElementById('pdpMeta-'  + x.cat);
+    var memEl = document.getElementById('pdpMembers-' + x.cat);
+    if (cnt)  cnt.textContent  = total;
+    if (bar)  bar.style.width  = pct + '%';
+    if (meta) meta.textContent = x.cat === 'overdue'
+      ? total + ' overdue task' + (total !== 1 ? 's' : '')
+      : done + ' of ' + total + ' completed';
+    if (memEl) {
+      var members = [];
+      x.list.forEach(function(t) {
+        var key = t.assigneeEmail || t.assigneeName;
+        if (key && !members.find(function(m){ return m.key===key; })) {
+          var name = t.assigneeName || key.split('@')[0];
+          members.push({key:key, ini: name.split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2)});
+        }
+      });
+      memEl.innerHTML = members.slice(0,4).map(function(m,i) {
+        return '<div class="pdp-bot-avatar" style="left:' + (i*18) + 'px">' + m.ini + '</div>';
+      }).join('') + (members.length ? '<span class="pdp-bot-avatar-count" style="left:' + (Math.min(members.length,4)*18) + 'px">' + (members.length > 4 ? '+' + (members.length-4) : '') + '</span>' : '');
+    }
+  });
+}
+
 function pdRenderTaskTab(tab) {
   var list;
   if (tab === 'me') {
@@ -3529,7 +3708,9 @@ async function pdSubmitTask() {
     if (r.ok) {
       pdHideAssignModal();
       await pdLoadTasks();
-      pdSwitchTab('by-me');
+      if (document.getElementById('pdPrioPage').style.display !== 'none') {
+        pdpRenderPage();
+      }
     }
   } catch(e) {
     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Assign Task'; }
@@ -5673,6 +5854,7 @@ async function updateFeedbackStatus(id) {
     </div>
   </div>
 
+  <div id="pdDashMain">
   <!-- Welcome Hero Banner -->
   <div class="pd-welcome">
     <div class="pd-welcome-inner">
@@ -5735,28 +5917,25 @@ async function updateFeedbackStatus(id) {
     <!-- My Priorities Section -->
     <div class="pd-priorities" id="pdPriorities">
       <div class="pd-prio-btn-row">
-        <button class="pd-prio-btn-card active" id="pdTabMe" onclick="pdSwitchTab('me')">
+        <button class="pd-prio-btn-card active" id="pdTabMe" onclick="pdOpenPrioPage('me')">
           <div class="pd-prio-btn-accent" style="background:#3b82f6"></div>
           <div class="pd-prio-btn-icon" style="background:rgba(59,130,246,.12);color:#60a5fa">📋</div>
           <div class="pd-prio-btn-count" id="pdTabMeCount">0</div>
           <div class="pd-prio-btn-label">Assigned to Me</div>
         </button>
-        <button class="pd-prio-btn-card" id="pdTabByMe" onclick="pdSwitchTab('by-me')">
+        <button class="pd-prio-btn-card" id="pdTabByMe" onclick="pdOpenPrioPage('by-me')">
           <div class="pd-prio-btn-accent" style="background:#a855f7"></div>
           <div class="pd-prio-btn-icon" style="background:rgba(168,85,247,.12);color:#c084fc">👥</div>
           <div class="pd-prio-btn-count" id="pdTabByMeCount">0</div>
           <div class="pd-prio-btn-label">Assigned by Me</div>
         </button>
-        <button class="pd-prio-btn-card" id="pdTabOverdue" onclick="pdSwitchTab('overdue')">
+        <button class="pd-prio-btn-card" id="pdTabOverdue" onclick="pdOpenPrioPage('overdue')">
           <div class="pd-prio-btn-accent" style="background:#ef4444"></div>
           <div class="pd-prio-btn-icon" style="background:rgba(239,68,68,.12);color:#f87171">⚠️</div>
           <div class="pd-prio-btn-count" id="pdTabOverdueCount">0</div>
           <div class="pd-prio-btn-label">Overdue</div>
         </button>
         <button class="pd-assign-task-btn pd-assign-task-btn-side" onclick="pdShowAssignModal()">+ Assign Task</button>
-      </div>
-      <div class="pd-task-list" id="pdTaskList">
-        <div class="pd-prio-empty"><div class="pd-prio-empty-icon">✅</div><div class="pd-prio-empty-title">Nothing here yet</div><div class="pd-prio-empty-sub">Loading tasks…</div></div>
       </div>
     </div>
 
@@ -5829,6 +6008,109 @@ async function updateFeedbackStatus(id) {
     </div>
 
   </div><!-- /pd-content -->
+  </div><!-- /pdDashMain -->
+
+  <!-- ── My Priorities Full Page ── -->
+  <div id="pdPrioPage" class="pdp-page" style="display:none">
+
+    <!-- Page Header -->
+    <div class="pdp-hd">
+      <div class="pdp-hd-left">
+        <button class="pdp-back-btn" onclick="pdHidePrioPage()">← Dashboard</button>
+        <div class="pdp-hd-title-wrap">
+          <h2 class="pdp-title">My Priorities</h2>
+          <span class="pdp-date" id="pdpDate"></span>
+        </div>
+      </div>
+      <div class="pdp-hd-right">
+        <button class="pd-assign-task-btn" onclick="pdShowAssignModal()">+ Assign Task</button>
+      </div>
+    </div>
+
+    <!-- Body: task panel (left) + side panel (right) -->
+    <div class="pdp-body">
+
+      <!-- Left: Task list (Gantt-style) -->
+      <div class="pdp-task-panel">
+        <div class="pdp-col-hd">
+          <span class="pdp-col-task">Task</span>
+          <span class="pdp-col-prio">Priority</span>
+          <span class="pdp-col-person">Assignee</span>
+          <span class="pdp-col-due">Due Date</span>
+          <span class="pdp-col-prog">Progress</span>
+        </div>
+        <div id="pdpTaskRows">
+          <div class="pdp-empty-state">Loading tasks…</div>
+        </div>
+      </div>
+
+      <!-- Right: Donut + Activities -->
+      <div class="pdp-side-panel">
+        <div class="pdp-prog-card">
+          <div class="pdp-prog-title">Overall Progress</div>
+          <div class="pdp-prog-donut-wrap">
+            <svg class="pdp-prog-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="12"/>
+              <circle id="pdpDonutFill" cx="60" cy="60" r="50" fill="none" stroke="#3b82f6" stroke-width="12"
+                stroke-linecap="round" stroke-dasharray="0 314"
+                transform="rotate(-90 60 60)" style="transition:stroke-dasharray .8s cubic-bezier(.4,0,.2,1)"/>
+            </svg>
+            <div class="pdp-prog-center">
+              <div class="pdp-prog-pct" id="pdpDonutPct">0%</div>
+              <div class="pdp-prog-lbl">Complete</div>
+            </div>
+          </div>
+          <div id="pdpProgressStats" class="pdp-prog-stats"></div>
+        </div>
+
+        <div class="pdp-act-card">
+          <div class="pdp-act-title">Recent Activities</div>
+          <div id="pdpActivities"><div class="pdp-empty-state">No activity yet</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom: 3 category cards -->
+    <div class="pdp-bottom-cards">
+      <div class="pdp-bot-card active" id="pdpCard-me" onclick="pdpSwitchCategory('me')">
+        <div class="pdp-bot-accent" style="background:#3b82f6"></div>
+        <div class="pdp-bot-hd">
+          <span class="pdp-bot-icon" style="background:rgba(59,130,246,.12);color:#60a5fa">📋</span>
+          <span class="pdp-bot-lbl">Assigned to Me</span>
+        </div>
+        <div class="pdp-bot-count" id="pdpCount-me">0</div>
+        <div class="pdp-bot-track"><div class="pdp-bot-fill" id="pdpBar-me" style="background:#3b82f6;width:0%"></div></div>
+        <div class="pdp-bot-meta" id="pdpMeta-me">0 of 0 completed</div>
+        <div class="pdp-bot-members" id="pdpMembers-me"></div>
+      </div>
+
+      <div class="pdp-bot-card" id="pdpCard-by-me" onclick="pdpSwitchCategory('by-me')">
+        <div class="pdp-bot-accent" style="background:#a855f7"></div>
+        <div class="pdp-bot-hd">
+          <span class="pdp-bot-icon" style="background:rgba(168,85,247,.12);color:#c084fc">👥</span>
+          <span class="pdp-bot-lbl">Assigned by Me</span>
+        </div>
+        <div class="pdp-bot-count" id="pdpCount-by-me">0</div>
+        <div class="pdp-bot-track"><div class="pdp-bot-fill" id="pdpBar-by-me" style="background:#a855f7;width:0%"></div></div>
+        <div class="pdp-bot-meta" id="pdpMeta-by-me">0 of 0 completed</div>
+        <div class="pdp-bot-members" id="pdpMembers-by-me"></div>
+      </div>
+
+      <div class="pdp-bot-card" id="pdpCard-overdue" onclick="pdpSwitchCategory('overdue')">
+        <div class="pdp-bot-accent" style="background:#ef4444"></div>
+        <div class="pdp-bot-hd">
+          <span class="pdp-bot-icon" style="background:rgba(239,68,68,.12);color:#f87171">⚠️</span>
+          <span class="pdp-bot-lbl">Overdue</span>
+        </div>
+        <div class="pdp-bot-count" id="pdpCount-overdue">0</div>
+        <div class="pdp-bot-track"><div class="pdp-bot-fill" id="pdpBar-overdue" style="background:#ef4444;width:0%"></div></div>
+        <div class="pdp-bot-meta" id="pdpMeta-overdue">0 overdue tasks</div>
+        <div class="pdp-bot-members" id="pdpMembers-overdue"></div>
+      </div>
+    </div>
+
+  </div><!-- /pdPrioPage -->
+
 </div><!-- /pdOverlay -->
 
 <!-- ── Assign Task Modal ── -->
