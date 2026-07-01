@@ -1495,5 +1495,98 @@ app.get('/api/learning/paths', (req, res) => {
   res.json(db.learning.paths);
 });
 
+// ── Tasks (My Priorities) ─────────────────────────────────────────────────────
+function ensureTasks() {
+  if (!db.tasks)      db.tasks      = [];
+  if (!db.nextTaskId) db.nextTaskId = 1;
+}
+
+// GET /api/tasks?assignee=email  OR  ?assignedBy=email  OR both absent (admin, all)
+app.get('/api/tasks', (req, res) => {
+  ensureTasks();
+  const { assignee, assignedBy } = req.query;
+  const now = new Date();
+  let list = db.tasks;
+  if (assignee)    list = list.filter(t => (t.assigneeEmail  || '').toLowerCase() === assignee.toLowerCase());
+  if (assignedBy)  list = list.filter(t => (t.assignedByEmail|| '').toLowerCase() === assignedBy.toLowerCase());
+  // Annotate overdue flag at read-time; don't persist it
+  list = list.map(t => ({
+    ...t,
+    isOverdue: t.status !== 'completed' && !!t.dueDate && new Date(t.dueDate) < now
+  }));
+  res.json({ tasks: list });
+});
+
+// POST /api/tasks — create a task
+app.post('/api/tasks', (req, res) => {
+  ensureTasks();
+  const { title, description, assigneeEmail, assigneeName,
+          assignedByEmail, assignedByName, dueDate, priority, links } = req.body;
+  if (!title || !assigneeEmail)
+    return res.status(400).json({ error: 'title and assigneeEmail required' });
+  const task = {
+    id:              db.nextTaskId++,
+    title:           title.trim(),
+    description:     description || '',
+    assigneeEmail:   assigneeEmail.trim(),
+    assigneeName:    assigneeName  || assigneeEmail,
+    assignedByEmail: assignedByEmail || '',
+    assignedByName:  assignedByName  || '',
+    dueDate:         dueDate || null,
+    priority:        priority || 'medium',
+    status:          'not-started',
+    links:           links || [],
+    comments:        [],
+    createdAt:       new Date().toISOString()
+  };
+  db.tasks.push(task);
+  saveDB(db);
+  res.status(201).json(task);
+});
+
+// PUT /api/tasks/:id — update status / fields
+app.put('/api/tasks/:id', (req, res) => {
+  ensureTasks();
+  const id = parseInt(req.params.id);
+  const t  = db.tasks.find(x => x.id === id);
+  if (!t) return res.status(404).json({ error: 'Not found' });
+  const allowed = ['status','title','description','dueDate','priority','links'];
+  allowed.forEach(k => { if (req.body[k] !== undefined) t[k] = req.body[k]; });
+  saveDB(db);
+  res.json(t);
+});
+
+// POST /api/tasks/:id/comments — add a comment
+app.post('/api/tasks/:id/comments', (req, res) => {
+  ensureTasks();
+  const id = parseInt(req.params.id);
+  const t  = db.tasks.find(x => x.id === id);
+  if (!t) return res.status(404).json({ error: 'Not found' });
+  const { text, authorName, authorEmail } = req.body;
+  if (!text) return res.status(400).json({ error: 'text required' });
+  const comment = {
+    id:          Date.now(),
+    text:        text.trim(),
+    authorName:  authorName  || authorEmail || 'User',
+    authorEmail: authorEmail || '',
+    createdAt:   new Date().toISOString()
+  };
+  if (!t.comments) t.comments = [];
+  t.comments.push(comment);
+  saveDB(db);
+  res.json(comment);
+});
+
+// DELETE /api/tasks/:id
+app.delete('/api/tasks/:id', (req, res) => {
+  ensureTasks();
+  const id  = parseInt(req.params.id);
+  const idx = db.tasks.findIndex(x => x.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  db.tasks.splice(idx, 1);
+  saveDB(db);
+  res.json({ ok: true });
+});
+
 // ── Export for Vercel serverless ──────────────────────────────────────────────
 module.exports = app;
