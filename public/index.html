@@ -5916,26 +5916,29 @@ async function updateFeedbackStatus(id) {
 
     <!-- My Priorities Section -->
     <div class="pd-priorities" id="pdPriorities">
+      <div class="pd-prio-section-hd">
+        <span class="pd-prio-section-title">My Priorities</span>
+        <button class="pd-prio-assign-btn" onclick="pdShowAssignModal()">+ Assign Task</button>
+      </div>
       <div class="pd-prio-btn-row">
-        <div class="pd-prio-btn-card active" id="pdTabMe" role="button" tabindex="0" onclick="pdOpenPrioPage('me')">
+        <div class="pd-prio-btn-card active" id="pdTabMe" onclick="pdOpenPrioPage('me')">
           <div class="pd-prio-btn-accent" style="background:#3b82f6"></div>
           <div class="pd-prio-btn-icon" style="background:rgba(59,130,246,.12);color:#60a5fa">📋</div>
           <div class="pd-prio-btn-count" id="pdTabMeCount">0</div>
           <div class="pd-prio-btn-label">Assigned to Me</div>
         </div>
-        <div class="pd-prio-btn-card" id="pdTabByMe" role="button" tabindex="0" onclick="pdOpenPrioPage('by-me')">
+        <div class="pd-prio-btn-card" id="pdTabByMe" onclick="pdOpenPrioPage('by-me')">
           <div class="pd-prio-btn-accent" style="background:#a855f7"></div>
           <div class="pd-prio-btn-icon" style="background:rgba(168,85,247,.12);color:#c084fc">👥</div>
           <div class="pd-prio-btn-count" id="pdTabByMeCount">0</div>
           <div class="pd-prio-btn-label">Assigned by Me</div>
         </div>
-        <div class="pd-prio-btn-card" id="pdTabOverdue" role="button" tabindex="0" onclick="pdOpenPrioPage('overdue')">
+        <div class="pd-prio-btn-card" id="pdTabOverdue" onclick="pdOpenPrioPage('overdue')">
           <div class="pd-prio-btn-accent" style="background:#ef4444"></div>
           <div class="pd-prio-btn-icon" style="background:rgba(239,68,68,.12);color:#f87171">⚠️</div>
           <div class="pd-prio-btn-count" id="pdTabOverdueCount">0</div>
           <div class="pd-prio-btn-label">Overdue</div>
         </div>
-        <button class="pd-assign-task-btn pd-assign-task-btn-side" onclick="pdShowAssignModal()">+ Assign Task</button>
       </div>
     </div>
 

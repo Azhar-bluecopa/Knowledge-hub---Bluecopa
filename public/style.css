@@ -3161,16 +3161,22 @@ body.proxy-active #liOverlay{top:48px;}
 .pd-assign-task-btn:active{transform:translateY(0);}
 
 /* Priority button cards */
-.pd-prio-btn-row{display:flex;gap:12px;margin-bottom:16px;align-items:stretch;width:100%;}
-.pd-prio-btn-card{display:flex;flex-direction:column;position:relative;flex:1;min-width:0;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 16px 14px;cursor:pointer;text-align:left;transition:all .2s;overflow:hidden;font-family:'DM Sans',sans-serif;}
+/* My Priorities section header */
+.pd-prio-section-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.pd-prio-section-title{font-size:14px;font-weight:700;color:rgba(255,255,255,.7);font-family:'DM Sans',sans-serif;letter-spacing:-.01em;}
+.pd-prio-assign-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .18s;letter-spacing:.01em;}
+.pd-prio-assign-btn:hover{background:rgba(255,255,255,.1);color:#f0f0f6;border-color:rgba(255,255,255,.2);}
+.pd-prio-assign-btn:active{transform:translateY(1px);}
+/* Priority button cards — grid layout */
+.pd-prio-btn-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;}
+.pd-prio-btn-card{position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 16px 14px;cursor:pointer;transition:all .2s;overflow:hidden;}
 .pd-prio-btn-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.13);box-shadow:0 8px 24px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.15);}
 .pd-prio-btn-card.active{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.055);}
 .pd-prio-btn-card:active{transform:translateY(0);}
 .pd-prio-btn-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0;}
 .pd-prio-btn-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:12px;}
-.pd-prio-btn-count{font-size:32px;font-weight:800;color:#f0f0f6;letter-spacing:-.03em;line-height:1;margin-bottom:4px;}
+.pd-prio-btn-count{font-size:32px;font-weight:800;color:#f0f0f6;letter-spacing:-.03em;line-height:1;margin-bottom:4px;font-family:'DM Sans',sans-serif;}
 .pd-prio-btn-label{font-size:10px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.38);}
-.pd-assign-task-btn-side{flex:none;align-self:center;white-space:nowrap;}
 
 /* Task cards */
 .pd-task-list{display:flex;flex-direction:column;gap:8px;}
