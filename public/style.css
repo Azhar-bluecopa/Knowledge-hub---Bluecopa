@@ -3161,8 +3161,8 @@ body.proxy-active #liOverlay{top:48px;}
 .pd-assign-task-btn:active{transform:translateY(0);}
 
 /* Priority button cards */
-.pd-prio-btn-row{display:flex;gap:12px;margin-bottom:16px;align-items:stretch;}
-.pd-prio-btn-card{position:relative;flex:1;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 16px 14px;cursor:pointer;text-align:left;transition:all .2s;overflow:hidden;font-family:'DM Sans',sans-serif;}
+.pd-prio-btn-row{display:flex;gap:12px;margin-bottom:16px;align-items:stretch;width:100%;}
+.pd-prio-btn-card{display:flex;flex-direction:column;position:relative;flex:1;min-width:0;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 16px 14px;cursor:pointer;text-align:left;transition:all .2s;overflow:hidden;font-family:'DM Sans',sans-serif;}
 .pd-prio-btn-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.13);box-shadow:0 8px 24px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.15);}
 .pd-prio-btn-card.active{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.055);}
 .pd-prio-btn-card:active{transform:translateY(0);}
