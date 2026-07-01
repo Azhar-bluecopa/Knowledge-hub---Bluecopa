@@ -3646,8 +3646,21 @@ function pdHideAssignModal() {
 
 function pdSelectPrio(prio) {
   _pdSelPrio = prio;
+  var prioStyles = {
+    high:   {bg:'rgba(239,68,68,.2)',  border:'rgba(239,68,68,.5)',  color:'#ef4444'},
+    medium: {bg:'rgba(249,167,79,.2)', border:'rgba(249,167,79,.5)', color:'#f9a74f'},
+    low:    {bg:'rgba(34,197,94,.2)',  border:'rgba(34,197,94,.5)',  color:'#22c55e'}
+  };
+  var inactive = {bg:'rgba(255,255,255,.04)', border:'rgba(255,255,255,.1)', color:'rgba(255,255,255,.45)'};
   document.querySelectorAll('#pdPrioGroup .pd-prio-label').forEach(function(btn) {
-    btn.classList.toggle('sel', btn.dataset.prio === prio);
+    var p = btn.dataset.prio;
+    var isSel = p === prio;
+    var c = isSel ? (prioStyles[p] || inactive) : inactive;
+    btn.classList.toggle('sel', isSel);
+    btn.style.background = c.bg;
+    btn.style.border = '1px solid ' + c.border;
+    btn.style.color = c.color;
+    btn.style.fontWeight = isSel ? '700' : '500';
   });
 }
 
@@ -6128,49 +6141,84 @@ async function updateFeedbackStatus(id) {
 </div><!-- /pdOverlay -->
 
 <!-- ── Assign Task Modal ── -->
-<div class="pd-modal-overlay" id="pdAssignModal" onclick="if(event.target===this)pdHideAssignModal()">
-  <div class="pd-modal">
-    <div class="pd-modal-hd">
-      <div class="pd-modal-title">Assign a Task</div>
-      <button class="pd-modal-close" onclick="pdHideAssignModal()">✕</button>
+<div id="pdAssignModal" onclick="if(event.target===this)pdHideAssignModal()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.82);align-items:center;justify-content:center;padding:24px;font-family:'DM Sans',sans-serif;">
+  <div style="background:#0f0f16;border:1px solid rgba(255,255,255,.1);border-radius:16px;width:100%;max-width:640px;box-shadow:0 32px 80px rgba(0,0,0,.8),0 8px 24px rgba(0,0,0,.5);overflow:hidden;">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:24px 28px 20px;border-bottom:1px solid rgba(255,255,255,.07);">
+      <div>
+        <div style="font-size:10px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#c9a227;margin-bottom:6px;">Task Management</div>
+        <div style="font-size:20px;font-weight:800;color:#f0f0f6;letter-spacing:-.02em;">Assign a Task</div>
+      </div>
+      <button onclick="pdHideAssignModal()" style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.5);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.1)';this.style.color='#f0f0f6'" onmouseout="this.style.background='rgba(255,255,255,.05)';this.style.color='rgba(255,255,255,.5)'">✕</button>
     </div>
-    <div class="pd-modal-body">
-      <div class="pd-modal-field">
-        <label class="pd-modal-label">Task Title *</label>
-        <input class="pd-modal-input" id="pdTaskTitle" type="text" placeholder="What needs to be done?" maxlength="200">
+
+    <!-- Body -->
+    <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px;">
+
+      <!-- Task Title -->
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px;">Task Title <span style="color:#c9a227">*</span></label>
+        <input id="pdTaskTitle" type="text" placeholder="What needs to be done?" maxlength="200"
+          style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 14px;color:#f0f0f6;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;transition:border .15s;"
+          onfocus="this.style.border='1px solid rgba(201,162,39,.5)'" onblur="this.style.border='1px solid rgba(255,255,255,.1)'">
       </div>
-      <div class="pd-modal-field">
-        <label class="pd-modal-label">Description (optional)</label>
-        <textarea class="pd-modal-textarea" id="pdTaskDesc" placeholder="Add more context, acceptance criteria, or notes…"></textarea>
+
+      <!-- Description -->
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px;">Description <span style="color:rgba(255,255,255,.25);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+        <textarea id="pdTaskDesc" placeholder="Add more context, acceptance criteria, or notes…" rows="3"
+          style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 14px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;box-sizing:border-box;transition:border .15s;"
+          onfocus="this.style.border='1px solid rgba(201,162,39,.5)'" onblur="this.style.border='1px solid rgba(255,255,255,.1)'"></textarea>
       </div>
-      <div class="pd-modal-row2">
-        <div class="pd-modal-field">
-          <label class="pd-modal-label">Assign To *</label>
-          <select class="pd-modal-select" id="pdTaskAssignee">
-            <option value="">Select team member…</option>
+
+      <!-- Assign To + Due Date -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div>
+          <label style="display:block;font-size:10px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px;">Assign To <span style="color:#c9a227">*</span></label>
+          <select id="pdTaskAssignee"
+            style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 14px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;cursor:pointer;">
+            <option value="" style="background:#0f0f16;">Select team member…</option>
           </select>
         </div>
-        <div class="pd-modal-field">
-          <label class="pd-modal-label">Due Date</label>
-          <input class="pd-modal-input" id="pdTaskDue" type="date">
+        <div>
+          <label style="display:block;font-size:10px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px;">Due Date</label>
+          <input id="pdTaskDue" type="date"
+            style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 14px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;color-scheme:dark;"
+            onfocus="this.style.border='1px solid rgba(201,162,39,.5)'" onblur="this.style.border='1px solid rgba(255,255,255,.1)'">
         </div>
       </div>
-      <div class="pd-modal-field">
-        <label class="pd-modal-label">Priority</label>
-        <div class="pd-prio-group" id="pdPrioGroup">
-          <button type="button" class="pd-prio-label high sel" data-prio="high" onclick="pdSelectPrio('high')">High</button>
-          <button type="button" class="pd-prio-label medium" data-prio="medium" onclick="pdSelectPrio('medium')">Medium</button>
-          <button type="button" class="pd-prio-label low" data-prio="low" onclick="pdSelectPrio('low')">Low</button>
+
+      <!-- Priority -->
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px;">Priority</label>
+        <div id="pdPrioGroup" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+          <button type="button" class="pd-prio-label high sel" data-prio="high" onclick="pdSelectPrio('high')"
+            style="padding:10px 16px;border-radius:8px;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.5);color:#ef4444;">High</button>
+          <button type="button" class="pd-prio-label medium" data-prio="medium" onclick="pdSelectPrio('medium')"
+            style="padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.45);">Medium</button>
+          <button type="button" class="pd-prio-label low" data-prio="low" onclick="pdSelectPrio('low')"
+            style="padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.45);">Low</button>
         </div>
       </div>
-      <div class="pd-modal-field">
-        <label class="pd-modal-label">Supporting Link (optional)</label>
-        <input class="pd-modal-input" id="pdTaskLink" type="url" placeholder="https://…">
+
+      <!-- Supporting Link -->
+      <div>
+        <label style="display:block;font-size:10px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px;">Supporting Link <span style="color:rgba(255,255,255,.25);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+        <input id="pdTaskLink" type="url" placeholder="https://…"
+          style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 14px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;transition:border .15s;"
+          onfocus="this.style.border='1px solid rgba(201,162,39,.5)'" onblur="this.style.border='1px solid rgba(255,255,255,.1)'">
       </div>
     </div>
-    <div class="pd-modal-footer">
-      <button class="pd-modal-cancel" onclick="pdHideAssignModal()">Cancel</button>
-      <button class="pd-modal-submit" id="pdModalSubmit" onclick="pdSubmitTask()">Assign Task</button>
+
+    <!-- Footer -->
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;padding:20px 28px;border-top:1px solid rgba(255,255,255,.07);">
+      <button onclick="pdHideAssignModal()" class="pd-modal-cancel"
+        style="padding:11px 24px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;"
+        onmouseover="this.style.border='1px solid rgba(255,255,255,.25)';this.style.color='rgba(255,255,255,.8)'" onmouseout="this.style.border='1px solid rgba(255,255,255,.12)';this.style.color='rgba(255,255,255,.5)'">Cancel</button>
+      <button id="pdModalSubmit" onclick="pdSubmitTask()"
+        style="padding:11px 28px;border-radius:8px;background:#c9a227;color:#1a1d27;border:none;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .18s;letter-spacing:.01em;"
+        onmouseover="this.style.background='#d4ae35';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='#c9a227';this.style.transform='translateY(0)'">Assign Task</button>
     </div>
   </div>
 </div>
