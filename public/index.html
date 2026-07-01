@@ -5734,16 +5734,26 @@ async function updateFeedbackStatus(id) {
 
     <!-- My Priorities Section -->
     <div class="pd-priorities" id="pdPriorities">
-      <div class="pd-priorities-hd">
-        <div class="pd-priorities-title">My Priorities</div>
-        <span class="pd-priorities-count" id="pdPrioCount">0 tasks</span>
-        <div class="pd-priorities-spacer"></div>
-        <button class="pd-assign-task-btn" onclick="pdShowAssignModal()">+ Assign Task</button>
-      </div>
-      <div class="pd-prio-tabs">
-        <button class="pd-prio-tab active" id="pdTabMe" onclick="pdSwitchTab('me')">Assigned to Me <span class="pd-prio-tab-count" id="pdTabMeCount">0</span></button>
-        <button class="pd-prio-tab" id="pdTabByMe" onclick="pdSwitchTab('by-me')">Assigned by Me <span class="pd-prio-tab-count" id="pdTabByMeCount">0</span></button>
-        <button class="pd-prio-tab" id="pdTabOverdue" onclick="pdSwitchTab('overdue')">Overdue <span class="pd-prio-tab-count" id="pdTabOverdueCount">0</span></button>
+      <div class="pd-prio-btn-row">
+        <button class="pd-prio-btn-card active" id="pdTabMe" onclick="pdSwitchTab('me')">
+          <div class="pd-prio-btn-accent" style="background:#3b82f6"></div>
+          <div class="pd-prio-btn-icon" style="background:rgba(59,130,246,.12);color:#60a5fa">📋</div>
+          <div class="pd-prio-btn-count" id="pdTabMeCount">0</div>
+          <div class="pd-prio-btn-label">Assigned to Me</div>
+        </button>
+        <button class="pd-prio-btn-card" id="pdTabByMe" onclick="pdSwitchTab('by-me')">
+          <div class="pd-prio-btn-accent" style="background:#a855f7"></div>
+          <div class="pd-prio-btn-icon" style="background:rgba(168,85,247,.12);color:#c084fc">👥</div>
+          <div class="pd-prio-btn-count" id="pdTabByMeCount">0</div>
+          <div class="pd-prio-btn-label">Assigned by Me</div>
+        </button>
+        <button class="pd-prio-btn-card" id="pdTabOverdue" onclick="pdSwitchTab('overdue')">
+          <div class="pd-prio-btn-accent" style="background:#ef4444"></div>
+          <div class="pd-prio-btn-icon" style="background:rgba(239,68,68,.12);color:#f87171">⚠️</div>
+          <div class="pd-prio-btn-count" id="pdTabOverdueCount">0</div>
+          <div class="pd-prio-btn-label">Overdue</div>
+        </button>
+        <button class="pd-assign-task-btn pd-assign-task-btn-side" onclick="pdShowAssignModal()">+ Assign Task</button>
       </div>
       <div class="pd-task-list" id="pdTaskList">
         <div class="pd-prio-empty"><div class="pd-prio-empty-icon">✅</div><div class="pd-prio-empty-title">Nothing here yet</div><div class="pd-prio-empty-sub">Loading tasks…</div></div>

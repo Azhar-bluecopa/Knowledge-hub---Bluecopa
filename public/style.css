@@ -3160,13 +3160,17 @@ body.proxy-active #liOverlay{top:48px;}
 .pd-assign-task-btn:hover{background:#d4ae35;transform:translateY(-1px);box-shadow:0 4px 16px rgba(201,162,39,.3);}
 .pd-assign-task-btn:active{transform:translateY(0);}
 
-/* Tab bar */
-.pd-prio-tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,.06);padding-bottom:0;}
-.pd-prio-tab{background:transparent;border:none;color:rgba(255,255,255,.35);font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;letter-spacing:.01em;display:flex;align-items:center;gap:6px;}
-.pd-prio-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
-.pd-prio-tab:hover:not(.active){color:rgba(255,255,255,.6);}
-.pd-prio-tab-count{font-size:9px;font-family:'DM Mono',monospace;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:99px;padding:1px 7px;color:rgba(255,255,255,.3);}
-.pd-prio-tab.active .pd-prio-tab-count{background:rgba(201,162,39,.1);border-color:rgba(201,162,39,.2);color:rgba(201,162,39,.8);}
+/* Priority button cards */
+.pd-prio-btn-row{display:flex;gap:12px;margin-bottom:16px;align-items:stretch;}
+.pd-prio-btn-card{position:relative;flex:1;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 16px 14px;cursor:pointer;text-align:left;transition:all .2s;overflow:hidden;font-family:'DM Sans',sans-serif;}
+.pd-prio-btn-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.13);box-shadow:0 8px 24px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.15);}
+.pd-prio-btn-card.active{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.055);}
+.pd-prio-btn-card:active{transform:translateY(0);}
+.pd-prio-btn-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0;}
+.pd-prio-btn-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:12px;}
+.pd-prio-btn-count{font-size:32px;font-weight:800;color:#f0f0f6;letter-spacing:-.03em;line-height:1;margin-bottom:4px;}
+.pd-prio-btn-label{font-size:10px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.38);}
+.pd-assign-task-btn-side{flex:none;align-self:center;white-space:nowrap;}
 
 /* Task cards */
 .pd-task-list{display:flex;flex-direction:column;gap:8px;}
