@@ -3,7 +3,40 @@ const express = require('express');
 const http    = require('http');
 const path    = require('path');
 const fs      = require('fs');
-const multer  = require('multer');
+const multer      = require('multer');
+const nodemailer  = require('nodemailer');
+
+// ── Email transporter ─────────────────────────────────────────────────────────
+const mailer = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+async function sendEmail({ to, subject, html, text }) {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn('[email] SMTP not configured — skipping send');
+    return;
+  }
+  try {
+    const info = await mailer.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to,
+      subject,
+      html,
+      text,
+    });
+    console.log('[email] sent →', to, '|', info.messageId);
+    return info;
+  } catch (e) {
+    console.error('[email] failed →', to, e.message);
+    throw e;
+  }
+}
 
 // ── Vercel compatibility ──────────────────────────────────────────────────────
 const IS_VERCEL = !!process.env.VERCEL;
@@ -1586,6 +1619,24 @@ app.delete('/api/tasks/:id', (req, res) => {
   db.tasks.splice(idx, 1);
   saveDB(db);
   res.json({ ok: true });
+});
+
+// ── Email test endpoint (admin only) ─────────────────────────────────────────
+app.post('/api/email/test', async (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Admin only' });
+  const { to } = req.body;
+  if (!to) return res.status(400).json({ error: '`to` email required' });
+  try {
+    await sendEmail({
+      to,
+      subject: 'Delivery Wikipedia — Email configured ✓',
+      html: `<p>Hi,</p><p>This is a test email from <strong>Delivery Wikipedia</strong> to confirm the email integration is working correctly.</p><p style="color:#888;font-size:12px;">Sent from delivery.wiki@bluecopa.com</p>`,
+      text: 'Test email from Delivery Wikipedia — email integration is working.',
+    });
+    res.json({ ok: true, message: `Test email sent to ${to}` });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── Export for Vercel serverless ──────────────────────────────────────────────
