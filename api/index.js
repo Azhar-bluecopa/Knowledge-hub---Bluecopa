@@ -1934,7 +1934,7 @@ app.post('/api/issues', async (req, res) => {
   ensureIssues();
   const userEmail = req.headers['x-user-email'] || '';
   if (!userEmail) return res.status(401).json({ error: 'Not authenticated' });
-  const { title, clientName, projectName, category, priority, description, tags, reportedByName } = req.body;
+  const { title, clientName, projectName, category, priority, description, tags, reportedByName, screenshots } = req.body;
   if (!title?.trim()) return res.status(400).json({ error: 'Title required' });
   const issue = {
     id: 'ip_' + Date.now(),
@@ -1946,6 +1946,7 @@ app.post('/api/issues', async (req, res) => {
     description: (description || '').trim(),
     status: 'Open',
     tags: Array.isArray(tags) ? tags.filter(Boolean) : (tags || '').split(',').map(t => t.trim()).filter(Boolean),
+    screenshots: Array.isArray(screenshots) ? screenshots : [],
     reportedBy: { email: userEmail, name: reportedByName || userEmail },
     assignedOwner: null,
     createdAt: new Date().toISOString(),

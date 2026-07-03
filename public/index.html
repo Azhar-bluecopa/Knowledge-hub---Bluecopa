@@ -6506,6 +6506,22 @@ async function updateFeedbackStatus(id) {
               style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 14px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;">
           </div>
 
+          <!-- Screenshots -->
+          <div>
+            <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Screenshots <span style="font-weight:400;text-transform:none;letter-spacing:0;">(paste Ctrl+V, drag &amp; drop, or click)</span></label>
+            <div id="ipScreenshotZone" onclick="document.getElementById('ipFileInput').click()"
+              style="border:1.5px dashed rgba(255,255,255,.15);border-radius:8px;padding:20px 16px;text-align:center;cursor:pointer;background:rgba(255,255,255,.02);transition:border-color .18s;"
+              ondragover="event.preventDefault();this.style.borderColor='#c9a227';"
+              ondragleave="this.style.borderColor='rgba(255,255,255,.15)';"
+              ondrop="ipHandleDrop(event);">
+              <div style="font-size:22px;margin-bottom:6px;">📎</div>
+              <div style="font-size:12px;color:rgba(255,255,255,.4);">Click to upload or drag &amp; drop images</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.25);margin-top:3px;">You can also paste a screenshot anywhere on this form (Ctrl+V / Cmd+V)</div>
+            </div>
+            <input type="file" id="ipFileInput" accept="image/*" multiple style="display:none;" onchange="ipHandleFileInput(this)">
+            <div id="ipScreenshotPreviews" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;"></div>
+          </div>
+
           <!-- Submit -->
           <div style="display:flex;gap:12px;align-items:center;padding-top:4px;">
             <button onclick="ipSubmitIssue()" id="ipSubmitBtn"
@@ -6534,8 +6550,88 @@ async function updateFeedbackStatus(id) {
 // ISSUE PORTAL — JavaScript
 // ══════════════════════════════════════════════════════════════════════════════
 
-var _ipIssues   = [];
-var _ipTab      = 'list';
+var _ipIssues          = [];
+var _ipTab             = 'list';
+var _ipFormScreenshots = [];
+
+// ── Screenshot helpers ────────────────────────────────────────────────────────
+
+function ipCompressImage(file) {
+  return new Promise(function(resolve) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = new Image();
+      img.onload = function() {
+        var MAX = 1200;
+        var w = img.width, h = img.height;
+        if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.75), name: file.name || 'screenshot.jpg' });
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function ipRenderScreenshotPreviews() {
+  var el = document.getElementById('ipScreenshotPreviews');
+  if (!el) return;
+  el.innerHTML = _ipFormScreenshots.map(function(s, i) {
+    return '<div style="position:relative;width:110px;height:82px;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.12);flex-shrink:0;">'
+      + '<img src="' + s.dataUrl + '" style="width:100%;height:100%;object-fit:cover;" />'
+      + '<button onclick="ipRemoveScreenshot(' + i + ')" title="Remove" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.8);border:none;border-radius:50%;width:20px;height:20px;color:#f0f0f6;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;">✕</button>'
+    + '</div>';
+  }).join('');
+}
+
+function ipRemoveScreenshot(i) {
+  _ipFormScreenshots.splice(i, 1);
+  ipRenderScreenshotPreviews();
+}
+
+async function ipHandleFileInput(input) {
+  var files = Array.from(input.files || []);
+  for (var f of files) {
+    if (!f.type.startsWith('image/')) continue;
+    var s = await ipCompressImage(f);
+    _ipFormScreenshots.push(s);
+  }
+  input.value = '';
+  ipRenderScreenshotPreviews();
+}
+
+async function ipHandleDrop(e) {
+  e.preventDefault();
+  var zone = document.getElementById('ipScreenshotZone');
+  if (zone) zone.style.borderColor = 'rgba(255,255,255,.15)';
+  var files = Array.from((e.dataTransfer && e.dataTransfer.files) || []).filter(function(f){ return f.type.startsWith('image/'); });
+  for (var f of files) {
+    var s = await ipCompressImage(f);
+    _ipFormScreenshots.push(s);
+  }
+  ipRenderScreenshotPreviews();
+}
+
+// Paste listener — active only when the form view is open
+document.addEventListener('paste', async function(e) {
+  var portal = document.getElementById('issuePortal');
+  if (!portal || portal.style.display === 'none') return;
+  var formView = document.getElementById('ipFormView');
+  if (!formView || formView.style.display === 'none') return;
+  var items = Array.from((e.clipboardData && e.clipboardData.items) || []).filter(function(item){ return item.type.startsWith('image/'); });
+  if (!items.length) return;
+  e.preventDefault();
+  for (var item of items) {
+    var file = item.getAsFile();
+    if (file) { var s = await ipCompressImage(file); _ipFormScreenshots.push(s); }
+  }
+  ipRenderScreenshotPreviews();
+  var zone = document.getElementById('ipScreenshotZone');
+  if (zone) { zone.style.borderColor = '#22c55e'; setTimeout(function(){ zone.style.borderColor = 'rgba(255,255,255,.15)'; }, 900); }
+});
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -6823,7 +6919,19 @@ function ipRenderDetail(issue) {
         + '</div>'
       + '</div>'
       + (issue.description ? '<div style="font-size:14px;color:rgba(255,255,255,.75);line-height:1.7;margin-bottom:16px;white-space:pre-wrap;">' + issue.description + '</div>' : '')
-      + (tags ? '<div style="display:flex;gap:6px;flex-wrap:wrap;">' + tags + '</div>' : '')
+      + (tags ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">' + tags + '</div>' : '')
+      + (issue.screenshots && issue.screenshots.length
+          ? '<div style="margin-top:4px;">'
+              + '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Screenshots</div>'
+              + '<div style="display:flex;flex-wrap:wrap;gap:10px;">'
+                + issue.screenshots.map(function(url) {
+                    return '<a href="' + url + '" target="_blank" style="display:block;width:140px;height:100px;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.12);cursor:zoom-in;flex-shrink:0;">'
+                      + '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;" />'
+                    + '</a>';
+                  }).join('')
+              + '</div>'
+            + '</div>'
+          : '')
     + '</div>'
 
     + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">'
@@ -6945,6 +7053,7 @@ async function ipSubmitIssue() {
         priority: pri,
         description: desc,
         tags: (document.getElementById('ipFTags').value||'').split(',').map(function(t){ return t.trim(); }).filter(Boolean),
+        screenshots: _ipFormScreenshots.map(function(s){ return s.dataUrl; }),
         reportedByName: u.name || u.email || '',
       }),
     });
@@ -6955,6 +7064,8 @@ async function ipSubmitIssue() {
     ['ipFTitle','ipFClient','ipFProject','ipFDesc','ipFTags'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
     document.getElementById('ipFCategory2').value = '';
     document.getElementById('ipFPriority2').value = '';
+    _ipFormScreenshots = [];
+    ipRenderScreenshotPreviews();
     var msg = document.getElementById('ipFormMsg');
     if (msg) { msg.style.display = 'block'; setTimeout(function(){ msg.style.display='none'; }, 2000); }
     setTimeout(function(){ ipSwitchTab('list'); ipRenderIssues(_ipIssues); }, 1200);
