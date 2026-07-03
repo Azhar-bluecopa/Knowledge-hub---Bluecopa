@@ -6405,7 +6405,7 @@ async function updateFeedbackStatus(id) {
         </div>
         <select id="ipFStatus" onchange="ipApplyFilters()" style="background:#1a1d27;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 12px;color:#f0f0f6;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;outline:none;">
           <option value="">All Statuses</option>
-          <option>Open</option>
+          <option selected>Open</option>
           <option>In Progress</option>
           <option>Resolved within Delivery</option>
           <option>Escalated to Platform</option>
@@ -6547,6 +6547,32 @@ async function updateFeedbackStatus(id) {
 var _ipIssues          = [];
 var _ipTab             = 'list';
 var _ipFormScreenshots = [];
+var _ipLiveTimer       = null;
+
+function ipLiveFmt(iso) {
+  var sec = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if (sec < 60)   return sec + 's ago';
+  var s = sec % 60;
+  var m = Math.floor(sec / 60) % 60;
+  var h = Math.floor(sec / 3600) % 24;
+  var d = Math.floor(sec / 86400);
+  if (d > 0) return d + 'd ' + h + 'h ' + m + 'm ago';
+  if (h > 0) return h + 'h ' + m + 'm ' + s + 's ago';
+  return m + 'm ' + s + 's ago';
+}
+
+function ipStartLiveTimers() {
+  ipStopLiveTimers();
+  _ipLiveTimer = setInterval(function() {
+    document.querySelectorAll('.ip-live-ts').forEach(function(el) {
+      el.textContent = '🕐 ' + ipLiveFmt(el.dataset.ts);
+    });
+  }, 1000);
+}
+
+function ipStopLiveTimers() {
+  if (_ipLiveTimer) { clearInterval(_ipLiveTimer); _ipLiveTimer = null; }
+}
 
 // ── Screenshot helpers ────────────────────────────────────────────────────────
 
@@ -6692,6 +6718,7 @@ function ipShowPortal() {
 }
 
 function ipHidePortal() {
+  ipStopLiveTimers();
   document.getElementById('issuePortal').style.display = 'none';
 }
 
@@ -6717,8 +6744,9 @@ function ipSwitchTab(tab) {
     document.getElementById('ipAnalyticsView').style.display = tab === 'analytics' ? 'block' : 'none';
   });
   document.getElementById('ipScroll').scrollTop = 0;
+  if (tab !== 'list') ipStopLiveTimers();
   if (tab === 'analytics') ipLoadAnalytics();
-  if (tab === 'list') ipRenderIssues(_ipIssues);
+  if (tab === 'list') ipApplyFilters();
 }
 
 // ── Load & render issue list ─────────────────────────────────────────────────
@@ -6728,7 +6756,7 @@ async function ipLoadIssues() {
     var r = await fetch('/api/issues', { headers: ipAuthHeader() });
     var d = await r.json();
     _ipIssues = d.issues || [];
-    ipRenderIssues(_ipIssues);
+    ipApplyFilters();
   } catch(e) {
     document.getElementById('ipIssueGrid').innerHTML =
       '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);">Failed to load issues.</div>';
@@ -6755,10 +6783,10 @@ function ipApplyFilters() {
 
 function ipClearFilters() {
   document.getElementById('ipSearch').value = '';
-  document.getElementById('ipFStatus').value = '';
+  document.getElementById('ipFStatus').value = 'Open';
   document.getElementById('ipFCategory').value = '';
   document.getElementById('ipFPriority').value = '';
-  ipRenderIssues(_ipIssues);
+  ipApplyFilters();
 }
 
 function ipRenderIssues(list) {
@@ -6770,6 +6798,7 @@ function ipRenderIssues(list) {
     grid.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);font-size:14px;">No issues found. Try adjusting your filters or <span onclick="ipSwitchTab(\'form\')" style="color:#c9a227;cursor:pointer;text-decoration:underline;">report a new one</span>.</div>';
     return;
   }
+  ipStopLiveTimers();
   grid.innerHTML = list.map(function(issue) {
     var ss  = ipStatusStyle(issue.status);
     var ps  = ipPriorityStyle(issue.priority);
@@ -6792,7 +6821,7 @@ function ipRenderIssues(list) {
           + (issue.clientName ? '<span>🏢 ' + issue.clientName + '</span>' : '')
           + (issue.projectName ? '<span>📁 ' + issue.projectName + '</span>' : '')
           + '<span>👤 ' + (issue.reportedBy && issue.reportedBy.name ? issue.reportedBy.name : '—') + '</span>'
-          + '<span>🕐 ' + ipTimeAgo(issue.createdAt) + '</span>'
+          + '<span class="ip-live-ts" data-ts="' + issue.createdAt + '">🕐 ' + ipLiveFmt(issue.createdAt) + '</span>'
         + '</div>'
       + '</div>'
       + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;">'
@@ -6804,11 +6833,13 @@ function ipRenderIssues(list) {
       + '</div>'
     + '</div>';
   }).join('');
+  ipStartLiveTimers();
 }
 
 // ── Issue detail ─────────────────────────────────────────────────────────────
 
 async function ipOpenIssue(id) {
+  ipStopLiveTimers();
   document.getElementById('ipListView').style.display   = 'none';
   document.getElementById('ipDetailView').style.display = 'block';
   document.getElementById('ipScroll').scrollTop = 0;
