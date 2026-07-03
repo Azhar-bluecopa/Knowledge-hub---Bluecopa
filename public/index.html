@@ -20,15 +20,13 @@
   </noscript>
   <link rel="stylesheet" href="/style.css?v=54">
   <script src="https://accounts.google.com/gsi/client" async></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
 </head>
 <body>
 
 <!-- ── Sidebar ── -->
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <img src="/bluecopa-logo.png" alt="Bluecopa" class="sidebar-logo-brand-img"/>
+    <img src="/bluecopa-icon.png" alt="Bluecopa" class="sidebar-logo-brand-img"/>
     <h1 id="siteTitle">KnowledgeHub</h1>
   </div>
   <div class="sidebar-search" style="display:none"></div>
@@ -1614,6 +1612,28 @@ function closeTopbarSearch() {
 let _charts = {};
 function destroyChart(id) { if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; } }
 
+var _chartJsReady = false;
+var _chartJsCbs   = [];
+function requireChartJs(cb) {
+  if (_chartJsReady) return cb();
+  _chartJsCbs.push(cb);
+  if (document.getElementById('_chartjs_script')) return;
+  var s = document.createElement('script');
+  s.id  = '_chartjs_script';
+  s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js';
+  s.onload = function() {
+    var s2 = document.createElement('script');
+    s2.src = 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js';
+    s2.onload = function() {
+      _chartJsReady = true;
+      _chartJsCbs.forEach(function(f){ f(); });
+      _chartJsCbs = [];
+    };
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s);
+}
+
 const CHART_COLORS = ['#7a9ee8','#e8c97a','#e87a9e','#7ae8b4','#c97ae8','#e8a87a','#7ae8e8','#e87a7a'];
 
 // ── Roadmap ───────────────────────────────────────────────────────────────────
@@ -1856,6 +1876,7 @@ function filterCategory(cat, el) {
 }
 
 async function loadDashboard() {
+  await new Promise(function(res){ requireChartJs(res); });
   try {
     const data = await (await fetch('/api/analytics')).json();
 
@@ -4165,7 +4186,7 @@ async function updateFeedbackStatus(id) {
       <!-- ── Nav: blended into landing page ── -->
   <nav class="mc-nav" id="mcNav">
     <a class="mc-nav-logo" onclick="void(0)">
-      <img src="/bluecopa-logo.png" alt="Bluecopa">
+      <img src="/bluecopa-icon.png" alt="Bluecopa">
     </a>
     <div class="mc-browse-btn" id="mcBrowseBtn" onclick="mcToggleBrowse(event)">
       Explore <span class="mc-browse-chevron">▼</span>
@@ -4233,7 +4254,7 @@ async function updateFeedbackStatus(id) {
       <!-- Center/Right: large circular logo -->
       <div class="dw-brand-wrap">
         <div class="dw-brand-ring">
-          <img src="/bluecopa-logo.png" alt="Bluecopa" class="dw-brand-logo">
+          <img src="/bluecopa-icon.png" alt="Bluecopa" class="dw-brand-logo">
         </div>
         <div class="dw-brand-name">Bluecopa</div>
         <div class="dw-brand-tagline-row">
@@ -4812,7 +4833,7 @@ async function updateFeedbackStatus(id) {
     <div class="dw-av-slide" data-idx="0">
       <div class="dv-bg" style="background:radial-gradient(ellipse 65% 55% at 50% 30%,rgba(232,201,122,.09),transparent 70%);"></div>
       <div class="dv-slide-content">
-        <div class="dv-logo-ring"><img src="/bluecopa-logo.png" style="height:42px;filter:brightness(1.1);"></div>
+        <div class="dv-logo-ring"><img src="/bluecopa-icon.png" style="height:42px;filter:brightness(1.1);"></div>
         <div class="dv-eyebrow">Bluecopa · Delivery Team's Go-To Place</div>
         <div class="dv-title">Your Team's Central Hub<br>for <em>Delivery Excellence</em></div>
         <div class="dv-sub">One platform. Every resource. Designed for every team member — from day one to seasoned expert. Discover how Delivery Wikipedia helps you learn faster, deliver better, and grow continuously.</div>
@@ -6567,7 +6588,7 @@ function ipStartLiveTimers() {
     document.querySelectorAll('.ip-live-ts').forEach(function(el) {
       el.textContent = '🕐 ' + ipLiveFmt(el.dataset.ts);
     });
-  }, 1000);
+  }, 5000);
 }
 
 function ipStopLiveTimers() {
@@ -6756,6 +6777,7 @@ async function ipLoadIssues() {
     var r = await fetch('/api/issues', { headers: ipAuthHeader() });
     var d = await r.json();
     _ipIssues = d.issues || [];
+    _ipDashCached = false;
     ipApplyFilters();
   } catch(e) {
     document.getElementById('ipIssueGrid').innerHTML =
@@ -7155,7 +7177,9 @@ function ipDashSliderChange(idx, val) {
   }
 }
 
+var _ipDashCached = false;
 async function ipLoadAnalytics() {
+  if (_ipDashCached) return;
   var el = document.getElementById('ipAnalyticsContent');
   el.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);">Loading dashboard…</div>';
   if (!_ipIssues.length) {
@@ -7169,6 +7193,7 @@ async function ipLoadAnalytics() {
     }
   }
   ipRenderDashboard();
+  _ipDashCached = true;
 }
 
 function ipRenderDashboard() {
@@ -7406,7 +7431,7 @@ function ipRenderDashboard() {
           + '<div style="font-size:20px;font-weight:800;color:#f0f0f6;letter-spacing:-.02em;">Analytics Dashboard</div>'
           + '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:2px;">' + all.length + ' total issue'+(all.length!==1?'s':'')+' · Use each slider to change the time window</div>'
         + '</div>'
-      + '<button onclick="ipLoadAnalytics()" style="background:none;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 14px;color:rgba(255,255,255,.4);font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer;">↺ Refresh</button>'
+      + '<button onclick="_ipDashCached=false;ipLoadAnalytics()" style="background:none;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 14px;color:rgba(255,255,255,.4);font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer;">↺ Refresh</button>'
     + '</div>'
 
     // ── 4 metric cards with sliders ─────────────────────────────────────────
