@@ -7103,102 +7103,266 @@ async function ipSubmitIssue() {
 
 // ── Analytics ────────────────────────────────────────────────────────────────
 
-async function ipLoadAnalytics() {
-  var el = document.getElementById('ipAnalyticsContent');
-  el.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);">Loading analytics…</div>';
-  try {
-    var r = await fetch('/api/issues/analytics', { headers: ipAuthHeader() });
-    var d = await r.json();
-    ipRenderAnalytics(d);
-  } catch(e) {
-    el.innerHTML = '<div style="color:#ef4444;padding:20px;">Failed to load analytics.</div>';
+// ── Dashboard state ──────────────────────────────────────────────────────────
+var _ipDashSliders    = [2, 2, 2, 2]; // default index 2 = 90 days each
+var _ipDashPeriods    = [7, 30, 90, 180, 365, 99999];
+var _ipDashPLabels    = ['7 days', '30 days', '3 months', '6 months', '1 year', 'All time'];
+
+function ipDashFilter(days) {
+  if (days >= 99999) return _ipIssues;
+  var cut = Date.now() - days * 86400000;
+  return _ipIssues.filter(function(i){ return new Date(i.createdAt).getTime() >= cut; });
+}
+
+function ipDashAvgTime(issues) {
+  var r = issues.filter(function(i){ return i.resolvedAt && i.createdAt; });
+  if (!r.length) return null;
+  var ms = r.reduce(function(s,i){ return s + (new Date(i.resolvedAt) - new Date(i.createdAt)); }, 0) / r.length;
+  var h = ms / 3600000;
+  if (h < 1)  return Math.round(ms/60000) + 'm';
+  if (h < 24) return Math.round(h) + 'h';
+  return (ms/86400000).toFixed(1) + 'd';
+}
+
+function ipDashSliderChange(idx, val) {
+  _ipDashSliders[idx] = parseInt(val);
+  var days     = _ipDashPeriods[_ipDashSliders[idx]];
+  var label    = _ipDashPLabels[_ipDashSliders[idx]];
+  var filtered = ipDashFilter(days);
+  var lEl = document.getElementById('ipDSL' + idx);
+  if (lEl) lEl.textContent = label;
+  var card = document.getElementById('ipDashM' + idx);
+  if (!card) return;
+  var valEl = card.querySelector('.dv');
+  var subEl = card.querySelector('.ds');
+  if (idx === 0) {
+    if (valEl) valEl.textContent = filtered.length;
+    if (subEl) subEl.textContent = label;
+  } else if (idx === 1) {
+    var res = filtered.filter(function(i){ return i.status === 'Resolved within Delivery'; }).length;
+    var pct = filtered.length ? Math.round(res/filtered.length*100) : 0;
+    if (valEl) valEl.textContent = res;
+    if (subEl) subEl.textContent = pct + '% of issues in ' + label;
+  } else if (idx === 2) {
+    var esc = filtered.filter(function(i){ return i.status === 'Escalated to Platform'; }).length;
+    var pct2 = filtered.length ? Math.round(esc/filtered.length*100) : 0;
+    if (valEl) valEl.textContent = esc;
+    if (subEl) subEl.textContent = pct2 + '% of issues in ' + label;
+  } else if (idx === 3) {
+    var avg = ipDashAvgTime(filtered);
+    if (valEl) valEl.textContent = avg || '—';
+    if (subEl) subEl.textContent = avg ? ('over ' + label) : 'No resolved issues in period';
   }
 }
 
-function ipRenderAnalytics(d) {
+async function ipLoadAnalytics() {
   var el = document.getElementById('ipAnalyticsContent');
+  el.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);">Loading dashboard…</div>';
+  if (!_ipIssues.length) {
+    try {
+      var r = await fetch('/api/issues', { headers: ipAuthHeader() });
+      var d = await r.json();
+      _ipIssues = d.issues || [];
+    } catch(e) {
+      el.innerHTML = '<div style="color:#ef4444;padding:20px;">Failed to load data.</div>';
+      return;
+    }
+  }
+  ipRenderDashboard();
+}
 
-  var metric = function(label, value, sub, color) {
-    return '<div style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:20px 24px;">'
-      + '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">' + label + '</div>'
-      + '<div style="font-size:32px;font-weight:800;color:' + (color||'#f0f0f6') + ';letter-spacing:-.02em;">' + value + '</div>'
-      + (sub ? '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:4px;">' + sub + '</div>' : '')
+function ipRenderDashboard() {
+  var el  = document.getElementById('ipAnalyticsContent');
+  var all = _ipIssues;
+
+  // Metric values for default slider positions
+  function mData(idx) {
+    var days = _ipDashPeriods[_ipDashSliders[idx]];
+    return ipDashFilter(days);
+  }
+  var f0 = mData(0), f1 = mData(1), f2 = mData(2), f3 = mData(3);
+  var total    = f0.length;
+  var resolved = f1.filter(function(i){ return i.status === 'Resolved within Delivery'; }).length;
+  var escalated= f2.filter(function(i){ return i.status === 'Escalated to Platform'; }).length;
+  var avgTime  = ipDashAvgTime(f3);
+  var pctRes   = f1.length ? Math.round(resolved/f1.length*100) : 0;
+  var pctEsc   = f2.length ? Math.round(escalated/f2.length*100) : 0;
+
+  // Slider HTML
+  function slider(idx) {
+    var v = _ipDashSliders[idx];
+    return '<div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.05);">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+        + '<span style="font-size:10px;color:rgba(255,255,255,.25);letter-spacing:.06em;text-transform:uppercase;">Time range</span>'
+        + '<span id="ipDSL' + idx + '" style="font-size:11px;color:#c9a227;font-weight:700;">' + _ipDashPLabels[v] + '</span>'
+      + '</div>'
+      + '<input type="range" min="0" max="5" step="1" value="' + v + '" oninput="ipDashSliderChange(' + idx + ',this.value)"'
+        + ' style="width:100%;height:3px;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.12);border-radius:2px;outline:none;cursor:pointer;accent-color:#c9a227;">'
+      + '<div style="display:flex;justify-content:space-between;margin-top:3px;">'
+        + ['7d','30d','3m','6m','1y','All'].map(function(l){
+            return '<span style="font-size:9px;color:rgba(255,255,255,.18);">' + l + '</span>';
+          }).join('')
+      + '</div>'
     + '</div>';
-  };
+  }
 
-  // Monthly bar chart (SVG)
-  var months = Object.keys(d.monthly || {});
-  var vals   = months.map(function(k){ return d.monthly[k]; });
-  var maxVal = Math.max.apply(null, vals.concat([1]));
-  var barW   = 36, barGap = 16, chartH = 80;
-  var totalW = months.length * (barW + barGap);
-  var bars   = months.map(function(m, i) {
-    var h = Math.max(4, Math.round((vals[i] / maxVal) * chartH));
-    var y = chartH - h;
+  // Metric card HTML
+  function mCard(id, icon, label, val, sub, color, idx) {
+    return '<div id="' + id + '" style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:20px 22px;">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'
+        + '<span style="font-size:18px;">' + icon + '</span>'
+        + '<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.09em;text-transform:uppercase;">' + label + '</span>'
+      + '</div>'
+      + '<div class="dv" style="font-size:40px;font-weight:800;color:' + color + ';letter-spacing:-.03em;line-height:1;">' + val + '</div>'
+      + '<div class="ds" style="font-size:11px;color:rgba(255,255,255,.3);margin-top:6px;min-height:16px;">' + sub + '</div>'
+      + slider(idx)
+    + '</div>';
+  }
+
+  // ── Category analysis ─────────────────────────────────────────────────────
+  var cats = {}, resByCat = {}, escByCat = {};
+  all.forEach(function(i) {
+    var c = i.category || 'Others';
+    cats[c]      = (cats[c]      || 0) + 1;
+    if (i.status === 'Resolved within Delivery') resByCat[c] = (resByCat[c] || 0) + 1;
+    if (i.status === 'Escalated to Platform')    escByCat[c] = (escByCat[c] || 0) + 1;
+  });
+  var catList = Object.entries(cats).sort(function(a,b){ return b[1]-a[1]; });
+  var maxCat  = catList.length ? catList[0][1] : 1;
+
+  var catHtml = catList.map(function(kv) {
+    var c = kv[0], cnt = kv[1];
+    var res = resByCat[c] || 0, esc = escByCat[c] || 0;
+    var totPct = Math.round(cnt/maxCat*100);
+    var resPct = Math.round(res/cnt*100);
+    var escPct = Math.round(esc/cnt*100);
+    return '<div style="margin-bottom:18px;">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">'
+        + '<span style="font-size:12px;font-weight:600;color:#f0f0f6;">' + c + '</span>'
+        + '<span style="font-size:11px;color:rgba(255,255,255,.35);">'
+            + cnt + ' total &nbsp;'
+            + '<span style="color:#22c55e;">' + res + ' ✓</span>'
+            + (esc ? ' &nbsp;<span style="color:#ef4444;">' + esc + ' ↑</span>' : '')
+        + '</span>'
+      + '</div>'
+      + '<div style="position:relative;background:rgba(255,255,255,.05);border-radius:6px;height:8px;overflow:hidden;">'
+        + '<div style="position:absolute;inset:0;background:rgba(201,162,39,.35);border-radius:6px;width:' + totPct + '%;"></div>'
+        + (res ? '<div style="position:absolute;inset:0;background:rgba(34,197,94,.65);border-radius:6px;width:' + resPct + '%;"></div>' : '')
+        + (esc ? '<div style="position:absolute;top:0;right:0;bottom:0;background:rgba(239,68,68,.65);border-radius:6px;width:' + escPct + '%;"></div>' : '')
+      + '</div>'
+    + '</div>';
+  }).join('') || '<div style="color:rgba(255,255,255,.3);font-size:13px;padding:16px 0;">No issues recorded yet.</div>';
+
+  // ── Monthly trend chart ───────────────────────────────────────────────────
+  var monthly = {};
+  var now = new Date();
+  for (var m = 5; m >= 0; m--) {
+    var dt = new Date(now.getFullYear(), now.getMonth() - m, 1);
+    monthly[dt.toLocaleString('default',{month:'short',year:'2-digit'})] = {t:0,r:0,e:0};
+  }
+  all.forEach(function(i) {
+    var key = new Date(i.createdAt).toLocaleString('default',{month:'short',year:'2-digit'});
+    if (!monthly[key]) return;
+    monthly[key].t++;
+    if (i.status === 'Resolved within Delivery' || i.status === 'Closed') monthly[key].r++;
+    if (i.status === 'Escalated to Platform') monthly[key].e++;
+  });
+  var mKeys = Object.keys(monthly);
+  var mT = mKeys.map(function(k){ return monthly[k].t; });
+  var mR = mKeys.map(function(k){ return monthly[k].r; });
+  var maxM = Math.max.apply(null, mT.concat([1]));
+  var bW = 40, bG = 20, cH = 90, svgW = mKeys.length * (bW + bG);
+  var bars = mKeys.map(function(mk, i) {
+    var h  = Math.max(mT[i]?3:0, Math.round(mT[i]/maxM*cH));
+    var hr = Math.max(mR[i]?3:0, Math.round(mR[i]/maxM*cH));
+    var x  = i*(bW+bG);
     return '<g>'
-      + '<rect x="' + (i*(barW+barGap)) + '" y="' + y + '" width="' + barW + '" height="' + h + '" rx="4" fill="rgba(201,162,39,.6)"/>'
-      + '<text x="' + (i*(barW+barGap)+barW/2) + '" y="' + (chartH+14) + '" fill="rgba(255,255,255,.3)" font-size="10" text-anchor="middle" font-family="DM Sans,sans-serif">' + m + '</text>'
-      + '<text x="' + (i*(barW+barGap)+barW/2) + '" y="' + (y-4) + '" fill="rgba(255,255,255,.5)" font-size="10" text-anchor="middle" font-family="DM Sans,sans-serif">' + (vals[i]||'') + '</text>'
+      + '<rect x="'+x+'" y="'+(cH-h)+'" width="'+bW+'" height="'+h+'" rx="4" fill="rgba(201,162,39,.3)"/>'
+      + (hr>0 ? '<rect x="'+x+'" y="'+(cH-hr)+'" width="'+bW+'" height="'+hr+'" rx="4" fill="rgba(34,197,94,.6)"/>' : '')
+      + (mT[i] ? '<text x="'+(x+bW/2)+'" y="'+(cH-h-5)+'" fill="rgba(255,255,255,.5)" font-size="10" text-anchor="middle" font-family="DM Sans,sans-serif">'+mT[i]+'</text>' : '')
+      + '<text x="'+(x+bW/2)+'" y="'+(cH+15)+'" fill="rgba(255,255,255,.25)" font-size="9" text-anchor="middle" font-family="DM Sans,sans-serif">'+mk+'</text>'
     + '</g>';
   }).join('');
 
-  // Category breakdown
-  var cats = Object.entries(d.categoryCounts || {}).sort(function(a,b){ return b[1]-a[1]; });
-  var catHtml = cats.map(function(kv) {
-    var pct = d.total ? Math.round(kv[1] / d.total * 100) : 0;
-    return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
-      + '<div style="width:90px;font-size:12px;color:rgba(255,255,255,.55);flex-shrink:0;">' + kv[0] + '</div>'
-      + '<div style="flex:1;background:rgba(255,255,255,.06);border-radius:4px;height:8px;">'
-        + '<div style="background:rgba(201,162,39,.7);border-radius:4px;height:8px;width:' + pct + '%;transition:width .4s;"></div>'
-      + '</div>'
-      + '<div style="width:36px;text-align:right;font-size:12px;color:rgba(255,255,255,.4);">' + kv[1] + '</div>'
-    + '</div>';
-  }).join('') || '<div style="color:rgba(255,255,255,.3);font-size:13px;">No data yet.</div>';
+  // ── Top 5 resolvers ───────────────────────────────────────────────────────
+  var contribs = {};
+  all.forEach(function(issue) {
+    (issue.solutions||[]).forEach(function(sol) {
+      var e = sol.author && sol.author.email; if (!e) return;
+      if (!contribs[e]) contribs[e] = {name: sol.author.name||e, solutions:0, accepted:0};
+      contribs[e].solutions++;
+      if (sol.isAccepted) contribs[e].accepted++;
+    });
+  });
+  var top5 = Object.values(contribs)
+    .sort(function(a,b){ return (b.accepted*2+b.solutions)-(a.accepted*2+a.solutions); })
+    .slice(0,5);
+  var medals = ['🥇','🥈','🥉','4','5'];
+  var maxScore = top5.length ? (top5[0].accepted*2+top5[0].solutions) : 1;
 
-  // Top contributors
-  var contribs = (d.topContributors || []).map(function(c, i) {
-    var ini = ipInitials(c.name || c.email);
-    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);">'
-      + '<div style="width:28px;font-size:12px;color:rgba(255,255,255,.25);">#' + (i+1) + '</div>'
-      + '<div style="width:34px;height:34px;border-radius:50%;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.25);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#c9a227;flex-shrink:0;">' + ini + '</div>'
+  var resolversHtml = top5.map(function(c, i) {
+    var ini   = ipInitials(c.name);
+    var score = c.accepted*2+c.solutions;
+    var barW2  = Math.round(score/maxScore*100);
+    var medal = i < 3 ? medals[i] : '<span style="font-size:11px;color:rgba(255,255,255,.3);">#'+(i+1)+'</span>';
+    return '<div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.05);">'
+      + '<div style="width:28px;text-align:center;font-size:'+(i<3?'20':'13')+'px;flex-shrink:0;">' + medal + '</div>'
+      + '<div style="width:38px;height:38px;border-radius:50%;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#c9a227;flex-shrink:0;">' + ini + '</div>'
       + '<div style="flex:1;min-width:0;">'
-        + '<div style="font-size:13px;font-weight:600;color:#f0f0f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (c.name || c.email) + '</div>'
-        + '<div style="font-size:11px;color:rgba(255,255,255,.3);">' + c.solutions + ' solution' + (c.solutions!==1?'s':'') + ' · ' + c.accepted + ' accepted</div>'
+        + '<div style="font-size:13px;font-weight:700;color:#f0f0f6;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + c.name + '</div>'
+        + '<div style="background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;">'
+          + '<div style="background:rgba(201,162,39,.6);border-radius:4px;height:5px;width:'+barW2+'%;transition:width .4s;"></div>'
+        + '</div>'
+        + '<div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;">' + c.solutions + ' solution'+(c.solutions!==1?'s':'') + ' · ' + c.accepted + ' accepted</div>'
       + '</div>'
-      + (c.accepted ? '<div style="font-size:11px;font-weight:700;color:#c9a227;white-space:nowrap;">✓ ' + c.accepted + '</div>' : '')
+      + '<div style="flex-shrink:0;text-align:right;">'
+        + '<div style="font-size:22px;font-weight:800;color:#c9a227;line-height:1;">' + c.solutions + '</div>'
+        + '<div style="font-size:10px;color:#22c55e;font-weight:600;">' + (c.accepted ? '✓ '+c.accepted : '') + '</div>'
+      + '</div>'
     + '</div>';
-  }).join('') || '<div style="color:rgba(255,255,255,.3);font-size:13px;">No contributors yet.</div>';
+  }).join('') || '<div style="color:rgba(255,255,255,.3);font-size:13px;padding:20px 0;text-align:center;">No solutions posted yet.</div>';
 
+  // ── Render ────────────────────────────────────────────────────────────────
   el.innerHTML =
-    // Metrics row
-    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px;">'
-      + metric('Total Issues',    d.total,            '',                                      '#f0f0f6')
-      + metric('Open',            d.open,             '',                                      '#22c55e')
-      + metric('In Progress',     d.inProgress,       '',                                      '#60a5fa')
-      + metric('Resolved Internally', d.resolvedInternal, d.internalResolutionRate + '% of total', '#c9a227')
-      + metric('Escalated',       d.escalated,        'to Platform team',                      '#ef4444')
-      + metric('Avg Resolution',  (d.avgResolutionDays || 0) + 'd', 'average days to resolve','rgba(255,255,255,.7)')
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">'
+      + '<div>'
+          + '<div style="font-size:20px;font-weight:800;color:#f0f0f6;letter-spacing:-.02em;">Analytics Dashboard</div>'
+          + '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:2px;">' + all.length + ' total issue'+(all.length!==1?'s':'')+' · Use each slider to change the time window</div>'
+        + '</div>'
+      + '<button onclick="ipLoadAnalytics()" style="background:none;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 14px;color:rgba(255,255,255,.4);font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer;">↺ Refresh</button>'
     + '</div>'
 
-    // Monthly trend + Category
-    + '<div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;">'
-      + '<div style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:20px 24px;">'
-        + '<div style="font-size:13px;font-weight:700;color:#f0f0f6;margin-bottom:20px;">Monthly Issue Trend</div>'
-        + '<svg viewBox="0 0 ' + (totalW + 8) + ' ' + (chartH + 26) + '" width="100%" style="overflow:visible;">' + bars + '</svg>'
-      + '</div>'
-      + '<div style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:20px 24px;">'
-        + '<div style="font-size:13px;font-weight:700;color:#f0f0f6;margin-bottom:16px;">By Category</div>'
-        + catHtml
-      + '</div>'
+    // ── 4 metric cards with sliders ─────────────────────────────────────────
+    + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:20px;">'
+      + mCard('ipDashM0','📋','Issues Reported',   total,     _ipDashPLabels[_ipDashSliders[0]], '#f0f0f6', 0)
+      + mCard('ipDashM1','✅','Resolved Internally',resolved,  pctRes+'% of issues in '+_ipDashPLabels[_ipDashSliders[1]], '#22c55e', 1)
+      + mCard('ipDashM2','🚨','Escalated to Platform',escalated,pctEsc+'% of issues in '+_ipDashPLabels[_ipDashSliders[2]], '#ef4444', 2)
+      + mCard('ipDashM3','⏱️','Avg Resolution Time', avgTime||'—', avgTime?('over '+_ipDashPLabels[_ipDashSliders[3]]):'No resolved issues yet', '#c9a227', 3)
     + '</div>'
 
-    // Top contributors
-    + '<div style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:20px 24px;">'
-      + '<div style="font-size:13px;font-weight:700;color:#f0f0f6;margin-bottom:8px;">Top Contributors</div>'
-      + '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:16px;">Ranked by accepted solutions (2×) + total solutions</div>'
-      + contribs
-    + '</div>';
+    // ── Category + Monthly trend ─────────────────────────────────────────────
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">'
+      + '<div style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:20px 24px;">'
+          + '<div style="font-size:14px;font-weight:700;color:#f0f0f6;margin-bottom:2px;">Category Analysis</div>'
+          + '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:20px;">All time &nbsp;·&nbsp; <span style="color:rgba(201,162,39,.7);">■</span> Total &nbsp;<span style="color:rgba(34,197,94,.7);">■</span> Resolved &nbsp;<span style="color:rgba(239,68,68,.7);">■</span> Escalated</div>'
+          + catHtml
+        + '</div>'
+      + '<div style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:20px 24px;">'
+          + '<div style="font-size:14px;font-weight:700;color:#f0f0f6;margin-bottom:2px;">Monthly Trend</div>'
+          + '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:20px;">Last 6 months &nbsp;·&nbsp; <span style="color:rgba(201,162,39,.6);">■</span> Reported &nbsp;<span style="color:rgba(34,197,94,.6);">■</span> Resolved</div>'
+          + '<svg viewBox="0 0 '+(svgW+8)+' '+(cH+28)+'" width="100%" style="overflow:visible;">' + bars + '</svg>'
+        + '</div>'
+    + '</div>'
+
+    // ── Top 5 resolvers ──────────────────────────────────────────────────────
+    + '<div style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:20px 24px;">'
+        + '<div style="font-size:14px;font-weight:700;color:#f0f0f6;margin-bottom:2px;">Top Resolvers</div>'
+        + '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:16px;">Top 5 team members by solutions posted &amp; accepted · all time</div>'
+        + resolversHtml
+      + '</div>';
 }
+
+function ipRenderAnalytics(d) { ipRenderDashboard(); }
 </script>
 </body>
 </html>
