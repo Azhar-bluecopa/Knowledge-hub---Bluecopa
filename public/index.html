@@ -7258,22 +7258,35 @@ function ipRenderDashboard() {
   var catHtml = catList.map(function(kv) {
     var c = kv[0], cnt = kv[1];
     var res = resByCat[c] || 0, esc = escByCat[c] || 0;
+    var open = cnt - res - esc;
     var totPct = Math.round(cnt/maxCat*100);
     var resPct = Math.round(res/cnt*100);
     var escPct = Math.round(esc/cnt*100);
-    return '<div style="margin-bottom:18px;">'
-      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">'
+    var openPct = 100 - resPct - escPct;
+    return '<div style="margin-bottom:20px;">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
         + '<span style="font-size:12px;font-weight:600;color:#f0f0f6;">' + c + '</span>'
-        + '<span style="font-size:11px;color:rgba(255,255,255,.35);">'
-            + cnt + ' total &nbsp;'
-            + '<span style="color:#22c55e;">' + res + ' ✓</span>'
-            + (esc ? ' &nbsp;<span style="color:#ef4444;">' + esc + ' ↑</span>' : '')
-        + '</span>'
+        + '<div style="display:flex;gap:10px;align-items:center;">'
+            + '<span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);">' + cnt + ' total</span>'
+            + (res ? '<span style="font-size:11px;font-weight:700;color:#22c55e;">' + res + ' resolved</span>' : '')
+            + (esc ? '<span style="font-size:11px;font-weight:700;color:#ef4444;">' + esc + ' escalated</span>' : '')
+        + '</div>'
       + '</div>'
-      + '<div style="position:relative;background:rgba(255,255,255,.05);border-radius:6px;height:8px;overflow:hidden;">'
-        + '<div style="position:absolute;inset:0;background:rgba(201,162,39,.35);border-radius:6px;width:' + totPct + '%;"></div>'
-        + (res ? '<div style="position:absolute;inset:0;background:rgba(34,197,94,.65);border-radius:6px;width:' + resPct + '%;"></div>' : '')
-        + (esc ? '<div style="position:absolute;top:0;right:0;bottom:0;background:rgba(239,68,68,.65);border-radius:6px;width:' + escPct + '%;"></div>' : '')
+      + '<div style="position:relative;background:rgba(255,255,255,.05);border-radius:6px;height:20px;overflow:hidden;width:' + totPct + '%;">'
+        + (open > 0 ? '<div style="position:absolute;left:0;top:0;bottom:0;background:rgba(201,162,39,.35);width:' + Math.round(open/cnt*100) + '%;display:flex;align-items:center;justify-content:center;">'
+            + (Math.round(open/cnt*100) > 18 ? '<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,.6);">' + open + '</span>' : '')
+          + '</div>' : '')
+        + (res ? '<div style="position:absolute;left:' + Math.round(open/cnt*100) + '%;top:0;bottom:0;background:rgba(34,197,94,.65);width:' + resPct + '%;display:flex;align-items:center;justify-content:center;">'
+            + (resPct > 18 ? '<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,.85);">' + resPct + '%</span>' : '')
+          + '</div>' : '')
+        + (esc ? '<div style="position:absolute;right:0;top:0;bottom:0;background:rgba(239,68,68,.65);width:' + escPct + '%;display:flex;align-items:center;justify-content:center;">'
+            + (escPct > 18 ? '<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,.85);">' + escPct + '%</span>' : '')
+          + '</div>' : '')
+      + '</div>'
+      + '<div style="display:flex;gap:12px;margin-top:5px;">'
+          + (open > 0 ? '<span style="font-size:10px;color:rgba(201,162,39,.6);">● ' + open + ' open (' + Math.round(open/cnt*100) + '%)</span>' : '')
+          + (res  ? '<span style="font-size:10px;color:rgba(34,197,94,.7);">● ' + res + ' resolved (' + resPct + '%)</span>' : '')
+          + (esc  ? '<span style="font-size:10px;color:rgba(239,68,68,.7);">● ' + esc + ' escalated (' + escPct + '%)</span>' : '')
       + '</div>'
     + '</div>';
   }).join('') || '<div style="color:rgba(255,255,255,.3);font-size:13px;padding:16px 0;">No issues recorded yet.</div>';
@@ -7295,17 +7308,27 @@ function ipRenderDashboard() {
   var mKeys = Object.keys(monthly);
   var mT = mKeys.map(function(k){ return monthly[k].t; });
   var mR = mKeys.map(function(k){ return monthly[k].r; });
+  var mE = mKeys.map(function(k){ return monthly[k].e; });
   var maxM = Math.max.apply(null, mT.concat([1]));
-  var bW = 40, bG = 20, cH = 90, svgW = mKeys.length * (bW + bG);
+  var bW = 44, bG = 18, cH = 100, svgW = mKeys.length * (bW + bG);
   var bars = mKeys.map(function(mk, i) {
-    var h  = Math.max(mT[i]?3:0, Math.round(mT[i]/maxM*cH));
-    var hr = Math.max(mR[i]?3:0, Math.round(mR[i]/maxM*cH));
+    var h  = Math.max(mT[i]?4:0, Math.round(mT[i]/maxM*cH));
+    var hr = Math.max(mR[i]?4:0, Math.round(mR[i]/maxM*cH));
+    var he = Math.max(mE[i]?4:0, Math.round(mE[i]/maxM*cH));
     var x  = i*(bW+bG);
+    // total count label above bar
+    var topLabel = mT[i] ? '<text x="'+(x+bW/2)+'" y="'+(cH-h-8)+'" fill="rgba(255,255,255,.65)" font-size="11" font-weight="700" text-anchor="middle" font-family="DM Sans,sans-serif">'+mT[i]+'</text>' : '';
+    // resolved label inside green bar (if tall enough)
+    var resLabel = (mR[i] && hr >= 16) ? '<text x="'+(x+bW/2)+'" y="'+(cH-hr/2+4)+'" fill="rgba(255,255,255,.9)" font-size="10" font-weight="700" text-anchor="middle" font-family="DM Sans,sans-serif">'+mR[i]+'✓</text>' : '';
+    // escalated label inside red bar (if tall enough)
+    var escLabel = (mE[i] && he >= 16) ? '<text x="'+(x+bW/2)+'" y="'+(cH-he/2+4)+'" fill="rgba(255,255,255,.9)" font-size="10" font-weight="700" text-anchor="middle" font-family="DM Sans,sans-serif">'+mE[i]+'↑</text>' : '';
+    // month label
+    var mLabel = '<text x="'+(x+bW/2)+'" y="'+(cH+16)+'" fill="rgba(255,255,255,.25)" font-size="9" text-anchor="middle" font-family="DM Sans,sans-serif">'+mk+'</text>';
     return '<g>'
       + '<rect x="'+x+'" y="'+(cH-h)+'" width="'+bW+'" height="'+h+'" rx="4" fill="rgba(201,162,39,.3)"/>'
       + (hr>0 ? '<rect x="'+x+'" y="'+(cH-hr)+'" width="'+bW+'" height="'+hr+'" rx="4" fill="rgba(34,197,94,.6)"/>' : '')
-      + (mT[i] ? '<text x="'+(x+bW/2)+'" y="'+(cH-h-5)+'" fill="rgba(255,255,255,.5)" font-size="10" text-anchor="middle" font-family="DM Sans,sans-serif">'+mT[i]+'</text>' : '')
-      + '<text x="'+(x+bW/2)+'" y="'+(cH+15)+'" fill="rgba(255,255,255,.25)" font-size="9" text-anchor="middle" font-family="DM Sans,sans-serif">'+mk+'</text>'
+      + (he>0 ? '<rect x="'+x+'" y="'+(cH-he)+'" width="'+bW+'" height="'+he+'" rx="4" fill="rgba(239,68,68,.55)"/>' : '')
+      + topLabel + resLabel + escLabel + mLabel
     + '</g>';
   }).join('');
 
@@ -7330,19 +7353,27 @@ function ipRenderDashboard() {
     var score = c.accepted*2+c.solutions;
     var barW2  = Math.round(score/maxScore*100);
     var medal = i < 3 ? medals[i] : '<span style="font-size:11px;color:rgba(255,255,255,.3);">#'+(i+1)+'</span>';
+    var acceptRate = c.solutions ? Math.round(c.accepted/c.solutions*100) : 0;
     return '<div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.05);">'
       + '<div style="width:28px;text-align:center;font-size:'+(i<3?'20':'13')+'px;flex-shrink:0;">' + medal + '</div>'
       + '<div style="width:38px;height:38px;border-radius:50%;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#c9a227;flex-shrink:0;">' + ini + '</div>'
       + '<div style="flex:1;min-width:0;">'
         + '<div style="font-size:13px;font-weight:700;color:#f0f0f6;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + c.name + '</div>'
-        + '<div style="background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;">'
-          + '<div style="background:rgba(201,162,39,.6);border-radius:4px;height:5px;width:'+barW2+'%;transition:width .4s;"></div>'
+        + '<div style="position:relative;background:rgba(255,255,255,.06);border-radius:4px;height:14px;overflow:hidden;">'
+          + '<div style="background:rgba(201,162,39,.6);border-radius:4px;height:14px;width:'+barW2+'%;transition:width .4s;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;">'
+            + (barW2 > 25 ? '<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,.8);">'+c.solutions+' sol</span>' : '')
+          + '</div>'
         + '</div>'
-        + '<div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;">' + c.solutions + ' solution'+(c.solutions!==1?'s':'') + ' · ' + c.accepted + ' accepted</div>'
+        + '<div style="display:flex;gap:10px;margin-top:4px;">'
+            + '<span style="font-size:10px;color:rgba(255,255,255,.3);">' + c.solutions + ' solution'+(c.solutions!==1?'s':'')+'</span>'
+            + '<span style="font-size:10px;color:#22c55e;font-weight:600;">✓ ' + c.accepted + ' accepted</span>'
+            + '<span style="font-size:10px;color:rgba(201,162,39,.8);font-weight:700;">' + acceptRate + '% rate</span>'
+        + '</div>'
       + '</div>'
       + '<div style="flex-shrink:0;text-align:right;">'
         + '<div style="font-size:22px;font-weight:800;color:#c9a227;line-height:1;">' + c.solutions + '</div>'
-        + '<div style="font-size:10px;color:#22c55e;font-weight:600;">' + (c.accepted ? '✓ '+c.accepted : '') + '</div>'
+        + '<div style="font-size:10px;color:#22c55e;font-weight:600;">✓ ' + c.accepted + '</div>'
+        + '<div style="font-size:10px;color:rgba(201,162,39,.6);">' + acceptRate + '%</div>'
       + '</div>'
     + '</div>';
   }).join('') || '<div style="color:rgba(255,255,255,.3);font-size:13px;padding:20px 0;text-align:center;">No solutions posted yet.</div>';
@@ -7407,15 +7438,27 @@ function ipRenderDashboard() {
                   + '<td style="text-align:right;padding:12px;color:rgba(34,197,94,.9);font-weight:600;white-space:nowrap;">' + (d.resolved||'—') + '</td>'
                   + '<td style="text-align:right;padding:12px;color:rgba(239,68,68,.9);font-weight:600;white-space:nowrap;">' + (d.escalated||'—') + '</td>'
                   + '<td style="text-align:right;padding:12px;color:rgba(201,162,39,.9);font-weight:600;white-space:nowrap;">' + avgStr + '</td>'
-                  + '<td style="padding:12px 0 12px 16px;vertical-align:middle;">'
-                      + '<div style="background:rgba(255,255,255,.05);border-radius:4px;height:8px;overflow:hidden;display:flex;">'
-                        + (wOpen ? '<div style="background:rgba(96,165,250,.7);height:100%;width:'+wOpen+'%;flex-shrink:0;"></div>' : '')
-                        + (wInP  ? '<div style="background:rgba(251,191,36,.7);height:100%;width:'+wInP+'%;flex-shrink:0;"></div>' : '')
-                        + (wRes  ? '<div style="background:rgba(34,197,94,.7);height:100%;width:'+wRes+'%;flex-shrink:0;"></div>' : '')
-                        + (wEsc  ? '<div style="background:rgba(239,68,68,.7);height:100%;width:'+wEsc+'%;flex-shrink:0;"></div>' : '')
-                        + (wCls  ? '<div style="background:rgba(255,255,255,.2);height:100%;width:'+wCls+'%;flex-shrink:0;"></div>' : '')
+                  + '<td style="padding:12px 0 12px 16px;vertical-align:middle;min-width:160px;">'
+                      + '<div style="background:rgba(255,255,255,.05);border-radius:6px;height:18px;overflow:hidden;display:flex;">'
+                        + (wOpen ? '<div style="background:rgba(96,165,250,.7);height:100%;width:'+wOpen+'%;flex-shrink:0;display:flex;align-items:center;justify-content:center;">'
+                            + (wOpen>10 ? '<span style="font-size:9px;font-weight:700;color:#fff;">'+d.open+'</span>' : '')
+                          + '</div>' : '')
+                        + (wInP  ? '<div style="background:rgba(251,191,36,.7);height:100%;width:'+wInP+'%;flex-shrink:0;display:flex;align-items:center;justify-content:center;">'
+                            + (wInP>10 ? '<span style="font-size:9px;font-weight:700;color:#fff;">'+d.inProg+'</span>' : '')
+                          + '</div>' : '')
+                        + (wRes  ? '<div style="background:rgba(34,197,94,.7);height:100%;width:'+wRes+'%;flex-shrink:0;display:flex;align-items:center;justify-content:center;">'
+                            + (wRes>10 ? '<span style="font-size:9px;font-weight:700;color:#fff;">'+d.resolved+'</span>' : '')
+                          + '</div>' : '')
+                        + (wEsc  ? '<div style="background:rgba(239,68,68,.7);height:100%;width:'+wEsc+'%;flex-shrink:0;display:flex;align-items:center;justify-content:center;">'
+                            + (wEsc>10 ? '<span style="font-size:9px;font-weight:700;color:#fff;">'+d.escalated+'</span>' : '')
+                          + '</div>' : '')
+                        + (wCls  ? '<div style="background:rgba(255,255,255,.2);height:100%;width:'+wCls+'%;flex-shrink:0;display:flex;align-items:center;justify-content:center;">'
+                            + (wCls>10 ? '<span style="font-size:9px;font-weight:700;color:#fff;">'+d.closed+'</span>' : '')
+                          + '</div>' : '')
                       + '</div>'
-                      + '<div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:4px;text-align:right;">' + resRate + '% resolved</div>'
+                      + '<div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:4px;text-align:right;">'
+                          + (resRate > 0 ? '<span style="color:rgba(34,197,94,.7);">'+resRate+'% resolved</span>' : '<span>0% resolved</span>')
+                      + '</div>'
                     + '</td>'
                 + '</tr>';
               }).join('')
@@ -7452,7 +7495,7 @@ function ipRenderDashboard() {
       + '<div style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:20px 24px;">'
           + '<div style="font-size:14px;font-weight:700;color:#f0f0f6;margin-bottom:2px;">Monthly Trend</div>'
           + '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:20px;">Last 6 months &nbsp;·&nbsp; <span style="color:rgba(201,162,39,.6);">■</span> Reported &nbsp;<span style="color:rgba(34,197,94,.6);">■</span> Resolved</div>'
-          + '<svg viewBox="0 0 '+(svgW+8)+' '+(cH+28)+'" width="100%" style="overflow:visible;">' + bars + '</svg>'
+          + '<svg viewBox="-4 -20 '+(svgW+12)+' '+(cH+48)+'" width="100%" style="overflow:visible;">' + bars + '</svg>'
         + '</div>'
     + '</div>'
 
