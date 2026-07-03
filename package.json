@@ -10,6 +10,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.1",
     "adm-zip": "^0.5.17",
+    "compression": "^1.8.1",
     "dotenv": "^17.4.2",
     "express": "^4.19.2",
     "mammoth": "^1.12.0",
@@ -19,7 +20,9 @@
     "ws": "^8.17.0"
   },
   "devDependencies": {
-    "localtunnel": "^2.0.2"
+    "@playwright/mcp": "^0.0.75",
+    "localtunnel": "^2.0.2",
+    "vite": "^8.0.16"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -2131,7 +2131,7 @@ function showLanding(){
   // close any open tooltips
   document.querySelectorAll('.dw-tooltip').forEach(t=>t.classList.remove('open'));
   // restart canvas
-  dwCanvasRunning=true;
+  dwStartLoop();
   // ── Restore nav and admin button (hidden when leaving landing) ──
   const mcNav = document.getElementById('mcNav');
   if(mcNav) mcNav.style.display = 'flex';
@@ -2204,7 +2204,7 @@ async function updateLandingStats(){
 function hideLanding(){
   document.getElementById('dwLanding').classList.add('dw-hidden');
   document.getElementById('dw-canvas').style.display='none';
-  dwCanvasRunning=false;
+  dwStopLoop();
   dwHideTechEffects();
   // Hide nav when leaving landing
   const nav=document.getElementById('mcNav');
@@ -2470,7 +2470,7 @@ window.addEventListener('popstate', function(e){
   mlHide();
   document.getElementById('dwLanding').classList.add('dw-hidden');
   document.getElementById('dw-canvas').style.display = 'none';
-  dwCanvasRunning = false;
+  dwStopLoop();
   const sm  = document.getElementById('smOverlay');
   const dv  = document.getElementById('dashboardView');
   const rv  = document.getElementById('roadmapView');
@@ -2547,7 +2547,7 @@ document.addEventListener('click',function(e){
 /* ── Particle canvas for landing ── */
 const dwCv=document.getElementById('dw-canvas');
 const dwCtx=dwCv.getContext('2d');
-let dwW,dwH,dwCanvasRunning=true,dwT=0;
+let dwW,dwH,dwCanvasRunning=true,dwT=0,dwRafId=null;
 function dwResize(){dwW=dwCv.width=innerWidth;dwH=dwCv.height=innerHeight;}
 dwResize();window.addEventListener('resize',dwResize);
 
@@ -2586,7 +2586,7 @@ function dwSpawn(){
 setInterval(dwSpawn,3000);setInterval(dwSpawn,5500);
 
 function dwDraw(){
-  if(!dwCanvasRunning){requestAnimationFrame(dwDraw);return;}
+  if(!dwCanvasRunning){dwRafId=null;return;}
   dwT+=.001;
   dwCtx.clearRect(0,0,dwW,dwH);
 
@@ -2661,9 +2661,11 @@ function dwDraw(){
     if(s.life<=0||s.x<-200)dwShoots.splice(i,1);
   }
 
-  requestAnimationFrame(dwDraw);
+  dwRafId = requestAnimationFrame(dwDraw);
 }
-dwDraw();
+function dwStartLoop(){if(!dwRafId){dwCanvasRunning=true;dwRafId=requestAnimationFrame(dwDraw);}}
+function dwStopLoop(){dwCanvasRunning=false;if(dwRafId){cancelAnimationFrame(dwRafId);dwRafId=null;}}
+dwStartLoop();
 
 // Card 3D tilt on dw-cards
 document.querySelectorAll('.dw-card').forEach(card=>{

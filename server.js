@@ -1,8 +1,9 @@
 require('dotenv').config({ path: require('path').join(__dirname, '.env'), override: true });
-const express = require('express');
-const http    = require('http');
-const path    = require('path');
-const fs      = require('fs');
+const express     = require('express');
+const http        = require('http');
+const path        = require('path');
+const fs          = require('fs');
+const compression = require('compression');
 const multer      = require('multer');
 const nodemailer  = require('nodemailer');
 
@@ -169,8 +170,18 @@ const upload = multer({
 });
 
 // ── Middleware ────────────────────────────────────────────────────────────────
+app.use(compression()); // gzip all responses
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+// Versioned assets (js?v=X, css?v=X) cached for 7 days; index.html never cached
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (/\.(js|css|png|jpg|jpeg|svg|ico|webp|woff2?)$/.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+    }
+  },
+}));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function getWeekNumber(d) {

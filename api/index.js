@@ -1,9 +1,10 @@
 // Vercel serverless API handler — MongoDB persistent store — v8
 require('dotenv').config();
-const express    = require('express');
-const path       = require('path');
-const fs         = require('fs');
-const nodemailer = require('nodemailer');
+const express      = require('express');
+const path         = require('path');
+const fs           = require('fs');
+const compression  = require('compression');
+const nodemailer   = require('nodemailer');
 
 // ── Email transporter ─────────────────────────────────────────────────────────
 const mailer = nodemailer.createTransport({
@@ -38,6 +39,7 @@ async function sendEmail({ to, subject, html, text }) {
 }
 
 const app = express();
+app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 
 // ── Persistent store — MongoDB (primary) with data.json fallback ──────────────
