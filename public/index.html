@@ -6508,17 +6508,11 @@ async function updateFeedbackStatus(id) {
 
           <!-- Screenshots -->
           <div>
-            <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Screenshots <span style="font-weight:400;text-transform:none;letter-spacing:0;">(paste Ctrl+V, drag &amp; drop, or click)</span></label>
-            <div id="ipScreenshotZone" onclick="document.getElementById('ipFileInput').click()"
-              style="border:1.5px dashed rgba(255,255,255,.15);border-radius:8px;padding:20px 16px;text-align:center;cursor:pointer;background:rgba(255,255,255,.02);transition:border-color .18s;"
-              ondragover="event.preventDefault();this.style.borderColor='#c9a227';"
-              ondragleave="this.style.borderColor='rgba(255,255,255,.15)';"
-              ondrop="ipHandleDrop(event);">
-              <div style="font-size:22px;margin-bottom:6px;">📎</div>
-              <div style="font-size:12px;color:rgba(255,255,255,.4);">Click to upload or drag &amp; drop images</div>
-              <div style="font-size:11px;color:rgba(255,255,255,.25);margin-top:3px;">You can also paste a screenshot anywhere on this form (Ctrl+V / Cmd+V)</div>
+            <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Screenshots <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
+            <div id="ipScreenshotZone" style="border:1.5px dashed rgba(255,255,255,.12);border-radius:8px;padding:22px 16px;text-align:center;background:rgba(255,255,255,.02);user-select:none;">
+              <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:4px;">Copy a screenshot, then press <span style="display:inline-block;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:5px;padding:2px 8px;font-family:'DM Mono',monospace;font-size:12px;color:rgba(255,255,255,.7);">Ctrl+V</span> <span style="color:rgba(255,255,255,.3);font-size:11px;">/ Cmd+V</span></div>
+              <div style="font-size:11px;color:rgba(255,255,255,.22);margin-top:4px;">Paste works anywhere on this form — no need to click here first</div>
             </div>
-            <input type="file" id="ipFileInput" accept="image/*" multiple style="display:none;" onchange="ipHandleFileInput(this)">
             <div id="ipScreenshotPreviews" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;"></div>
           </div>
 
