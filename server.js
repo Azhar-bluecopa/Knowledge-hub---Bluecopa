@@ -1639,5 +1639,220 @@ app.post('/api/email/test', async (req, res) => {
   }
 });
 
+// ── Issue Resolution Portal ───────────────────────────────────────────────────
+
+function ensureIssues() {
+  if (!db.issues)      db.issues      = [];
+  if (!db.nextIssueId) db.nextIssueId = 1;
+}
+
+// GET /api/issues/analytics  ← must be BEFORE /:id
+app.get('/api/issues/analytics', async (req, res) => {
+  await initDB();
+  ensureIssues();
+  const issues = db.issues;
+  const total            = issues.length;
+  const open             = issues.filter(i => i.status === 'Open').length;
+  const inProgress       = issues.filter(i => i.status === 'In Progress').length;
+  const resolvedInternal = issues.filter(i => i.status === 'Resolved within Delivery').length;
+  const escalated        = issues.filter(i => i.status === 'Escalated to Platform').length;
+  const closed           = issues.filter(i => i.status === 'Closed').length;
+
+  const resolved = issues.filter(i => i.resolvedAt && i.createdAt);
+  const avgMs    = resolved.length
+    ? resolved.reduce((s, i) => s + (new Date(i.resolvedAt) - new Date(i.createdAt)), 0) / resolved.length
+    : 0;
+
+  const categoryCounts = {};
+  issues.forEach(i => { const c = i.category || 'Other'; categoryCounts[c] = (categoryCounts[c] || 0) + 1; });
+
+  const contributors = {};
+  issues.forEach(issue => {
+    (issue.solutions || []).forEach(sol => {
+      const e = sol.author?.email || ''; if (!e) return;
+      if (!contributors[e]) contributors[e] = { name: sol.author.name, email: e, solutions: 0, accepted: 0 };
+      contributors[e].solutions++;
+      if (sol.isAccepted) contributors[e].accepted++;
+    });
+  });
+  const topContributors = Object.values(contributors)
+    .sort((a, b) => (b.accepted * 2 + b.solutions) - (a.accepted * 2 + a.solutions))
+    .slice(0, 10);
+
+  const monthly = {};
+  const now = new Date();
+  for (let m = 5; m >= 0; m--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - m, 1);
+    monthly[d.toLocaleString('default', { month: 'short', year: '2-digit' })] = 0;
+  }
+  issues.forEach(i => {
+    const d   = new Date(i.createdAt);
+    const key = d.toLocaleString('default', { month: 'short', year: '2-digit' });
+    if (monthly[key] !== undefined) monthly[key]++;
+  });
+
+  res.json({
+    total, open, inProgress, resolvedInternal, escalated, closed,
+    avgResolutionDays: +(avgMs / 86400000).toFixed(1),
+    internalResolutionRate: total ? +((resolvedInternal / total) * 100).toFixed(1) : 0,
+    categoryCounts, topContributors, monthly,
+  });
+});
+
+// GET /api/issues
+app.get('/api/issues', async (req, res) => {
+  await initDB();
+  ensureIssues();
+  let list = db.issues.slice();
+  const { status, category, priority, search, tag } = req.query;
+  if (status)   list = list.filter(i => i.status === status);
+  if (category) list = list.filter(i => i.category === category);
+  if (priority) list = list.filter(i => i.priority === priority);
+  if (tag)      list = list.filter(i => (i.tags || []).includes(tag));
+  if (search) {
+    const q = search.toLowerCase();
+    list = list.filter(i =>
+      (i.title || '').toLowerCase().includes(q) ||
+      (i.description || '').toLowerCase().includes(q) ||
+      (i.clientName || '').toLowerCase().includes(q) ||
+      (i.projectName || '').toLowerCase().includes(q) ||
+      (i.tags || []).some(t => t.toLowerCase().includes(q))
+    );
+  }
+  list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  res.json({ issues: list });
+});
+
+// POST /api/issues
+app.post('/api/issues', async (req, res) => {
+  await initDB();
+  ensureIssues();
+  const userEmail = req.headers['x-user-email'] || '';
+  if (!userEmail) return res.status(401).json({ error: 'Not authenticated' });
+  const { title, clientName, projectName, category, priority, description, tags, reportedByName } = req.body;
+  if (!title?.trim()) return res.status(400).json({ error: 'Title required' });
+  const issue = {
+    id: 'ip_' + Date.now(),
+    title: title.trim(),
+    clientName: (clientName || '').trim(),
+    projectName: (projectName || '').trim(),
+    category: category || 'Other',
+    priority: priority || 'Medium',
+    description: (description || '').trim(),
+    status: 'Open',
+    tags: Array.isArray(tags) ? tags.filter(Boolean) : (tags || '').split(',').map(t => t.trim()).filter(Boolean),
+    reportedBy: { email: userEmail, name: reportedByName || userEmail },
+    assignedOwner: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    resolvedAt: null,
+    solutions: [],
+  };
+  db.issues.push(issue);
+  saveDB(db);
+  res.status(201).json(issue);
+});
+
+// GET /api/issues/:id
+app.get('/api/issues/:id', async (req, res) => {
+  await initDB();
+  ensureIssues();
+  const issue = db.issues.find(i => i.id === req.params.id);
+  if (!issue) return res.status(404).json({ error: 'Not found' });
+  res.json(issue);
+});
+
+// PATCH /api/issues/:id
+app.patch('/api/issues/:id', async (req, res) => {
+  await initDB();
+  ensureIssues();
+  const issue = db.issues.find(i => i.id === req.params.id);
+  if (!issue) return res.status(404).json({ error: 'Not found' });
+  const userEmail = (req.headers['x-user-email'] || '').toLowerCase();
+  if (!isAdmin(req) && issue.reportedBy?.email?.toLowerCase() !== userEmail)
+    return res.status(403).json({ error: 'Only the reporter or admins can update this issue' });
+  ['title','status','assignedOwner','priority','category','description','tags','clientName','projectName'].forEach(k => {
+    if (req.body[k] !== undefined) issue[k] = req.body[k];
+  });
+  issue.updatedAt = new Date().toISOString();
+  if (['Resolved within Delivery','Closed'].includes(req.body.status))
+    issue.resolvedAt = issue.resolvedAt || new Date().toISOString();
+  saveDB(db);
+  res.json(issue);
+});
+
+// POST /api/issues/:id/solutions
+app.post('/api/issues/:id/solutions', async (req, res) => {
+  await initDB();
+  ensureIssues();
+  const issue = db.issues.find(i => i.id === req.params.id);
+  if (!issue) return res.status(404).json({ error: 'Not found' });
+  const userEmail = req.headers['x-user-email'] || '';
+  if (!userEmail) return res.status(401).json({ error: 'Not authenticated' });
+  const { text, authorName } = req.body;
+  if (!text?.trim()) return res.status(400).json({ error: 'Solution text required' });
+  const sol = {
+    id: 'sol_' + Date.now(),
+    text: text.trim(),
+    author: { email: userEmail, name: authorName || userEmail },
+    createdAt: new Date().toISOString(),
+    isAccepted: false,
+    acceptedAt: null,
+    comments: [],
+  };
+  if (!issue.solutions) issue.solutions = [];
+  issue.solutions.push(sol);
+  if (issue.status === 'Open') issue.status = 'In Progress';
+  issue.updatedAt = new Date().toISOString();
+  saveDB(db);
+  res.status(201).json(sol);
+});
+
+// POST /api/issues/:id/solutions/:sid/accept
+app.post('/api/issues/:id/solutions/:sid/accept', async (req, res) => {
+  await initDB();
+  ensureIssues();
+  const issue = db.issues.find(i => i.id === req.params.id);
+  if (!issue) return res.status(404).json({ error: 'Not found' });
+  const userEmail = (req.headers['x-user-email'] || '').toLowerCase();
+  if (!isAdmin(req) && issue.reportedBy?.email?.toLowerCase() !== userEmail)
+    return res.status(403).json({ error: 'Only the reporter or admins can accept a solution' });
+  const sol = (issue.solutions || []).find(s => s.id === req.params.sid);
+  if (!sol) return res.status(404).json({ error: 'Solution not found' });
+  issue.solutions.forEach(s => { s.isAccepted = false; s.acceptedAt = null; });
+  sol.isAccepted   = true;
+  sol.acceptedAt   = new Date().toISOString();
+  issue.status     = 'Resolved within Delivery';
+  issue.resolvedAt = issue.resolvedAt || new Date().toISOString();
+  issue.updatedAt  = new Date().toISOString();
+  saveDB(db);
+  res.json({ issue, solution: sol });
+});
+
+// POST /api/issues/:id/solutions/:sid/comments
+app.post('/api/issues/:id/solutions/:sid/comments', async (req, res) => {
+  await initDB();
+  ensureIssues();
+  const issue = db.issues.find(i => i.id === req.params.id);
+  if (!issue) return res.status(404).json({ error: 'Not found' });
+  const userEmail = req.headers['x-user-email'] || '';
+  if (!userEmail) return res.status(401).json({ error: 'Not authenticated' });
+  const sol = (issue.solutions || []).find(s => s.id === req.params.sid);
+  if (!sol) return res.status(404).json({ error: 'Solution not found' });
+  const { text, authorName } = req.body;
+  if (!text?.trim()) return res.status(400).json({ error: 'Comment text required' });
+  const comment = {
+    id: 'cmt_' + Date.now(),
+    text: text.trim(),
+    author: { email: userEmail, name: authorName || userEmail },
+    createdAt: new Date().toISOString(),
+  };
+  if (!sol.comments) sol.comments = [];
+  sol.comments.push(comment);
+  issue.updatedAt = new Date().toISOString();
+  saveDB(db);
+  res.status(201).json(comment);
+});
+
 // ── Export for Vercel serverless ──────────────────────────────────────────────
 module.exports = app;

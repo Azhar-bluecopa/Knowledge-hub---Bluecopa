@@ -35,6 +35,7 @@
   <div class="read-only-banner" id="readOnlyBanner">🔒 Read-only mode — posting disabled</div>
   <button class="new-article-btn" id="newArticleBtn" onclick="openModal()">✦ New Article</button>
   <button class="request-article-btn" onclick="openRequestModal()">📩 Request an Article</button>
+  <button class="request-article-btn" onclick="ipShowPortal()" style="margin-top:6px;background:rgba(201,162,39,.08);border:1px solid rgba(201,162,39,.25);color:rgba(201,162,39,.9);">⚡ Issue Portal</button>
   <div class="sidebar-footer">
     <div class="avatar" id="userAvatar" title="Account" onclick="toggleUserMenu()" style="cursor:pointer;overflow:hidden;">?</div>
     <div style="flex:1;min-width:0">
@@ -6352,5 +6353,705 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=5" defer></script>
   <script src="/app.js?v=27" defer></script>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     ISSUE RESOLUTION PORTAL
+     Full-screen overlay — z-index 890 (below modals, above content)
+     All styles inline to bypass Vercel CDN CSS caching
+═══════════════════════════════════════════════════════════════════════════ -->
+<div id="issuePortal" style="display:none;position:fixed;inset:0;z-index:890;background:#0b0b12;flex-direction:column;font-family:'DM Sans',sans-serif;overflow:hidden;">
+
+  <!-- ── Top bar ── -->
+  <div style="display:flex;align-items:center;gap:12px;padding:0 24px;height:56px;background:#0f0f18;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;">
+    <button onclick="ipHidePortal()" style="background:none;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);border-radius:8px;padding:6px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;">← Back</button>
+    <div style="width:1px;height:20px;background:rgba(255,255,255,.1);"></div>
+    <span style="font-size:16px;">⚡</span>
+    <span style="font-size:15px;font-weight:700;color:#f0f0f6;letter-spacing:-.01em;">Issue Resolution Portal</span>
+    <div style="flex:1;"></div>
+    <!-- Tab nav -->
+    <div style="display:flex;gap:4px;background:rgba(255,255,255,.05);border-radius:10px;padding:4px;">
+      <button id="ipTabList" onclick="ipSwitchTab('list')" style="padding:6px 16px;border-radius:7px;border:none;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;background:#c9a227;color:#1a1d27;">All Issues</button>
+      <button id="ipTabForm" onclick="ipSwitchTab('form')" style="padding:6px 16px;border-radius:7px;border:none;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;background:transparent;color:rgba(255,255,255,.5);">+ Report Issue</button>
+      <button id="ipTabAnalytics" onclick="ipSwitchTab('analytics')" style="padding:6px 16px;border-radius:7px;border:none;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;background:transparent;color:rgba(255,255,255,.5);">Analytics</button>
+    </div>
+    <div style="width:1px;height:20px;background:rgba(255,255,255,.1);"></div>
+    <div id="ipUserChip" style="font-size:12px;color:rgba(255,255,255,.4);"></div>
+  </div>
+
+  <!-- ── Scrollable content ── -->
+  <div style="flex:1;overflow-y:auto;" id="ipScroll">
+
+    <!-- ════ LIST VIEW ════ -->
+    <div id="ipListView" style="padding:24px;max-width:1200px;margin:0 auto;">
+
+      <!-- Search + filter bar -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center;">
+        <div style="position:relative;flex:1;min-width:220px;">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.3);font-size:14px;">🔍</span>
+          <input id="ipSearch" type="text" placeholder="Search issues, clients, tags…"
+            oninput="ipApplyFilters()"
+            style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 14px 10px 36px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;">
+        </div>
+        <select id="ipFStatus" onchange="ipApplyFilters()" style="background:#1a1d27;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 12px;color:#f0f0f6;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;outline:none;">
+          <option value="">All Statuses</option>
+          <option>Open</option>
+          <option>In Progress</option>
+          <option>Resolved within Delivery</option>
+          <option>Escalated to Platform</option>
+          <option>Closed</option>
+        </select>
+        <select id="ipFCategory" onchange="ipApplyFilters()" style="background:#1a1d27;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 12px;color:#f0f0f6;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;outline:none;">
+          <option value="">All Categories</option>
+          <option>Product</option><option>Platform</option><option>Configuration</option>
+          <option>Data</option><option>Process</option><option>Other</option>
+        </select>
+        <select id="ipFPriority" onchange="ipApplyFilters()" style="background:#1a1d27;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 12px;color:#f0f0f6;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;outline:none;">
+          <option value="">All Priorities</option>
+          <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
+        </select>
+        <button onclick="ipClearFilters()" style="background:none;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 14px;color:rgba(255,255,255,.4);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">✕ Clear</button>
+        <div id="ipIssueCount" style="font-size:12px;color:rgba(255,255,255,.3);margin-left:4px;white-space:nowrap;"></div>
+      </div>
+
+      <!-- Issue cards grid -->
+      <div id="ipIssueGrid" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);font-size:14px;">Loading issues…</div>
+      </div>
+    </div>
+
+    <!-- ════ DETAIL VIEW ════ -->
+    <div id="ipDetailView" style="display:none;padding:24px;max-width:900px;margin:0 auto;">
+      <button onclick="ipBackToList()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;padding:0;margin-bottom:20px;display:flex;align-items:center;gap:6px;">← Back to all issues</button>
+      <div id="ipDetailContent"></div>
+    </div>
+
+    <!-- ════ FORM VIEW ════ -->
+    <div id="ipFormView" style="display:none;padding:24px;max-width:720px;margin:0 auto;">
+
+      <!-- Duplicate check nudge -->
+      <div style="background:rgba(201,162,39,.08);border:1px solid rgba(201,162,39,.2);border-radius:12px;padding:16px 20px;margin-bottom:24px;display:flex;gap:12px;align-items:flex-start;">
+        <span style="font-size:20px;flex-shrink:0;">💡</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#c9a227;margin-bottom:4px;">Check for existing issues first</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.5);line-height:1.5;">Before reporting, <span onclick="ipSwitchTab('list')" style="color:#c9a227;cursor:pointer;text-decoration:underline;">search the issue list</span> to see if this has already been raised. Avoiding duplicates keeps the portal clean and speeds up resolution.</div>
+        </div>
+      </div>
+
+      <div style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:28px;">
+        <div style="font-size:18px;font-weight:800;color:#f0f0f6;margin-bottom:24px;letter-spacing:-.02em;">Report a New Issue</div>
+
+        <div style="display:grid;gap:18px;">
+          <!-- Title -->
+          <div>
+            <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Issue Title *</label>
+            <input id="ipFTitle" type="text" placeholder="Short, descriptive title…"
+              style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 14px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;">
+          </div>
+
+          <!-- Client + Project -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Client Name</label>
+              <input id="ipFClient" type="text" placeholder="e.g. Acme Corp"
+                style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 14px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;">
+            </div>
+            <div>
+              <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Project Name</label>
+              <input id="ipFProject" type="text" placeholder="e.g. Phase 2 Rollout"
+                style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 14px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;">
+            </div>
+          </div>
+
+          <!-- Category + Priority -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Category *</label>
+              <select id="ipFCategory2" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 14px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer;">
+                <option value="">Select category…</option>
+                <option>Product</option><option>Platform</option><option>Configuration</option>
+                <option>Data</option><option>Process</option><option>Other</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Priority *</label>
+              <select id="ipFPriority2" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 14px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer;">
+                <option value="">Select priority…</option>
+                <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div>
+            <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Description *</label>
+            <textarea id="ipFDesc" rows="5" placeholder="Describe the issue clearly — what happened, when, what was expected vs actual…"
+              style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 14px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;line-height:1.6;"></textarea>
+          </div>
+
+          <!-- Tags -->
+          <div>
+            <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Tags <span style="font-weight:400;text-transform:none;letter-spacing:0;">(comma-separated)</span></label>
+            <input id="ipFTags" type="text" placeholder="e.g. reconciliation, api, data-sync"
+              style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 14px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;">
+          </div>
+
+          <!-- Submit -->
+          <div style="display:flex;gap:12px;align-items:center;padding-top:4px;">
+            <button onclick="ipSubmitIssue()" id="ipSubmitBtn"
+              style="background:#c9a227;color:#1a1d27;border:none;border-radius:8px;padding:12px 28px;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .18s;"
+              onmouseover="this.style.background='#d4ae35';this.style.transform='translateY(-1px)'"
+              onmouseout="this.style.background='#c9a227';this.style.transform='translateY(0)'">Submit Issue</button>
+            <button onclick="ipSwitchTab('list')" style="background:none;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:12px 20px;font-size:13px;color:rgba(255,255,255,.5);font-family:'DM Sans',sans-serif;cursor:pointer;">Cancel</button>
+            <div id="ipFormMsg" style="font-size:12px;color:#22c55e;display:none;">✓ Issue submitted!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ ANALYTICS VIEW ════ -->
+    <div id="ipAnalyticsView" style="display:none;padding:24px;max-width:1100px;margin:0 auto;">
+      <div id="ipAnalyticsContent">
+        <div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);">Loading analytics…</div>
+      </div>
+    </div>
+
+  </div><!-- /ipScroll -->
+</div><!-- /issuePortal -->
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// ISSUE PORTAL — JavaScript
+// ══════════════════════════════════════════════════════════════════════════════
+
+var _ipIssues   = [];
+var _ipTab      = 'list';
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function ipAuthHeader() {
+  var u = (typeof getUser === 'function' && getUser()) || {};
+  var adminEmail = (typeof getAdminPwd === 'function' && getAdminPwd()) || u.email || '';
+  return { 'Content-Type': 'application/json', 'x-user-email': adminEmail };
+}
+
+function ipCurrentUser() {
+  return (typeof getUser === 'function' && getUser()) || {};
+}
+
+function ipInitials(name) {
+  if (!name) return '?';
+  var parts = name.trim().split(/\s+/);
+  return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+}
+
+function ipTimeAgo(iso) {
+  var diff = (Date.now() - new Date(iso)) / 1000;
+  if (diff < 60)   return 'just now';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  return Math.floor(diff / 86400) + 'd ago';
+}
+
+function ipFmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function ipStatusStyle(status) {
+  var map = {
+    'Open':                    { bg:'rgba(34,197,94,.12)',  border:'rgba(34,197,94,.3)',  color:'#22c55e' },
+    'In Progress':             { bg:'rgba(59,130,246,.12)', border:'rgba(59,130,246,.3)', color:'#60a5fa' },
+    'Resolved within Delivery':{ bg:'rgba(201,162,39,.12)', border:'rgba(201,162,39,.3)', color:'#c9a227' },
+    'Escalated to Platform':   { bg:'rgba(220,38,38,.12)',  border:'rgba(220,38,38,.3)',  color:'#ef4444' },
+    'Closed':                  { bg:'rgba(255,255,255,.06)',border:'rgba(255,255,255,.15)',color:'rgba(255,255,255,.4)'},
+  };
+  return map[status] || map['Open'];
+}
+
+function ipPriorityStyle(p) {
+  var map = {
+    'Critical':{ bg:'rgba(220,38,38,.15)',  color:'#ef4444' },
+    'High':    { bg:'rgba(249,115,22,.15)', color:'#fb923c' },
+    'Medium':  { bg:'rgba(201,162,39,.12)', color:'#c9a227' },
+    'Low':     { bg:'rgba(255,255,255,.06)',color:'rgba(255,255,255,.4)'},
+  };
+  return map[p] || map['Medium'];
+}
+
+// ── Show / Hide portal ───────────────────────────────────────────────────────
+
+function ipShowPortal() {
+  var portal = document.getElementById('issuePortal');
+  portal.style.display = 'flex';
+  var u = ipCurrentUser();
+  var chip = document.getElementById('ipUserChip');
+  if (chip) chip.textContent = u.name || u.email || '';
+  ipSwitchTab('list');
+  ipLoadIssues();
+}
+
+function ipHidePortal() {
+  document.getElementById('issuePortal').style.display = 'none';
+}
+
+// ── Tab switching ────────────────────────────────────────────────────────────
+
+function ipSwitchTab(tab) {
+  _ipTab = tab;
+  var tabs = ['list','form','analytics'];
+  var labels = { list:'All Issues', form:'+ Report Issue', analytics:'Analytics' };
+  tabs.forEach(function(t) {
+    var btn = document.getElementById('ipTab' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (!btn) return;
+    if (t === tab) {
+      btn.style.background = '#c9a227';
+      btn.style.color      = '#1a1d27';
+    } else {
+      btn.style.background = 'transparent';
+      btn.style.color      = 'rgba(255,255,255,.5)';
+    }
+    document.getElementById('ipListView').style.display      = tab === 'list'      ? 'block' : 'none';
+    document.getElementById('ipDetailView').style.display    = 'none';
+    document.getElementById('ipFormView').style.display      = tab === 'form'      ? 'block' : 'none';
+    document.getElementById('ipAnalyticsView').style.display = tab === 'analytics' ? 'block' : 'none';
+  });
+  document.getElementById('ipScroll').scrollTop = 0;
+  if (tab === 'analytics') ipLoadAnalytics();
+  if (tab === 'list') ipRenderIssues(_ipIssues);
+}
+
+// ── Load & render issue list ─────────────────────────────────────────────────
+
+async function ipLoadIssues() {
+  try {
+    var r = await fetch('/api/issues', { headers: ipAuthHeader() });
+    var d = await r.json();
+    _ipIssues = d.issues || [];
+    ipRenderIssues(_ipIssues);
+  } catch(e) {
+    document.getElementById('ipIssueGrid').innerHTML =
+      '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);">Failed to load issues.</div>';
+  }
+}
+
+function ipApplyFilters() {
+  var q    = (document.getElementById('ipSearch').value || '').toLowerCase();
+  var st   = document.getElementById('ipFStatus').value;
+  var cat  = document.getElementById('ipFCategory').value;
+  var pri  = document.getElementById('ipFPriority').value;
+  var list = _ipIssues.filter(function(i) {
+    if (st  && i.status   !== st)  return false;
+    if (cat && i.category !== cat) return false;
+    if (pri && i.priority !== pri) return false;
+    if (q) {
+      var hay = [i.title, i.description, i.clientName, i.projectName, (i.tags||[]).join(' ')].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  ipRenderIssues(list);
+}
+
+function ipClearFilters() {
+  document.getElementById('ipSearch').value = '';
+  document.getElementById('ipFStatus').value = '';
+  document.getElementById('ipFCategory').value = '';
+  document.getElementById('ipFPriority').value = '';
+  ipRenderIssues(_ipIssues);
+}
+
+function ipRenderIssues(list) {
+  var cnt = document.getElementById('ipIssueCount');
+  if (cnt) cnt.textContent = list.length + ' issue' + (list.length !== 1 ? 's' : '');
+  var grid = document.getElementById('ipIssueGrid');
+  if (!grid) return;
+  if (!list.length) {
+    grid.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);font-size:14px;">No issues found. Try adjusting your filters or <span onclick="ipSwitchTab(\'form\')" style="color:#c9a227;cursor:pointer;text-decoration:underline;">report a new one</span>.</div>';
+    return;
+  }
+  grid.innerHTML = list.map(function(issue) {
+    var ss  = ipStatusStyle(issue.status);
+    var ps  = ipPriorityStyle(issue.priority);
+    var sol = (issue.solutions || []).length;
+    var acc = (issue.solutions || []).filter(function(s){ return s.isAccepted; }).length;
+    var tags = (issue.tags || []).slice(0, 4).map(function(t) {
+      return '<span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:2px 7px;font-size:11px;color:rgba(255,255,255,.4);font-family:\'DM Mono\',monospace;">' + t + '</span>';
+    }).join('');
+    return '<div onclick="ipOpenIssue(\'' + issue.id + '\')" style="background:#13131e;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:18px 20px;cursor:pointer;transition:all .18s;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;" onmouseover="this.style.borderColor=\'rgba(255,255,255,.14)\';this.style.transform=\'translateY(-1px)\';this.style.boxShadow=\'0 8px 24px rgba(0,0,0,.4)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.06)\';this.style.transform=\'translateY(0)\';this.style.boxShadow=\'none\'">'
+      + '<div>'
+        + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">'
+          + '<span style="background:' + ss.bg + ';border:1px solid ' + ss.border + ';color:' + ss.color + ';border-radius:6px;padding:2px 10px;font-size:11px;font-weight:600;">' + issue.status + '</span>'
+          + '<span style="background:' + ps.bg + ';color:' + ps.color + ';border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">' + issue.priority + '</span>'
+          + '<span style="background:rgba(255,255,255,.05);border-radius:6px;padding:2px 8px;font-size:11px;color:rgba(255,255,255,.35);">' + issue.category + '</span>'
+        + '</div>'
+        + '<div style="font-size:15px;font-weight:700;color:#f0f0f6;margin-bottom:6px;line-height:1.3;">' + (issue.title || '') + '</div>'
+        + '<div style="font-size:12px;color:rgba(255,255,255,.35);margin-bottom:10px;line-height:1.5;">' + ((issue.description || '').slice(0, 140) + ((issue.description||'').length > 140 ? '…' : '')) + '</div>'
+        + (tags ? '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">' + tags + '</div>' : '')
+        + '<div style="display:flex;gap:16px;font-size:11px;color:rgba(255,255,255,.3);">'
+          + (issue.clientName ? '<span>🏢 ' + issue.clientName + '</span>' : '')
+          + (issue.projectName ? '<span>📁 ' + issue.projectName + '</span>' : '')
+          + '<span>👤 ' + (issue.reportedBy && issue.reportedBy.name ? issue.reportedBy.name : '—') + '</span>'
+          + '<span>🕐 ' + ipTimeAgo(issue.createdAt) + '</span>'
+        + '</div>'
+      + '</div>'
+      + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;">'
+        + '<div style="font-size:12px;color:rgba(255,255,255,.3);white-space:nowrap;">'
+          + sol + ' solution' + (sol !== 1 ? 's' : '')
+          + (acc ? ' · <span style="color:#c9a227;">✓ Accepted</span>' : '')
+        + '</div>'
+        + '<div style="font-size:11px;color:rgba(255,255,255,.2);">' + ipFmtDate(issue.createdAt) + '</div>'
+      + '</div>'
+    + '</div>';
+  }).join('');
+}
+
+// ── Issue detail ─────────────────────────────────────────────────────────────
+
+async function ipOpenIssue(id) {
+  document.getElementById('ipListView').style.display   = 'none';
+  document.getElementById('ipDetailView').style.display = 'block';
+  document.getElementById('ipScroll').scrollTop = 0;
+  var content = document.getElementById('ipDetailContent');
+  content.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);">Loading…</div>';
+  try {
+    var r = await fetch('/api/issues/' + id, { headers: ipAuthHeader() });
+    var issue = await r.json();
+    ipRenderDetail(issue);
+  } catch(e) {
+    content.innerHTML = '<div style="color:#ef4444;padding:20px;">Failed to load issue.</div>';
+  }
+}
+
+function ipBackToList() {
+  document.getElementById('ipDetailView').style.display = 'none';
+  document.getElementById('ipListView').style.display   = 'block';
+}
+
+function ipRenderDetail(issue) {
+  var content = document.getElementById('ipDetailContent');
+  var user    = ipCurrentUser();
+  var ss      = ipStatusStyle(issue.status);
+  var ps      = ipPriorityStyle(issue.priority);
+  var isReporter = (user.email && issue.reportedBy && issue.reportedBy.email === user.email);
+  var isAdminUser = (typeof getAdminPwd === 'function' && !!getAdminPwd());
+  var canManage = isReporter || isAdminUser;
+
+  var statusOptions = ['Open','In Progress','Resolved within Delivery','Escalated to Platform','Closed'];
+  var statusSelect = canManage
+    ? '<select onchange="ipUpdateStatus(\'' + issue.id + '\', this.value)" style="background:' + ss.bg + ';border:1px solid ' + ss.border + ';color:' + ss.color + ';border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;font-family:\'DM Sans\',sans-serif;cursor:pointer;outline:none;">'
+        + statusOptions.map(function(s){ return '<option value="' + s + '"' + (s === issue.status ? ' selected' : '') + '>' + s + '</option>'; }).join('')
+      + '</select>'
+    : '<span style="background:' + ss.bg + ';border:1px solid ' + ss.border + ';color:' + ss.color + ';border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;">' + issue.status + '</span>';
+
+  var tags = (issue.tags || []).map(function(t) {
+    return '<span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:2px 8px;font-size:12px;color:rgba(255,255,255,.45);font-family:\'DM Mono\',monospace;">' + t + '</span>';
+  }).join('');
+
+  var solutionsHtml = '';
+  if (!issue.solutions || !issue.solutions.length) {
+    solutionsHtml = '<div style="text-align:center;padding:40px;background:rgba(255,255,255,.02);border:1px dashed rgba(255,255,255,.08);border-radius:10px;color:rgba(255,255,255,.3);font-size:13px;">No solutions yet — be the first to contribute!</div>';
+  } else {
+    solutionsHtml = issue.solutions.map(function(sol) {
+      var accepted = sol.isAccepted;
+      var solBorder = accepted ? 'border:1px solid rgba(201,162,39,.4)' : 'border:1px solid rgba(255,255,255,.07)';
+      var solBg     = accepted ? 'background:rgba(201,162,39,.06)' : 'background:#13131e';
+      var ini = ipInitials(sol.author && sol.author.name ? sol.author.name : '?');
+      var comments = (sol.comments || []).map(function(c) {
+        var ci = ipInitials(c.author && c.author.name ? c.author.name : '?');
+        return '<div style="display:flex;gap:10px;padding:10px 0;border-top:1px solid rgba(255,255,255,.05);">'
+          + '<div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:rgba(255,255,255,.5);flex-shrink:0;">' + ci + '</div>'
+          + '<div style="flex:1;">'
+            + '<div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.7);">' + (c.author&&c.author.name||'Unknown') + ' <span style="font-weight:400;color:rgba(255,255,255,.3);font-size:11px;">' + ipTimeAgo(c.createdAt) + '</span></div>'
+            + '<div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px;line-height:1.5;">' + c.text + '</div>'
+          + '</div>'
+        + '</div>';
+      }).join('');
+      return '<div style="' + solBg + ';' + solBorder + ';border-radius:12px;padding:20px;position:relative;" id="sol-' + sol.id + '">'
+        + (accepted ? '<div style="position:absolute;top:16px;right:16px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.4);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;color:#c9a227;">✓ Accepted Solution</div>' : '')
+        + '<div style="display:flex;gap:12px;align-items:flex-start;">'
+          + '<div style="width:36px;height:36px;border-radius:50%;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.25);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#c9a227;flex-shrink:0;">' + ini + '</div>'
+          + '<div style="flex:1;">'
+            + '<div style="font-size:13px;font-weight:700;color:#f0f0f6;">' + (sol.author&&sol.author.name||'Unknown') + ' <span style="font-weight:400;color:rgba(255,255,255,.3);font-size:11px;">· ' + ipTimeAgo(sol.createdAt) + '</span></div>'
+            + '<div style="font-size:14px;color:rgba(255,255,255,.85);margin-top:10px;line-height:1.7;white-space:pre-wrap;">' + sol.text + '</div>'
+            + (comments ? '<div style="margin-top:12px;">' + comments + '</div>' : '')
+            + '<div style="display:flex;gap:10px;margin-top:14px;align-items:center;flex-wrap:wrap;">'
+              + (canManage && !accepted && issue.status !== 'Closed'
+                  ? '<button onclick="ipAcceptSolution(\'' + issue.id + '\',\'' + sol.id + '\')" style="background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.3);color:#c9a227;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;font-family:\'DM Sans\',sans-serif;cursor:pointer;">✓ Mark as Solution Worked</button>'
+                  : '')
+              + '<button onclick="ipShowCommentBox(\'' + sol.id + '\')" style="background:none;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);border-radius:6px;padding:5px 12px;font-size:11px;font-family:\'DM Sans\',sans-serif;cursor:pointer;">💬 Comment</button>'
+            + '</div>'
+            + '<div id="cbox-' + sol.id + '" style="display:none;margin-top:12px;">'
+              + '<textarea id="ctxt-' + sol.id + '" rows="2" placeholder="Add a comment…" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px;color:#f0f0f6;font-size:13px;font-family:\'DM Sans\',sans-serif;outline:none;resize:vertical;"></textarea>'
+              + '<div style="display:flex;gap:8px;margin-top:6px;">'
+                + '<button onclick="ipSubmitComment(\'' + issue.id + '\',\'' + sol.id + '\')" style="background:#c9a227;color:#1a1d27;border:none;border-radius:6px;padding:6px 16px;font-size:12px;font-weight:700;font-family:\'DM Sans\',sans-serif;cursor:pointer;">Post Comment</button>'
+                + '<button onclick="document.getElementById(\'cbox-' + sol.id + '\').style.display=\'none\'" style="background:none;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 12px;font-size:12px;color:rgba(255,255,255,.4);font-family:\'DM Sans\',sans-serif;cursor:pointer;">Cancel</button>'
+              + '</div>'
+            + '</div>'
+          + '</div>'
+        + '</div>'
+      + '</div>';
+    }).join('');
+  }
+
+  content.innerHTML =
+    '<div style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:28px;margin-bottom:20px;">'
+      + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;">'
+        + '<div>'
+          + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">'
+            + statusSelect
+            + '<span style="background:' + ps.bg + ';color:' + ps.color + ';border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;">' + issue.priority + '</span>'
+            + '<span style="background:rgba(255,255,255,.05);border-radius:6px;padding:4px 10px;font-size:11px;color:rgba(255,255,255,.4);">' + issue.category + '</span>'
+          + '</div>'
+          + '<h2 style="font-size:22px;font-weight:800;color:#f0f0f6;margin:0 0 10px;line-height:1.3;letter-spacing:-.02em;">' + (issue.title||'') + '</h2>'
+          + '<div style="display:flex;gap:16px;font-size:12px;color:rgba(255,255,255,.35);flex-wrap:wrap;">'
+            + (issue.clientName ? '<span>🏢 ' + issue.clientName + '</span>' : '')
+            + (issue.projectName ? '<span>📁 ' + issue.projectName + '</span>' : '')
+            + '<span>👤 Reported by ' + (issue.reportedBy&&issue.reportedBy.name||'—') + '</span>'
+            + '<span>📅 ' + ipFmtDate(issue.createdAt) + '</span>'
+          + '</div>'
+        + '</div>'
+      + '</div>'
+      + (issue.description ? '<div style="font-size:14px;color:rgba(255,255,255,.75);line-height:1.7;margin-bottom:16px;white-space:pre-wrap;">' + issue.description + '</div>' : '')
+      + (tags ? '<div style="display:flex;gap:6px;flex-wrap:wrap;">' + tags + '</div>' : '')
+    + '</div>'
+
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">'
+      + '<div style="font-size:16px;font-weight:700;color:#f0f0f6;">' + ((issue.solutions||[]).length) + ' Solution' + ((issue.solutions||[]).length !== 1 ? 's' : '') + '</div>'
+    + '</div>'
+
+    + '<div style="display:flex;flex-direction:column;gap:14px;" id="ipSolutions">' + solutionsHtml + '</div>'
+
+    + (issue.status !== 'Closed'
+      ? '<div style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:24px;margin-top:20px;">'
+          + '<div style="font-size:14px;font-weight:700;color:#f0f0f6;margin-bottom:14px;">💡 Propose a Solution</div>'
+          + '<textarea id="ipNewSolution" rows="4" placeholder="Describe your solution, workaround, or relevant experience…" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px;color:#f0f0f6;font-size:13px;font-family:\'DM Sans\',sans-serif;outline:none;resize:vertical;line-height:1.6;"></textarea>'
+          + '<div style="display:flex;gap:10px;margin-top:12px;">'
+            + '<button onclick="ipSubmitSolution(\'' + issue.id + '\')" style="background:#c9a227;color:#1a1d27;border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-weight:700;font-family:\'DM Sans\',sans-serif;cursor:pointer;">Post Solution</button>'
+            + '<div id="ipSolMsg" style="font-size:12px;color:#22c55e;display:none;align-self:center;">✓ Solution posted!</div>'
+          + '</div>'
+        + '</div>'
+      : '<div style="text-align:center;padding:16px;color:rgba(255,255,255,.3);font-size:12px;">This issue is closed — no new solutions can be added.</div>'
+    );
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────────
+
+async function ipUpdateStatus(id, newStatus) {
+  try {
+    var r = await fetch('/api/issues/' + id, {
+      method: 'PATCH',
+      headers: ipAuthHeader(),
+      body: JSON.stringify({ status: newStatus }),
+    });
+    if (!r.ok) throw new Error('Failed');
+    var updated = await r.json();
+    var idx = _ipIssues.findIndex(function(i){ return i.id === id; });
+    if (idx >= 0) _ipIssues[idx] = updated;
+    ipRenderDetail(updated);
+  } catch(e) { alert('Could not update status: ' + e.message); }
+}
+
+async function ipAcceptSolution(issueId, solId) {
+  try {
+    var r = await fetch('/api/issues/' + issueId + '/solutions/' + solId + '/accept', {
+      method: 'POST',
+      headers: ipAuthHeader(),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    var d = await r.json();
+    var idx = _ipIssues.findIndex(function(i){ return i.id === issueId; });
+    if (idx >= 0) _ipIssues[idx] = d.issue;
+    ipRenderDetail(d.issue);
+  } catch(e) { alert('Could not accept solution: ' + e.message); }
+}
+
+async function ipSubmitSolution(issueId) {
+  var txt = (document.getElementById('ipNewSolution').value || '').trim();
+  if (!txt) { alert('Please write a solution.'); return; }
+  var u = ipCurrentUser();
+  try {
+    var r = await fetch('/api/issues/' + issueId + '/solutions', {
+      method: 'POST',
+      headers: ipAuthHeader(),
+      body: JSON.stringify({ text: txt, authorName: u.name || u.email || '' }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    var fresh = await fetch('/api/issues/' + issueId, { headers: ipAuthHeader() });
+    var issue = await fresh.json();
+    var idx = _ipIssues.findIndex(function(i){ return i.id === issueId; });
+    if (idx >= 0) _ipIssues[idx] = issue;
+    ipRenderDetail(issue);
+    var msg = document.getElementById('ipSolMsg');
+    if (msg) { msg.style.display = 'flex'; setTimeout(function(){ msg.style.display='none'; }, 2500); }
+  } catch(e) { alert('Could not post solution: ' + e.message); }
+}
+
+function ipShowCommentBox(solId) {
+  var box = document.getElementById('cbox-' + solId);
+  if (box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
+async function ipSubmitComment(issueId, solId) {
+  var txt = (document.getElementById('ctxt-' + solId).value || '').trim();
+  if (!txt) return;
+  var u = ipCurrentUser();
+  try {
+    var r = await fetch('/api/issues/' + issueId + '/solutions/' + solId + '/comments', {
+      method: 'POST',
+      headers: ipAuthHeader(),
+      body: JSON.stringify({ text: txt, authorName: u.name || u.email || '' }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    var fresh = await fetch('/api/issues/' + issueId, { headers: ipAuthHeader() });
+    var issue = await fresh.json();
+    ipRenderDetail(issue);
+  } catch(e) { alert('Could not post comment: ' + e.message); }
+}
+
+// ── Submit new issue ─────────────────────────────────────────────────────────
+
+async function ipSubmitIssue() {
+  var title = (document.getElementById('ipFTitle').value||'').trim();
+  var cat   = document.getElementById('ipFCategory2').value;
+  var pri   = document.getElementById('ipFPriority2').value;
+  var desc  = (document.getElementById('ipFDesc').value||'').trim();
+  if (!title) { alert('Issue title is required.'); document.getElementById('ipFTitle').focus(); return; }
+  if (!cat)   { alert('Please select a category.'); return; }
+  if (!pri)   { alert('Please select a priority.'); return; }
+  if (!desc)  { alert('Description is required.'); document.getElementById('ipFDesc').focus(); return; }
+  var u = ipCurrentUser();
+  var btn = document.getElementById('ipSubmitBtn');
+  btn.textContent = 'Submitting…'; btn.disabled = true;
+  try {
+    var r = await fetch('/api/issues', {
+      method: 'POST',
+      headers: ipAuthHeader(),
+      body: JSON.stringify({
+        title,
+        clientName:  (document.getElementById('ipFClient').value||'').trim(),
+        projectName: (document.getElementById('ipFProject').value||'').trim(),
+        category: cat,
+        priority: pri,
+        description: desc,
+        tags: (document.getElementById('ipFTags').value||'').split(',').map(function(t){ return t.trim(); }).filter(Boolean),
+        reportedByName: u.name || u.email || '',
+      }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    var issue = await r.json();
+    _ipIssues.unshift(issue);
+    // Reset form
+    ['ipFTitle','ipFClient','ipFProject','ipFDesc','ipFTags'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('ipFCategory2').value = '';
+    document.getElementById('ipFPriority2').value = '';
+    var msg = document.getElementById('ipFormMsg');
+    if (msg) { msg.style.display = 'block'; setTimeout(function(){ msg.style.display='none'; }, 2000); }
+    setTimeout(function(){ ipSwitchTab('list'); ipRenderIssues(_ipIssues); }, 1200);
+  } catch(e) {
+    alert('Failed to submit issue: ' + e.message);
+  } finally {
+    btn.textContent = 'Submit Issue'; btn.disabled = false;
+  }
+}
+
+// ── Analytics ────────────────────────────────────────────────────────────────
+
+async function ipLoadAnalytics() {
+  var el = document.getElementById('ipAnalyticsContent');
+  el.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);">Loading analytics…</div>';
+  try {
+    var r = await fetch('/api/issues/analytics', { headers: ipAuthHeader() });
+    var d = await r.json();
+    ipRenderAnalytics(d);
+  } catch(e) {
+    el.innerHTML = '<div style="color:#ef4444;padding:20px;">Failed to load analytics.</div>';
+  }
+}
+
+function ipRenderAnalytics(d) {
+  var el = document.getElementById('ipAnalyticsContent');
+
+  var metric = function(label, value, sub, color) {
+    return '<div style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:20px 24px;">'
+      + '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">' + label + '</div>'
+      + '<div style="font-size:32px;font-weight:800;color:' + (color||'#f0f0f6') + ';letter-spacing:-.02em;">' + value + '</div>'
+      + (sub ? '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:4px;">' + sub + '</div>' : '')
+    + '</div>';
+  };
+
+  // Monthly bar chart (SVG)
+  var months = Object.keys(d.monthly || {});
+  var vals   = months.map(function(k){ return d.monthly[k]; });
+  var maxVal = Math.max.apply(null, vals.concat([1]));
+  var barW   = 36, barGap = 16, chartH = 80;
+  var totalW = months.length * (barW + barGap);
+  var bars   = months.map(function(m, i) {
+    var h = Math.max(4, Math.round((vals[i] / maxVal) * chartH));
+    var y = chartH - h;
+    return '<g>'
+      + '<rect x="' + (i*(barW+barGap)) + '" y="' + y + '" width="' + barW + '" height="' + h + '" rx="4" fill="rgba(201,162,39,.6)"/>'
+      + '<text x="' + (i*(barW+barGap)+barW/2) + '" y="' + (chartH+14) + '" fill="rgba(255,255,255,.3)" font-size="10" text-anchor="middle" font-family="DM Sans,sans-serif">' + m + '</text>'
+      + '<text x="' + (i*(barW+barGap)+barW/2) + '" y="' + (y-4) + '" fill="rgba(255,255,255,.5)" font-size="10" text-anchor="middle" font-family="DM Sans,sans-serif">' + (vals[i]||'') + '</text>'
+    + '</g>';
+  }).join('');
+
+  // Category breakdown
+  var cats = Object.entries(d.categoryCounts || {}).sort(function(a,b){ return b[1]-a[1]; });
+  var catHtml = cats.map(function(kv) {
+    var pct = d.total ? Math.round(kv[1] / d.total * 100) : 0;
+    return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
+      + '<div style="width:90px;font-size:12px;color:rgba(255,255,255,.55);flex-shrink:0;">' + kv[0] + '</div>'
+      + '<div style="flex:1;background:rgba(255,255,255,.06);border-radius:4px;height:8px;">'
+        + '<div style="background:rgba(201,162,39,.7);border-radius:4px;height:8px;width:' + pct + '%;transition:width .4s;"></div>'
+      + '</div>'
+      + '<div style="width:36px;text-align:right;font-size:12px;color:rgba(255,255,255,.4);">' + kv[1] + '</div>'
+    + '</div>';
+  }).join('') || '<div style="color:rgba(255,255,255,.3);font-size:13px;">No data yet.</div>';
+
+  // Top contributors
+  var contribs = (d.topContributors || []).map(function(c, i) {
+    var ini = ipInitials(c.name || c.email);
+    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);">'
+      + '<div style="width:28px;font-size:12px;color:rgba(255,255,255,.25);">#' + (i+1) + '</div>'
+      + '<div style="width:34px;height:34px;border-radius:50%;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.25);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#c9a227;flex-shrink:0;">' + ini + '</div>'
+      + '<div style="flex:1;min-width:0;">'
+        + '<div style="font-size:13px;font-weight:600;color:#f0f0f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (c.name || c.email) + '</div>'
+        + '<div style="font-size:11px;color:rgba(255,255,255,.3);">' + c.solutions + ' solution' + (c.solutions!==1?'s':'') + ' · ' + c.accepted + ' accepted</div>'
+      + '</div>'
+      + (c.accepted ? '<div style="font-size:11px;font-weight:700;color:#c9a227;white-space:nowrap;">✓ ' + c.accepted + '</div>' : '')
+    + '</div>';
+  }).join('') || '<div style="color:rgba(255,255,255,.3);font-size:13px;">No contributors yet.</div>';
+
+  el.innerHTML =
+    // Metrics row
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px;">'
+      + metric('Total Issues',    d.total,            '',                                      '#f0f0f6')
+      + metric('Open',            d.open,             '',                                      '#22c55e')
+      + metric('In Progress',     d.inProgress,       '',                                      '#60a5fa')
+      + metric('Resolved Internally', d.resolvedInternal, d.internalResolutionRate + '% of total', '#c9a227')
+      + metric('Escalated',       d.escalated,        'to Platform team',                      '#ef4444')
+      + metric('Avg Resolution',  (d.avgResolutionDays || 0) + 'd', 'average days to resolve','rgba(255,255,255,.7)')
+    + '</div>'
+
+    // Monthly trend + Category
+    + '<div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;">'
+      + '<div style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:20px 24px;">'
+        + '<div style="font-size:13px;font-weight:700;color:#f0f0f6;margin-bottom:20px;">Monthly Issue Trend</div>'
+        + '<svg viewBox="0 0 ' + (totalW + 8) + ' ' + (chartH + 26) + '" width="100%" style="overflow:visible;">' + bars + '</svg>'
+      + '</div>'
+      + '<div style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:20px 24px;">'
+        + '<div style="font-size:13px;font-weight:700;color:#f0f0f6;margin-bottom:16px;">By Category</div>'
+        + catHtml
+      + '</div>'
+    + '</div>'
+
+    // Top contributors
+    + '<div style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:20px 24px;">'
+      + '<div style="font-size:13px;font-weight:700;color:#f0f0f6;margin-bottom:8px;">Top Contributors</div>'
+      + '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:16px;">Ranked by accepted solutions (2×) + total solutions</div>'
+      + contribs
+    + '</div>';
+}
+</script>
 </body>
 </html>
