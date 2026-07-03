@@ -7322,6 +7322,83 @@ function ipRenderDashboard() {
     + '</div>';
   }).join('') || '<div style="color:rgba(255,255,255,.3);font-size:13px;padding:20px 0;text-align:center;">No solutions posted yet.</div>';
 
+  // ── Client analysis ──────────────────────────────────────────────────────
+  var clients = {};
+  all.forEach(function(i) {
+    var c = (i.clientName || '').trim() || '(No client)';
+    if (!clients[c]) clients[c] = { total:0, open:0, inProg:0, resolved:0, escalated:0, closed:0, avgMs:[], projects:{} };
+    clients[c].total++;
+    if (i.status === 'Open')                       clients[c].open++;
+    else if (i.status === 'In Progress')           clients[c].inProg++;
+    else if (i.status === 'Resolved within Delivery') clients[c].resolved++;
+    else if (i.status === 'Escalated to Platform') clients[c].escalated++;
+    else if (i.status === 'Closed')                clients[c].closed++;
+    if (i.resolvedAt && i.createdAt) clients[c].avgMs.push(new Date(i.resolvedAt) - new Date(i.createdAt));
+    if (i.projectName && i.projectName.trim()) clients[c].projects[i.projectName.trim()] = true;
+  });
+  var clientList = Object.entries(clients).sort(function(a,b){ return b[1].total - a[1].total; });
+  var maxClientTotal = clientList.length ? clientList[0][1].total : 1;
+
+  var clientHtml = clientList.length
+    ? '<div style="overflow-x:auto;">'
+        + '<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+          + '<thead>'
+            + '<tr style="border-bottom:1px solid rgba(255,255,255,.07);">'
+              + '<th style="text-align:left;padding:0 12px 10px 0;font-size:10px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">Client</th>'
+              + '<th style="text-align:right;padding:0 12px 10px;font-size:10px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">Total</th>'
+              + '<th style="text-align:right;padding:0 12px 10px;font-size:10px;font-weight:700;color:rgba(59,130,246,.6);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">Open</th>'
+              + '<th style="text-align:right;padding:0 12px 10px;font-size:10px;font-weight:700;color:rgba(251,191,36,.7);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">In Prog</th>'
+              + '<th style="text-align:right;padding:0 12px 10px;font-size:10px;font-weight:700;color:rgba(34,197,94,.7);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">Resolved</th>'
+              + '<th style="text-align:right;padding:0 12px 10px;font-size:10px;font-weight:700;color:rgba(239,68,68,.7);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">Escalated</th>'
+              + '<th style="text-align:right;padding:0 12px 10px;font-size:10px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">Avg Fix</th>'
+              + '<th style="padding:0 0 10px 16px;min-width:140px;"></th>'
+            + '</tr>'
+          + '</thead>'
+          + '<tbody>'
+            + clientList.map(function(kv) {
+                var name = kv[0], d = kv[1];
+                var avgStr = '—';
+                if (d.avgMs.length) {
+                  var ms = d.avgMs.reduce(function(s,v){ return s+v; },0) / d.avgMs.length;
+                  var h = ms/3600000;
+                  avgStr = h < 1 ? Math.round(ms/60000)+'m' : h < 24 ? Math.round(h)+'h' : (ms/86400000).toFixed(1)+'d';
+                }
+                var projects = Object.keys(d.projects);
+                var resRate = d.total ? Math.round((d.resolved+d.closed)/d.total*100) : 0;
+                // Stacked bar widths
+                var wOpen = Math.round(d.open/maxClientTotal*100);
+                var wInP  = Math.round(d.inProg/maxClientTotal*100);
+                var wRes  = Math.round(d.resolved/maxClientTotal*100);
+                var wEsc  = Math.round(d.escalated/maxClientTotal*100);
+                var wCls  = Math.round(d.closed/maxClientTotal*100);
+                return '<tr style="border-bottom:1px solid rgba(255,255,255,.04);">'
+                  + '<td style="padding:12px 12px 12px 0;vertical-align:middle;">'
+                      + '<div style="font-size:13px;font-weight:700;color:#f0f0f6;">' + name + '</div>'
+                      + (projects.length ? '<div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;">' + projects.slice(0,3).join(' · ') + (projects.length>3?' +more':'') + '</div>' : '')
+                    + '</td>'
+                  + '<td style="text-align:right;padding:12px;color:#f0f0f6;font-weight:700;font-size:14px;white-space:nowrap;">' + d.total + '</td>'
+                  + '<td style="text-align:right;padding:12px;color:rgba(96,165,250,.9);font-weight:600;white-space:nowrap;">' + (d.open||'—') + '</td>'
+                  + '<td style="text-align:right;padding:12px;color:rgba(251,191,36,.9);font-weight:600;white-space:nowrap;">' + (d.inProg||'—') + '</td>'
+                  + '<td style="text-align:right;padding:12px;color:rgba(34,197,94,.9);font-weight:600;white-space:nowrap;">' + (d.resolved||'—') + '</td>'
+                  + '<td style="text-align:right;padding:12px;color:rgba(239,68,68,.9);font-weight:600;white-space:nowrap;">' + (d.escalated||'—') + '</td>'
+                  + '<td style="text-align:right;padding:12px;color:rgba(201,162,39,.9);font-weight:600;white-space:nowrap;">' + avgStr + '</td>'
+                  + '<td style="padding:12px 0 12px 16px;vertical-align:middle;">'
+                      + '<div style="background:rgba(255,255,255,.05);border-radius:4px;height:8px;overflow:hidden;display:flex;">'
+                        + (wOpen ? '<div style="background:rgba(96,165,250,.7);height:100%;width:'+wOpen+'%;flex-shrink:0;"></div>' : '')
+                        + (wInP  ? '<div style="background:rgba(251,191,36,.7);height:100%;width:'+wInP+'%;flex-shrink:0;"></div>' : '')
+                        + (wRes  ? '<div style="background:rgba(34,197,94,.7);height:100%;width:'+wRes+'%;flex-shrink:0;"></div>' : '')
+                        + (wEsc  ? '<div style="background:rgba(239,68,68,.7);height:100%;width:'+wEsc+'%;flex-shrink:0;"></div>' : '')
+                        + (wCls  ? '<div style="background:rgba(255,255,255,.2);height:100%;width:'+wCls+'%;flex-shrink:0;"></div>' : '')
+                      + '</div>'
+                      + '<div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:4px;text-align:right;">' + resRate + '% resolved</div>'
+                    + '</td>'
+                + '</tr>';
+              }).join('')
+          + '</tbody>'
+        + '</table>'
+      + '</div>'
+    : '<div style="color:rgba(255,255,255,.3);font-size:13px;padding:20px 0;text-align:center;">No issues with client names recorded yet.</div>';
+
   // ── Render ────────────────────────────────────────────────────────────────
   el.innerHTML =
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">'
@@ -7353,6 +7430,13 @@ function ipRenderDashboard() {
           + '<svg viewBox="0 0 '+(svgW+8)+' '+(cH+28)+'" width="100%" style="overflow:visible;">' + bars + '</svg>'
         + '</div>'
     + '</div>'
+
+    // ── Client analysis ──────────────────────────────────────────────────────
+    + '<div style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:20px 24px;margin-bottom:14px;">'
+        + '<div style="font-size:14px;font-weight:700;color:#f0f0f6;margin-bottom:2px;">Client Analysis</div>'
+        + '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:20px;">All time &nbsp;·&nbsp; <span style="color:rgba(59,130,246,.8);">■</span> Open &nbsp;<span style="color:rgba(251,191,36,.7);">■</span> In Progress &nbsp;<span style="color:rgba(34,197,94,.7);">■</span> Resolved &nbsp;<span style="color:rgba(239,68,68,.7);">■</span> Escalated</div>'
+        + clientHtml
+      + '</div>'
 
     // ── Top 5 resolvers ──────────────────────────────────────────────────────
     + '<div style="background:#13131e;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:20px 24px;">'
