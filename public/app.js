@@ -5134,3 +5134,438 @@ if (typeof renderUserInfo === 'function') renderUserInfo();
     phrases[idx].classList.add('dw-phrase-active');
   }, 3200);
 })();
+
+// ════════════════════════════════════════════════════════════
+//  EMPLOYEE ENGAGEMENT HUB
+// ════════════════════════════════════════════════════════════
+let _eehData = null;
+let _eehAllIdeas = [];
+let _eehCurrentFilter = 'all';
+let _eehSpotlightEditType = 'month';
+
+function dwGoEngagement() {
+  hideLanding();
+  history.pushState({ screen: 'engagement' }, '');
+  document.getElementById('eehOverlay').classList.add('active');
+  eehSwitchTab('leaderboard');
+  eehLoad();
+}
+
+function eehClose() {
+  document.getElementById('eehOverlay').classList.remove('active');
+  showLanding();
+}
+
+function eehSwitchTab(tab) {
+  document.querySelectorAll('.eeh-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.eeh-panel').forEach(p => p.classList.remove('active'));
+  const panel = { leaderboard: 'eehLeaderboard', sweetplace: 'eehSweetplace', ideabox: 'eehIdeabox' }[tab];
+  if (panel) document.getElementById(panel).classList.add('active');
+}
+
+async function eehLoad() {
+  const [engResp, ideaResp] = await Promise.all([
+    fetch('/api/engagement'),
+    fetch('/api/ideas')
+  ]);
+  _eehData = await engResp.json();
+  _eehAllIdeas = await ideaResp.json();
+  eehRenderSpotlights();
+  eehRenderAchievements();
+  eehRenderMoments();
+  eehRenderIdeas();
+  eehShowAdminControls();
+}
+
+function eehShowAdminControls() {
+  const isAdm = isAdminUser();
+  ['eehSpotlightAdmin', 'eehAchievementAdmin', 'eehMomentsAdmin'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isAdm ? 'flex' : 'none';
+  });
+}
+
+function isAdminUser() {
+  try {
+    const u = JSON.parse(localStorage.getItem('kb_user') || '{}');
+    return u.role === 'admin' || (typeof isAdmin === 'function' && isAdmin());
+  } catch { return false; }
+}
+
+// ── Spotlights ──────────────────────────────────────────────
+function eehRenderSpotlights() {
+  const el = document.getElementById('eehSpotlights');
+  if (!el) return;
+  const types = [
+    { key: 'month',   label: 'Employee of the Month',   crown: '🥇', cls: 'eeh-s-month' },
+    { key: 'quarter', label: 'Employee of the Quarter',  crown: '🥈', cls: 'eeh-s-quarter' },
+    { key: 'year',    label: 'Employee of the Year',     crown: '🏆', cls: 'eeh-s-year' }
+  ];
+  el.innerHTML = types.map(t => {
+    const d = (_eehData.spotlight || {})[t.key];
+    if (!d || !d.name) return `
+      <div class="eeh-spotlight eeh-spotlight-empty ${t.cls}">
+        <span class="eeh-spotlight-crown">${t.crown}</span>
+        <div class="eeh-spotlight-period-label">${t.label}</div>
+        <div class="eeh-spotlight-avatar">?</div>
+        <div class="eeh-spotlight-name">Not yet announced</div>
+        <div class="eeh-spotlight-reason">Stay tuned — this spotlight will be updated soon.</div>
+      </div>`;
+    const initials = d.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const avatarHtml = d.photo
+      ? `<img src="${d.photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;margin:0 auto 14px;display:block;" onerror="this.style.display='none'">`
+      : `<div class="eeh-spotlight-avatar">${initials}</div>`;
+    return `
+      <div class="eeh-spotlight ${t.cls}">
+        <span class="eeh-spotlight-crown">${t.crown}</span>
+        <div class="eeh-spotlight-period-label">${t.label}</div>
+        ${avatarHtml}
+        <div class="eeh-spotlight-name">${d.name}</div>
+        <div class="eeh-spotlight-dept">${d.dept || ''}</div>
+        <div class="eeh-spotlight-reason">"${d.reason || ''}"</div>
+        ${d.period ? `<div class="eeh-spotlight-period">${d.period}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function eehOpenSpotlightModal(type) {
+  _eehSpotlightEditType = type;
+  const labels = { month: 'Employee of the Month', quarter: 'Employee of the Quarter', year: 'Employee of the Year' };
+  document.getElementById('eehSpotlightModalTitle').textContent = `Edit — ${labels[type]}`;
+  const d = (_eehData.spotlight || {})[type] || {};
+  document.getElementById('smName').value = d.name || '';
+  document.getElementById('smDept').value = d.dept || '';
+  document.getElementById('smPeriod').value = d.period || '';
+  document.getElementById('smReason').value = d.reason || '';
+  document.getElementById('smPhoto').value = d.photo || '';
+  document.getElementById('eehSpotlightModalBg').classList.add('open');
+}
+
+function eehCloseSpotlightModal() { document.getElementById('eehSpotlightModalBg').classList.remove('open'); }
+
+async function eehSaveSpotlight() {
+  const data = {
+    name:   document.getElementById('smName').value.trim(),
+    dept:   document.getElementById('smDept').value.trim(),
+    period: document.getElementById('smPeriod').value.trim(),
+    reason: document.getElementById('smReason').value.trim(),
+    photo:  document.getElementById('smPhoto').value.trim()
+  };
+  const u = JSON.parse(localStorage.getItem('kb_user') || '{}');
+  await fetch('/api/engagement/spotlight', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-user-email': u.email || '' },
+    body: JSON.stringify({ type: _eehSpotlightEditType, data })
+  });
+  if (!_eehData.spotlight) _eehData.spotlight = {};
+  _eehData.spotlight[_eehSpotlightEditType] = data;
+  eehCloseSpotlightModal();
+  eehRenderSpotlights();
+}
+
+// ── Achievements ────────────────────────────────────────────
+const ACH_ICONS = ['🏅','🎖️','⭐','🌟','🎗️','🏆','💎','🔥','🚀','✨'];
+
+function eehRenderAchievements() {
+  const el = document.getElementById('eehAchievements');
+  if (!el) return;
+  const list = (_eehData.achievements || []);
+  if (!list.length) { el.innerHTML = '<div class="eeh-empty"><span class="eeh-empty-icon">🏅</span>No achievements yet — add the first one!</div>'; return; }
+  el.innerHTML = list.map((a, i) => `
+    <div class="eeh-achievement">
+      <div class="eeh-ach-icon">${ACH_ICONS[i % ACH_ICONS.length]}</div>
+      <div class="eeh-ach-body" style="flex:1;">
+        <div class="eeh-ach-award">${a.award}</div>
+        <div class="eeh-ach-name">${a.name}</div>
+        <div class="eeh-ach-dept">${a.dept || ''}</div>
+        ${a.desc ? `<div class="eeh-ach-desc">${a.desc}</div>` : ''}
+        ${a.date ? `<div class="eeh-ach-date">${new Date(a.date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>` : ''}
+      </div>
+      ${isAdminUser() ? `<button class="eeh-ach-del" onclick="eehDeleteAchievement(${i})" title="Remove">✕</button>` : ''}
+    </div>`).join('');
+}
+
+function eehOpenAchievementModal() {
+  ['achName','achDept','achAward','achDesc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('achDate').value = '';
+  document.getElementById('eehAchievementModalBg').classList.add('open');
+}
+function eehCloseAchievementModal() { document.getElementById('eehAchievementModalBg').classList.remove('open'); }
+
+async function eehSaveAchievement() {
+  const ach = {
+    name:  document.getElementById('achName').value.trim(),
+    dept:  document.getElementById('achDept').value.trim(),
+    award: document.getElementById('achAward').value.trim(),
+    date:  document.getElementById('achDate').value,
+    desc:  document.getElementById('achDesc').value.trim()
+  };
+  if (!ach.name || !ach.award) return;
+  const list = [...(_eehData.achievements || []), ach];
+  const u = JSON.parse(localStorage.getItem('kb_user') || '{}');
+  await fetch('/api/engagement/achievements', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-user-email': u.email || '' },
+    body: JSON.stringify({ achievements: list })
+  });
+  _eehData.achievements = list;
+  eehCloseAchievementModal();
+  eehRenderAchievements();
+}
+
+async function eehDeleteAchievement(idx) {
+  const list = (_eehData.achievements || []).filter((_, i) => i !== idx);
+  const u = JSON.parse(localStorage.getItem('kb_user') || '{}');
+  await fetch('/api/engagement/achievements', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-user-email': u.email || '' },
+    body: JSON.stringify({ achievements: list })
+  });
+  _eehData.achievements = list;
+  eehRenderAchievements();
+}
+
+// ── Sweet Place: Moments ────────────────────────────────────
+function eehRenderMoments() {
+  eehRenderBirthdays();
+  eehRenderAnniversaries();
+  eehRenderGallery();
+}
+
+function initials(name) { return (name||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+
+function eehRenderBirthdays() {
+  const el = document.getElementById('eehBirthdays');
+  if (!el) return;
+  const list = ((_eehData.moments || {}).birthdays || []);
+  if (!list.length) { el.innerHTML = '<div class="eeh-empty"><span class="eeh-empty-icon">🎂</span>No birthdays added yet.</div>'; return; }
+  const today = new Date();
+  const sorted = [...list].sort((a, b) => {
+    const da = new Date(a.date), db = new Date(b.date);
+    const am = da.getMonth() * 31 + da.getDate(), bm = db.getMonth() * 31 + db.getDate();
+    const tm = today.getMonth() * 31 + today.getDate();
+    return ((am - tm + 366) % 366) - ((bm - tm + 366) % 366);
+  });
+  el.innerHTML = sorted.map((b, i) => {
+    const d = new Date(b.date);
+    const label = `${d.toLocaleDateString('en-IN',{day:'numeric',month:'long'})}`;
+    const isToday = d.getMonth()===today.getMonth() && d.getDate()===today.getDate();
+    return `<div class="eeh-moment-card" style="${isToday?'border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.05);':''}">
+      <div class="eeh-moment-avatar" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);">${b.photo?`<img src="${b.photo}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">`:initials(b.name)}</div>
+      <div class="eeh-moment-name">${b.name}</div>
+      <div class="eeh-moment-dept">${b.dept||''}</div>
+      <div class="eeh-moment-date">🎂 ${label}</div>
+      ${isToday?'<div class="eeh-moment-badge">🎉 Today!</div>':''}
+      ${isAdminUser()?`<button class="eeh-moment-del" onclick="eehDeleteMoment('birthdays',${i})">✕</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+function eehRenderAnniversaries() {
+  const el = document.getElementById('eehAnniversaries');
+  if (!el) return;
+  const list = ((_eehData.moments || {}).anniversaries || []);
+  if (!list.length) { el.innerHTML = '<div class="eeh-empty"><span class="eeh-empty-icon">🎊</span>No anniversaries added yet.</div>'; return; }
+  const today = new Date();
+  el.innerHTML = list.map((a, i) => {
+    const joined = new Date(a.date);
+    const years = today.getFullYear() - joined.getFullYear();
+    const label = `${joined.toLocaleDateString('en-IN',{day:'numeric',month:'long'})}`;
+    const isToday = joined.getMonth()===today.getMonth() && joined.getDate()===today.getDate();
+    return `<div class="eeh-moment-card" style="${isToday?'border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.05);':''}">
+      <div class="eeh-moment-avatar" style="background:linear-gradient(135deg,#d97706,#fbbf24);">${a.photo?`<img src="${a.photo}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">`:initials(a.name)}</div>
+      <div class="eeh-moment-name">${a.name}</div>
+      <div class="eeh-moment-dept">${a.dept||''}</div>
+      <div class="eeh-moment-date">🎊 ${label}</div>
+      <div class="eeh-moment-badge" style="background:rgba(251,191,36,.1);color:#fbbf24;border-color:rgba(251,191,36,.2);">${years} year${years!==1?'s':''}</div>
+      ${isToday?'<div class="eeh-moment-badge">Today!</div>':''}
+      ${isAdminUser()?`<button class="eeh-moment-del" onclick="eehDeleteMoment('anniversaries',${i})">✕</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+function eehRenderGallery() {
+  const el = document.getElementById('eehGallery');
+  if (!el) return;
+  const list = ((_eehData.moments || {}).photos || []);
+  if (!list.length) { el.innerHTML = '<div class="eeh-empty"><span class="eeh-empty-icon">📸</span>No team photos yet — add the first memory!</div>'; return; }
+  el.innerHTML = list.map((p, i) => `
+    <div class="eeh-gallery-card">
+      <img src="${p.url}" alt="${p.caption||''}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=eeh-gallery-placeholder>📸</div>'">
+      ${p.caption?`<div class="eeh-gallery-caption">${p.caption}</div>`:''}
+      ${isAdminUser()?`<button class="eeh-gallery-del" onclick="eehDeleteMoment('photos',${i})" title="Remove">✕</button>`:''}
+    </div>`).join('');
+}
+
+function eehOpenBirthdayModal() { document.getElementById('eehBirthdayModalBg').classList.add('open'); }
+function eehOpenAnniversaryModal() { document.getElementById('eehAnniversaryModalBg').classList.add('open'); }
+function eehOpenPhotoModal() { document.getElementById('eehPhotoModalBg').classList.add('open'); }
+
+async function _eehSaveMoments() {
+  const u = JSON.parse(localStorage.getItem('kb_user') || '{}');
+  await fetch('/api/engagement/moments', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-user-email': u.email || '' },
+    body: JSON.stringify({ moments: _eehData.moments })
+  });
+}
+
+async function eehSaveBirthday() {
+  const entry = { name: document.getElementById('bdName').value.trim(), dept: document.getElementById('bdDept').value.trim(), date: document.getElementById('bdDate').value, photo: document.getElementById('bdPhoto').value.trim() };
+  if (!entry.name || !entry.date) return;
+  if (!_eehData.moments) _eehData.moments = { photos:[], birthdays:[], anniversaries:[] };
+  _eehData.moments.birthdays.push(entry);
+  await _eehSaveMoments();
+  document.getElementById('eehBirthdayModalBg').classList.remove('open');
+  eehRenderBirthdays();
+}
+
+async function eehSaveAnniversary() {
+  const entry = { name: document.getElementById('annName').value.trim(), dept: document.getElementById('annDept').value.trim(), date: document.getElementById('annDate').value, photo: document.getElementById('annPhoto').value.trim() };
+  if (!entry.name || !entry.date) return;
+  if (!_eehData.moments) _eehData.moments = { photos:[], birthdays:[], anniversaries:[] };
+  _eehData.moments.anniversaries.push(entry);
+  await _eehSaveMoments();
+  document.getElementById('eehAnniversaryModalBg').classList.remove('open');
+  eehRenderAnniversaries();
+}
+
+async function eehSavePhoto() {
+  const entry = { url: document.getElementById('photoUrl').value.trim(), caption: document.getElementById('photoCaption').value.trim() };
+  if (!entry.url) return;
+  if (!_eehData.moments) _eehData.moments = { photos:[], birthdays:[], anniversaries:[] };
+  _eehData.moments.photos.unshift(entry);
+  await _eehSaveMoments();
+  document.getElementById('eehPhotoModalBg').classList.remove('open');
+  eehRenderGallery();
+}
+
+async function eehDeleteMoment(type, idx) {
+  _eehData.moments[type].splice(idx, 1);
+  await _eehSaveMoments();
+  eehRenderMoments();
+}
+
+// ── Ideas ───────────────────────────────────────────────────
+const CAT_LABELS = { website:'🖥️ Website', process:'⚙️ Process', product:'🚀 Product', culture:'🤝 Culture', other:'💬 Other' };
+const STATUS_LABELS = { new:'New', review:'Under Review', inprogress:'In Progress', implemented:'Implemented' };
+
+function eehRenderIdeas() {
+  const el = document.getElementById('eehIdeasList');
+  if (!el) return;
+  const u = JSON.parse(localStorage.getItem('kb_user') || '{}');
+  const adm = isAdminUser();
+  let list = _eehAllIdeas;
+  if (_eehCurrentFilter !== 'all') list = list.filter(i => i.category === _eehCurrentFilter);
+  if (!list.length) { el.innerHTML = '<div class="eeh-empty"><span class="eeh-empty-icon">💡</span>No ideas yet — be the first to share one!</div>'; return; }
+  el.innerHTML = list.map(idea => {
+    const voted = (idea.voters||[]).includes(u.email||'');
+    const statusCls = { new:'eeh-status-new', review:'eeh-status-review', inprogress:'eeh-status-inprogress', implemented:'eeh-status-implemented' }[idea.status] || 'eeh-status-new';
+    const catCls = { website:'eeh-cat-website', process:'eeh-cat-process', product:'eeh-cat-product', culture:'eeh-cat-culture', other:'eeh-cat-other' }[idea.category] || 'eeh-cat-other';
+    const dateStr = new Date(idea.date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    return `<div class="eeh-idea-card" id="idea-${idea.id}">
+      <div class="eeh-idea-vote">
+        <button class="eeh-vote-btn ${voted?'voted':''}" onclick="eehToggleVote(${idea.id})" title="${voted?'Remove vote':'Upvote'}">▲</button>
+        <div class="eeh-vote-count" id="vote-count-${idea.id}">${idea.votes||0}</div>
+      </div>
+      <div class="eeh-idea-body">
+        <div class="eeh-idea-header">
+          <div class="eeh-idea-title">${idea.title}</div>
+          <span class="eeh-idea-cat ${catCls}">${CAT_LABELS[idea.category]||idea.category}</span>
+          <span class="eeh-idea-status ${statusCls}">${STATUS_LABELS[idea.status]||idea.status}</span>
+        </div>
+        <div class="eeh-idea-desc">${idea.description}</div>
+        <div class="eeh-idea-meta">
+          <span>by ${idea.author||'Anonymous'}</span>
+          <span>${dateStr}</span>
+        </div>
+        ${adm ? `<div class="eeh-idea-admin-actions">
+          <button class="eeh-idea-status-btn" onclick="eehSetIdeaStatus(${idea.id},'review')">Under Review</button>
+          <button class="eeh-idea-status-btn" onclick="eehSetIdeaStatus(${idea.id},'inprogress')">In Progress</button>
+          <button class="eeh-idea-status-btn" onclick="eehSetIdeaStatus(${idea.id},'implemented')">Implemented</button>
+          <button class="eeh-idea-del-btn" onclick="eehDeleteIdea(${idea.id})">Delete</button>
+        </div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function eehFilterIdeas(filter, btn) {
+  _eehCurrentFilter = filter;
+  document.querySelectorAll('.eeh-idea-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  eehRenderIdeas();
+}
+
+async function eehSubmitIdea() {
+  const title = document.getElementById('ideaTitle').value.trim();
+  const category = document.getElementById('ideaCategory').value;
+  const description = document.getElementById('ideaDescription').value.trim();
+  const author = document.getElementById('ideaAuthor').value.trim();
+  if (!title || !category || !description) { alert('Please fill in the title, category, and description.'); return; }
+  const u = JSON.parse(localStorage.getItem('kb_user') || '{}');
+  const resp = await fetch('/api/ideas', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-user-email': u.email || '' },
+    body: JSON.stringify({ title, category, description, author: author || u.name || 'Anonymous' })
+  });
+  const newIdea = await resp.json();
+  _eehAllIdeas.unshift(newIdea);
+  document.getElementById('ideaTitle').value = '';
+  document.getElementById('ideaCategory').value = '';
+  document.getElementById('ideaDescription').value = '';
+  document.getElementById('ideaAuthor').value = '';
+  _eehCurrentFilter = 'all';
+  document.querySelectorAll('.eeh-idea-filter').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+  eehRenderIdeas();
+}
+
+async function eehToggleVote(ideaId) {
+  const u = JSON.parse(localStorage.getItem('kb_user') || '{}');
+  if (!u.email) return;
+  const resp = await fetch(`/api/ideas/${ideaId}/vote`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-user-email': u.email },
+    body: JSON.stringify({ voterEmail: u.email })
+  });
+  const data = await resp.json();
+  const idea = _eehAllIdeas.find(i => i.id === ideaId);
+  if (idea) {
+    idea.votes = data.votes;
+    if (data.voted) { idea.voters.push(u.email); } else { idea.voters = idea.voters.filter(v => v !== u.email); }
+  }
+  const countEl = document.getElementById(`vote-count-${ideaId}`);
+  if (countEl) countEl.textContent = data.votes;
+  const btn = document.querySelector(`#idea-${ideaId} .eeh-vote-btn`);
+  if (btn) btn.classList.toggle('voted', data.voted);
+}
+
+async function eehSetIdeaStatus(ideaId, status) {
+  const u = JSON.parse(localStorage.getItem('kb_user') || '{}');
+  await fetch(`/api/ideas/${ideaId}/status`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-user-email': u.email || '' },
+    body: JSON.stringify({ status })
+  });
+  const idea = _eehAllIdeas.find(i => i.id === ideaId);
+  if (idea) idea.status = status;
+  eehRenderIdeas();
+}
+
+async function eehDeleteIdea(ideaId) {
+  if (!confirm('Delete this idea?')) return;
+  const u = JSON.parse(localStorage.getItem('kb_user') || '{}');
+  await fetch(`/api/ideas/${ideaId}`, {
+    method: 'DELETE',
+    headers: { 'x-user-email': u.email || '' }
+  });
+  _eehAllIdeas = _eehAllIdeas.filter(i => i.id !== ideaId);
+  eehRenderIdeas();
+}
+
+// Handle browser back from engagement hub
+window.addEventListener('popstate', e => {
+  if (document.getElementById('eehOverlay').classList.contains('active')) {
+    eehClose();
+  }
+});

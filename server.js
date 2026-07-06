@@ -150,6 +150,17 @@ function migrate() {
   }
   // add views to existing articles
   db.articles.forEach(a => { if (a.views === undefined) { a.views = 0; dirty = true; } });
+  // Employee Engagement Hub
+  if (!db.engagement) {
+    db.engagement = {
+      spotlight: { month: null, quarter: null, year: null },
+      achievements: [],
+      moments: { photos: [], birthdays: [], anniversaries: [] },
+      ideas: [],
+      nextIdeaId: 1
+    };
+    dirty = true;
+  }
   if (dirty) saveDB(db);
 }
 
@@ -1156,6 +1167,86 @@ app.get('/api/puzzle/analytics', (req, res) => {
   const avgAcc = first.length ? Math.round(first.reduce((s, a) => s + a.accuracy, 0) / first.length) : 0;
   const avgTime = first.length ? Math.round(first.reduce((s, a) => s + a.timeTaken, 0) / first.length) : 0;
   res.json({ analytics: { totalParticipants: first.length, totalAttempts: all.length, avgAccuracy: avgAcc, avgTime, topScore: first.length ? Math.max(...first.map(a => a.accuracy)) : 0, gameTitle: game.title, week: game.week } });
+});
+
+// ── Employee Engagement Hub ───────────────────────────────────────────────────
+app.get('/api/engagement', (req, res) => {
+  res.json(db.engagement || {});
+});
+
+app.put('/api/engagement/spotlight', (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  const { type, data } = req.body; // type: 'month'|'quarter'|'year'
+  if (!['month','quarter','year'].includes(type)) return res.status(400).json({ error: 'Invalid type' });
+  if (!db.engagement) db.engagement = { spotlight:{month:null,quarter:null,year:null}, achievements:[], moments:{photos:[],birthdays:[],anniversaries:[]}, ideas:[], nextIdeaId:1 };
+  db.engagement.spotlight[type] = data;
+  saveDB(db);
+  res.json({ ok: true });
+});
+
+app.put('/api/engagement/achievements', (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  const { achievements } = req.body;
+  if (!db.engagement) db.engagement = { spotlight:{month:null,quarter:null,year:null}, achievements:[], moments:{photos:[],birthdays:[],anniversaries:[]}, ideas:[], nextIdeaId:1 };
+  db.engagement.achievements = achievements;
+  saveDB(db);
+  res.json({ ok: true });
+});
+
+app.put('/api/engagement/moments', (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  const { moments } = req.body;
+  if (!db.engagement) db.engagement = { spotlight:{month:null,quarter:null,year:null}, achievements:[], moments:{photos:[],birthdays:[],anniversaries:[]}, ideas:[], nextIdeaId:1 };
+  db.engagement.moments = moments;
+  saveDB(db);
+  res.json({ ok: true });
+});
+
+app.get('/api/ideas', (req, res) => {
+  res.json((db.engagement && db.engagement.ideas) || []);
+});
+
+app.post('/api/ideas', (req, res) => {
+  const { title, category, description, author } = req.body;
+  if (!title || !category || !description) return res.status(400).json({ error: 'Missing fields' });
+  if (!db.engagement) db.engagement = { spotlight:{month:null,quarter:null,year:null}, achievements:[], moments:{photos:[],birthdays:[],anniversaries:[]}, ideas:[], nextIdeaId:1 };
+  const idea = { id: db.engagement.nextIdeaId++, title, category, description, author: author || 'Anonymous', date: new Date().toISOString(), votes: 0, voters: [], status: 'new' };
+  db.engagement.ideas.unshift(idea);
+  saveDB(db);
+  res.json(idea);
+});
+
+app.post('/api/ideas/:id/vote', (req, res) => {
+  const { voterEmail } = req.body;
+  const idea = db.engagement && db.engagement.ideas.find(i => i.id === parseInt(req.params.id));
+  if (!idea) return res.status(404).json({ error: 'Not found' });
+  if (idea.voters.includes(voterEmail)) {
+    idea.voters = idea.voters.filter(v => v !== voterEmail);
+    idea.votes = Math.max(0, idea.votes - 1);
+  } else {
+    idea.voters.push(voterEmail);
+    idea.votes++;
+  }
+  saveDB(db);
+  res.json({ votes: idea.votes, voted: idea.voters.includes(voterEmail) });
+});
+
+app.put('/api/ideas/:id/status', (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  const { status } = req.body;
+  const idea = db.engagement && db.engagement.ideas.find(i => i.id === parseInt(req.params.id));
+  if (!idea) return res.status(404).json({ error: 'Not found' });
+  idea.status = status;
+  saveDB(db);
+  res.json({ ok: true });
+});
+
+app.delete('/api/ideas/:id', (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Forbidden' });
+  if (!db.engagement) return res.status(404).json({ error: 'Not found' });
+  db.engagement.ideas = db.engagement.ideas.filter(i => i.id !== parseInt(req.params.id));
+  saveDB(db);
+  res.json({ ok: true });
 });
 
 // ── Rocketlane proxy (mirrors api/index.js logic for local dev) ──────────────

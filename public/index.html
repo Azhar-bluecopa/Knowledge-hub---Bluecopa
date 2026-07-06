@@ -18,7 +18,7 @@
   <noscript>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
-  <link rel="stylesheet" href="/style.css?v=56">
+  <link rel="stylesheet" href="/style.css?v=57">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -4508,6 +4508,29 @@ async function updateFeedbackStatus(id) {
       </div>
 
 
+      <!-- 07 Employee Engagement Hub -->
+      <div class="dw-card" style="--cr:236,72,153;--fdur:4.3s;--fdel:3s;" onclick="dwGoEngagement()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-card-badge">● Live</div>
+        <span class="dw-card-icon">🌟</span>
+        <div class="dw-card-num">07</div>
+        <div class="dw-card-name">Employee Engagement Hub</div>
+        <div class="dw-card-desc">Celebrate your team — spotlight awards, memories, birthdays, anniversaries, and a space to share ideas.</div>
+        <div class="dw-card-tags"><span class="dw-card-tag">Leaderboard</span><span class="dw-card-tag">Sweet Place</span><span class="dw-card-tag">Idea Box</span></div>
+        <div class="dw-card-features">
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Employee of Month, Quarter & Year</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Team photos, birthdays & anniversaries</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Submit & vote on team ideas</div>
+        </div>
+        <div class="dw-card-stat-row">
+          <div class="dw-card-stat"><div class="dw-card-stat-n">🏆</div><div class="dw-card-stat-l">Awards</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">🎉</div><div class="dw-card-stat-l">Moments</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">💡</div><div class="dw-card-stat-l">Ideas</div></div>
+        </div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
     </div><!-- /dw-cards-grid -->
 
     <!-- ═══ ROADMAP BANNER ═══ -->
@@ -4589,7 +4612,208 @@ async function updateFeedbackStatus(id) {
 
 </div><!-- /dwLanding -->
 
+<!-- ═══════════════════════════════════════════════════
+     EMPLOYEE ENGAGEMENT HUB OVERLAY
+═══════════════════════════════════════════════════ -->
+<div class="eeh-overlay" id="eehOverlay">
 
+  <!-- Top bar -->
+  <div class="eeh-topbar">
+    <div class="eeh-topbar-left">
+      <span class="eeh-topbar-icon">🌟</span>
+      <span class="eeh-topbar-title">Employee Engagement Hub</span>
+    </div>
+    <div class="eeh-topbar-tabs">
+      <button class="eeh-tab active" data-tab="leaderboard" onclick="eehSwitchTab('leaderboard')">🏆 Leaderboard</button>
+      <button class="eeh-tab" data-tab="sweetplace" onclick="eehSwitchTab('sweetplace')">🌸 Sweet Place to Work</button>
+      <button class="eeh-tab" data-tab="ideabox" onclick="eehSwitchTab('ideabox')">💡 Idea Box</button>
+    </div>
+    <div class="eeh-topbar-right">
+      <button class="eeh-home-btn" onclick="eehClose()">⌂ Home</button>
+    </div>
+  </div>
+
+  <!-- ── TAB: LEADERBOARD ──────────────────────────────────── -->
+  <div class="eeh-panel active" id="eehLeaderboard">
+    <div class="eeh-hero" style="--eeh-grad:236,72,153;">
+      <div class="eeh-hero-tag">Bluecopa · Delivery Team</div>
+      <h1 class="eeh-hero-h1">Celebrating Excellence 🏆</h1>
+      <p class="eeh-hero-sub">Recognising the people who go above and beyond — every month, every quarter, every year.</p>
+    </div>
+
+    <!-- Spotlight cards -->
+    <div class="eeh-section-label">Employee Spotlights</div>
+    <div class="eeh-spotlights" id="eehSpotlights">
+      <!-- rendered by JS -->
+    </div>
+
+    <!-- Admin: edit spotlights -->
+    <div class="eeh-admin-strip" id="eehSpotlightAdmin" style="display:none;">
+      <button class="eeh-admin-btn" onclick="eehOpenSpotlightModal('month')">✏️ Edit Employee of Month</button>
+      <button class="eeh-admin-btn" onclick="eehOpenSpotlightModal('quarter')">✏️ Edit Employee of Quarter</button>
+      <button class="eeh-admin-btn" onclick="eehOpenSpotlightModal('year')">✏️ Edit Employee of Year</button>
+    </div>
+
+    <!-- Achievements wall -->
+    <div class="eeh-section-label" style="margin-top:40px;">Achievement Wall</div>
+    <div class="eeh-achievements" id="eehAchievements"><!-- rendered by JS --></div>
+    <div class="eeh-admin-strip" id="eehAchievementAdmin" style="display:none;">
+      <button class="eeh-admin-btn" onclick="eehOpenAchievementModal()">＋ Add Achievement</button>
+    </div>
+  </div>
+
+  <!-- ── TAB: SWEET PLACE TO WORK ─────────────────────────── -->
+  <div class="eeh-panel" id="eehSweetplace">
+    <div class="eeh-hero" style="--eeh-grad:167,139,250;">
+      <div class="eeh-hero-tag">Bluecopa · Our People</div>
+      <h1 class="eeh-hero-h1">Sweet Place to Work 🌸</h1>
+      <p class="eeh-hero-sub">Memories, milestones, and the moments that make Bluecopa a great place to be.</p>
+    </div>
+
+    <!-- Birthdays -->
+    <div class="eeh-section-label">🎂 Birthdays</div>
+    <div class="eeh-moments-grid" id="eehBirthdays"><!-- rendered by JS --></div>
+
+    <!-- Anniversaries -->
+    <div class="eeh-section-label" style="margin-top:36px;">🎊 Work Anniversaries</div>
+    <div class="eeh-moments-grid" id="eehAnniversaries"><!-- rendered by JS --></div>
+
+    <!-- Photo Gallery -->
+    <div class="eeh-section-label" style="margin-top:36px;">📸 Team Gallery</div>
+    <div class="eeh-gallery" id="eehGallery"><!-- rendered by JS --></div>
+
+    <!-- Admin controls -->
+    <div class="eeh-admin-strip" id="eehMomentsAdmin" style="display:none;margin-top:24px;">
+      <button class="eeh-admin-btn" onclick="eehOpenBirthdayModal()">＋ Add Birthday</button>
+      <button class="eeh-admin-btn" onclick="eehOpenAnniversaryModal()">＋ Add Anniversary</button>
+      <button class="eeh-admin-btn" onclick="eehOpenPhotoModal()">＋ Add Team Photo</button>
+    </div>
+  </div>
+
+  <!-- ── TAB: IDEA BOX ─────────────────────────────────────── -->
+  <div class="eeh-panel" id="eehIdeabox">
+    <div class="eeh-hero" style="--eeh-grad:251,191,36;">
+      <div class="eeh-hero-tag">Bluecopa · Innovation</div>
+      <h1 class="eeh-hero-h1">Idea Box 💡</h1>
+      <p class="eeh-hero-sub">Share your ideas to improve our processes, platform, or workplace. Every idea matters.</p>
+    </div>
+
+    <!-- Submit form -->
+    <div class="eeh-idea-form-wrap">
+      <div class="eeh-idea-form">
+        <div class="eeh-idea-form-title">Share Your Idea</div>
+        <div class="eeh-form-row">
+          <input class="eeh-input" id="ideaTitle" placeholder="Give your idea a title…" maxlength="120"/>
+        </div>
+        <div class="eeh-form-row">
+          <select class="eeh-input eeh-select" id="ideaCategory">
+            <option value="">Select category…</option>
+            <option value="website">🖥️ Website Improvement</option>
+            <option value="process">⚙️ Process Improvement</option>
+            <option value="product">🚀 Product Improvement</option>
+            <option value="culture">🤝 Culture & Team</option>
+            <option value="other">💬 Other</option>
+          </select>
+        </div>
+        <div class="eeh-form-row">
+          <textarea class="eeh-input eeh-textarea" id="ideaDescription" placeholder="Describe your idea — what's the problem it solves, and how would it work?…" rows="4"></textarea>
+        </div>
+        <div class="eeh-form-row">
+          <input class="eeh-input" id="ideaAuthor" placeholder="Your name (optional — defaults to Anonymous)"/>
+        </div>
+        <button class="eeh-submit-btn" onclick="eehSubmitIdea()">Submit Idea →</button>
+      </div>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="eeh-idea-filters">
+      <button class="eeh-idea-filter active" data-filter="all" onclick="eehFilterIdeas('all',this)">All Ideas</button>
+      <button class="eeh-idea-filter" data-filter="website" onclick="eehFilterIdeas('website',this)">🖥️ Website</button>
+      <button class="eeh-idea-filter" data-filter="process" onclick="eehFilterIdeas('process',this)">⚙️ Process</button>
+      <button class="eeh-idea-filter" data-filter="product" onclick="eehFilterIdeas('product',this)">🚀 Product</button>
+      <button class="eeh-idea-filter" data-filter="culture" onclick="eehFilterIdeas('culture',this)">🤝 Culture</button>
+    </div>
+
+    <!-- Ideas list -->
+    <div class="eeh-ideas-list" id="eehIdeasList"><!-- rendered by JS --></div>
+  </div>
+
+</div><!-- /eehOverlay -->
+
+<!-- Spotlight Edit Modal -->
+<div class="eeh-modal-bg" id="eehSpotlightModalBg" onclick="if(event.target===this)eehCloseSpotlightModal()">
+  <div class="eeh-modal">
+    <div class="eeh-modal-title" id="eehSpotlightModalTitle">Edit Spotlight</div>
+    <input class="eeh-input" id="smName" placeholder="Full Name"/>
+    <input class="eeh-input" id="smDept" placeholder="Department / Role"/>
+    <input class="eeh-input" id="smPeriod" placeholder="Period (e.g. June 2026)"/>
+    <textarea class="eeh-input eeh-textarea" id="smReason" placeholder="Why this person? Describe their contribution…" rows="3"></textarea>
+    <input class="eeh-input" id="smPhoto" placeholder="Photo URL (optional — leave blank for initials avatar)"/>
+    <div class="eeh-modal-actions">
+      <button class="eeh-modal-cancel" onclick="eehCloseSpotlightModal()">Cancel</button>
+      <button class="eeh-modal-save" onclick="eehSaveSpotlight()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Achievement Add Modal -->
+<div class="eeh-modal-bg" id="eehAchievementModalBg" onclick="if(event.target===this)eehCloseAchievementModal()">
+  <div class="eeh-modal">
+    <div class="eeh-modal-title">Add Achievement</div>
+    <input class="eeh-input" id="achName" placeholder="Employee Name"/>
+    <input class="eeh-input" id="achDept" placeholder="Department / Role"/>
+    <input class="eeh-input" id="achAward" placeholder="Award / Achievement Title"/>
+    <input class="eeh-input" id="achDate" type="date"/>
+    <textarea class="eeh-input eeh-textarea" id="achDesc" placeholder="Brief description of the achievement…" rows="2"></textarea>
+    <div class="eeh-modal-actions">
+      <button class="eeh-modal-cancel" onclick="eehCloseAchievementModal()">Cancel</button>
+      <button class="eeh-modal-save" onclick="eehSaveAchievement()">Add Achievement</button>
+    </div>
+  </div>
+</div>
+
+<!-- Birthday Modal -->
+<div class="eeh-modal-bg" id="eehBirthdayModalBg" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="eeh-modal">
+    <div class="eeh-modal-title">Add Birthday</div>
+    <input class="eeh-input" id="bdName" placeholder="Employee Name"/>
+    <input class="eeh-input" id="bdDept" placeholder="Department / Role"/>
+    <input class="eeh-input" id="bdDate" type="date" title="Use any year — only month/day is displayed"/>
+    <input class="eeh-input" id="bdPhoto" placeholder="Photo URL (optional)"/>
+    <div class="eeh-modal-actions">
+      <button class="eeh-modal-cancel" onclick="document.getElementById('eehBirthdayModalBg').classList.remove('open')">Cancel</button>
+      <button class="eeh-modal-save" onclick="eehSaveBirthday()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Anniversary Modal -->
+<div class="eeh-modal-bg" id="eehAnniversaryModalBg" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="eeh-modal">
+    <div class="eeh-modal-title">Add Work Anniversary</div>
+    <input class="eeh-input" id="annName" placeholder="Employee Name"/>
+    <input class="eeh-input" id="annDept" placeholder="Department / Role"/>
+    <input class="eeh-input" id="annDate" type="date" title="Date they joined"/>
+    <input class="eeh-input" id="annPhoto" placeholder="Photo URL (optional)"/>
+    <div class="eeh-modal-actions">
+      <button class="eeh-modal-cancel" onclick="document.getElementById('eehAnniversaryModalBg').classList.remove('open')">Cancel</button>
+      <button class="eeh-modal-save" onclick="eehSaveAnniversary()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Photo Modal -->
+<div class="eeh-modal-bg" id="eehPhotoModalBg" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="eeh-modal">
+    <div class="eeh-modal-title">Add Team Photo</div>
+    <input class="eeh-input" id="photoUrl" placeholder="Image URL"/>
+    <input class="eeh-input" id="photoCaption" placeholder="Caption (e.g. Team Offsite — June 2026)"/>
+    <div class="eeh-modal-actions">
+      <button class="eeh-modal-cancel" onclick="document.getElementById('eehPhotoModalBg').classList.remove('open')">Cancel</button>
+      <button class="eeh-modal-save" onclick="eehSavePhoto()">Add Photo</button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════════════════════════════════════════════════
      PROCESS PUZZLE OVERLAY
