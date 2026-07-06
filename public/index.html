@@ -18,7 +18,7 @@
   <noscript>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
-  <link rel="stylesheet" href="/style.css?v=59">
+  <link rel="stylesheet" href="/style.css?v=60">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -4644,18 +4644,29 @@ async function updateFeedbackStatus(id) {
     <!-- Period toggle -->
     <div class="eeh-lb-period-wrap">
       <div class="eeh-lb-period-tabs">
-        <button class="eeh-lb-period-btn active" data-period="month" onclick="eehSetPeriod('month',this)">📅 This Month</button>
+        <button class="eeh-lb-period-btn" data-period="month" onclick="eehSetPeriod('month',this)">📅 This Month</button>
         <button class="eeh-lb-period-btn" data-period="quarter" onclick="eehSetPeriod('quarter',this)">🗓️ This Quarter</button>
-        <button class="eeh-lb-period-btn" data-period="year" onclick="eehSetPeriod('year',this)">📆 This Year</button>
+        <button class="eeh-lb-period-btn active" data-period="year" onclick="eehSetPeriod('year',this)">📆 This Year</button>
       </div>
       <div class="eeh-lb-period-sublabel" id="eehLbPeriodLabel"></div>
+    </div>
+
+    <!-- Score legend -->
+    <div class="eeh-lb-legend">
+      <span class="eeh-lb-legend-item"><span>📚</span> Articles</span>
+      <span class="eeh-lb-legend-item"><span>🎯</span> Skill Matrix</span>
+      <span class="eeh-lb-legend-item"><span>🧩</span> Puzzles</span>
+      <span class="eeh-lb-legend-item"><span>🐛</span> Issues Solved</span>
+      <span class="eeh-lb-legend-item"><span>✅</span> Tasks</span>
+      <span class="eeh-lb-legend-item"><span>💡</span> Ideas</span>
+      <span class="eeh-lb-legend-item"><span>📖</span> Learning</span>
     </div>
 
     <!-- #1 Hero rank -->
     <div id="eehRank1" class="eeh-rank1-wrap"><!-- rendered by JS --></div>
     <!-- #2 and #3 -->
     <div id="eehRank23" class="eeh-rank23-grid"><!-- rendered by JS --></div>
-    <!-- #4 and #5 -->
+    <!-- #4–#10 -->
     <div id="eehRankRest" class="eeh-rank-list"><!-- rendered by JS --></div>
 
     <!-- Achievement Wall -->
@@ -6644,7 +6655,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=5" defer></script>
-  <script src="/app.js?v=29" defer></script>
+  <script src="/app.js?v=30" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      ISSUE RESOLUTION PORTAL

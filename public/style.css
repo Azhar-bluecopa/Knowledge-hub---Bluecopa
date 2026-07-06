@@ -3520,6 +3520,24 @@ body.proxy-active #liOverlay{top:48px;}
 .eeh-rank-sm-pts{font-size:9px;color:rgba(240,240,246,.28);font-family:'DM Mono',monospace;text-transform:uppercase;}
 .eeh-rank-sm-articles{font-size:10px;color:rgba(240,240,246,.3);margin-top:3px;font-family:'DM Mono',monospace;}
 
+/* ── Loading / empty states ── */
+.eeh-lb-loading{display:flex;align-items:center;gap:12px;justify-content:center;padding:40px;color:rgba(240,240,246,.35);font-size:13px;font-family:'DM Mono',monospace;}
+.eeh-lb-spin{width:18px;height:18px;border:2px solid rgba(201,162,39,.15);border-top-color:#c9a227;border-radius:50%;animation:eehSpin .7s linear infinite;flex-shrink:0;}
+@keyframes eehSpin{to{transform:rotate(360deg)}}
+.eeh-lb-empty{padding:32px;text-align:center;color:rgba(240,240,246,.3);font-size:13px;font-family:'DM Mono',monospace;}
+
+/* ── Score legend ── */
+.eeh-lb-legend{display:flex;flex-wrap:wrap;gap:6px 16px;padding:0 48px 4px;justify-content:center;}
+.eeh-lb-legend-item{font-size:10px;color:rgba(240,240,246,.3);font-family:'DM Mono',monospace;display:flex;align-items:center;gap:4px;letter-spacing:.04em;}
+
+/* ── Breakdown bars (shared between rank1, rank-sm) ── */
+.eeh-bd-wrap{display:flex;flex-direction:column;gap:4px;margin-top:12px;}
+.eeh-bd-item{display:flex;align-items:center;gap:6px;}
+.eeh-bd-icon{font-size:11px;width:16px;text-align:center;flex-shrink:0;}
+.eeh-bd-bar{flex:1;height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;}
+.eeh-bd-fill{height:100%;border-radius:2px;transition:width .4s ease;}
+.eeh-bd-val{font-size:10px;color:rgba(240,240,246,.35);font-family:'DM Mono',monospace;width:28px;text-align:right;flex-shrink:0;}
+
 /* ── Rank #4 & #5 — list rows ── */
 .eeh-rank-list{display:flex;flex-direction:column;gap:8px;padding:12px 48px 0;}
 .eeh-rank-row{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:14px;transition:all .16s;}

@@ -161,6 +161,100 @@ function migrate() {
     };
     dirty = true;
   }
+
+  // ── 360° Leaderboard seed data ────────────────────────────────────────────
+  // Skill Matrix — seed team roster + process scores if empty
+  if (!db.skillMatrix) db.skillMatrix = { employees:[], processAreas:[], currentScores:{}, snapshots:[], nextSnapshotId:1 };
+  if (db.skillMatrix.employees.length === 0) {
+    db.skillMatrix.employees = [
+      'Azhar','Dharma Teja Taddi','Sai Kumar','Divyam Pandey','Karthik Varma',
+      'Srikanth Ande','Srinivas Puneeth','Bhuvaneshwari Jangam','Sameera J',
+      'Bhavana Priya','Jnanendra Avinash Golakoti','Hemanth Varma Pakalapati','Pradyumn Vibhandik'
+    ];
+    db.skillMatrix.processAreas = ['Data Ingestion','Reconciliation','Workflows','Portal Creation','Exports'];
+    db.skillMatrix.currentScores = {
+      'Azhar':                       { 'Data Ingestion':92,'Reconciliation':88,'Workflows':90,'Portal Creation':82,'Exports':78 },
+      'Dharma Teja Taddi':           { 'Data Ingestion':82,'Reconciliation':75,'Workflows':78,'Portal Creation':70,'Exports':68 },
+      'Sai Kumar':                   { 'Data Ingestion':80,'Reconciliation':85,'Workflows':72,'Portal Creation':68,'Exports':75 },
+      'Divyam Pandey':               { 'Data Ingestion':65,'Reconciliation':62,'Workflows':70,'Portal Creation':58,'Exports':60 },
+      'Karthik Varma':               { 'Data Ingestion':72,'Reconciliation':68,'Workflows':65,'Portal Creation':75,'Exports':70 },
+      'Srikanth Ande':               { 'Data Ingestion':78,'Reconciliation':72,'Workflows':68,'Portal Creation':62,'Exports':65 },
+      'Srinivas Puneeth':            { 'Data Ingestion':70,'Reconciliation':68,'Workflows':72,'Portal Creation':65,'Exports':62 },
+      'Bhuvaneshwari Jangam':        { 'Data Ingestion':60,'Reconciliation':65,'Workflows':58,'Portal Creation':55,'Exports':62 },
+      'Sameera J':                   { 'Data Ingestion':68,'Reconciliation':62,'Workflows':65,'Portal Creation':70,'Exports':58 },
+      'Bhavana Priya':               { 'Data Ingestion':72,'Reconciliation':65,'Workflows':70,'Portal Creation':62,'Exports':68 },
+      'Jnanendra Avinash Golakoti':  { 'Data Ingestion':75,'Reconciliation':70,'Workflows':68,'Portal Creation':65,'Exports':72 },
+      'Hemanth Varma Pakalapati':    { 'Data Ingestion':68,'Reconciliation':65,'Workflows':72,'Portal Creation':60,'Exports':65 },
+      'Pradyumn Vibhandik':          { 'Data Ingestion':62,'Reconciliation':58,'Workflows':65,'Portal Creation':55,'Exports':60 },
+    };
+    dirty = true;
+  }
+
+  // Process Puzzle — seed demo attempts if none exist
+  if (!db.processGame) db.processGame = { currentGame: null, attempts: [], gameHistory: [] };
+  if (db.processGame.attempts.length === 0) {
+    db.processGame.attempts = [
+      { id:'pa_001', gameId:'demo', playerName:'Azhar',                     playerInitials:'AZ', score:9,  total:10, accuracy:90, timeTaken:95000,  completedAt:'2026-07-03T10:00:00.000Z', isFirstAttempt:true },
+      { id:'pa_002', gameId:'demo', playerName:'Karthik Varma',             playerInitials:'KV', score:10, total:10, accuracy:100,timeTaken:72000,  completedAt:'2026-07-03T10:30:00.000Z', isFirstAttempt:true },
+      { id:'pa_003', gameId:'demo', playerName:'Dharma Teja Taddi',         playerInitials:'DT', score:8,  total:10, accuracy:80, timeTaken:145000, completedAt:'2026-07-04T09:00:00.000Z', isFirstAttempt:true },
+      { id:'pa_004', gameId:'demo', playerName:'Sai Kumar',                 playerInitials:'SK', score:7,  total:10, accuracy:70, timeTaken:180000, completedAt:'2026-07-04T11:00:00.000Z', isFirstAttempt:true },
+      { id:'pa_005', gameId:'demo', playerName:'Hemanth Varma Pakalapati',  playerInitials:'HV', score:8,  total:10, accuracy:80, timeTaken:130000, completedAt:'2026-07-05T10:00:00.000Z', isFirstAttempt:true },
+      { id:'pa_006', gameId:'demo', playerName:'Divyam Pandey',             playerInitials:'DP', score:6,  total:10, accuracy:60, timeTaken:200000, completedAt:'2026-07-05T11:00:00.000Z', isFirstAttempt:true },
+      { id:'pa_007', gameId:'demo', playerName:'Srinivas Puneeth',          playerInitials:'SP', score:7,  total:10, accuracy:70, timeTaken:160000, completedAt:'2026-07-06T09:00:00.000Z', isFirstAttempt:true },
+      { id:'pa_008', gameId:'demo', playerName:'Srikanth Ande',             playerInitials:'SA', score:9,  total:10, accuracy:90, timeTaken:105000, completedAt:'2026-07-06T09:30:00.000Z', isFirstAttempt:true },
+    ];
+    dirty = true;
+  }
+
+  // Ideas — seed demo ideas if none exist
+  if (db.engagement && db.engagement.ideas.length === 0) {
+    db.engagement.ideas = [
+      { id:1, title:'AI-powered article summarizer for faster reading', category:'Website Improvement',   author:'Azhar',               date:'2026-07-01T09:00:00.000Z', votes:8,  voters:[], status:'implemented' },
+      { id:2, title:'Weekly knowledge quiz with team leaderboard',      category:'Process Improvement',   author:'Dharma Teja Taddi',   date:'2026-07-02T10:00:00.000Z', votes:5,  voters:[], status:'in-progress' },
+      { id:3, title:'Client-specific knowledge sections per project',   category:'Process Improvement',   author:'Sai Kumar',           date:'2026-07-02T14:00:00.000Z', votes:3,  voters:[], status:'new' },
+      { id:4, title:'Dark mode for the portal',                         category:'Website Improvement',   author:'Divyam Pandey',       date:'2026-07-03T15:00:00.000Z', votes:4,  voters:[], status:'new' },
+      { id:5, title:'Automated onboarding checklist for new joiners',   category:'Process Improvement',   author:'Srikanth Ande',       date:'2026-07-04T11:00:00.000Z', votes:6,  voters:[], status:'in-progress' },
+      { id:6, title:'Video walkthroughs for complex processes',         category:'Process Improvement',   author:'Karthik Varma',       date:'2026-07-05T09:00:00.000Z', votes:3,  voters:[], status:'new' },
+    ];
+    db.engagement.nextIdeaId = 7;
+    dirty = true;
+  }
+
+  // Tasks — seed completed demo tasks if only a few tasks exist
+  if (!db.tasks) db.tasks = [];
+  if (db.tasks.length < 8) {
+    const existingIds = new Set(db.tasks.map(t => t.id));
+    const demoTasks = [
+      { id:10, title:'Complete Q2 reconciliation review',    assigneeName:'Azhar',               assigneeEmail:'azhar.m@bluecopa.com', assignedByName:'Admin', assignedByEmail:'azhar.m@bluecopa.com', dueDate:'2026-07-01', priority:'high',   status:'completed', createdAt:'2026-06-25T09:00:00.000Z', links:[], comments:[] },
+      { id:11, title:'Update delivery process documentation',assigneeName:'Azhar',               assigneeEmail:'azhar.m@bluecopa.com', assignedByName:'Admin', assignedByEmail:'azhar.m@bluecopa.com', dueDate:'2026-07-05', priority:'medium', status:'completed', createdAt:'2026-06-28T09:00:00.000Z', links:[], comments:[] },
+      { id:12, title:'Review onboarding article for accuracy',assigneeName:'Dharma Teja Taddi',  assigneeEmail:'dharma@bluecopa.com',  assignedByName:'Admin', assignedByEmail:'azhar.m@bluecopa.com', dueDate:'2026-07-03', priority:'high',   status:'completed', createdAt:'2026-06-27T09:00:00.000Z', links:[], comments:[] },
+      { id:13, title:'Prepare Q3 client onboarding deck',    assigneeName:'Sai Kumar',           assigneeEmail:'sai@bluecopa.com',     assignedByName:'Admin', assignedByEmail:'azhar.m@bluecopa.com', dueDate:'2026-07-04', priority:'medium', status:'completed', createdAt:'2026-06-28T09:00:00.000Z', links:[], comments:[] },
+      { id:14, title:'Fix reconciliation module test cases',  assigneeName:'Karthik Varma',       assigneeEmail:'karthik@bluecopa.com', assignedByName:'Admin', assignedByEmail:'azhar.m@bluecopa.com', dueDate:'2026-07-02', priority:'medium', status:'completed', createdAt:'2026-06-26T09:00:00.000Z', links:[], comments:[] },
+      { id:15, title:'Write GCS connector documentation',    assigneeName:'Srikanth Ande',       assigneeEmail:'srikanth@bluecopa.com',assignedByName:'Admin', assignedByEmail:'azhar.m@bluecopa.com', dueDate:'2026-07-04', priority:'medium', status:'completed', createdAt:'2026-06-27T09:00:00.000Z', links:[], comments:[] },
+      { id:16, title:'Audit skill matrix scores for Q2',     assigneeName:'Srinivas Puneeth',    assigneeEmail:'srinivas@bluecopa.com',assignedByName:'Admin', assignedByEmail:'azhar.m@bluecopa.com', dueDate:'2026-07-05', priority:'low',    status:'completed', createdAt:'2026-06-29T09:00:00.000Z', links:[], comments:[] },
+      { id:17, title:'Submit issue resolution report',        assigneeName:'Dharma Teja Taddi',   assigneeEmail:'dharma@bluecopa.com',  assignedByName:'Admin', assignedByEmail:'azhar.m@bluecopa.com', dueDate:'2026-07-06', priority:'high',   status:'completed', createdAt:'2026-06-30T09:00:00.000Z', links:[], comments:[] },
+    ];
+    demoTasks.forEach(t => { if (!existingIds.has(t.id)) db.tasks.push(t); });
+    db.nextTaskId = Math.max(db.nextTaskId || 1, 18);
+    dirty = true;
+  }
+
+  // Issues — seed a demo solution if no solutions exist
+  if (db.issues && db.issues.length > 0 && (db.issues[0].solutions || []).length === 0) {
+    db.issues[0].solutions = [{
+      id: 'sol_001',
+      text: 'Identified root cause: the reconciliation engine uses single-currency decimal precision (2dp) which overflows on multi-currency conversions. Fix is to apply currency-specific scale from the exchange rate table before comparison. Applied patch to the staging instance — verified against 3 multi-currency client datasets.',
+      author: { email: 'dharma@bluecopa.com', name: 'Dharma Teja Taddi' },
+      createdAt: '2026-07-04T14:00:00.000Z',
+      isAccepted: true,
+      comments: []
+    }];
+    db.issues[0].status = 'Resolved within Delivery';
+    db.issues[0].resolvedAt = '2026-07-04T15:00:00.000Z';
+    db.issues[0].updatedAt = '2026-07-04T15:00:00.000Z';
+    dirty = true;
+  }
+
   if (dirty) saveDB(db);
 }
 
@@ -1955,6 +2049,175 @@ app.post('/api/issues/:id/solutions/:sid/comments', async (req, res) => {
   issue.updatedAt = new Date().toISOString();
   saveDB(db);
   res.status(201).json(comment);
+});
+
+// ── 360° Leaderboard ─────────────────────────────────────────────────────────
+app.get('/api/leaderboard', async (req, res) => {
+  await initDB();
+  const period = req.query.period || 'year';
+  const now = new Date();
+
+  function periodStart(p) {
+    const d = new Date(now);
+    if (p === 'month') {
+      d.setDate(1); d.setHours(0, 0, 0, 0);
+    } else if (p === 'quarter') {
+      d.setMonth(Math.floor(d.getMonth() / 3) * 3, 1); d.setHours(0, 0, 0, 0);
+    } else {
+      d.setMonth(0, 1); d.setHours(0, 0, 0, 0);
+    }
+    return d;
+  }
+  const pStart = periodStart(period);
+
+  const empMap = {}; // normalized-name → employee record
+
+  function normKey(name) {
+    return (name || '').toLowerCase().trim().replace(/\s+/g, ' ');
+  }
+
+  function getEmp(name, email) {
+    if (!name || !name.trim()) return null;
+    const key = normKey(name);
+    if (!empMap[key]) {
+      empMap[key] = {
+        name: name.trim(), email: email || '', score: 0,
+        breakdown: { articles: 0, skills: 0, puzzles: 0, issues: 0, tasks: 0, ideas: 0, learning: 0 }
+      };
+    }
+    if (email && !empMap[key].email) empMap[key].email = email;
+    return empMap[key];
+  }
+
+  // ── 1. ARTICLES — 15 pts/article + category diversity + volume + view bonus ──
+  const articleAgg = {};
+  (db.articles || []).forEach(a => {
+    if (!a.author) return;
+    const ts = new Date(a.created_at || a.updated_at || 0);
+    if (ts < pStart) return;
+    if (!articleAgg[a.author]) articleAgg[a.author] = { count: 0, cats: new Set(), views: 0 };
+    articleAgg[a.author].count++;
+    if (a.category) articleAgg[a.author].cats.add(a.category);
+    articleAgg[a.author].views += (a.views || 0);
+  });
+  Object.entries(articleAgg).forEach(([author, d]) => {
+    const e = getEmp(author, '');
+    if (!e) return;
+    const pts = d.count * 15
+      + Math.max(0, d.cats.size - 1) * 8
+      + (d.count >= 6 ? 20 : d.count >= 4 ? 10 : 0)
+      + Math.floor(d.views / 50);
+    e.breakdown.articles += pts;
+    e.score += pts;
+  });
+
+  // ── 2. SKILL MATRIX — avg score × 0.8 (max 80 pts), always current snapshot ──
+  const sm = db.skillMatrix || {};
+  (sm.employees || []).forEach(empName => {
+    const e = getEmp(empName, '');
+    if (!e) return;
+    const scores = (sm.processAreas || [])
+      .map(pa => ((sm.currentScores || {})[empName] || {})[pa] || 0)
+      .filter(s => s > 0);
+    if (!scores.length) return;
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const pts = Math.round(avg * 0.8);
+    e.breakdown.skills += pts;
+    e.score += pts;
+  });
+
+  // ── 3. PROCESS PUZZLES — 5 participation + accuracy bonus + speed bonus ──
+  ((db.processGame || {}).attempts || []).forEach(att => {
+    if (!att.playerName) return;
+    if (new Date(att.completedAt || 0) < pStart) return;
+    const e = getEmp(att.playerName, '');
+    if (!e) return;
+    const pts = 5
+      + Math.round((att.accuracy || 0) * 0.45)
+      + ((att.timeTaken || Infinity) < 120000 ? 8 : 0);
+    e.breakdown.puzzles += pts;
+    e.score += pts;
+  });
+
+  // ── 4. ISSUES — reporting + solutions + accepted solutions (high weight) ──
+  (db.issues || []).forEach(issue => {
+    const issueTs = new Date(issue.createdAt || 0);
+    if (issueTs >= pStart && issue.reportedBy?.name) {
+      const e = getEmp(issue.reportedBy.name, issue.reportedBy.email);
+      if (e) { e.breakdown.issues += 8; e.score += 8; }
+    }
+    (issue.solutions || []).forEach(sol => {
+      if (new Date(sol.createdAt || 0) < pStart) return;
+      if (!sol.author?.name) return;
+      const e = getEmp(sol.author.name, sol.author.email);
+      if (!e) return;
+      const pts = sol.isAccepted ? 50 : 20;
+      e.breakdown.issues += pts;
+      e.score += pts;
+    });
+  });
+
+  // ── 5. TASKS — priority-weighted completion, penalise overdue ──
+  (db.tasks || []).forEach(task => {
+    const name = task.assigneeName || task.assigneeEmail;
+    if (!name) return;
+    const e = getEmp(name, task.assigneeEmail);
+    if (!e) return;
+    const due = task.dueDate ? new Date(task.dueDate) : null;
+    const inPeriod = due ? due >= pStart : new Date(task.createdAt || 0) >= pStart;
+    if (!inPeriod) return;
+    const hi = { high: 25, medium: 15, low: 8 };
+    const lo = { high: 12, medium: 8,  low: 4  };
+    const p = task.priority || 'medium';
+    if (task.status === 'completed') {
+      const onTime = !due || due >= now;
+      const pts = onTime ? (hi[p] || 15) : (lo[p] || 8);
+      e.breakdown.tasks += pts;
+      e.score += pts;
+    } else if (due && due < now) {
+      e.breakdown.tasks = Math.max(0, e.breakdown.tasks - 5);
+      e.score -= 5;
+    }
+  });
+
+  // ── 6. IDEAS — submission + votes received + status bonus ──
+  ((db.engagement || {}).ideas || []).forEach(idea => {
+    if (!idea.author) return;
+    if (new Date(idea.date || 0) < pStart) return;
+    const e = getEmp(idea.author, '');
+    if (!e) return;
+    const pts = 12
+      + (idea.votes || 0) * 3
+      + (idea.status === 'implemented' ? 35 : idea.status === 'in-progress' ? 20 : 0);
+    e.breakdown.ideas += pts;
+    e.score += pts;
+  });
+
+  // ── 7. LEARNING — enrolled courses (completion tracking coming soon) ──
+  ((db.learning || {}).assignments || []).forEach(a => {
+    if (!a.userName) return;
+    if (new Date(a.assignedAt || 0) < pStart) return;
+    const e = getEmp(a.userName, '');
+    if (!e) return;
+    const pts = a.type === 'mandatory' ? 10 : 6;
+    e.breakdown.learning += pts;
+    e.score += pts;
+  });
+
+  // ── Rank and return ──
+  const ranked = Object.values(empMap)
+    .filter(e => e.score > 0)
+    .map(e => ({
+      ...e,
+      score: Math.max(0, e.score),
+      breakdown: Object.fromEntries(
+        Object.entries(e.breakdown).map(([k, v]) => [k, Math.max(0, v)])
+      )
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+
+  res.json(ranked);
 });
 
 // ── Export for Vercel serverless ──────────────────────────────────────────────
