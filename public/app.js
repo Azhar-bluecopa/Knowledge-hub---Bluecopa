@@ -5142,6 +5142,7 @@ let _eehData = null;
 let _eehAllIdeas = [];
 let _eehCurrentFilter = 'all';
 let _eehSpotlightEditType = 'month';
+let _eehSelectedCategory = '';
 
 function dwGoEngagement() {
   hideLanding();
@@ -5194,36 +5195,67 @@ function isAdminUser() {
 
 // ── Spotlights ──────────────────────────────────────────────
 function eehRenderSpotlights() {
-  const el = document.getElementById('eehSpotlights');
+  _eehRenderSpotYear();
+  _eehRenderSpotGrid();
+}
+
+function _eehRenderSpotYear() {
+  const el = document.getElementById('eehSpotYear');
   if (!el) return;
+  const yr = (_eehData.spotlight || {}).year;
+  if (!yr || !yr.name) {
+    el.innerHTML = `<div class="eeh-spot-year-empty">
+      <span class="eeh-spot-year-empty-icon">🏆</span>
+      <div class="eeh-spot-year-empty-lbl">Employee of the Year</div>
+      <div class="eeh-spot-year-empty-txt">Not yet announced — stay tuned for the announcement!</div>
+    </div>`;
+    return;
+  }
+  const ini = yr.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const av = yr.photo ? `<img src="${yr.photo}" onerror="this.style.display='none'">` : ini;
+  el.innerHTML = `<div class="eeh-spot-year-card">
+    <div class="eeh-spot-year-avatar">${av}</div>
+    <div class="eeh-spot-year-body">
+      <div class="eeh-spot-year-eyebrow">⭐ Employee of the Year</div>
+      <div class="eeh-spot-year-name">${yr.name}</div>
+      <div class="eeh-spot-year-dept">${yr.dept || ''}</div>
+      ${yr.reason ? `<div class="eeh-spot-year-quote">"${yr.reason}"</div>` : ''}
+      ${yr.period ? `<div class="eeh-spot-year-period">${yr.period}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function _eehRenderSpotGrid() {
+  const el = document.getElementById('eehSpotGrid');
+  if (!el) return;
+  const sp = _eehData.spotlight || {};
   const types = [
     { key: 'month',   label: 'Employee of the Month',   crown: '🥇', cls: 'eeh-s-month' },
-    { key: 'quarter', label: 'Employee of the Quarter',  crown: '🥈', cls: 'eeh-s-quarter' },
-    { key: 'year',    label: 'Employee of the Year',     crown: '🏆', cls: 'eeh-s-year' }
+    { key: 'quarter', label: 'Employee of the Quarter',  crown: '🥈', cls: 'eeh-s-quarter' }
   ];
   el.innerHTML = types.map(t => {
-    const d = (_eehData.spotlight || {})[t.key];
+    const d = sp[t.key];
     if (!d || !d.name) return `
-      <div class="eeh-spotlight eeh-spotlight-empty ${t.cls}">
-        <span class="eeh-spotlight-crown">${t.crown}</span>
-        <div class="eeh-spotlight-period-label">${t.label}</div>
-        <div class="eeh-spotlight-avatar">?</div>
-        <div class="eeh-spotlight-name">Not yet announced</div>
-        <div class="eeh-spotlight-reason">Stay tuned — this spotlight will be updated soon.</div>
+      <div class="eeh-spot-sm ${t.cls}">
+        <div class="eeh-spot-sm-avatar-ph">${t.crown}</div>
+        <div class="eeh-spot-sm-body">
+          <div class="eeh-spot-sm-label">${t.label}</div>
+          <div class="eeh-spot-sm-name-empty">Not yet announced</div>
+          <div class="eeh-spot-sm-quote" style="margin-top:6px;">Stay tuned — spotlight coming soon.</div>
+        </div>
       </div>`;
-    const initials = d.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-    const avatarHtml = d.photo
-      ? `<img src="${d.photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;margin:0 auto 14px;display:block;" onerror="this.style.display='none'">`
-      : `<div class="eeh-spotlight-avatar">${initials}</div>`;
+    const ini = d.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const av = d.photo ? `<img src="${d.photo}" onerror="this.style.display='none'">` : ini;
     return `
-      <div class="eeh-spotlight ${t.cls}">
-        <span class="eeh-spotlight-crown">${t.crown}</span>
-        <div class="eeh-spotlight-period-label">${t.label}</div>
-        ${avatarHtml}
-        <div class="eeh-spotlight-name">${d.name}</div>
-        <div class="eeh-spotlight-dept">${d.dept || ''}</div>
-        <div class="eeh-spotlight-reason">"${d.reason || ''}"</div>
-        ${d.period ? `<div class="eeh-spotlight-period">${d.period}</div>` : ''}
+      <div class="eeh-spot-sm ${t.cls}">
+        <div class="eeh-spot-sm-avatar">${av}</div>
+        <div class="eeh-spot-sm-body">
+          <div class="eeh-spot-sm-label">${t.label}</div>
+          <div class="eeh-spot-sm-name">${d.name}</div>
+          <div class="eeh-spot-sm-dept">${d.dept || ''}</div>
+          ${d.reason ? `<div class="eeh-spot-sm-quote">"${d.reason}"</div>` : ''}
+          ${d.period ? `<div class="eeh-spot-sm-period">${d.period}</div>` : ''}
+        </div>
       </div>`;
   }).join('');
 }
@@ -5327,6 +5359,7 @@ async function eehDeleteAchievement(idx) {
 
 // ── Sweet Place: Moments ────────────────────────────────────
 function eehRenderMoments() {
+  eehUpdateTodayBanner();
   eehRenderBirthdays();
   eehRenderAnniversaries();
   eehRenderGallery();
@@ -5334,13 +5367,39 @@ function eehRenderMoments() {
 
 function initials(name) { return (name||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
 
+function eehUpdateTodayBanner() {
+  const banner = document.getElementById('eehTodayBanner');
+  if (!banner) return;
+  const today = new Date();
+  const isToday = d => { const dt = new Date(d); return dt.getMonth()===today.getMonth() && dt.getDate()===today.getDate(); };
+  const bdToday = ((_eehData.moments||{}).birthdays||[]).filter(b => isToday(b.date));
+  const annToday = ((_eehData.moments||{}).anniversaries||[]).filter(a => isToday(a.date));
+  if (bdToday.length || annToday.length) {
+    banner.style.display = 'flex';
+    const parts = [
+      ...bdToday.map(b => `🎂 ${b.name}`),
+      ...annToday.map(a => `🎊 ${a.name} (${today.getFullYear()-new Date(a.date).getFullYear()} yrs)`)
+    ];
+    document.getElementById('eehTodayTitle').textContent = 'Celebrating today! 🎉';
+    document.getElementById('eehTodaySub').textContent = parts.join(' · ');
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+const BDAY_GRADS = [
+  '#7c3aed,#a78bfa','#be185d,#f472b6','#0e7490,#38bdf8',
+  '#065f46,#34d399','#92400e,#fbbf24','#1d4ed8,#60a5fa','#7e22ce,#c084fc'
+];
+
 function eehRenderBirthdays() {
   const el = document.getElementById('eehBirthdays');
   if (!el) return;
   const list = ((_eehData.moments || {}).birthdays || []);
-  if (!list.length) { el.innerHTML = '<div class="eeh-empty"><span class="eeh-empty-icon">🎂</span>No birthdays added yet.</div>'; return; }
+  if (!list.length) { el.innerHTML = '<div class="eeh-empty"><span class="eeh-empty-icon">🎂</span>No birthdays added yet — add your team!</div>'; return; }
   const today = new Date();
-  const sorted = [...list].sort((a, b) => {
+  const tagged = list.map((b, i) => ({ ...b, _idx: i }));
+  const sorted = [...tagged].sort((a, b) => {
     const da = new Date(a.date), db = new Date(b.date);
     const am = da.getMonth() * 31 + da.getDate(), bm = db.getMonth() * 31 + db.getDate();
     const tm = today.getMonth() * 31 + today.getDate();
@@ -5348,15 +5407,17 @@ function eehRenderBirthdays() {
   });
   el.innerHTML = sorted.map((b, i) => {
     const d = new Date(b.date);
-    const label = `${d.toLocaleDateString('en-IN',{day:'numeric',month:'long'})}`;
-    const isToday = d.getMonth()===today.getMonth() && d.getDate()===today.getDate();
-    return `<div class="eeh-moment-card" style="${isToday?'border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.05);':''}">
-      <div class="eeh-moment-avatar" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);">${b.photo?`<img src="${b.photo}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">`:initials(b.name)}</div>
-      <div class="eeh-moment-name">${b.name}</div>
-      <div class="eeh-moment-dept">${b.dept||''}</div>
-      <div class="eeh-moment-date">🎂 ${label}</div>
-      ${isToday?'<div class="eeh-moment-badge">🎉 Today!</div>':''}
-      ${isAdminUser()?`<button class="eeh-moment-del" onclick="eehDeleteMoment('birthdays',${i})">✕</button>`:''}
+    const label = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long' });
+    const isTdy = d.getMonth()===today.getMonth() && d.getDate()===today.getDate();
+    const grad = BDAY_GRADS[i % BDAY_GRADS.length];
+    const av = b.photo ? `<img src="${b.photo}" onerror="this.style.display='none'">` : initials(b.name);
+    return `<div class="eeh-bday-card${isTdy?' eeh-bday-today':''}">
+      ${isTdy ? `<div class="eeh-bday-today-pill">🎉 Today</div>` : ''}
+      <div class="eeh-bday-avatar" style="background:linear-gradient(135deg,${grad});">${av}</div>
+      <div class="eeh-bday-name" title="${b.name}">${b.name}</div>
+      <div class="eeh-bday-dept" title="${b.dept||''}">${b.dept||''}</div>
+      <div class="eeh-bday-date">🎂 ${label}</div>
+      ${isAdminUser() ? `<button class="eeh-bday-del" onclick="eehDeleteMoment('birthdays',${b._idx})" title="Remove">✕</button>` : ''}
     </div>`;
   }).join('');
 }
@@ -5370,16 +5431,18 @@ function eehRenderAnniversaries() {
   el.innerHTML = list.map((a, i) => {
     const joined = new Date(a.date);
     const years = today.getFullYear() - joined.getFullYear();
-    const label = `${joined.toLocaleDateString('en-IN',{day:'numeric',month:'long'})}`;
-    const isToday = joined.getMonth()===today.getMonth() && joined.getDate()===today.getDate();
-    return `<div class="eeh-moment-card" style="${isToday?'border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.05);':''}">
-      <div class="eeh-moment-avatar" style="background:linear-gradient(135deg,#d97706,#fbbf24);">${a.photo?`<img src="${a.photo}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">`:initials(a.name)}</div>
-      <div class="eeh-moment-name">${a.name}</div>
-      <div class="eeh-moment-dept">${a.dept||''}</div>
-      <div class="eeh-moment-date">🎊 ${label}</div>
-      <div class="eeh-moment-badge" style="background:rgba(251,191,36,.1);color:#fbbf24;border-color:rgba(251,191,36,.2);">${years} year${years!==1?'s':''}</div>
-      ${isToday?'<div class="eeh-moment-badge">Today!</div>':''}
-      ${isAdminUser()?`<button class="eeh-moment-del" onclick="eehDeleteMoment('anniversaries',${i})">✕</button>`:''}
+    const isTdy = joined.getMonth()===today.getMonth() && joined.getDate()===today.getDate();
+    const milestone = years >= 10 ? `💎 ${years} Years` : years >= 5 ? `🏆 ${years} Years` : years >= 3 ? `🌟 ${years} Years` : `⭐ ${years} Year${years!==1?'s':''}`;
+    const av = a.photo ? `<img src="${a.photo}" onerror="this.style.display='none'">` : initials(a.name);
+    return `<div class="eeh-ann-card${isTdy?' eeh-ann-today':''}">
+      <div class="eeh-ann-avatar">${av}</div>
+      <div class="eeh-ann-body">
+        <div class="eeh-ann-name" title="${a.name}">${a.name}</div>
+        <div class="eeh-ann-dept">${a.dept||''}</div>
+        <div class="eeh-ann-milestone">${milestone}</div>
+        <div class="eeh-ann-joined">Joined ${joined.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>
+      </div>
+      ${isAdminUser() ? `<button class="eeh-ann-del" onclick="eehDeleteMoment('anniversaries',${i})" title="Remove">✕</button>` : ''}
     </div>`;
   }).join('');
 }
@@ -5446,6 +5509,13 @@ async function eehDeleteMoment(type, idx) {
   eehRenderMoments();
 }
 
+// ── Category tile selection ──────────────────────────────────
+function eehSelectCategory(cat, el) {
+  _eehSelectedCategory = cat;
+  document.querySelectorAll('.eeh-cat-tile').forEach(t => t.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
 // ── Ideas ───────────────────────────────────────────────────
 const CAT_LABELS = { website:'🖥️ Website', process:'⚙️ Process', product:'🚀 Product', culture:'🤝 Culture', other:'💬 Other' };
 const STATUS_LABELS = { new:'New', review:'Under Review', inprogress:'In Progress', implemented:'Implemented' };
@@ -5499,10 +5569,10 @@ function eehFilterIdeas(filter, btn) {
 
 async function eehSubmitIdea() {
   const title = document.getElementById('ideaTitle').value.trim();
-  const category = document.getElementById('ideaCategory').value;
+  const category = _eehSelectedCategory;
   const description = document.getElementById('ideaDescription').value.trim();
   const author = document.getElementById('ideaAuthor').value.trim();
-  if (!title || !category || !description) { alert('Please fill in the title, category, and description.'); return; }
+  if (!title || !category || !description) { alert('Please fill in the title, pick a category tile, and add a description.'); return; }
   const u = JSON.parse(localStorage.getItem('kb_user') || '{}');
   const resp = await fetch('/api/ideas', {
     method: 'POST',
@@ -5512,9 +5582,10 @@ async function eehSubmitIdea() {
   const newIdea = await resp.json();
   _eehAllIdeas.unshift(newIdea);
   document.getElementById('ideaTitle').value = '';
-  document.getElementById('ideaCategory').value = '';
   document.getElementById('ideaDescription').value = '';
   document.getElementById('ideaAuthor').value = '';
+  _eehSelectedCategory = '';
+  document.querySelectorAll('.eeh-cat-tile').forEach(t => t.classList.remove('selected'));
   _eehCurrentFilter = 'all';
   document.querySelectorAll('.eeh-idea-filter').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
   eehRenderIdeas();

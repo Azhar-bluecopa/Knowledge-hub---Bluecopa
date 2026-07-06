@@ -18,7 +18,7 @@
   <noscript>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
-  <link rel="stylesheet" href="/style.css?v=57">
+  <link rel="stylesheet" href="/style.css?v=58">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -4635,106 +4635,134 @@ async function updateFeedbackStatus(id) {
 
   <!-- ── TAB: LEADERBOARD ──────────────────────────────────── -->
   <div class="eeh-panel active" id="eehLeaderboard">
-    <div class="eeh-hero" style="--eeh-grad:236,72,153;">
-      <div class="eeh-hero-tag">Bluecopa · Delivery Team</div>
-      <h1 class="eeh-hero-h1">Celebrating Excellence 🏆</h1>
-      <p class="eeh-hero-sub">Recognising the people who go above and beyond — every month, every quarter, every year.</p>
+    <div class="eeh-lb-hero">
+      <div class="eeh-lb-eyebrow">Bluecopa · Delivery Team</div>
+      <h1 class="eeh-lb-h1">Celebrating Excellence 🏆</h1>
+      <p class="eeh-lb-sub">Recognising the people who go above and beyond — every month, every quarter, every year.</p>
     </div>
 
-    <!-- Spotlight cards -->
-    <div class="eeh-section-label">Employee Spotlights</div>
-    <div class="eeh-spotlights" id="eehSpotlights">
-      <!-- rendered by JS -->
-    </div>
+    <!-- Employee of the Year — hero spotlight -->
+    <div class="eeh-section-label" style="padding-top:32px;">⭐ Employee of the Year</div>
+    <div class="eeh-spot-year-wrap" id="eehSpotYear"><!-- rendered by JS --></div>
 
-    <!-- Admin: edit spotlights -->
+    <!-- Month + Quarter -->
+    <div class="eeh-section-label" style="padding-top:24px;">Monthly &amp; Quarterly Spotlights</div>
+    <div class="eeh-spotlights-grid" id="eehSpotGrid"><!-- rendered by JS --></div>
+
+    <!-- Admin controls -->
     <div class="eeh-admin-strip" id="eehSpotlightAdmin" style="display:none;">
       <button class="eeh-admin-btn" onclick="eehOpenSpotlightModal('month')">✏️ Edit Employee of Month</button>
       <button class="eeh-admin-btn" onclick="eehOpenSpotlightModal('quarter')">✏️ Edit Employee of Quarter</button>
       <button class="eeh-admin-btn" onclick="eehOpenSpotlightModal('year')">✏️ Edit Employee of Year</button>
     </div>
 
-    <!-- Achievements wall -->
-    <div class="eeh-section-label" style="margin-top:40px;">Achievement Wall</div>
+    <!-- Achievement Wall -->
+    <div class="eeh-section-label" style="padding-top:24px;">🏅 Achievement Wall</div>
     <div class="eeh-achievements" id="eehAchievements"><!-- rendered by JS --></div>
     <div class="eeh-admin-strip" id="eehAchievementAdmin" style="display:none;">
       <button class="eeh-admin-btn" onclick="eehOpenAchievementModal()">＋ Add Achievement</button>
     </div>
+    <div class="eeh-bottom-pad"></div>
   </div>
 
   <!-- ── TAB: SWEET PLACE TO WORK ─────────────────────────── -->
   <div class="eeh-panel" id="eehSweetplace">
-    <div class="eeh-hero" style="--eeh-grad:167,139,250;">
-      <div class="eeh-hero-tag">Bluecopa · Our People</div>
-      <h1 class="eeh-hero-h1">Sweet Place to Work 🌸</h1>
-      <p class="eeh-hero-sub">Memories, milestones, and the moments that make Bluecopa a great place to be.</p>
+    <div class="eeh-sp-hero">
+      <div class="eeh-sp-eyebrow">Bluecopa · Our People</div>
+      <h1 class="eeh-sp-h1">Sweet Place to Work 🌸</h1>
+      <p class="eeh-sp-sub">Memories, milestones, and the moments that make Bluecopa a great place to be.</p>
+    </div>
+
+    <!-- Today banner — shown by JS when someone has a birthday/anniversary today -->
+    <div id="eehTodayBanner" class="eeh-today-banner" style="display:none;">
+      <div class="eeh-today-icon">🎉</div>
+      <div class="eeh-today-text">
+        <div class="eeh-today-title" id="eehTodayTitle">Celebrating today!</div>
+        <div class="eeh-today-sub" id="eehTodaySub"></div>
+      </div>
     </div>
 
     <!-- Birthdays -->
-    <div class="eeh-section-label">🎂 Birthdays</div>
-    <div class="eeh-moments-grid" id="eehBirthdays"><!-- rendered by JS --></div>
+    <div class="eeh-section-label" style="padding-top:24px;">🎂 Upcoming Birthdays</div>
+    <div class="eeh-bday-strip" id="eehBirthdays"><!-- rendered by JS --></div>
 
     <!-- Anniversaries -->
-    <div class="eeh-section-label" style="margin-top:36px;">🎊 Work Anniversaries</div>
-    <div class="eeh-moments-grid" id="eehAnniversaries"><!-- rendered by JS --></div>
+    <div class="eeh-section-label" style="padding-top:24px;">🎊 Work Anniversaries</div>
+    <div class="eeh-ann-grid" id="eehAnniversaries"><!-- rendered by JS --></div>
 
     <!-- Photo Gallery -->
-    <div class="eeh-section-label" style="margin-top:36px;">📸 Team Gallery</div>
+    <div class="eeh-section-label" style="padding-top:24px;">📸 Team Gallery</div>
     <div class="eeh-gallery" id="eehGallery"><!-- rendered by JS --></div>
 
     <!-- Admin controls -->
-    <div class="eeh-admin-strip" id="eehMomentsAdmin" style="display:none;margin-top:24px;">
+    <div class="eeh-admin-strip" id="eehMomentsAdmin" style="display:none;margin-top:8px;">
       <button class="eeh-admin-btn" onclick="eehOpenBirthdayModal()">＋ Add Birthday</button>
       <button class="eeh-admin-btn" onclick="eehOpenAnniversaryModal()">＋ Add Anniversary</button>
       <button class="eeh-admin-btn" onclick="eehOpenPhotoModal()">＋ Add Team Photo</button>
     </div>
+    <div class="eeh-bottom-pad"></div>
   </div>
 
   <!-- ── TAB: IDEA BOX ─────────────────────────────────────── -->
   <div class="eeh-panel" id="eehIdeabox">
-    <div class="eeh-hero" style="--eeh-grad:251,191,36;">
-      <div class="eeh-hero-tag">Bluecopa · Innovation</div>
-      <h1 class="eeh-hero-h1">Idea Box 💡</h1>
-      <p class="eeh-hero-sub">Share your ideas to improve our processes, platform, or workplace. Every idea matters.</p>
+    <div class="eeh-ib-hero">
+      <div class="eeh-ib-eyebrow">Bluecopa · Innovation</div>
+      <h1 class="eeh-ib-h1">Idea Box 💡</h1>
+      <p class="eeh-ib-sub">Share your ideas to improve our processes, platform, or workplace. Every idea matters.</p>
     </div>
 
     <!-- Submit form -->
     <div class="eeh-idea-form-wrap">
       <div class="eeh-idea-form">
-        <div class="eeh-idea-form-title">Share Your Idea</div>
+        <div class="eeh-idea-form-hdr">
+          <div class="eeh-idea-form-title">Share Your Idea</div>
+          <div class="eeh-idea-form-hint">Pick a category first</div>
+        </div>
+        <!-- Category tiles — replaces dropdown -->
+        <div class="eeh-cat-tiles">
+          <div class="eeh-cat-tile" data-cat="website" onclick="eehSelectCategory('website',this)">
+            <span class="eeh-cat-tile-icon">🖥️</span>
+            <span class="eeh-cat-tile-label">Website</span>
+          </div>
+          <div class="eeh-cat-tile" data-cat="process" onclick="eehSelectCategory('process',this)">
+            <span class="eeh-cat-tile-icon">⚙️</span>
+            <span class="eeh-cat-tile-label">Process</span>
+          </div>
+          <div class="eeh-cat-tile" data-cat="product" onclick="eehSelectCategory('product',this)">
+            <span class="eeh-cat-tile-icon">🚀</span>
+            <span class="eeh-cat-tile-label">Product</span>
+          </div>
+          <div class="eeh-cat-tile" data-cat="culture" onclick="eehSelectCategory('culture',this)">
+            <span class="eeh-cat-tile-icon">🤝</span>
+            <span class="eeh-cat-tile-label">Culture</span>
+          </div>
+          <div class="eeh-cat-tile" data-cat="other" onclick="eehSelectCategory('other',this)">
+            <span class="eeh-cat-tile-icon">💬</span>
+            <span class="eeh-cat-tile-label">Other</span>
+          </div>
+        </div>
         <div class="eeh-form-row">
           <input class="eeh-input" id="ideaTitle" placeholder="Give your idea a title…" maxlength="120"/>
         </div>
         <div class="eeh-form-row">
-          <select class="eeh-input eeh-select" id="ideaCategory">
-            <option value="">Select category…</option>
-            <option value="website">🖥️ Website Improvement</option>
-            <option value="process">⚙️ Process Improvement</option>
-            <option value="product">🚀 Product Improvement</option>
-            <option value="culture">🤝 Culture & Team</option>
-            <option value="other">💬 Other</option>
-          </select>
+          <textarea class="eeh-input eeh-textarea" id="ideaDescription" placeholder="Describe your idea — what problem does it solve, and how would it work?…" rows="3"></textarea>
         </div>
-        <div class="eeh-form-row">
-          <textarea class="eeh-input eeh-textarea" id="ideaDescription" placeholder="Describe your idea — what's the problem it solves, and how would it work?…" rows="4"></textarea>
+        <div class="eeh-form-bottom-row">
+          <input class="eeh-form-name-input" id="ideaAuthor" placeholder="Your name (optional)"/>
+          <button class="eeh-submit-btn" onclick="eehSubmitIdea()">Submit Idea →</button>
         </div>
-        <div class="eeh-form-row">
-          <input class="eeh-input" id="ideaAuthor" placeholder="Your name (optional — defaults to Anonymous)"/>
-        </div>
-        <button class="eeh-submit-btn" onclick="eehSubmitIdea()">Submit Idea →</button>
       </div>
     </div>
 
-    <!-- Filter tabs -->
-    <div class="eeh-idea-filters">
+    <!-- Filter + ideas list -->
+    <div class="eeh-filter-row">
+      <span class="eeh-filter-lbl">Filter:</span>
       <button class="eeh-idea-filter active" data-filter="all" onclick="eehFilterIdeas('all',this)">All Ideas</button>
       <button class="eeh-idea-filter" data-filter="website" onclick="eehFilterIdeas('website',this)">🖥️ Website</button>
       <button class="eeh-idea-filter" data-filter="process" onclick="eehFilterIdeas('process',this)">⚙️ Process</button>
       <button class="eeh-idea-filter" data-filter="product" onclick="eehFilterIdeas('product',this)">🚀 Product</button>
       <button class="eeh-idea-filter" data-filter="culture" onclick="eehFilterIdeas('culture',this)">🤝 Culture</button>
     </div>
-
-    <!-- Ideas list -->
     <div class="eeh-ideas-list" id="eehIdeasList"><!-- rendered by JS --></div>
   </div>
 
@@ -4793,7 +4821,7 @@ async function updateFeedbackStatus(id) {
     <div class="eeh-modal-title">Add Work Anniversary</div>
     <input class="eeh-input" id="annName" placeholder="Employee Name"/>
     <input class="eeh-input" id="annDept" placeholder="Department / Role"/>
-    <input class="eeh-input" id="annDate" type="date" title="Date they joined"/>
+    <input class="eeh-input" id="annDate" type="date" title="Date they joined Bluecopa"/>
     <input class="eeh-input" id="annPhoto" placeholder="Photo URL (optional)"/>
     <div class="eeh-modal-actions">
       <button class="eeh-modal-cancel" onclick="document.getElementById('eehAnniversaryModalBg').classList.remove('open')">Cancel</button>
