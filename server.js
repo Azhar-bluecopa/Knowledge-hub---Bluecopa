@@ -63,6 +63,7 @@ if (!IS_VERCEL && !fs.existsSync(UPLOADS)) fs.mkdirSync(UPLOADS, { recursive: tr
 
 let mongoCol = null; // MongoDB collection, set after connect
 let db = { articles: [], nextId: 1 }; // In-memory DB, populated in initDB()
+let _dbReady = null; // Promise that resolves once initDB + migrate have finished
 
 // Read from data.json (used as seed / fallback)
 function loadFileDB() {
@@ -872,7 +873,9 @@ if (wss) {
 }
 
 // ── Boot: init DB then start server ──────────────────────────────────────────
-initDB().then(() => {
+// Capture the promise so routes can await _dbReady on Vercel cold-starts
+// (a request can arrive before initDB resolves on Vercel serverless)
+_dbReady = initDB().then(() => {
   migrate();
   // seed default articles only if DB is completely empty
   if (db.articles.length === 0) {
@@ -2055,10 +2058,11 @@ app.post('/api/issues/:id/solutions/:sid/comments', async (req, res) => {
 
 // ── 360° Leaderboard ─────────────────────────────────────────────────────────
 app.get('/api/leaderboard', async (req, res) => {
-  // Do NOT call initDB() here — db is already populated at module init (line 873).
-  // Calling it again overwrites db with the pre-migration MongoDB state (race condition).
   const period = req.query.period || 'year';
   try {
+    // On Vercel cold-starts a request can arrive before initDB() + migrate() finish.
+    // Awaiting _dbReady is idempotent: instant if already resolved, waits if still in flight.
+    if (_dbReady) await _dbReady;
   const now = new Date();
 
   function periodStart(p) {
