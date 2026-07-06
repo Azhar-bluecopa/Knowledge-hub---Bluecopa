@@ -192,6 +192,7 @@ function migrate() {
 
   // Process Puzzle — seed demo attempts if none exist
   if (!db.processGame) db.processGame = { currentGame: null, attempts: [], gameHistory: [] };
+  if (!Array.isArray(db.processGame.attempts)) db.processGame.attempts = [];
   if (db.processGame.attempts.length === 0) {
     db.processGame.attempts = [
       { id:'pa_001', gameId:'demo', playerName:'Azhar',                     playerInitials:'AZ', score:9,  total:10, accuracy:90, timeTaken:95000,  completedAt:'2026-07-03T10:00:00.000Z', isFirstAttempt:true },
@@ -207,6 +208,7 @@ function migrate() {
   }
 
   // Ideas — seed demo ideas if none exist
+  if (db.engagement && !Array.isArray(db.engagement.ideas)) db.engagement.ideas = [];
   if (db.engagement && db.engagement.ideas.length === 0) {
     db.engagement.ideas = [
       { id:1, title:'AI-powered article summarizer for faster reading', category:'Website Improvement',   author:'Azhar',               date:'2026-07-01T09:00:00.000Z', votes:8,  voters:[], status:'implemented' },
@@ -2053,8 +2055,10 @@ app.post('/api/issues/:id/solutions/:sid/comments', async (req, res) => {
 
 // ── 360° Leaderboard ─────────────────────────────────────────────────────────
 app.get('/api/leaderboard', async (req, res) => {
-  await initDB();
+  // Do NOT call initDB() here — db is already populated at module init (line 873).
+  // Calling it again overwrites db with the pre-migration MongoDB state (race condition).
   const period = req.query.period || 'year';
+  try {
   const now = new Date();
 
   function periodStart(p) {
@@ -2218,6 +2222,10 @@ app.get('/api/leaderboard', async (req, res) => {
     .slice(0, 10);
 
   res.json(ranked);
+  } catch (err) {
+    console.error('[leaderboard]', err);
+    res.status(500).json({ error: 'Failed to compute leaderboard', detail: err.message });
+  }
 });
 
 // ── Export for Vercel serverless ──────────────────────────────────────────────

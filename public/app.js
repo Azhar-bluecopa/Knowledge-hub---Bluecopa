@@ -5228,12 +5228,14 @@ async function _eehLoadLeaderboard() {
 
   try {
     const resp = await fetch(`/api/leaderboard?period=${_eehCurrentPeriod}`);
-    const data = await resp.json();
+    const payload = await resp.json();
+    // Server may return { error, detail } on failure — treat as empty
+    const data = Array.isArray(payload) ? payload : [];
     _eehLbCache[_eehCurrentPeriod] = data;
     eehRenderLeaderboard(data);
   } catch (err) {
-    const r1 = document.getElementById('eehRank1');
-    if (r1) r1.innerHTML = '<div class="eeh-lb-loading">Unable to load scores. Please try again.</div>';
+    console.error('[leaderboard]', err);
+    eehRenderLeaderboard([]);
   }
 }
 
