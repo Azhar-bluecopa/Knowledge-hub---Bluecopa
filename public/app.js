@@ -5171,6 +5171,7 @@ async function eehLoad() {
   ]);
   _eehData = await engResp.json();
   _eehAllIdeas = await ideaResp.json();
+  eehRenderLeaderboard();
   eehRenderSpotlights();
   eehRenderAchievements();
   eehRenderMoments();
@@ -5191,6 +5192,131 @@ function isAdminUser() {
     const u = JSON.parse(localStorage.getItem('kb_user') || '{}');
     return u.role === 'admin' || (typeof isAdmin === 'function' && isAdmin());
   } catch { return false; }
+}
+
+// ── Leaderboard ─────────────────────────────────────────────
+const EEH_LEADERBOARD = {
+  month: [
+    { name: 'Azhar',               dept: 'Engineering & Product',  articles: 6, cats: 4, score: 134, seed: 'AzharBluecopa' },
+    { name: 'Dharma Teja Taddi',   dept: 'Product',                articles: 4, cats: 2, score: 78,  seed: 'DharmaTeja22' },
+    { name: 'Sai Kumar',           dept: 'Delivery',               articles: 4, cats: 2, score: 74,  seed: 'SaiKumar77' },
+    { name: 'Divyam Pandey',       dept: 'Engineering',            articles: 2, cats: 2, score: 38,  seed: 'DivyamPandey9' },
+    { name: 'Karthik Varma',       dept: 'Operations',             articles: 2, cats: 1, score: 30,  seed: 'KarthikVarma5' },
+  ],
+  quarter: [
+    { name: 'Azhar',               dept: 'Engineering & Product',  articles: 6, cats: 4, score: 134, seed: 'AzharBluecopa' },
+    { name: 'Sai Kumar',           dept: 'Delivery',               articles: 4, cats: 2, score: 74,  seed: 'SaiKumar77' },
+    { name: 'Dharma Teja Taddi',   dept: 'Product',                articles: 4, cats: 2, score: 78,  seed: 'DharmaTeja22' },
+    { name: 'Srikanth Ande',       dept: 'Finance',                articles: 2, cats: 1, score: 30,  seed: 'SrikanthAnde3' },
+    { name: 'Srinivas Puneeth',    dept: 'Delivery',               articles: 2, cats: 1, score: 30,  seed: 'SrinivasPuneeth8' },
+  ],
+  year: [
+    { name: 'Azhar',               dept: 'Engineering & Product',  articles: 6, cats: 4, score: 134, seed: 'AzharBluecopa' },
+    { name: 'Dharma Teja Taddi',   dept: 'Product',                articles: 4, cats: 2, score: 78,  seed: 'DharmaTeja22' },
+    { name: 'Sai Kumar',           dept: 'Delivery',               articles: 4, cats: 2, score: 74,  seed: 'SaiKumar77' },
+    { name: 'Jnanendra Golakoti',  dept: 'Engineering',            articles: 2, cats: 1, score: 30,  seed: 'JnanendraG11' },
+    { name: 'Sameera J',           dept: 'Product',                articles: 2, cats: 1, score: 30,  seed: 'SameeraJ4' },
+  ],
+};
+let _eehCurrentPeriod = 'month';
+
+function eehSetPeriod(period, el) {
+  _eehCurrentPeriod = period;
+  document.querySelectorAll('.eeh-lb-period-btn').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+  eehRenderLeaderboard();
+}
+
+function eehRenderLeaderboard() {
+  const data = EEH_LEADERBOARD[_eehCurrentPeriod] || [];
+  const top = data[0];
+  const periodLabels = { month: 'July 2026', quarter: 'Q3 2026 (Jul – Sep)', year: '2026' };
+  const periodNames   = { month: 'This Month', quarter: 'This Quarter', year: 'This Year' };
+  const lbl = document.getElementById('eehLbPeriodLabel');
+  if (lbl) lbl.textContent = periodLabels[_eehCurrentPeriod] || '';
+
+  const dicebear = seed => `https://api.dicebear.com/9.x/avataaars/png?seed=${seed}`;
+
+  // Rank #1 — hero card
+  const r1 = document.getElementById('eehRank1');
+  if (r1) {
+    if (!top) { r1.innerHTML = ''; }
+    else {
+      r1.innerHTML = `<div class="eeh-rank1-card">
+        <div class="eeh-rank1-medal">🥇</div>
+        <div class="eeh-rank1-avatar"><img src="${dicebear(top.seed)}" alt="${top.name}"></div>
+        <div class="eeh-rank1-body">
+          <div class="eeh-rank1-eyebrow">🏆 Top Contributor — ${periodNames[_eehCurrentPeriod]}</div>
+          <div class="eeh-rank1-name">${top.name}</div>
+          <div class="eeh-rank1-dept">${top.dept}</div>
+          <div class="eeh-rank1-stats">
+            <div class="eeh-rank1-stat">
+              <div class="eeh-rank1-stat-val">${top.score}</div>
+              <div class="eeh-rank1-stat-lbl">Score</div>
+            </div>
+            <div class="eeh-rank1-divider"></div>
+            <div class="eeh-rank1-stat">
+              <div class="eeh-rank1-stat-val">${top.articles}</div>
+              <div class="eeh-rank1-stat-lbl">Articles</div>
+            </div>
+            <div class="eeh-rank1-divider"></div>
+            <div class="eeh-rank1-stat">
+              <div class="eeh-rank1-stat-val">${top.cats}</div>
+              <div class="eeh-rank1-stat-lbl">Categories</div>
+            </div>
+          </div>
+          <div class="eeh-rank1-badge">⭐ Knowledge Champion</div>
+        </div>
+      </div>`;
+    }
+  }
+
+  // Rank #2 & #3 — side cards
+  const r23 = document.getElementById('eehRank23');
+  if (r23) {
+    r23.innerHTML = [1, 2].map(i => {
+      const p = data[i];
+      if (!p) return '<div></div>';
+      const medal = i === 1 ? '🥈' : '🥉';
+      const cls   = i === 1 ? 'rank2' : 'rank3';
+      return `<div class="eeh-rank-sm ${cls}">
+        <div class="eeh-rank-sm-medal">${medal}</div>
+        <div class="eeh-rank-sm-avatar"><img src="${dicebear(p.seed)}" alt="${p.name}"></div>
+        <div class="eeh-rank-sm-body">
+          <div class="eeh-rank-sm-name">${p.name}</div>
+          <div class="eeh-rank-sm-dept">${p.dept}</div>
+          <div class="eeh-rank-sm-score-row">
+            <div class="eeh-rank-sm-score">${p.score}</div>
+            <div class="eeh-rank-sm-pts">pts</div>
+          </div>
+          <div class="eeh-rank-sm-articles">${p.articles} articles · ${p.cats} ${p.cats === 1 ? 'category' : 'categories'}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Rank #4 & #5 — list rows
+  const rRest = document.getElementById('eehRankRest');
+  if (rRest) {
+    const maxScore = top ? top.score : 1;
+    rRest.innerHTML = [3, 4].map(i => {
+      const p = data[i];
+      if (!p) return '';
+      const pct = Math.round((p.score / maxScore) * 100);
+      return `<div class="eeh-rank-row">
+        <div class="eeh-rank-row-pos">${i + 1}</div>
+        <div class="eeh-rank-row-avatar"><img src="${dicebear(p.seed)}" alt="${p.name}"></div>
+        <div class="eeh-rank-row-body">
+          <div class="eeh-rank-row-name">${p.name}</div>
+          <div class="eeh-rank-row-dept">${p.dept} · ${p.articles} articles</div>
+        </div>
+        <div class="eeh-rank-row-right">
+          <div class="eeh-rank-row-score">${p.score} <span class="eeh-rank-row-pts">pts</span></div>
+          <div class="eeh-rank-row-bar"><div class="eeh-rank-row-bar-fill" style="width:${pct}%"></div></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
 }
 
 // ── Spotlights ──────────────────────────────────────────────

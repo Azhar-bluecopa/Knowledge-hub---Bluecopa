@@ -3474,6 +3474,68 @@ body.proxy-active #liOverlay{top:48px;}
 .eeh-ach-del{margin-left:auto;background:none;border:none;color:rgba(240,240,246,.14);cursor:pointer;font-size:13px;padding:2px 5px;border-radius:4px;transition:color .15s;flex-shrink:0;}
 .eeh-ach-del:hover{color:#f87171;}
 
+/* ── Period toggle ── */
+.eeh-lb-period-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:28px 48px 0;}
+.eeh-lb-period-tabs{display:flex;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:3px;gap:2px;}
+.eeh-lb-period-btn{padding:7px 24px;border-radius:7px;border:none;background:transparent;color:rgba(240,240,246,.42);font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .16s;}
+.eeh-lb-period-btn:hover{color:rgba(240,240,246,.75);}
+.eeh-lb-period-btn.active{background:#c9a227;color:#1a1209;font-weight:700;box-shadow:0 2px 8px rgba(201,162,39,.3);}
+.eeh-lb-period-sublabel{font-size:10px;color:rgba(240,240,246,.28);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;}
+
+/* ── Rank #1 — hero card ── */
+.eeh-rank1-wrap{padding:16px 48px 0;}
+.eeh-rank1-card{background:linear-gradient(120deg,rgba(201,162,39,.11) 0%,rgba(201,162,39,.04) 55%,rgba(8,8,13,1) 100%);border:1px solid rgba(201,162,39,.22);border-radius:16px;padding:28px 32px;display:flex;align-items:center;gap:28px;position:relative;overflow:hidden;transition:box-shadow .2s;}
+.eeh-rank1-card:hover{box-shadow:0 8px 32px rgba(201,162,39,.12);}
+.eeh-rank1-card::before{content:'★';position:absolute;right:24px;top:-20px;font-size:180px;color:rgba(201,162,39,.035);line-height:1;pointer-events:none;}
+.eeh-rank1-medal{font-size:36px;flex-shrink:0;}
+.eeh-rank1-avatar{width:96px;height:96px;border-radius:50%;overflow:hidden;flex-shrink:0;border:3px solid rgba(201,162,39,.3);box-shadow:0 0 0 5px rgba(201,162,39,.07),0 6px 24px rgba(0,0,0,.4);background:rgba(255,255,255,.06);}
+.eeh-rank1-avatar img{width:100%;height:100%;object-fit:cover;}
+.eeh-rank1-body{flex:1;min-width:0;}
+.eeh-rank1-eyebrow{font-size:10px;font-weight:700;letter-spacing:.18em;color:#c9a227;font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:6px;}
+.eeh-rank1-name{font-size:clamp(18px,2vw,26px);font-weight:800;color:#f0f0f6;margin-bottom:2px;line-height:1.15;}
+.eeh-rank1-dept{font-size:11px;color:rgba(240,240,246,.35);font-family:'DM Mono',monospace;margin-bottom:14px;letter-spacing:.04em;}
+.eeh-rank1-stats{display:flex;align-items:center;gap:20px;}
+.eeh-rank1-stat{text-align:center;}
+.eeh-rank1-stat-val{font-size:26px;font-weight:800;color:#c9a227;line-height:1;}
+.eeh-rank1-stat-lbl{font-size:9px;color:rgba(240,240,246,.3);font-family:'DM Mono',monospace;margin-top:2px;text-transform:uppercase;letter-spacing:.06em;}
+.eeh-rank1-divider{width:1px;height:36px;background:rgba(255,255,255,.08);}
+.eeh-rank1-badge{margin-top:14px;display:inline-flex;align-items:center;gap:5px;font-size:11px;background:rgba(201,162,39,.08);border:1px solid rgba(201,162,39,.2);border-radius:6px;padding:4px 10px;color:#c9a227;font-family:'DM Mono',monospace;letter-spacing:.04em;}
+
+/* ── Rank #2 & #3 — side cards ── */
+.eeh-rank23-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 48px 0;}
+.eeh-rank-sm{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:20px;display:flex;align-items:center;gap:16px;transition:all .18s;}
+.eeh-rank-sm:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.2);}
+.eeh-rank-sm.rank2{border-color:rgba(148,163,184,.14);}
+.eeh-rank-sm.rank3{border-color:rgba(180,83,9,.14);}
+.eeh-rank-sm-medal{font-size:26px;flex-shrink:0;}
+.eeh-rank-sm-avatar{width:56px;height:56px;border-radius:50%;overflow:hidden;flex-shrink:0;background:rgba(255,255,255,.06);}
+.eeh-rank-sm-avatar img{width:100%;height:100%;object-fit:cover;}
+.eeh-rank-sm-body{flex:1;min-width:0;}
+.eeh-rank-sm-name{font-size:14px;font-weight:700;color:#f0f0f6;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.eeh-rank-sm-dept{font-size:10px;color:rgba(240,240,246,.3);font-family:'DM Mono',monospace;margin-bottom:8px;}
+.eeh-rank-sm-score-row{display:flex;align-items:baseline;gap:5px;}
+.eeh-rank-sm-score{font-size:20px;font-weight:800;}
+.rank2 .eeh-rank-sm-score{color:#94a3b8;}
+.rank3 .eeh-rank-sm-score{color:#b45309;}
+.eeh-rank-sm-pts{font-size:9px;color:rgba(240,240,246,.28);font-family:'DM Mono',monospace;text-transform:uppercase;}
+.eeh-rank-sm-articles{font-size:10px;color:rgba(240,240,246,.3);margin-top:3px;font-family:'DM Mono',monospace;}
+
+/* ── Rank #4 & #5 — list rows ── */
+.eeh-rank-list{display:flex;flex-direction:column;gap:8px;padding:12px 48px 0;}
+.eeh-rank-row{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:14px;transition:all .16s;}
+.eeh-rank-row:hover{border-color:rgba(255,255,255,.09);background:rgba(255,255,255,.03);}
+.eeh-rank-row-pos{font-size:13px;font-weight:700;color:rgba(240,240,246,.3);flex-shrink:0;width:20px;text-align:center;font-family:'DM Mono',monospace;}
+.eeh-rank-row-avatar{width:40px;height:40px;border-radius:50%;overflow:hidden;flex-shrink:0;background:rgba(255,255,255,.06);}
+.eeh-rank-row-avatar img{width:100%;height:100%;object-fit:cover;}
+.eeh-rank-row-body{flex:1;min-width:0;}
+.eeh-rank-row-name{font-size:13px;font-weight:700;color:#f0f0f6;}
+.eeh-rank-row-dept{font-size:10px;color:rgba(240,240,246,.28);font-family:'DM Mono',monospace;margin-top:1px;}
+.eeh-rank-row-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
+.eeh-rank-row-score{font-size:16px;font-weight:700;color:#f0f0f6;}
+.eeh-rank-row-bar{width:100px;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;}
+.eeh-rank-row-bar-fill{height:100%;background:linear-gradient(90deg,#c9a227,#fbbf24);border-radius:2px;}
+.eeh-rank-row-pts{font-size:9px;color:rgba(240,240,246,.25);font-family:'DM Mono',monospace;text-transform:uppercase;}
+
 /* ══ SWEET PLACE ═════════════════════════════════════════ */
 .eeh-sp-hero{padding:44px 48px 36px;background:linear-gradient(135deg,rgba(139,92,246,.08) 0%,rgba(236,72,153,.04) 60%,transparent 100%);border-bottom:1px solid rgba(255,255,255,.04);position:relative;overflow:hidden;}
 .eeh-sp-hero::after{content:'';position:absolute;top:-60px;right:-60px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(167,139,250,.09) 0%,transparent 70%);pointer-events:none;}

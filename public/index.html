@@ -18,7 +18,7 @@
   <noscript>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
-  <link rel="stylesheet" href="/style.css?v=58">
+  <link rel="stylesheet" href="/style.css?v=59">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -4641,20 +4641,22 @@ async function updateFeedbackStatus(id) {
       <p class="eeh-lb-sub">Recognising the people who go above and beyond — every month, every quarter, every year.</p>
     </div>
 
-    <!-- Employee of the Year — hero spotlight -->
-    <div class="eeh-section-label" style="padding-top:32px;">⭐ Employee of the Year</div>
-    <div class="eeh-spot-year-wrap" id="eehSpotYear"><!-- rendered by JS --></div>
-
-    <!-- Month + Quarter -->
-    <div class="eeh-section-label" style="padding-top:24px;">Monthly &amp; Quarterly Spotlights</div>
-    <div class="eeh-spotlights-grid" id="eehSpotGrid"><!-- rendered by JS --></div>
-
-    <!-- Admin controls -->
-    <div class="eeh-admin-strip" id="eehSpotlightAdmin" style="display:none;">
-      <button class="eeh-admin-btn" onclick="eehOpenSpotlightModal('month')">✏️ Edit Employee of Month</button>
-      <button class="eeh-admin-btn" onclick="eehOpenSpotlightModal('quarter')">✏️ Edit Employee of Quarter</button>
-      <button class="eeh-admin-btn" onclick="eehOpenSpotlightModal('year')">✏️ Edit Employee of Year</button>
+    <!-- Period toggle -->
+    <div class="eeh-lb-period-wrap">
+      <div class="eeh-lb-period-tabs">
+        <button class="eeh-lb-period-btn active" data-period="month" onclick="eehSetPeriod('month',this)">📅 This Month</button>
+        <button class="eeh-lb-period-btn" data-period="quarter" onclick="eehSetPeriod('quarter',this)">🗓️ This Quarter</button>
+        <button class="eeh-lb-period-btn" data-period="year" onclick="eehSetPeriod('year',this)">📆 This Year</button>
+      </div>
+      <div class="eeh-lb-period-sublabel" id="eehLbPeriodLabel"></div>
     </div>
+
+    <!-- #1 Hero rank -->
+    <div id="eehRank1" class="eeh-rank1-wrap"><!-- rendered by JS --></div>
+    <!-- #2 and #3 -->
+    <div id="eehRank23" class="eeh-rank23-grid"><!-- rendered by JS --></div>
+    <!-- #4 and #5 -->
+    <div id="eehRankRest" class="eeh-rank-list"><!-- rendered by JS --></div>
 
     <!-- Achievement Wall -->
     <div class="eeh-section-label" style="padding-top:24px;">🏅 Achievement Wall</div>
@@ -6642,7 +6644,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=5" defer></script>
-  <script src="/app.js?v=28" defer></script>
+  <script src="/app.js?v=29" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      ISSUE RESOLUTION PORTAL
