@@ -5260,8 +5260,8 @@ function eehRenderLeaderboard(data) {
   const top = data[0];
   const maxScore = top ? top.score : 1;
 
-  const periodLabels = { month: 'July 2026', quarter: 'Q3 2026 (Jul–Sep)', year: '2026' };
-  const periodNames  = { month: 'This Month', quarter: 'This Quarter', year: 'This Year' };
+  const periodLabels = { month: 'Last 30 Days', quarter: 'Last 90 Days', year: '2026' };
+  const periodNames  = { month: 'Last 30 Days', quarter: 'Last 90 Days', year: 'This Year' };
   const lbl = document.getElementById('eehLbPeriodLabel');
   if (lbl) lbl.textContent = periodLabels[_eehCurrentPeriod] || '';
 

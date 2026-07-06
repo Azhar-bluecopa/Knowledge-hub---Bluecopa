@@ -2068,9 +2068,9 @@ app.get('/api/leaderboard', async (req, res) => {
   function periodStart(p) {
     const d = new Date(now);
     if (p === 'month') {
-      d.setDate(1); d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - 30); d.setHours(0, 0, 0, 0);
     } else if (p === 'quarter') {
-      d.setMonth(Math.floor(d.getMonth() / 3) * 3, 1); d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - 90); d.setHours(0, 0, 0, 0);
     } else {
       d.setMonth(0, 1); d.setHours(0, 0, 0, 0);
     }

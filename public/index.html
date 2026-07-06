@@ -4644,8 +4644,8 @@ async function updateFeedbackStatus(id) {
     <!-- Period toggle -->
     <div class="eeh-lb-period-wrap">
       <div class="eeh-lb-period-tabs">
-        <button class="eeh-lb-period-btn" data-period="month" onclick="eehSetPeriod('month',this)">📅 This Month</button>
-        <button class="eeh-lb-period-btn" data-period="quarter" onclick="eehSetPeriod('quarter',this)">🗓️ This Quarter</button>
+        <button class="eeh-lb-period-btn" data-period="month" onclick="eehSetPeriod('month',this)">📅 Last 30 Days</button>
+        <button class="eeh-lb-period-btn" data-period="quarter" onclick="eehSetPeriod('quarter',this)">🗓️ Last 90 Days</button>
         <button class="eeh-lb-period-btn active" data-period="year" onclick="eehSetPeriod('year',this)">📆 This Year</button>
       </div>
       <div class="eeh-lb-period-sublabel" id="eehLbPeriodLabel"></div>
@@ -6655,7 +6655,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=5" defer></script>
-  <script src="/app.js?v=31" defer></script>
+  <script src="/app.js?v=32" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      ISSUE RESOLUTION PORTAL
