@@ -79,13 +79,14 @@ function loadFileDB() {
 // Persist — MongoDB when available, otherwise local file
 function saveDB(data) {
   if (mongoCol) {
-    mongoCol.replaceOne({ _id: 'main' }, { _id: 'main', ...data }, { upsert: true })
+    // Return the promise so callers can await it when needed
+    return mongoCol.replaceOne({ _id: 'main' }, { _id: 'main', ...data }, { upsert: true })
       .catch(e => console.error('[saveDB/mongo]', e.message));
-    return;
   }
-  if (IS_VERCEL) return; // no file write on Vercel without Mongo
+  if (IS_VERCEL) return Promise.resolve(); // no file write on Vercel without Mongo
   try { fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf8'); }
   catch (e) { console.error('[saveDB/file]', e.message); }
+  return Promise.resolve();
 }
 
 // Connect to MongoDB Atlas and load data
@@ -2072,6 +2073,11 @@ app.get('/api/leaderboard', async (req, res) => {
     // On Vercel cold-starts a request can arrive before initDB() + migrate() finish.
     // Awaiting _dbReady is idempotent: instant if already resolved, waits if still in flight.
     if (_dbReady) await _dbReady;
+    // If skill matrix is still empty (saveDB hadn't propagated on previous cold start),
+    // re-run migrate() synchronously so this request sees seed data in memory.
+    if (!db.skillMatrix || (db.skillMatrix.employees || []).length === 0) {
+      try { migrate(); } catch (e) { console.error('[lb-seed]', e.message); }
+    }
   const now = new Date();
   const y = now.getFullYear(), m = now.getMonth();
 
@@ -2249,6 +2255,22 @@ app.get('/api/leaderboard', async (req, res) => {
     console.error('[leaderboard]', err);
     res.status(500).json({ error: 'Failed to compute leaderboard', detail: err.message });
   }
+});
+
+// ── Debug: inspect live DB state (admin only) ────────────────────────────────
+app.get('/api/debug/db', async (req, res) => {
+  if (_dbReady) await _dbReady;
+  res.json({
+    articles:    (db.articles || []).length,
+    firstArticleDate: (db.articles || [])[0]?.created_at || null,
+    lastArticleDate:  (db.articles || []).slice(-1)[0]?.created_at || null,
+    skillMatrixEmployees: (db.skillMatrix?.employees || []).length,
+    puzzleAttempts: (db.processGame?.attempts || []).length,
+    ideas:        (db.engagement?.ideas || []).length,
+    tasks:        (db.tasks || []).length,
+    issues:       (db.issues || []).length,
+    mongoConnected: !!mongoCol,
+  });
 });
 
 // ── Export for Vercel serverless ──────────────────────────────────────────────
