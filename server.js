@@ -165,16 +165,23 @@ function migrate() {
   }
 
   // ── 360° Leaderboard seed data ────────────────────────────────────────────
-  // Skill Matrix — seed team roster + process scores if empty
+  // All checks use a specific ID as a canary so they're idempotent even when
+  // MongoDB already has some data from real UI usage.
+
+  // Skill Matrix — ensure our team's scores exist (keyed by 'Azhar' as canary)
   if (!db.skillMatrix) db.skillMatrix = { employees:[], processAreas:[], currentScores:{}, snapshots:[], nextSnapshotId:1 };
-  if (db.skillMatrix.employees.length === 0) {
-    db.skillMatrix.employees = [
-      'Azhar','Dharma Teja Taddi','Sai Kumar','Divyam Pandey','Karthik Varma',
-      'Srikanth Ande','Srinivas Puneeth','Bhuvaneshwari Jangam','Sameera J',
-      'Bhavana Priya','Jnanendra Avinash Golakoti','Hemanth Varma Pakalapati','Pradyumn Vibhandik'
-    ];
-    db.skillMatrix.processAreas = ['Data Ingestion','Reconciliation','Workflows','Portal Creation','Exports'];
-    db.skillMatrix.currentScores = {
+  if (!db.skillMatrix.currentScores) db.skillMatrix.currentScores = {};
+  if (!db.skillMatrix.currentScores['Azhar']) {
+    // Merge our team into the existing employee list without removing UI-added entries
+    const existing = new Set(db.skillMatrix.employees || []);
+    ['Azhar','Dharma Teja Taddi','Sai Kumar','Divyam Pandey','Karthik Varma',
+     'Srikanth Ande','Srinivas Puneeth','Bhuvaneshwari Jangam','Sameera J',
+     'Bhavana Priya','Jnanendra Avinash Golakoti','Hemanth Varma Pakalapati','Pradyumn Vibhandik']
+      .forEach(n => existing.add(n));
+    db.skillMatrix.employees = [...existing];
+    if (!db.skillMatrix.processAreas || !db.skillMatrix.processAreas.length)
+      db.skillMatrix.processAreas = ['Data Ingestion','Reconciliation','Workflows','Portal Creation','Exports'];
+    Object.assign(db.skillMatrix.currentScores, {
       'Azhar':                       { 'Data Ingestion':92,'Reconciliation':88,'Workflows':90,'Portal Creation':82,'Exports':78 },
       'Dharma Teja Taddi':           { 'Data Ingestion':82,'Reconciliation':75,'Workflows':78,'Portal Creation':70,'Exports':68 },
       'Sai Kumar':                   { 'Data Ingestion':80,'Reconciliation':85,'Workflows':72,'Portal Creation':68,'Exports':75 },
@@ -188,15 +195,15 @@ function migrate() {
       'Jnanendra Avinash Golakoti':  { 'Data Ingestion':75,'Reconciliation':70,'Workflows':68,'Portal Creation':65,'Exports':72 },
       'Hemanth Varma Pakalapati':    { 'Data Ingestion':68,'Reconciliation':65,'Workflows':72,'Portal Creation':60,'Exports':65 },
       'Pradyumn Vibhandik':          { 'Data Ingestion':62,'Reconciliation':58,'Workflows':65,'Portal Creation':55,'Exports':60 },
-    };
+    });
     dirty = true;
   }
 
-  // Process Puzzle — seed demo attempts if none exist
+  // Process Puzzle — add demo attempts if id 'pa_001' not yet present
   if (!db.processGame) db.processGame = { currentGame: null, attempts: [], gameHistory: [] };
   if (!Array.isArray(db.processGame.attempts)) db.processGame.attempts = [];
-  if (db.processGame.attempts.length === 0) {
-    db.processGame.attempts = [
+  if (!db.processGame.attempts.find(a => a.id === 'pa_001')) {
+    db.processGame.attempts.push(
       { id:'pa_001', gameId:'demo', playerName:'Azhar',                     playerInitials:'AZ', score:9,  total:10, accuracy:90, timeTaken:95000,  completedAt:'2026-07-03T10:00:00.000Z', isFirstAttempt:true },
       { id:'pa_002', gameId:'demo', playerName:'Karthik Varma',             playerInitials:'KV', score:10, total:10, accuracy:100,timeTaken:72000,  completedAt:'2026-07-03T10:30:00.000Z', isFirstAttempt:true },
       { id:'pa_003', gameId:'demo', playerName:'Dharma Teja Taddi',         playerInitials:'DT', score:8,  total:10, accuracy:80, timeTaken:145000, completedAt:'2026-07-04T09:00:00.000Z', isFirstAttempt:true },
@@ -204,31 +211,30 @@ function migrate() {
       { id:'pa_005', gameId:'demo', playerName:'Hemanth Varma Pakalapati',  playerInitials:'HV', score:8,  total:10, accuracy:80, timeTaken:130000, completedAt:'2026-07-05T10:00:00.000Z', isFirstAttempt:true },
       { id:'pa_006', gameId:'demo', playerName:'Divyam Pandey',             playerInitials:'DP', score:6,  total:10, accuracy:60, timeTaken:200000, completedAt:'2026-07-05T11:00:00.000Z', isFirstAttempt:true },
       { id:'pa_007', gameId:'demo', playerName:'Srinivas Puneeth',          playerInitials:'SP', score:7,  total:10, accuracy:70, timeTaken:160000, completedAt:'2026-07-06T09:00:00.000Z', isFirstAttempt:true },
-      { id:'pa_008', gameId:'demo', playerName:'Srikanth Ande',             playerInitials:'SA', score:9,  total:10, accuracy:90, timeTaken:105000, completedAt:'2026-07-06T09:30:00.000Z', isFirstAttempt:true },
-    ];
+      { id:'pa_008', gameId:'demo', playerName:'Srikanth Ande',             playerInitials:'SA', score:9,  total:10, accuracy:90, timeTaken:105000, completedAt:'2026-07-06T09:30:00.000Z', isFirstAttempt:true }
+    );
     dirty = true;
   }
 
-  // Ideas — seed demo ideas if none exist
+  // Ideas — add demo ideas if id 1 not yet present
   if (db.engagement && !Array.isArray(db.engagement.ideas)) db.engagement.ideas = [];
-  if (db.engagement && db.engagement.ideas.length === 0) {
-    db.engagement.ideas = [
+  if (db.engagement && !db.engagement.ideas.find(i => i.id === 1)) {
+    db.engagement.ideas.push(
       { id:1, title:'AI-powered article summarizer for faster reading', category:'Website Improvement',   author:'Azhar',               date:'2026-07-01T09:00:00.000Z', votes:8,  voters:[], status:'implemented' },
       { id:2, title:'Weekly knowledge quiz with team leaderboard',      category:'Process Improvement',   author:'Dharma Teja Taddi',   date:'2026-07-02T10:00:00.000Z', votes:5,  voters:[], status:'in-progress' },
       { id:3, title:'Client-specific knowledge sections per project',   category:'Process Improvement',   author:'Sai Kumar',           date:'2026-07-02T14:00:00.000Z', votes:3,  voters:[], status:'new' },
       { id:4, title:'Dark mode for the portal',                         category:'Website Improvement',   author:'Divyam Pandey',       date:'2026-07-03T15:00:00.000Z', votes:4,  voters:[], status:'new' },
       { id:5, title:'Automated onboarding checklist for new joiners',   category:'Process Improvement',   author:'Srikanth Ande',       date:'2026-07-04T11:00:00.000Z', votes:6,  voters:[], status:'in-progress' },
-      { id:6, title:'Video walkthroughs for complex processes',         category:'Process Improvement',   author:'Karthik Varma',       date:'2026-07-05T09:00:00.000Z', votes:3,  voters:[], status:'new' },
-    ];
-    db.engagement.nextIdeaId = 7;
+      { id:6, title:'Video walkthroughs for complex processes',         category:'Process Improvement',   author:'Karthik Varma',       date:'2026-07-05T09:00:00.000Z', votes:3,  voters:[], status:'new' }
+    );
+    if (!db.engagement.nextIdeaId || db.engagement.nextIdeaId < 7) db.engagement.nextIdeaId = 7;
     dirty = true;
   }
 
-  // Tasks — seed completed demo tasks if only a few tasks exist
+  // Tasks — add demo tasks if id 10 not yet present
   if (!db.tasks) db.tasks = [];
-  if (db.tasks.length < 8) {
-    const existingIds = new Set(db.tasks.map(t => t.id));
-    const demoTasks = [
+  if (!db.tasks.find(t => t.id === 10)) {
+    db.tasks.push(
       { id:10, title:'Complete Q2 reconciliation review',    assigneeName:'Azhar',               assigneeEmail:'azhar.m@bluecopa.com', assignedByName:'Admin', assignedByEmail:'azhar.m@bluecopa.com', dueDate:'2026-07-01', priority:'high',   status:'completed', createdAt:'2026-06-25T09:00:00.000Z', links:[], comments:[] },
       { id:11, title:'Update delivery process documentation',assigneeName:'Azhar',               assigneeEmail:'azhar.m@bluecopa.com', assignedByName:'Admin', assignedByEmail:'azhar.m@bluecopa.com', dueDate:'2026-07-05', priority:'medium', status:'completed', createdAt:'2026-06-28T09:00:00.000Z', links:[], comments:[] },
       { id:12, title:'Review onboarding article for accuracy',assigneeName:'Dharma Teja Taddi',  assigneeEmail:'dharma@bluecopa.com',  assignedByName:'Admin', assignedByEmail:'azhar.m@bluecopa.com', dueDate:'2026-07-03', priority:'high',   status:'completed', createdAt:'2026-06-27T09:00:00.000Z', links:[], comments:[] },
@@ -236,9 +242,8 @@ function migrate() {
       { id:14, title:'Fix reconciliation module test cases',  assigneeName:'Karthik Varma',       assigneeEmail:'karthik@bluecopa.com', assignedByName:'Admin', assignedByEmail:'azhar.m@bluecopa.com', dueDate:'2026-07-02', priority:'medium', status:'completed', createdAt:'2026-06-26T09:00:00.000Z', links:[], comments:[] },
       { id:15, title:'Write GCS connector documentation',    assigneeName:'Srikanth Ande',       assigneeEmail:'srikanth@bluecopa.com',assignedByName:'Admin', assignedByEmail:'azhar.m@bluecopa.com', dueDate:'2026-07-04', priority:'medium', status:'completed', createdAt:'2026-06-27T09:00:00.000Z', links:[], comments:[] },
       { id:16, title:'Audit skill matrix scores for Q2',     assigneeName:'Srinivas Puneeth',    assigneeEmail:'srinivas@bluecopa.com',assignedByName:'Admin', assignedByEmail:'azhar.m@bluecopa.com', dueDate:'2026-07-05', priority:'low',    status:'completed', createdAt:'2026-06-29T09:00:00.000Z', links:[], comments:[] },
-      { id:17, title:'Submit issue resolution report',        assigneeName:'Dharma Teja Taddi',   assigneeEmail:'dharma@bluecopa.com',  assignedByName:'Admin', assignedByEmail:'azhar.m@bluecopa.com', dueDate:'2026-07-06', priority:'high',   status:'completed', createdAt:'2026-06-30T09:00:00.000Z', links:[], comments:[] },
-    ];
-    demoTasks.forEach(t => { if (!existingIds.has(t.id)) db.tasks.push(t); });
+      { id:17, title:'Submit issue resolution report',        assigneeName:'Dharma Teja Taddi',   assigneeEmail:'dharma@bluecopa.com',  assignedByName:'Admin', assignedByEmail:'azhar.m@bluecopa.com', dueDate:'2026-07-06', priority:'high',   status:'completed', createdAt:'2026-06-30T09:00:00.000Z', links:[], comments:[] }
+    );
     db.nextTaskId = Math.max(db.nextTaskId || 1, 18);
     dirty = true;
   }
@@ -2073,9 +2078,9 @@ app.get('/api/leaderboard', async (req, res) => {
     // On Vercel cold-starts a request can arrive before initDB() + migrate() finish.
     // Awaiting _dbReady is idempotent: instant if already resolved, waits if still in flight.
     if (_dbReady) await _dbReady;
-    // If skill matrix is still empty (saveDB hadn't propagated on previous cold start),
+    // If our canary score is missing (saveDB hadn't propagated on previous cold start),
     // re-run migrate() synchronously so this request sees seed data in memory.
-    if (!db.skillMatrix || (db.skillMatrix.employees || []).length === 0) {
+    if (!db.skillMatrix?.currentScores?.['Azhar']) {
       try { migrate(); } catch (e) { console.error('[lb-seed]', e.message); }
     }
   const now = new Date();
