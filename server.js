@@ -258,7 +258,7 @@ function migrate() {
     dirty = true;
   }
 
-  if (dirty) saveDB(db);
+  return dirty; // caller is responsible for saveDB
 }
 
 // ── Multer ────────────────────────────────────────────────────────────────────
@@ -875,10 +875,18 @@ if (wss) {
 // ── Boot: init DB then start server ──────────────────────────────────────────
 // Capture the promise so routes can await _dbReady on Vercel cold-starts
 // (a request can arrive before initDB resolves on Vercel serverless)
-_dbReady = initDB().then(() => {
-  migrate();
+_dbReady = initDB().then(async () => {
+  try {
+    const dirty = migrate();
+    // Await saveDB so MongoDB is updated before _dbReady resolves.
+    // This prevents repeated re-seeding on every cold start.
+    if (dirty) await saveDB(db);
+  } catch (e) {
+    console.error('[migrate] error:', e.message);
+  }
+
   // seed default articles only if DB is completely empty
-  if (db.articles.length === 0) {
+  if ((db.articles || []).length === 0) {
     const now = Date.now(), day = 86400000;
     db.articles = [
       { id:1,  title:'How to Onboard a New Client onto Bluecopa',  category:'Support',     author:'Priya Nair',   initials:'PN', excerpt:'Step-by-step guide covering account creation, data migration, user access setup, and initial configuration for new enterprise clients.', content:'Step-by-step guide covering account creation, data migration, user access setup, and initial configuration for new enterprise clients.\n\n1. Create the client account in the admin panel.\n2. Migrate existing data using the import wizard.\n3. Configure user roles and permissions.\n4. Run the initial setup checklist with the client.', tags:['onboarding','setup'],   created_at:new Date(now - 0*day).toISOString(), views:0 },
@@ -897,8 +905,8 @@ _dbReady = initDB().then(() => {
     });
   }
 }).catch(e => {
-  console.error('Failed to init DB:', e);
-  process.exit(1);
+  console.error('[boot] DB init error:', e.message);
+  // Do not exit — serve with whatever partial state db has
 });
 
 // ── Skill Matrix ──────────────────────────────────────────────────────────────
@@ -2059,24 +2067,31 @@ app.post('/api/issues/:id/solutions/:sid/comments', async (req, res) => {
 // ── 360° Leaderboard ─────────────────────────────────────────────────────────
 app.get('/api/leaderboard', async (req, res) => {
   const period = req.query.period || 'year';
+  const offset = parseInt(req.query.offset || '0', 10); // 0=current, -1=prev, etc.
   try {
     // On Vercel cold-starts a request can arrive before initDB() + migrate() finish.
     // Awaiting _dbReady is idempotent: instant if already resolved, waits if still in flight.
     if (_dbReady) await _dbReady;
   const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth();
 
-  function periodStart(p) {
-    const d = new Date(now);
+  // Returns { start, end } for the target period — JavaScript Date handles month/year overflow.
+  function periodRange(p, off) {
+    let start, end;
     if (p === 'month') {
-      d.setDate(d.getDate() - 30); d.setHours(0, 0, 0, 0);
+      start = new Date(y, m + off, 1);
+      end   = new Date(y, m + off + 1, 1);
     } else if (p === 'quarter') {
-      d.setDate(d.getDate() - 90); d.setHours(0, 0, 0, 0);
+      const tq = Math.floor(m / 3) + off;
+      start = new Date(y, tq * 3, 1);
+      end   = new Date(y, tq * 3 + 3, 1);
     } else {
-      d.setMonth(0, 1); d.setHours(0, 0, 0, 0);
+      start = new Date(y + off, 0, 1);
+      end   = new Date(y + off + 1, 0, 1);
     }
-    return d;
+    return { start, end };
   }
-  const pStart = periodStart(period);
+  const { start: pStart, end: pEnd } = periodRange(period, offset);
 
   const empMap = {}; // normalized-name → employee record
 
@@ -2102,7 +2117,7 @@ app.get('/api/leaderboard', async (req, res) => {
   (db.articles || []).forEach(a => {
     if (!a.author) return;
     const ts = new Date(a.created_at || a.updated_at || 0);
-    if (ts < pStart) return;
+    if (ts < pStart || ts >= pEnd) return;
     if (!articleAgg[a.author]) articleAgg[a.author] = { count: 0, cats: new Set(), views: 0 };
     articleAgg[a.author].count++;
     if (a.category) articleAgg[a.author].cats.add(a.category);
@@ -2137,7 +2152,8 @@ app.get('/api/leaderboard', async (req, res) => {
   // ── 3. PROCESS PUZZLES — 5 participation + accuracy bonus + speed bonus ──
   ((db.processGame || {}).attempts || []).forEach(att => {
     if (!att.playerName) return;
-    if (new Date(att.completedAt || 0) < pStart) return;
+    const attTs = new Date(att.completedAt || 0);
+    if (attTs < pStart || attTs >= pEnd) return;
     const e = getEmp(att.playerName, '');
     if (!e) return;
     const pts = 5
@@ -2150,12 +2166,13 @@ app.get('/api/leaderboard', async (req, res) => {
   // ── 4. ISSUES — reporting + solutions + accepted solutions (high weight) ──
   (db.issues || []).forEach(issue => {
     const issueTs = new Date(issue.createdAt || 0);
-    if (issueTs >= pStart && issue.reportedBy?.name) {
+    if (issueTs >= pStart && issueTs < pEnd && issue.reportedBy?.name) {
       const e = getEmp(issue.reportedBy.name, issue.reportedBy.email);
       if (e) { e.breakdown.issues += 8; e.score += 8; }
     }
     (issue.solutions || []).forEach(sol => {
-      if (new Date(sol.createdAt || 0) < pStart) return;
+      const solTs = new Date(sol.createdAt || 0);
+      if (solTs < pStart || solTs >= pEnd) return;
       if (!sol.author?.name) return;
       const e = getEmp(sol.author.name, sol.author.email);
       if (!e) return;
@@ -2172,8 +2189,8 @@ app.get('/api/leaderboard', async (req, res) => {
     const e = getEmp(name, task.assigneeEmail);
     if (!e) return;
     const due = task.dueDate ? new Date(task.dueDate) : null;
-    const inPeriod = due ? due >= pStart : new Date(task.createdAt || 0) >= pStart;
-    if (!inPeriod) return;
+    const taskTs = due || new Date(task.createdAt || 0);
+    if (taskTs < pStart || taskTs >= pEnd) return;
     const hi = { high: 25, medium: 15, low: 8 };
     const lo = { high: 12, medium: 8,  low: 4  };
     const p = task.priority || 'medium';
@@ -2191,7 +2208,8 @@ app.get('/api/leaderboard', async (req, res) => {
   // ── 6. IDEAS — submission + votes received + status bonus ──
   ((db.engagement || {}).ideas || []).forEach(idea => {
     if (!idea.author) return;
-    if (new Date(idea.date || 0) < pStart) return;
+    const ideaTs = new Date(idea.date || 0);
+    if (ideaTs < pStart || ideaTs >= pEnd) return;
     const e = getEmp(idea.author, '');
     if (!e) return;
     const pts = 12
@@ -2204,7 +2222,8 @@ app.get('/api/leaderboard', async (req, res) => {
   // ── 7. LEARNING — enrolled courses (completion tracking coming soon) ──
   ((db.learning || {}).assignments || []).forEach(a => {
     if (!a.userName) return;
-    if (new Date(a.assignedAt || 0) < pStart) return;
+    const lrnTs = new Date(a.assignedAt || 0);
+    if (lrnTs < pStart || lrnTs >= pEnd) return;
     const e = getEmp(a.userName, '');
     if (!e) return;
     const pts = a.type === 'mandatory' ? 10 : 6;

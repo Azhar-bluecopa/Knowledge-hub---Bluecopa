@@ -5197,7 +5197,25 @@ function isAdminUser() {
 
 // ── Leaderboard ─────────────────────────────────────────────
 let _eehCurrentPeriod = 'year';
+let _eehCurrentOffset = 0;   // 0 = current period, -1 = previous, etc.
 let _eehLbCache = {};
+
+function _eehPeriodLabel(period, offset) {
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth();
+  if (period === 'month') {
+    const tm = m + offset;
+    const d = new Date(y, tm, 1);
+    return d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  } else if (period === 'quarter') {
+    const tq = Math.floor(m / 3) + offset;
+    const d = new Date(y, tq * 3, 1);
+    const qNum = Math.floor(d.getMonth() / 3) + 1;
+    return `Q${qNum} ${d.getFullYear()}`;
+  } else {
+    return String(y + offset);
+  }
+}
 
 const _LB_CAT_META = {
   articles: { label: 'Articles',     icon: '📚', color: '#c9a227' },
@@ -5211,14 +5229,26 @@ const _LB_CAT_META = {
 
 function eehSetPeriod(period, el) {
   _eehCurrentPeriod = period;
+  _eehCurrentOffset = 0; // reset to current period when switching tabs
   document.querySelectorAll('.eeh-lb-period-btn').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
   _eehLoadLeaderboard();
 }
 
+function eehNavigatePeriod(delta) {
+  const next = _eehCurrentOffset + delta;
+  if (next > 0) return; // no future periods
+  _eehCurrentOffset = next;
+  // Enable/disable next arrow
+  const nextBtn = document.getElementById('eehLbNavNext');
+  if (nextBtn) nextBtn.disabled = _eehCurrentOffset >= 0;
+  _eehLoadLeaderboard();
+}
+
 async function _eehLoadLeaderboard() {
-  if (_eehLbCache[_eehCurrentPeriod]) {
-    eehRenderLeaderboard(_eehLbCache[_eehCurrentPeriod]);
+  const cacheKey = `${_eehCurrentPeriod}_${_eehCurrentOffset}`;
+  if (_eehLbCache[cacheKey]) {
+    eehRenderLeaderboard(_eehLbCache[cacheKey]);
     return;
   }
   // Show skeleton while loading
@@ -5227,11 +5257,11 @@ async function _eehLoadLeaderboard() {
   ['eehRank23','eehRankRest'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
 
   try {
-    const resp = await fetch(`/api/leaderboard?period=${_eehCurrentPeriod}`);
+    const resp = await fetch(`/api/leaderboard?period=${_eehCurrentPeriod}&offset=${_eehCurrentOffset}`);
     const payload = await resp.json();
     // Server may return { error, detail } on failure — treat as empty
     const data = Array.isArray(payload) ? payload : [];
-    _eehLbCache[_eehCurrentPeriod] = data;
+    _eehLbCache[cacheKey] = data;
     eehRenderLeaderboard(data);
   } catch (err) {
     console.error('[leaderboard]', err);
@@ -5260,10 +5290,12 @@ function eehRenderLeaderboard(data) {
   const top = data[0];
   const maxScore = top ? top.score : 1;
 
-  const periodLabels = { month: 'Last 30 Days', quarter: 'Last 90 Days', year: '2026' };
-  const periodNames  = { month: 'Last 30 Days', quarter: 'Last 90 Days', year: 'This Year' };
+  const label = _eehPeriodLabel(_eehCurrentPeriod, _eehCurrentOffset);
   const lbl = document.getElementById('eehLbPeriodLabel');
-  if (lbl) lbl.textContent = periodLabels[_eehCurrentPeriod] || '';
+  if (lbl) lbl.textContent = label;
+  // Keep next arrow disabled when at current period
+  const nextBtn = document.getElementById('eehLbNavNext');
+  if (nextBtn) nextBtn.disabled = _eehCurrentOffset >= 0;
 
   const dicebear = name => `https://api.dicebear.com/9.x/avataaars/png?seed=${encodeURIComponent(name)}`;
 
@@ -5279,7 +5311,7 @@ function eehRenderLeaderboard(data) {
         <div class="eeh-rank1-medal">🥇</div>
         <div class="eeh-rank1-avatar"><img src="${dicebear(top.name)}" alt="${top.name}"></div>
         <div class="eeh-rank1-body">
-          <div class="eeh-rank1-eyebrow">🏆 Top Performer — ${periodNames[_eehCurrentPeriod]}</div>
+          <div class="eeh-rank1-eyebrow">🏆 Top Performer — ${label}</div>
           <div class="eeh-rank1-name">${top.name}</div>
           <div class="eeh-rank1-dept">${activeCats.map(([k]) => _LB_CAT_META[k]?.icon || '').join(' ')} Active in ${activeCats.length} categories</div>
           <div class="eeh-rank1-stats">

@@ -3480,7 +3480,11 @@ body.proxy-active #liOverlay{top:48px;}
 .eeh-lb-period-btn{padding:7px 24px;border-radius:7px;border:none;background:transparent;color:rgba(240,240,246,.42);font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .16s;}
 .eeh-lb-period-btn:hover{color:rgba(240,240,246,.75);}
 .eeh-lb-period-btn.active{background:#c9a227;color:#1a1209;font-weight:700;box-shadow:0 2px 8px rgba(201,162,39,.3);}
-.eeh-lb-period-sublabel{font-size:10px;color:rgba(240,240,246,.28);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;}
+.eeh-lb-period-nav{display:flex;align-items:center;gap:12px;}
+.eeh-lb-period-sublabel{font-size:10px;color:rgba(240,240,246,.28);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;min-width:80px;text-align:center;}
+.eeh-lb-nav-arrow{width:28px;height:28px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:rgba(240,240,246,.55);font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;padding:0;}
+.eeh-lb-nav-arrow:hover:not(:disabled){background:rgba(201,162,39,.12);border-color:rgba(201,162,39,.4);color:#c9a227;}
+.eeh-lb-nav-arrow:disabled{opacity:.25;cursor:default;}
 
 /* ── Rank #1 — hero card ── */
 .eeh-rank1-wrap{padding:16px 48px 0;}
