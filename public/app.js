@@ -5119,3 +5119,18 @@ function mlHide() {
 
 // Populate greeting on landing page (runs after full DOM is ready since app.js is defer)
 if (typeof renderUserInfo === 'function') renderUserInfo();
+
+// ── Hero phrase cycler ──────────────────────────────────────────────────────
+(function dwHeroCycler() {
+  const phrases = document.querySelectorAll('.dw-hero-phrase');
+  if (!phrases.length) return;
+  let idx = 0;
+  setInterval(() => {
+    const current = phrases[idx];
+    current.classList.add('dw-phrase-exit');
+    current.classList.remove('dw-phrase-active');
+    setTimeout(() => current.classList.remove('dw-phrase-exit'), 700);
+    idx = (idx + 1) % phrases.length;
+    phrases[idx].classList.add('dw-phrase-active');
+  }, 3200);
+})();
