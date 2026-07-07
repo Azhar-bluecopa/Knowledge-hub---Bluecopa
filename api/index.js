@@ -2196,6 +2196,26 @@ app.get('/api/leaderboard', async (req, res) => {
 
     const { start: pStart, end: pEnd } = periodRange(period, offset);
 
+    // Build excluded-names set from admin emails — resolves "Azhar" and
+    // "Azhar Mohammed" (same person) and any future admins automatically.
+    const adminEmails = new Set(
+      ((db.settings && db.settings.adminEmails) || ['azhar.m@bluecopa.com'])
+        .map(e => e.toLowerCase())
+    );
+    const excludedNames = new Set();
+    for (const t of (db.tasks || [])) {
+      if (t.assigneeEmail   && adminEmails.has(t.assigneeEmail.toLowerCase()))   excludedNames.add(t.assigneeName);
+      if (t.assignedByEmail && adminEmails.has(t.assignedByEmail.toLowerCase())) excludedNames.add(t.assignedByName);
+    }
+    for (const issue of (db.issues || [])) {
+      if (issue.reportedBy?.email && adminEmails.has(issue.reportedBy.email.toLowerCase()))
+        excludedNames.add(issue.reportedBy.name);
+    }
+    // Remove blank/Admin entries that shouldn't appear anyway
+    excludedNames.delete('Admin');
+    excludedNames.delete('');
+    excludedNames.delete(undefined);
+
     const empMap = {};
     // addPts stores POINTS (not counts) in breakdown so UI shows actual scores
     function addPts(name, cat, pts) {
@@ -2275,7 +2295,7 @@ app.get('/api/leaderboard', async (req, res) => {
     }
 
     const ranked = Object.values(empMap)
-      .filter(e => e.score > 0)
+      .filter(e => e.score > 0 && !excludedNames.has(e.name))
       .sort((a, b) => b.score - a.score)
       .slice(0, 10)
       .map((e, i) => ({ rank: i + 1, ...e }));
