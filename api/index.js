@@ -2221,7 +2221,7 @@ app.get('/api/leaderboard', async (req, res) => {
       const pts = Math.round(avg / 10);
       if (!pts) continue;
       emp(name).score += pts;
-      emp(name).breakdown.skillMatrix = pts;
+      emp(name).breakdown.skills = pts;
     }
 
     // 3. Puzzles (+5 base + accuracy*0.1, by completedAt)
