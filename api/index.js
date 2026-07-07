@@ -2171,7 +2171,6 @@ app.get('/api/leaderboard', async (req, res) => {
   const offset = parseInt(req.query.offset || '0', 10);
   try {
     await getDbInitPromise();
-    // Per-request seed fallback: if migrate didn't run yet, run it now
     if (!db.skillMatrix?.currentScores?.['Azhar']) {
       try { if (migrate()) await saveDB(db); } catch(e) { console.error('[lb-seed]', e.message); }
     }
@@ -2198,52 +2197,42 @@ app.get('/api/leaderboard', async (req, res) => {
     const { start: pStart, end: pEnd } = periodRange(period, offset);
 
     const empMap = {};
-    function emp(name) {
+    // addPts stores POINTS (not counts) in breakdown so UI shows actual scores
+    function addPts(name, cat, pts) {
+      if (!name || pts <= 0) return;
       if (!empMap[name]) empMap[name] = { name, score: 0, breakdown: {} };
-      return empMap[name];
+      empMap[name].score += pts;
+      empMap[name].breakdown[cat] = (empMap[name].breakdown[cat] || 0) + pts;
     }
 
-    // 1. Articles (+10 each, by created_at)
+    // 1. Articles published (+10 each, by created_at)
     for (const a of (db.articles || [])) {
       if (!a.author) continue;
       const ts = new Date(a.created_at);
       if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
-      emp(a.author).score += 10;
-      emp(a.author).breakdown.articles = (emp(a.author).breakdown.articles || 0) + 1;
+      addPts(a.author, 'articles', 10);
     }
 
-    // 2. Skill Matrix — always-on, avg score across areas / 10
-    const smScores = (db.skillMatrix && db.skillMatrix.currentScores) || {};
-    for (const [name, areaScores] of Object.entries(smScores)) {
-      const vals = Object.values(areaScores).filter(v => typeof v === 'number');
-      if (!vals.length) continue;
-      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-      const pts = Math.round(avg / 10);
-      if (!pts) continue;
-      emp(name).score += pts;
-      emp(name).breakdown.skills = pts;
-    }
-
-    // 3. Puzzles (+5 base + accuracy*0.1, by completedAt)
+    // 2. Process Puzzles (+5 base + accuracy×0.1, by completedAt)
     for (const a of ((db.processGame && db.processGame.attempts) || [])) {
       if (!a.playerName) continue;
       const ts = new Date(a.completedAt);
       if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
-      const pts = 5 + Math.round((a.accuracy || 0) * 0.1);
-      emp(a.playerName).score += pts;
-      emp(a.playerName).breakdown.puzzles = (emp(a.playerName).breakdown.puzzles || 0) + 1;
+      addPts(a.playerName, 'puzzles', 5 + Math.round((a.accuracy || 0) * 0.1));
     }
 
-    // 4. Issues resolved (+15 per accepted solution, by acceptedAt)
+    // 3. Issues solved (+15 per accepted solution, by acceptedAt)
+    // 4. Issues raised (+3 per issue reported, by createdAt)
     for (const issue of (db.issues || [])) {
+      if (issue.reportedBy?.name) {
+        const ts = new Date(issue.createdAt);
+        if (!isNaN(ts) && ts >= pStart && ts < pEnd) addPts(issue.reportedBy.name, 'raised', 3);
+      }
       for (const sol of (issue.solutions || [])) {
-        if (!sol.isAccepted) continue;
+        if (!sol.isAccepted || !sol.author?.name) continue;
         const ts = new Date(sol.acceptedAt || sol.createdAt);
         if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
-        const name = sol.author && sol.author.name;
-        if (!name) continue;
-        emp(name).score += 15;
-        emp(name).breakdown.issues = (emp(name).breakdown.issues || 0) + 1;
+        addPts(sol.author.name, 'issues', 15);
       }
     }
 
@@ -2254,17 +2243,15 @@ app.get('/api/leaderboard', async (req, res) => {
       if (!dateStr) continue;
       const ts = new Date(dateStr.length === 10 ? dateStr + 'T00:00:00.000Z' : dateStr);
       if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
-      emp(t.assigneeName).score += 8;
-      emp(t.assigneeName).breakdown.tasks = (emp(t.assigneeName).breakdown.tasks || 0) + 1;
+      addPts(t.assigneeName, 'tasks', 8);
     }
 
-    // 6. Ideas (+5 each, by date)
+    // 6. Ideas submitted (+5 each, by date)
     for (const idea of ((db.engagement && db.engagement.ideas) || [])) {
       if (!idea.author) continue;
       const ts = new Date(idea.date);
       if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
-      emp(idea.author).score += 5;
-      emp(idea.author).breakdown.ideas = (emp(idea.author).breakdown.ideas || 0) + 1;
+      addPts(idea.author, 'ideas', 5);
     }
 
     // 7. Learning assignments (+3 each, by assignedAt)
@@ -2272,8 +2259,19 @@ app.get('/api/leaderboard', async (req, res) => {
       if (!a.userName) continue;
       const ts = new Date(a.assignedAt);
       if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
-      emp(a.userName).score += 3;
-      emp(a.userName).breakdown.learning = (emp(a.userName).breakdown.learning || 0) + 1;
+      addPts(a.userName, 'learning', 3);
+    }
+
+    // 8. Skill Matrix — PROFILE BONUS only for people with other activity in period.
+    //    Kept last so it never causes someone to appear in a period with no real activity.
+    const smScores = (db.skillMatrix && db.skillMatrix.currentScores) || {};
+    for (const [name, areaScores] of Object.entries(smScores)) {
+      if (!empMap[name]) continue; // skip — no activity this period
+      const vals = Object.values(areaScores).filter(v => typeof v === 'number');
+      if (!vals.length) continue;
+      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const pts = Math.round(avg / 10);
+      if (pts > 0) addPts(name, 'skills', pts);
     }
 
     const ranked = Object.values(empMap)

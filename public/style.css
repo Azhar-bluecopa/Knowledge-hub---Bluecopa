@@ -3531,8 +3531,12 @@ body.proxy-active #liOverlay{top:48px;}
 .eeh-lb-empty{padding:32px;text-align:center;color:rgba(240,240,246,.3);font-size:13px;font-family:'DM Mono',monospace;}
 
 /* ── Score legend ── */
-.eeh-lb-legend{display:flex;flex-wrap:wrap;gap:6px 16px;padding:0 48px 4px;justify-content:center;}
-.eeh-lb-legend-item{font-size:10px;color:rgba(240,240,246,.3);font-family:'DM Mono',monospace;display:flex;align-items:center;gap:4px;letter-spacing:.04em;}
+.eeh-lb-legend{display:flex;flex-wrap:wrap;gap:4px 12px;padding:0 48px 8px;justify-content:center;align-items:center;}
+.eeh-lb-legend-hd{font-size:9px;color:rgba(240,240,246,.25);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;margin-right:4px;}
+.eeh-lb-legend-item{font-size:10px;color:rgba(240,240,246,.3);font-family:'DM Mono',monospace;display:flex;align-items:center;gap:3px;letter-spacing:.03em;}
+.eeh-lb-legend-item b{color:#c9a227;font-weight:600;}
+.eeh-stat-pts{font-size:10px;opacity:.45;margin-left:2px;font-weight:400;font-family:'DM Mono',monospace;}
+.eeh-bd-pts{font-size:8px;opacity:.5;margin-left:1px;}
 
 /* ── Breakdown bars (shared between rank1, rank-sm) ── */
 .eeh-bd-wrap{display:flex;flex-direction:column;gap:4px;margin-top:12px;}

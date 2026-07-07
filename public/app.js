@@ -5218,13 +5218,14 @@ function _eehPeriodLabel(period, offset) {
 }
 
 const _LB_CAT_META = {
-  articles: { label: 'Articles',     icon: '📚', color: '#c9a227' },
-  skills:   { label: 'Skill Matrix', icon: '🎯', color: '#7a9ee8' },
-  puzzles:  { label: 'Puzzles',      icon: '🧩', color: '#7ae8b4' },
-  issues:   { label: 'Issues Solved',icon: '🐛', color: '#e87a9e' },
-  tasks:    { label: 'Tasks',        icon: '✅', color: '#c97ae8' },
-  ideas:    { label: 'Ideas',        icon: '💡', color: '#e8a87a' },
-  learning: { label: 'Learning',     icon: '📖', color: '#7ae8e8' },
+  articles: { label: 'Articles',      icon: '📚', color: '#c9a227' },
+  skills:   { label: 'Skill Matrix',  icon: '🎯', color: '#7a9ee8' },
+  puzzles:  { label: 'Puzzles',       icon: '🧩', color: '#7ae8b4' },
+  issues:   { label: 'Issue Solved',  icon: '🐛', color: '#e87a9e' },
+  raised:   { label: 'Issue Raised',  icon: '🚀', color: '#e8d47a' },
+  tasks:    { label: 'Tasks Done',    icon: '✅', color: '#c97ae8' },
+  ideas:    { label: 'Ideas',         icon: '💡', color: '#e8a87a' },
+  learning: { label: 'Learning',      icon: '📘', color: '#7ae8e8' },
 };
 
 function eehSetPeriod(period, el) {
@@ -5270,7 +5271,7 @@ async function _eehLoadLeaderboard() {
 }
 
 function _eehBreakdownBars(breakdown, maxScore) {
-  const cats = Object.entries(breakdown).filter(([, v]) => v > 0);
+  const cats = Object.entries(breakdown).filter(([, v]) => v > 0).sort(([,a],[,b]) => b-a);
   if (!cats.length) return '';
   return `<div class="eeh-bd-wrap">${
     cats.map(([k, v]) => {
@@ -5279,7 +5280,7 @@ function _eehBreakdownBars(breakdown, maxScore) {
       return `<div class="eeh-bd-item" title="${m.label}: ${v} pts">
         <span class="eeh-bd-icon">${m.icon}</span>
         <div class="eeh-bd-bar"><div class="eeh-bd-fill" style="width:${pct}%;background:${m.color}"></div></div>
-        <span class="eeh-bd-val">${v}</span>
+        <span class="eeh-bd-val">${v}<span class="eeh-bd-pts">p</span></span>
       </div>`;
     }).join('')
   }</div>`;
@@ -5316,13 +5317,13 @@ function eehRenderLeaderboard(data) {
           <div class="eeh-rank1-dept">${activeCats.map(([k]) => _LB_CAT_META[k]?.icon || '').join(' ')} Active in ${activeCats.length} categories</div>
           <div class="eeh-rank1-stats">
             <div class="eeh-rank1-stat">
-              <div class="eeh-rank1-stat-val">${top.score}</div>
+              <div class="eeh-rank1-stat-val">${top.score}<span class="eeh-stat-pts">pts</span></div>
               <div class="eeh-rank1-stat-lbl">Total Score</div>
             </div>
-            ${Object.entries(bd).filter(([,v]) => v > 0).slice(0, 3).map(([k, v]) => `
+            ${Object.entries(bd).filter(([,v]) => v > 0).sort(([,a],[,b]) => b-a).slice(0, 3).map(([k, v]) => `
             <div class="eeh-rank1-divider"></div>
             <div class="eeh-rank1-stat">
-              <div class="eeh-rank1-stat-val" style="color:${_LB_CAT_META[k]?.color||'#fff'}">${v}</div>
+              <div class="eeh-rank1-stat-val" style="color:${_LB_CAT_META[k]?.color||'#fff'}">${v}<span class="eeh-stat-pts">pts</span></div>
               <div class="eeh-rank1-stat-lbl">${_LB_CAT_META[k]?.label || k}</div>
             </div>`).join('')}
           </div>
