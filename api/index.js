@@ -67,6 +67,109 @@ async function saveDB(data) {
   // On Vercel file writes are no-ops, so we don't even try
 }
 
+// ── Data migration / seed ─────────────────────────────────────────────────────
+function migrate() {
+  let dirty = false;
+
+  // Skill Matrix — canary: currentScores['Azhar']
+  if (!db.skillMatrix) db.skillMatrix = { employees:[], processAreas:[], currentScores:{}, snapshots:[], nextSnapshotId:1 };
+  if (!db.skillMatrix.currentScores) db.skillMatrix.currentScores = {};
+  if (!db.skillMatrix.currentScores['Azhar']) {
+    const existing = new Set(db.skillMatrix.employees || []);
+    ['Azhar','Dharma Teja Taddi','Sai Kumar','Divyam Pandey','Karthik Varma',
+     'Srikanth Ande','Srinivas Puneeth','Bhuvaneshwari Jangam','Sameera J',
+     'Bhavana Priya','Jnanendra Avinash Golakoti','Hemanth Varma Pakalapati','Pradyumn Vibhandik']
+      .forEach(n => existing.add(n));
+    db.skillMatrix.employees = [...existing];
+    if (!db.skillMatrix.processAreas || !db.skillMatrix.processAreas.length)
+      db.skillMatrix.processAreas = ['Data Ingestion','Reconciliation','Workflows','Portal Creation','Exports'];
+    Object.assign(db.skillMatrix.currentScores, {
+      'Azhar':                      { 'Data Ingestion':92,'Reconciliation':88,'Workflows':90,'Portal Creation':82,'Exports':78 },
+      'Dharma Teja Taddi':          { 'Data Ingestion':82,'Reconciliation':75,'Workflows':78,'Portal Creation':70,'Exports':68 },
+      'Sai Kumar':                  { 'Data Ingestion':80,'Reconciliation':85,'Workflows':72,'Portal Creation':68,'Exports':75 },
+      'Divyam Pandey':              { 'Data Ingestion':65,'Reconciliation':62,'Workflows':70,'Portal Creation':58,'Exports':60 },
+      'Karthik Varma':              { 'Data Ingestion':72,'Reconciliation':68,'Workflows':65,'Portal Creation':75,'Exports':70 },
+      'Srikanth Ande':              { 'Data Ingestion':78,'Reconciliation':72,'Workflows':68,'Portal Creation':62,'Exports':65 },
+      'Srinivas Puneeth':           { 'Data Ingestion':70,'Reconciliation':68,'Workflows':72,'Portal Creation':65,'Exports':62 },
+      'Bhuvaneshwari Jangam':       { 'Data Ingestion':60,'Reconciliation':65,'Workflows':58,'Portal Creation':55,'Exports':62 },
+      'Sameera J':                  { 'Data Ingestion':68,'Reconciliation':62,'Workflows':65,'Portal Creation':70,'Exports':58 },
+      'Bhavana Priya':              { 'Data Ingestion':72,'Reconciliation':65,'Workflows':70,'Portal Creation':62,'Exports':68 },
+      'Jnanendra Avinash Golakoti': { 'Data Ingestion':75,'Reconciliation':70,'Workflows':68,'Portal Creation':65,'Exports':72 },
+      'Hemanth Varma Pakalapati':   { 'Data Ingestion':68,'Reconciliation':65,'Workflows':72,'Portal Creation':60,'Exports':65 },
+      'Pradyumn Vibhandik':         { 'Data Ingestion':62,'Reconciliation':58,'Workflows':65,'Portal Creation':55,'Exports':60 },
+    });
+    dirty = true;
+  }
+
+  // Process Puzzles — canary: attempt id 'pa_001'
+  if (!db.processGame) db.processGame = { currentGame: null, attempts: [], gameHistory: [] };
+  if (!db.processGame.attempts.find(a => a.id === 'pa_001')) {
+    db.processGame.attempts.push(
+      { id:'pa_001',gameId:'demo',playerName:'Azhar',playerInitials:'AZ',score:9,total:10,accuracy:90,timeTaken:95000,completedAt:'2026-07-03T10:00:00.000Z',isFirstAttempt:true },
+      { id:'pa_002',gameId:'demo',playerName:'Karthik Varma',playerInitials:'KV',score:10,total:10,accuracy:100,timeTaken:72000,completedAt:'2026-07-03T10:30:00.000Z',isFirstAttempt:true },
+      { id:'pa_003',gameId:'demo',playerName:'Dharma Teja Taddi',playerInitials:'DT',score:8,total:10,accuracy:80,timeTaken:145000,completedAt:'2026-07-04T09:00:00.000Z',isFirstAttempt:true },
+      { id:'pa_004',gameId:'demo',playerName:'Sai Kumar',playerInitials:'SK',score:7,total:10,accuracy:70,timeTaken:180000,completedAt:'2026-07-04T11:00:00.000Z',isFirstAttempt:true },
+      { id:'pa_005',gameId:'demo',playerName:'Hemanth Varma Pakalapati',playerInitials:'HV',score:8,total:10,accuracy:80,timeTaken:130000,completedAt:'2026-07-05T10:00:00.000Z',isFirstAttempt:true },
+      { id:'pa_006',gameId:'demo',playerName:'Divyam Pandey',playerInitials:'DP',score:6,total:10,accuracy:60,timeTaken:200000,completedAt:'2026-07-05T11:00:00.000Z',isFirstAttempt:true },
+      { id:'pa_007',gameId:'demo',playerName:'Srinivas Puneeth',playerInitials:'SP',score:7,total:10,accuracy:70,timeTaken:160000,completedAt:'2026-07-06T09:00:00.000Z',isFirstAttempt:true },
+      { id:'pa_008',gameId:'demo',playerName:'Srikanth Ande',playerInitials:'SA',score:9,total:10,accuracy:90,timeTaken:105000,completedAt:'2026-07-06T09:30:00.000Z',isFirstAttempt:true }
+    );
+    dirty = true;
+  }
+
+  // Engagement (ideas) — canary: idea id 1
+  if (!db.engagement) db.engagement = { ideas: [], nextIdeaId: 1 };
+  if (!(db.engagement.ideas || []).find(i => i.id === 1)) {
+    db.engagement.ideas.push(
+      { id:1,title:'AI-powered article summarizer for faster reading',category:'Website Improvement',author:'Azhar',date:'2026-07-01T09:00:00.000Z',votes:8,voters:[],status:'implemented' },
+      { id:2,title:'Weekly knowledge quiz with team leaderboard',category:'Process Improvement',author:'Dharma Teja Taddi',date:'2026-07-02T10:00:00.000Z',votes:5,voters:[],status:'in-progress' },
+      { id:3,title:'Client-specific knowledge sections per project',category:'Process Improvement',author:'Sai Kumar',date:'2026-07-02T14:00:00.000Z',votes:3,voters:[],status:'new' },
+      { id:4,title:'Dark mode for the portal',category:'Website Improvement',author:'Divyam Pandey',date:'2026-07-03T15:00:00.000Z',votes:4,voters:[],status:'new' },
+      { id:5,title:'Automated onboarding checklist for new joiners',category:'Process Improvement',author:'Srikanth Ande',date:'2026-07-04T11:00:00.000Z',votes:6,voters:[],status:'in-progress' },
+      { id:6,title:'Video walkthroughs for complex processes',category:'Process Improvement',author:'Karthik Varma',date:'2026-07-05T09:00:00.000Z',votes:3,voters:[],status:'new' }
+    );
+    if (!db.engagement.nextIdeaId || db.engagement.nextIdeaId < 7) db.engagement.nextIdeaId = 7;
+    dirty = true;
+  }
+
+  // Tasks — canary: task id 10
+  if (!db.tasks) db.tasks = [];
+  if (!db.tasks.find(t => t.id === 10)) {
+    db.tasks.push(
+      { id:10,title:'Complete Q2 reconciliation review',assigneeName:'Azhar',assigneeEmail:'azhar.m@bluecopa.com',assignedByName:'Admin',assignedByEmail:'azhar.m@bluecopa.com',dueDate:'2026-07-01',priority:'high',status:'completed',createdAt:'2026-06-25T09:00:00.000Z',links:[],comments:[] },
+      { id:11,title:'Update delivery process documentation',assigneeName:'Azhar',assigneeEmail:'azhar.m@bluecopa.com',assignedByName:'Admin',assignedByEmail:'azhar.m@bluecopa.com',dueDate:'2026-07-05',priority:'medium',status:'completed',createdAt:'2026-06-28T09:00:00.000Z',links:[],comments:[] },
+      { id:12,title:'Review onboarding article for accuracy',assigneeName:'Dharma Teja Taddi',assigneeEmail:'dharma@bluecopa.com',assignedByName:'Admin',assignedByEmail:'azhar.m@bluecopa.com',dueDate:'2026-07-03',priority:'high',status:'completed',createdAt:'2026-06-27T09:00:00.000Z',links:[],comments:[] },
+      { id:13,title:'Prepare Q3 client onboarding deck',assigneeName:'Sai Kumar',assigneeEmail:'sai@bluecopa.com',assignedByName:'Admin',assignedByEmail:'azhar.m@bluecopa.com',dueDate:'2026-07-04',priority:'medium',status:'completed',createdAt:'2026-06-28T09:00:00.000Z',links:[],comments:[] },
+      { id:14,title:'Fix reconciliation module test cases',assigneeName:'Karthik Varma',assigneeEmail:'karthik@bluecopa.com',assignedByName:'Admin',assignedByEmail:'azhar.m@bluecopa.com',dueDate:'2026-07-02',priority:'medium',status:'completed',createdAt:'2026-06-26T09:00:00.000Z',links:[],comments:[] },
+      { id:15,title:'Write GCS connector documentation',assigneeName:'Srikanth Ande',assigneeEmail:'srikanth@bluecopa.com',assignedByName:'Admin',assignedByEmail:'azhar.m@bluecopa.com',dueDate:'2026-07-04',priority:'medium',status:'completed',createdAt:'2026-06-27T09:00:00.000Z',links:[],comments:[] },
+      { id:16,title:'Audit skill matrix scores for Q2',assigneeName:'Srinivas Puneeth',assigneeEmail:'srinivas@bluecopa.com',assignedByName:'Admin',assignedByEmail:'azhar.m@bluecopa.com',dueDate:'2026-07-05',priority:'low',status:'completed',createdAt:'2026-06-29T09:00:00.000Z',links:[],comments:[] },
+      { id:17,title:'Submit issue resolution report',assigneeName:'Dharma Teja Taddi',assigneeEmail:'dharma@bluecopa.com',assignedByName:'Admin',assignedByEmail:'azhar.m@bluecopa.com',dueDate:'2026-07-06',priority:'high',status:'completed',createdAt:'2026-06-30T09:00:00.000Z',links:[],comments:[] }
+    );
+    db.nextTaskId = Math.max(db.nextTaskId || 1, 18);
+    dirty = true;
+  }
+
+  // Issues — seed accepted solution on first issue if none exist
+  if (db.issues && db.issues.length > 0 && (db.issues[0].solutions || []).length === 0) {
+    db.issues[0].solutions = [{
+      id: 'sol_001',
+      text: 'Identified root cause: the reconciliation engine was not handling edge cases in the data ingestion pipeline. Fixed by adding validation checks before processing.',
+      author: { email: 'dharma@bluecopa.com', name: 'Dharma Teja Taddi' },
+      createdAt: '2026-07-04T14:00:00.000Z',
+      isAccepted: true,
+      acceptedAt: '2026-07-04T15:00:00.000Z',
+      comments: []
+    }];
+    if (db.issues[0].status !== 'Resolved within Delivery') {
+      db.issues[0].status = 'Resolved within Delivery';
+      db.issues[0].resolvedAt = '2026-07-04T15:00:00.000Z';
+    }
+    dirty = true;
+  }
+
+  return dirty;
+}
+
 // Cache connection across warm lambda invocations
 let dbInitPromise = null;
 function getDbInitPromise() {
@@ -92,6 +195,7 @@ function getDbInitPromise() {
             await mongoCol.insertOne({ _id: 'main', ...db });
           }
           console.log('[DB] MongoDB connected on attempt', attempt);
+          try { if (migrate()) await saveDB(db); } catch(e) { console.error('[migrate]', e.message); }
           return; // success
         } catch (e) {
           console.error(`[DB] MongoDB attempt ${attempt} failed:`, e.message);
@@ -106,6 +210,7 @@ function getDbInitPromise() {
     }
     // No MongoDB URI configured — use data.json (local dev only)
     db = loadFileDB();
+    try { if (migrate()) await saveDB(db); } catch(e) { console.error('[migrate]', e.message); }
   })();
   return dbInitPromise;
 }
@@ -2058,6 +2163,146 @@ app.post('/api/issues/:id/solutions/:sid/comments', async (req, res) => {
   issue.updatedAt = new Date().toISOString();
   await saveDB(db);
   res.status(201).json(comment);
+});
+
+// ── 360° Leaderboard ─────────────────────────────────────────────────────────
+app.get('/api/leaderboard', async (req, res) => {
+  const period = req.query.period || 'year';
+  const offset = parseInt(req.query.offset || '0', 10);
+  try {
+    await getDbInitPromise();
+    // Per-request seed fallback: if migrate didn't run yet, run it now
+    if (!db.skillMatrix?.currentScores?.['Azhar']) {
+      try { if (migrate()) await saveDB(db); } catch(e) { console.error('[lb-seed]', e.message); }
+    }
+
+    const now = new Date();
+    const y = now.getFullYear(), m = now.getMonth();
+
+    function periodRange(p, off) {
+      let start, end;
+      if (p === 'month') {
+        start = new Date(y, m + off, 1);
+        end   = new Date(y, m + off + 1, 1);
+      } else if (p === 'quarter') {
+        const tq = Math.floor(m / 3) + off;
+        start = new Date(y, tq * 3, 1);
+        end   = new Date(y, tq * 3 + 3, 1);
+      } else {
+        start = new Date(y + off, 0, 1);
+        end   = new Date(y + off + 1, 0, 1);
+      }
+      return { start, end };
+    }
+
+    const { start: pStart, end: pEnd } = periodRange(period, offset);
+
+    const empMap = {};
+    function emp(name) {
+      if (!empMap[name]) empMap[name] = { name, score: 0, breakdown: {} };
+      return empMap[name];
+    }
+
+    // 1. Articles (+10 each, by created_at)
+    for (const a of (db.articles || [])) {
+      if (!a.author) continue;
+      const ts = new Date(a.created_at);
+      if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
+      emp(a.author).score += 10;
+      emp(a.author).breakdown.articles = (emp(a.author).breakdown.articles || 0) + 1;
+    }
+
+    // 2. Skill Matrix — always-on, avg score across areas / 10
+    const smScores = (db.skillMatrix && db.skillMatrix.currentScores) || {};
+    for (const [name, areaScores] of Object.entries(smScores)) {
+      const vals = Object.values(areaScores).filter(v => typeof v === 'number');
+      if (!vals.length) continue;
+      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const pts = Math.round(avg / 10);
+      if (!pts) continue;
+      emp(name).score += pts;
+      emp(name).breakdown.skillMatrix = pts;
+    }
+
+    // 3. Puzzles (+5 base + accuracy*0.1, by completedAt)
+    for (const a of ((db.processGame && db.processGame.attempts) || [])) {
+      if (!a.playerName) continue;
+      const ts = new Date(a.completedAt);
+      if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
+      const pts = 5 + Math.round((a.accuracy || 0) * 0.1);
+      emp(a.playerName).score += pts;
+      emp(a.playerName).breakdown.puzzles = (emp(a.playerName).breakdown.puzzles || 0) + 1;
+    }
+
+    // 4. Issues resolved (+15 per accepted solution, by acceptedAt)
+    for (const issue of (db.issues || [])) {
+      for (const sol of (issue.solutions || [])) {
+        if (!sol.isAccepted) continue;
+        const ts = new Date(sol.acceptedAt || sol.createdAt);
+        if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
+        const name = sol.author && sol.author.name;
+        if (!name) continue;
+        emp(name).score += 15;
+        emp(name).breakdown.issues = (emp(name).breakdown.issues || 0) + 1;
+      }
+    }
+
+    // 5. Tasks completed (+8 each, by dueDate)
+    for (const t of (db.tasks || [])) {
+      if (t.status !== 'completed' || !t.assigneeName) continue;
+      const dateStr = t.dueDate || t.createdAt;
+      if (!dateStr) continue;
+      const ts = new Date(dateStr.length === 10 ? dateStr + 'T00:00:00.000Z' : dateStr);
+      if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
+      emp(t.assigneeName).score += 8;
+      emp(t.assigneeName).breakdown.tasks = (emp(t.assigneeName).breakdown.tasks || 0) + 1;
+    }
+
+    // 6. Ideas (+5 each, by date)
+    for (const idea of ((db.engagement && db.engagement.ideas) || [])) {
+      if (!idea.author) continue;
+      const ts = new Date(idea.date);
+      if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
+      emp(idea.author).score += 5;
+      emp(idea.author).breakdown.ideas = (emp(idea.author).breakdown.ideas || 0) + 1;
+    }
+
+    // 7. Learning assignments (+3 each, by assignedAt)
+    for (const a of ((db.learning && db.learning.assignments) || [])) {
+      if (!a.userName) continue;
+      const ts = new Date(a.assignedAt);
+      if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
+      emp(a.userName).score += 3;
+      emp(a.userName).breakdown.learning = (emp(a.userName).breakdown.learning || 0) + 1;
+    }
+
+    const ranked = Object.values(empMap)
+      .filter(e => e.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10)
+      .map((e, i) => ({ rank: i + 1, ...e }));
+
+    res.json(ranked);
+  } catch (err) {
+    console.error('[leaderboard]', err.message);
+    res.status(500).json({ error: 'Failed to compute leaderboard', detail: err.message });
+  }
+});
+
+// ── Debug endpoint (DB state snapshot) ───────────────────────────────────────
+app.get('/api/debug/db', async (req, res) => {
+  await getDbInitPromise();
+  res.json({
+    articles:           (db.articles || []).length,
+    firstArticleDate:   (db.articles || [])[0]?.created_at || null,
+    skillMatrixEmployees: Object.keys((db.skillMatrix && db.skillMatrix.currentScores) || {}).length,
+    puzzleAttempts:     ((db.processGame && db.processGame.attempts) || []).length,
+    ideas:              ((db.engagement && db.engagement.ideas) || []).length,
+    tasks:              (db.tasks || []).length,
+    issues:             (db.issues || []).length,
+    learning:           ((db.learning && db.learning.assignments) || []).length,
+    mongoConnected:     !!mongoCol,
+  });
 });
 
 module.exports = app;
