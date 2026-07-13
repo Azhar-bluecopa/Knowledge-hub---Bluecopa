@@ -4549,6 +4549,7 @@ const ML_COURSES = [
   },
   {
     id:'ap',
+    cat:'fs',
     title:'Account Payable Deep Dive',
     desc:'Master vendor management, three-way matching, invoice processing and payment workflows from PO to final settlement.',
     tag:'Account Payable',
@@ -4560,6 +4561,7 @@ const ML_COURSES = [
   },
   {
     id:'ar',
+    cat:'fs',
     title:'Account Receivable Process Mastery',
     desc:'Understand the complete AR lifecycle — from invoicing and credit management to collections, aging reports, and reconciliation.',
     tag:'Account Receivable',
@@ -4571,6 +4573,7 @@ const ML_COURSES = [
   },
   {
     id:'mis',
+    cat:'fs',
     title:'MIS Reports & Analytics',
     desc:'Build, interpret and automate management information system reports that drive real-time decisions across finance and operations.',
     tag:'MIS Reports',
@@ -4582,6 +4585,7 @@ const ML_COURSES = [
   },
   {
     id:'o2c',
+    cat:'fs',
     title:'Order-to-Cash Complete Guide',
     desc:'Navigate the full order lifecycle — customer order through fulfilment, billing, collections and revenue recognition — end to end.',
     tag:'Order-to-Cash',
@@ -4593,6 +4597,7 @@ const ML_COURSES = [
   },
   {
     id:'p2p',
+    cat:'fs',
     title:'Procure-to-Pay End-to-End',
     desc:'Trace every step of the procurement cycle — requisition, vendor selection, PO management, GRN and final payment — with real Bluecopa scenarios.',
     tag:'Procure-to-Pay',
@@ -4604,6 +4609,7 @@ const ML_COURSES = [
   },
   {
     id:'r2r',
+    cat:'fs',
     title:'Record-to-Report Fundamentals',
     desc:'Close the financial period right — from journal entries and intercompany reconciliation to trial balance and management reporting.',
     tag:'Record-to-Report',
