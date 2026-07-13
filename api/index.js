@@ -236,8 +236,19 @@ function getWeekNumber(d) {
   return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
 }
 
+// ── Helper: always read fresh from MongoDB when available ─────────────────────
+async function freshDB() {
+  if (mongoCol) {
+    try {
+      const doc = await mongoCol.findOne({ _id: 'main' });
+      if (doc) { const { _id, ...data } = doc; Object.assign(db, data); }
+    } catch (e) { console.error('[freshDB]', e.message); }
+  }
+}
+
 // ── Articles ──────────────────────────────────────────────────────────────────
-app.get('/api/articles', (req, res) => {
+app.get('/api/articles', async (req, res) => {
+  await freshDB();
   const { category, q } = req.query;
   let list = [...(db.articles || [])];
   if (category && category !== 'All') list = list.filter(a => a.category === category);
@@ -252,7 +263,8 @@ app.get('/api/articles', (req, res) => {
   res.json(list.map(({ content, ...rest }) => rest));
 });
 
-app.get('/api/articles/:id', (req, res) => {
+app.get('/api/articles/:id', async (req, res) => {
+  await freshDB();
   const a = (db.articles || []).find(x => x.id === parseInt(req.params.id));
   if (!a) return res.status(404).json({ error: 'Not found' });
   res.json(a);
@@ -347,7 +359,7 @@ app.delete('/api/articles/:id', async (req, res) => {
 });
 
 // ── Categories ────────────────────────────────────────────────────────────────
-app.get('/api/categories', (req, res) => res.json(db.categories || []));
+app.get('/api/categories', async (req, res) => { await freshDB(); res.json(db.categories || []); });
 
 app.post('/api/categories', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
