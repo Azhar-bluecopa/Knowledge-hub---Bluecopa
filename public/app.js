@@ -4535,6 +4535,18 @@ window.addEventListener('load', () => { setTimeout(liUpdateNavVisibility, 800); 
 
 const ML_COURSES = [
   {
+    id:'di',
+    cat:'engineering',
+    title:'Data Ingestion Mastery',
+    desc:'Master every ingestion pattern in Bluecopa — cloud storage connectors, ZIP workflows, portal-based uploads, and real-world pipeline design for production-scale implementations.',
+    tag:'Data Ingestion',
+    icon:'📥',
+    grad:'linear-gradient(145deg,#0f4c81 0%,#0891b2 60%,#22d3ee 100%)',
+    level:'Intermediate',
+    lessons:10,
+    badge:'Hot & New', badgeClass:'hot',
+  },
+  {
     id:'bc',
     cat:'platform',
     title:'About Bluecopa',

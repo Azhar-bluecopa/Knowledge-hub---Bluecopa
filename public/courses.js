@@ -1099,6 +1099,518 @@ ${mlcTakeaway('The trial balance is the single source of truth for all financial
   },
 
   // ════════════════════════════════════════════════════
+  //  COURSE 8 — DATA INGESTION
+  // ════════════════════════════════════════════════════
+  di: {
+    modules: [
+      // ─── MODULE 1: Foundations ───────────────────────
+      {
+        title: 'Data Ingestion Foundations',
+        lessons: [
+          {
+            title: 'What is Data Ingestion in Bluecopa?',
+            dur: '10 min',
+            html: `<h2>What is Data Ingestion in Bluecopa?</h2>
+<p class="mlc-lead">Data Ingestion is the process of collecting raw data from external sources — cloud storage, portals, SFTP servers, forms — and bringing it into Bluecopa where it can be validated, processed, and made available for reporting and automation. It is the <strong>first and most critical step</strong> in any Bluecopa implementation.</p>
+${mlcSection('Why Ingestion Matters', mlcUl([
+  '<strong>No data in = no output</strong> — Every report, reconciliation, and workflow depends on clean ingested data',
+  '<strong>Timeliness</strong> — Late or missed ingestion cascades into delayed reconciliations and missed SLAs',
+  '<strong>Auditability</strong> — Every file that enters Bluecopa must be traceable — who sent it, when, and what happened to it',
+  '<strong>Scalability</strong> — The right ingestion pattern handles 10 files or 10,000 files without manual effort'
+]))}
+${mlcSection('The Three Questions of Ingestion', mlcOl([
+  '<strong>Where is the data coming from?</strong> — Cloud storage (GCS, S3, Azure), SFTP, manual portal upload, or a form submission',
+  '<strong>What format is it in?</strong> — CSV, Excel, JSON, PDF, or a compressed .zip archive',
+  '<strong>How often does it arrive?</strong> — Real-time event-driven, scheduled (daily/weekly), or ad hoc manual'
+]))}
+${mlcDiagram('Data Ingestion — Big Picture', `
+<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;justify-content:center;padding:8px 0">
+  <div style="background:#1e3a5f;border-radius:10px;padding:14px 20px;color:#7dd3fc;font-weight:700;font-size:13px;text-align:center">☁️<br>Cloud Storage<br><span style="font-size:11px;font-weight:400;color:#93c5fd">GCS · S3 · Azure · SFTP</span></div>
+  <div style="font-size:22px;color:#475569">→</div>
+  <div style="background:#1e3a5f;border-radius:10px;padding:14px 20px;color:#7dd3fc;font-weight:700;font-size:13px;text-align:center">🔗<br>Blob Connection<br><span style="font-size:11px;font-weight:400;color:#93c5fd">Secure bridge</span></div>
+  <div style="font-size:22px;color:#475569">→</div>
+  <div style="background:#1e3a5f;border-radius:10px;padding:14px 20px;color:#7dd3fc;font-weight:700;font-size:13px;text-align:center">⚙️<br>Workflow / Connector<br><span style="font-size:11px;font-weight:400;color:#93c5fd">Fetch · Unzip · Route</span></div>
+  <div style="font-size:22px;color:#475569">→</div>
+  <div style="background:#14532d;border-radius:10px;padding:14px 20px;color:#86efac;font-weight:700;font-size:13px;text-align:center">📦<br>Databox / Filebox<br><span style="font-size:11px;font-weight:400;color:#4ade80">Ready for processing</span></div>
+</div>`)}
+${mlcSection('Ingestion Patterns at a Glance', mlcCompare(
+  '🤖 Automated', [
+    'Connectors (GCS, S3, Azure, SFTP)',
+    'Scheduled workflow triggers',
+    'Event-driven blob arrival detection',
+    'Best for recurring, structured data'
+  ],
+  '👤 Manual', [
+    'Portal + Form + Filebox uploads',
+    'Ad hoc or controlled submissions',
+    'Operations team review before processing',
+    'Best for exceptions and one-off files'
+))}
+${mlcTakeaway('Data Ingestion is not just file transfer — it is the controlled, traceable, auditable entry point for all data in Bluecopa. Choosing the right pattern up front saves weeks of rework during implementation.')}`
+          },
+          {
+            title: 'Databox & Blob Storage — Where Data Lives',
+            dur: '12 min',
+            html: `<h2>Databox & Blob Storage — Where Data Lives</h2>
+<p class="mlc-lead">Before you can ingest anything, you need to understand where Bluecopa stores it. Bluecopa uses two core storage concepts: <strong>Blob Storage</strong> for raw files and <strong>Databox</strong> for structured, validated datasets ready for processing.</p>
+${mlcSection('What is Blob Storage?', mlcUl([
+  'A Blob (Binary Large Object) is data stored as a single entity — the standard way cloud providers store unstructured data',
+  'Blob storage holds raw files as-is: CSVs, ZIPs, Excel files, PDFs, logs',
+  'Files in blob storage have not yet been validated or transformed — they are exactly as received',
+  '<strong>Internal blob storage</strong> is Bluecopa\'s own cloud bucket used as a staging area before files reach processing components',
+  'Blob connections link external client cloud buckets to Bluecopa\'s internal environment'
+]))}
+${mlcSection('What is the Databox?', mlcUl([
+  'The Databox is Bluecopa\'s intelligent data management system — it goes beyond simple storage',
+  'It <strong>validates, structures, and understands</strong> your data as it lands',
+  'Raw files (CSV, Excel) are transformed into analytics-ready Datasets after passing the ingestion framework',
+  'The Databox powers dashboards, reports, financial insights, and reconciliation engines',
+  'Think of blob storage as the loading dock and the Databox as the warehouse shelves'
+]))}
+${mlcDiagram('Blob Storage vs Databox', `
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
+  <div style="background:#1e293b;border-radius:10px;padding:16px;border:1px solid #334155">
+    <div style="font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">📦 Blob Storage</div>
+    <div style="font-size:13px;color:#cbd5e1;line-height:1.7">Raw, unvalidated files<br>ZIP, CSV, Excel, PDF<br>Staging / transit area<br>File path addressable<br><span style="color:#f87171">Not yet queryable</span></div>
+  </div>
+  <div style="background:#0f2818;border-radius:10px;padding:16px;border:1px solid #166534">
+    <div style="font-size:13px;font-weight:700;color:#86efac;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">🗄️ Databox (Dataset)</div>
+    <div style="font-size:13px;color:#cbd5e1;line-height:1.7">Validated, structured data<br>Schema-enforced rows<br>Deduplicated & enriched<br>Dataset ID addressable<br><span style="color:#4ade80">Powers all analytics</span></div>
+  </div>
+</div>`)}
+${mlcSection('What is a Dataset?', mlcUl([
+  'A Dataset is the structured output created after a file passes through Bluecopa\'s ingestion framework',
+  'Each Dataset has a <strong>Dataset ID</strong>, a defined schema (column names + types), and row-level records',
+  'Datasets are versioned — new file uploads append or replace records depending on configuration',
+  'Once in a Dataset, data can be used in: Reconciliation engines, MIS reports, dashboards, email automations'
+]))}
+${mlcSection('How Files Become Datasets — The Journey', mlcFlow([
+  'File arrives in Blob Storage (raw)',
+  'Connector or Workflow triggers ingestion',
+  'File validated against Dataset schema',
+  'Rows parsed, deduplicated, enriched',
+  'Dataset updated — records available',
+  'Downstream: Reports, Recon, Emails fire'
+]))}
+${mlcStatGrid([
+  {n:'4 GB', l:'Max gzip file size', note:'For connector-based ingestion'},
+  {n:'∞', l:'ZIP files via workflow', note:'No size limit when using workflow unzip pattern'},
+  {n:'<60s', l:'Typical ingestion time', note:'For standard CSV files up to 100MB'},
+  {n:'1', l:'Dataset per source', note:'One connector = one dataset target'}
+])}
+${mlcTakeaway('Always design your ingestion architecture with the end in mind: what Dataset will this file populate, and what downstream process depends on it? This prevents schema mismatches and pipeline failures mid-implementation.')}`
+          }
+        ]
+      },
+
+      // ─── MODULE 2: Cloud Storage Ingestion ───────────────────
+      {
+        title: 'Cloud Storage Ingestion',
+        lessons: [
+          {
+            title: 'Normal File Connectors — GCS, S3, Azure & SFTP',
+            dur: '14 min',
+            html: `<h2>Normal File Connectors — GCS, S3, Azure & SFTP</h2>
+<p class="mlc-lead">Bluecopa's Normal Files Connectors are the primary automated ingestion path. They monitor configured cloud storage locations and continuously sync files into Bluecopa Datasets — no manual intervention required once configured.</p>
+${mlcSection('Supported Connector Types', mlcUl([
+  '<strong>Google Cloud Storage (GCS)</strong> — Ideal for clients on Google Cloud; uses service account authentication',
+  '<strong>Amazon S3</strong> — For AWS-based clients; uses IAM access key + secret or role-based auth',
+  '<strong>Azure Blob Storage</strong> — For Microsoft Azure clients; uses connection string or SAS token',
+  '<strong>Azure Blob → BigQuery</strong> — Direct pipeline: Azure Blob in, BigQuery dataset out',
+  '<strong>Azure Blob → Snowflake</strong> — Direct pipeline: Azure Blob in, Snowflake table out',
+  '<strong>SFTP</strong> — Legacy-compatible; for clients who deliver files via secure FTP servers',
+  '<strong>OneDrive / Google Drive / Dropbox</strong> — For file-sharing platform delivery'
+]))}
+${mlcSection('How Connectors Work — Under the Hood', mlcOl([
+  '<strong>Connection setup</strong> — You configure a Blob Connection with the client\'s cloud credentials',
+  '<strong>File path configuration</strong> — You specify the folder path, file name pattern (e.g., <code>invoices/*.csv</code>), and target Dataset',
+  '<strong>Schedule or trigger</strong> — Connector runs on a defined schedule (hourly, daily) or on-demand',
+  '<strong>File detection</strong> — Connector scans the configured path for new or changed files',
+  '<strong>Ingestion</strong> — New files are pulled, parsed, validated against the Dataset schema, and loaded',
+  '<strong>Acknowledgement</strong> — Ingested files can be archived or deleted from source depending on config'
+]))}
+${mlcDiagram('Connector Architecture', `
+<div style="display:flex;gap:0;align-items:stretch;margin-top:8px;border-radius:10px;overflow:hidden;border:1px solid #334155">
+  <div style="background:#1e293b;padding:16px;flex:1;border-right:1px solid #334155">
+    <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Client Cloud</div>
+    ${mlcUl(['GCS Bucket', 'S3 Bucket', 'Azure Container', 'SFTP Server'])}
+  </div>
+  <div style="background:#1e3a5f;padding:16px;flex:0 0 160px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+    <div style="font-size:20px">🔗</div>
+    <div style="font-size:12px;font-weight:700;color:#7dd3fc;text-align:center">Blob Connection<br><span style="font-size:10px;font-weight:400;color:#93c5fd">Encrypted · Authenticated</span></div>
+    <div style="font-size:20px">↓</div>
+    <div style="font-size:12px;font-weight:700;color:#7dd3fc;text-align:center">Normal Files<br>Connector<br><span style="font-size:10px;font-weight:400;color:#93c5fd">Scheduled · Triggered</span></div>
+  </div>
+  <div style="background:#0f2818;padding:16px;flex:1;border-left:1px solid #166534">
+    <div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Bluecopa</div>
+    ${mlcUl(['Dataset (validated rows)', 'Databox (analytics-ready)', 'Downstream: Reports & Recon', 'Audit log of every sync'])}
+  </div>
+</div>`)}
+${mlcSection('Critical Connector Limitations — Know Before You Configure', mlcUl([
+  '⚠️ <strong>ZIP files are NOT supported</strong> — Connectors cannot ingest .zip archives. Use the Workflow-based unzip pattern instead (covered in Module 3)',
+  '⚠️ <strong>GZIP files max 4 GB uncompressed</strong> — Files larger than this require chunked delivery or a different ingestion strategy',
+  '⚠️ <strong>One connector = one dataset</strong> — You cannot route different files from the same bucket to different datasets in a single connector; configure separate connectors per dataset',
+  '✅ <strong>Wildcard path support</strong> — Use <code>folder/*.csv</code> to match all CSV files in a folder',
+  '✅ <strong>Delta detection</strong> — Connectors track which files have already been processed and skip them on subsequent runs'
+]))}
+${mlcExample('Real-World Config', 'Client: Darwinbox. Source: GCS bucket <code>darwinbox-prod-exports/ar-aging/</code>. File pattern: <code>ar_aging_*.csv</code>. Schedule: daily at 6:00 AM IST. Target Dataset: <code>AR_AGING_DARWINBOX</code>. Once set up, every morning\'s file is automatically pulled and the dataset refreshed before the finance team starts work.')}
+${mlcTakeaway('Normal Files Connectors are the backbone of automated ingestion. Configure them once, monitor them daily. The most common failure modes are credential expiry, file path changes, and schema mismatches — build alerting for all three.')}`
+          },
+          {
+            title: 'Moving Large Files from Cloud Storage — The 3-Phase Pattern',
+            dur: '13 min',
+            html: `<h2>Moving Large Files from Cloud Storage — The 3-Phase Pattern</h2>
+<p class="mlc-lead">When client files are too large, too irregular, or too complex for a direct connector, use the <strong>3-Phase Pattern</strong>: Connect → Fetch → Load. This gives you full control over how files are retrieved, staged, and ingested.</p>
+${mlcSection('Phase 1 — Connect: Setting Up the Blob Connection', mlcOl([
+  'Navigate to <strong>Settings → Blob Connections</strong> in Bluecopa',
+  'Select the cloud provider: GCS, S3, or Azure Blob',
+  'Enter credentials: service account JSON (GCS), access key + secret (S3), or connection string (Azure)',
+  'Specify the bucket/container name',
+  'Test the connection — Bluecopa will verify it can list and read files',
+  'Save and name the connection (e.g., <code>client-gcs-prod</code>)'
+]))}
+${mlcSection('Phase 2 — Fetch: Using a Workflow to Copy the File', mlcOl([
+  'Create a new Workflow in Bluecopa',
+  'Add a <strong>Manual Trigger</strong> or <strong>Schedule Trigger</strong> as the start node',
+  'Add a <strong>Copy to Blob Store</strong> action node',
+  'Configure: Source = client blob connection + file path; Destination = Bluecopa internal blob path',
+  'Run the workflow — the file is copied from client cloud to Bluecopa\'s internal blob storage',
+  'The file is now staged internally, ready for the next phase'
+]))}
+${mlcSection('Phase 3 — Load: Using a Connector to Ingest to Dataset', mlcOl([
+  'Create a Normal Files Connector pointing to the <strong>internal blob path</strong> (not the client\'s cloud)',
+  'Configure the target Dataset with the correct schema',
+  'Trigger the connector after the workflow copy completes (chain them with a workflow step)',
+  'The connector reads the staged file, validates each row, and loads into the Dataset',
+  'Verify row count and schema in the Dataset viewer'
+]))}
+${mlcDiagram('3-Phase Flow', `
+<div style="display:flex;flex-direction:column;gap:0;border-radius:10px;overflow:hidden;border:1px solid #334155">
+  <div style="display:flex;align-items:center;gap:16px;padding:14px 20px;background:#1e293b;border-bottom:1px solid #334155">
+    <div style="background:#1d4ed8;border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0">1</div>
+    <div><div style="font-size:13px;font-weight:700;color:#93c5fd">CONNECT</div><div style="font-size:12px;color:#94a3b8">Create Blob Connection → link client GCS/S3/Azure to Bluecopa</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;padding:14px 20px;background:#1a2035;border-bottom:1px solid #334155">
+    <div style="background:#7c3aed;border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0">2</div>
+    <div><div style="font-size:13px;font-weight:700;color:#c4b5fd">FETCH</div><div style="font-size:12px;color:#94a3b8">Workflow with Copy-to-Blob node → moves file to internal staging blob</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;padding:14px 20px;background:#0f2818">
+    <div style="background:#059669;border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0">3</div>
+    <div><div style="font-size:13px;font-weight:700;color:#6ee7b7">LOAD</div><div style="font-size:12px;color:#94a3b8">Normal Files Connector reads from internal blob → validates → loads Dataset</div></div>
+  </div>
+</div>`)}
+${mlcSection('When to Use the 3-Phase Pattern vs Direct Connector', mlcCompare(
+  '✅ Use 3-Phase Pattern when…', [
+    'File is very large (>1 GB)',
+    'File needs pre-processing before ingestion',
+    'Need to archive or rename files during transit',
+    'Ingestion is ad hoc or event-driven',
+    'File is a ZIP that must be unpacked first'
+  ],
+  '✅ Use Direct Connector when…', [
+    'File is standard CSV/Excel, regular format',
+    'Ingestion is fully scheduled and predictable',
+    'No transformation needed before loading',
+    'Source path and filename are stable',
+    'Volume is moderate and consistent'
+))}
+${mlcTakeaway('The 3-Phase Pattern trades simplicity for control. Use it whenever the direct connector path cannot handle the file format, size, or delivery pattern. Once mastered, it becomes the go-to solution for complex client onboarding scenarios.')}`
+          },
+          {
+            title: 'Scheduled Pulls vs. Event-Driven Workflows',
+            dur: '11 min',
+            html: `<h2>Scheduled Pulls vs. Event-Driven Workflows</h2>
+<p class="mlc-lead">Once your blob connection is established, you need to decide <strong>when</strong> to pull the data. Bluecopa gives you two strategies: pull on a timer (scheduled) or react when a file arrives (event-driven). Choosing correctly prevents both missed ingestion and unnecessary processing.</p>
+${mlcSection('Strategy 1 — Scheduled Pull (Pull on a Timer)', mlcUl([
+  'A <strong>Schedule Trigger</strong> fires a workflow at fixed intervals — hourly, daily at 6 AM, every Monday morning, etc.',
+  'The workflow runs regardless of whether a new file exists; it checks, finds the file, and processes it',
+  'Predictable, easy to monitor, simple to troubleshoot',
+  '<strong>Best for</strong>: clients who deliver files on a known, reliable cadence (e.g., "every night at 11 PM")',
+  '<strong>Risk</strong>: If the client delays delivery, the workflow runs and finds nothing — you need a no-file alert'
+]))}
+${mlcSection('Strategy 2 — Event-Driven (React to File Arrival)', mlcUl([
+  'Bluecopa monitors a blob path for new file arrivals using a <strong>Blob Trigger</strong> or file-arrival detection node',
+  'The workflow fires automatically the moment a new file appears — no polling delay',
+  'More responsive, no wasted workflow runs when no file is present',
+  '<strong>Best for</strong>: high-frequency or unpredictable deliveries (e.g., "files arrive throughout the day")',
+  '<strong>Risk</strong>: If two files arrive simultaneously, ensure your workflow handles concurrency correctly'
+]))}
+${mlcDiagram('Scheduled vs Event-Driven — Decision Flow', `
+<div style="display:flex;gap:16px;margin-top:8px">
+  <div style="flex:1;background:#1e293b;border-radius:10px;padding:16px;border:1px solid #334155">
+    <div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:10px">⏰ Scheduled Pull</div>
+    <div style="font-size:12px;color:#cbd5e1;line-height:1.8">
+      Client delivers daily at 11 PM<br>
+      → Schedule trigger at 11:30 PM<br>
+      → Workflow checks path<br>
+      → File found → ingest<br>
+      → Alert if no file found<br>
+      <br><span style="color:#86efac">✓ Simple · Predictable · Easy to monitor</span>
+    </div>
+  </div>
+  <div style="flex:1;background:#1e293b;border-radius:10px;padding:16px;border:1px solid #334155">
+    <div style="font-size:13px;font-weight:700;color:#818cf8;margin-bottom:10px">⚡ Event-Driven</div>
+    <div style="font-size:12px;color:#cbd5e1;line-height:1.8">
+      Client uploads files ad hoc<br>
+      → Blob arrival listener active<br>
+      → New file detected instantly<br>
+      → Workflow triggers immediately<br>
+      → Ingest + notify team<br>
+      <br><span style="color:#86efac">✓ Real-time · No wasted runs · Responsive</span>
+    </div>
+  </div>
+</div>`)}
+${mlcSection('Prerequisite: Blob Connection Must Be Set Up First', mlcUl([
+  'Both strategies require a working Blob Connection to the client\'s cloud storage',
+  'Without the Blob Connection, neither trigger type can access the client\'s files',
+  'Always set up and test the Blob Connection before building any ingestion workflow',
+  'Verify the connection can list files in the target folder — this is the most common setup failure point'
+]))}
+${mlcSection('Handling the "No File" Scenario', mlcOl([
+  'Add a conditional node after the file-check step',
+  'If file found → proceed to ingestion',
+  'If no file → send an alert to the implementation team or client',
+  'Log the run as "skipped — no file" for audit trail',
+  'Set a maximum wait time for event-driven triggers to prevent zombie workflow runs'
+]))}
+${mlcTakeaway('Default to Scheduled Pull for predictable clients. Use Event-Driven when the client\'s delivery time is unknown or varies. Always build a no-file alert — silent failure is the hardest type of failure to detect in production.')}`
+          }
+        ]
+      },
+
+      // ─── MODULE 3: ZIP Files & Special Patterns ───────────────────
+      {
+        title: 'ZIP Files & Special Ingestion Patterns',
+        lessons: [
+          {
+            title: 'Why Connectors Cannot Handle ZIP Files',
+            dur: '9 min',
+            html: `<h2>Why Connectors Cannot Handle ZIP Files</h2>
+<p class="mlc-lead">ZIP files are one of the most common client delivery formats — and one of the most common ingestion pitfalls. Bluecopa's native connectors <strong>cannot ingest .zip archives directly</strong>. Understanding why and knowing the correct pattern will save you hours of troubleshooting on live projects.</p>
+${mlcSection('What Connectors Cannot Do with ZIP Files', mlcUl([
+  '✗ <strong>Ingest a .zip archive directly</strong> — The connector will error or skip the file entirely',
+  '✗ <strong>Auto-extract files inside a zip</strong> — No built-in unzip capability in any connector type',
+  '✗ <strong>Discover or iterate over files inside a zip</strong> — The connector sees the zip as a single opaque blob',
+  '✗ <strong>Handle gzip files larger than 4 GB uncompressed</strong> — This is a hard platform limit',
+  '✗ <strong>Route different files from a zip to different datasets</strong> — Even if extraction were possible, routing is not automatic'
+]))}
+${mlcSection('What Connectors CAN Handle', mlcUl([
+  '✅ <strong>Plain CSV files</strong> — The primary supported format; any encoding, any delimiter',
+  '✅ <strong>Excel (.xlsx)</strong> — Sheet-level configuration supported',
+  '✅ <strong>GZIP-compressed files</strong> — Single-file gzip (not ZIP); max 4 GB uncompressed',
+  '✅ <strong>JSON lines files</strong> — One JSON object per line',
+  '✅ <strong>Parquet files</strong> — For BigQuery and Snowflake targets'
+]))}
+${mlcExample('Common Mistake', 'A client delivers <code>monthly_data.zip</code> containing three CSVs to their GCS bucket. You configure a Normal Files Connector pointed at the bucket. The connector runs, sees the .zip file, and skips it with no error — zero rows ingested, no alert. The finance team sees no data refresh and escalates. Root cause: ZIP file, wrong pattern used.')}
+${mlcSection('The Required Pattern for ZIP Files', mlcFlow([
+  'Client uploads .zip to cloud storage',
+  'Workflow detects arrival (schedule or blob trigger)',
+  'Copy-to-Blob node: moves .zip to internal blob storage',
+  'Unzip node: extracts contents to a target internal folder',
+  'For each extracted file: connector or further workflow step ingests to correct Dataset',
+  'Alert on success or failure'
+]))}
+${mlcSection('GZIP vs ZIP — Important Distinction', mlcCompare(
+  '📁 ZIP Archive (.zip)', [
+    'Container holding multiple files',
+    'NOT supported by connectors',
+    'Must use Workflow unzip pattern',
+    'No size restriction with workflow approach',
+    'Contents can be any file type'
+  ],
+  '🗜️ GZIP Compressed (.gz)', [
+    'Compression of a single file',
+    'Supported natively by connectors',
+    'Max 4 GB uncompressed size',
+    'Connector decompresses automatically',
+    'Typically wraps a single CSV or JSON'
+))}
+${mlcTakeaway('When a client says "we will send a ZIP file" — immediately design the Workflow-based unzip pattern. Never attempt to point a connector at a ZIP file. Document this constraint during discovery so clients understand why the delivery format matters.')}`
+          },
+          {
+            title: 'ZIP File Ingestion — The Workflow Pattern Step by Step',
+            dur: '15 min',
+            html: `<h2>ZIP File Ingestion — The Workflow Pattern Step by Step</h2>
+<p class="mlc-lead">The Workflow-based ZIP ingestion pattern is Bluecopa's answer to compressed file delivery. This lesson walks through the complete workflow — from trigger to dataset load — using a real-world example of invoice PDFs delivered in a ZIP from a GCS bucket.</p>
+${mlcSection('Real-World Scenario', mlcUl([
+  '<strong>Client</strong>: Finance team delivers monthly invoice data as <code>invoice_pdfs.zip</code>',
+  '<strong>Source</strong>: GCS bucket → <code>InvoicePDFs/self-serve/2025/04/invoice_pdfs.zip</code>',
+  '<strong>Goal</strong>: Extract files, move to internal filebox, and trigger downstream processing',
+  '<strong>Trigger</strong>: Manual (can be converted to scheduled or event-driven once stable)'
+]))}
+${mlcSection('Workflow Node Breakdown', mlcOl([
+  '<strong>Node 0 — Manual Trigger</strong>: Starts the workflow. Use manual trigger during testing; switch to Schedule or Blob trigger in production',
+  '<strong>Node 1 — Copy to Blob Store</strong>: Fetches the raw .zip from GCS using the configured blob connection. Instruction Type: <em>Copy file instruction</em>. Source path: <code>InvoicePDFs/self-serve/2025/04/invoice_pdfs.zip</code>. Destination: internal blob path <code>InvoicePDFs/staging/</code>',
+  '<strong>Node 2 — Transfer to Filebox</strong>: Moves the .zip from internal blob to the designated Filebox. The Filebox handles extraction and downstream routing automatically',
+  '<strong>Node 3 — Unzip & Route</strong>: Bluecopa\'s Filebox unzips the archive and routes each contained file to its configured destination Dataset or processing step',
+  '<strong>Node 4 (Optional) — Notify</strong>: Send a success/failure notification email to the implementation team or client stakeholder'
+]))}
+${mlcDiagram('ZIP Ingestion Workflow — Node Map', `
+<div style="display:flex;flex-direction:column;gap:0;border-radius:10px;overflow:hidden;border:1px solid #334155">
+  ${['⚡ Manual Trigger → Kicks off the workflow','📋 Copy to Blob Store → ZIP from GCS to internal staging blob','📦 Transfer to Filebox → Blob ZIP lands in designated Filebox','🗂️ Unzip & Route → Files extracted, routed to Datasets','✉️ Notify → Email confirmation to team'].map((s,i) => `<div style="display:flex;align-items:center;gap:14px;padding:12px 18px;background:${['#1e293b','#1a2035','#1e293b','#1a2035','#0f2818'][i]};${i<4?'border-bottom:1px solid #334155':''}"><div style="background:${['#475569','#1d4ed8','#7c3aed','#059669','#d97706'][i]};border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:12px;flex-shrink:0">${i}</div><div style="font-size:13px;color:#cbd5e1">${s}</div></div>`).join('')}
+</div>`)}
+${mlcSection('Configuration Details — Copy to Blob Store Node', mlcUl([
+  '<strong>Instruction Type</strong>: Copy file instruction (copies the whole ZIP without extracting)',
+  '<strong>From File ID</strong>: The full path to the ZIP in the source cloud, e.g., <code>InvoicePDFs/self-serve/2025/04/invoice_pdfs.zip</code>',
+  '<strong>File ID Path Type</strong>: FILE PATH (not a blob ID)',
+  '<strong>Source Connection ID</strong>: Select the Blob Connection you created for this client\'s GCS bucket',
+  '<strong>To Path</strong>: Internal destination blob path, e.g., <code>InvoicePDFs/staging/invoice_pdfs.zip</code>'
+]))}
+${mlcSection('Production Checklist for ZIP Ingestion', mlcUl([
+  '☐ Blob Connection created and tested',
+  '☐ Internal staging blob path defined and writable',
+  '☐ Filebox configured with correct extraction settings',
+  '☐ Each file type inside the ZIP mapped to a target Dataset',
+  '☐ Workflow tested with a sample ZIP on staging',
+  '☐ Error handling node added for copy failure',
+  '☐ Notification node configured for both success and failure',
+  '☐ Schedule or blob trigger configured for production go-live'
+]))}
+${mlcTakeaway('The ZIP ingestion workflow has more nodes than a simple connector — but each node is explicit and auditable. When something fails in production, you can see exactly which node failed and why. This transparency is worth the extra setup time.')}`
+          }
+        ]
+      },
+
+      // ─── MODULE 4: Manual Ingestion & Advanced Patterns ───────────────────
+      {
+        title: 'Manual Ingestion & Advanced Patterns',
+        lessons: [
+          {
+            title: 'Portal & Form-Based File Upload',
+            dur: '12 min',
+            html: `<h2>Portal & Form-Based File Upload</h2>
+<p class="mlc-lead">Not all data arrives via automated pipelines. When source systems cannot automate delivery, or when operations teams need to review files before they enter the system, Bluecopa's <strong>Portal + Form + Filebox</strong> pattern provides controlled, traceable manual ingestion.</p>
+${mlcSection('Three Capabilities That Power Manual Ingestion', mlcUl([
+  '🖥️ <strong>Portal</strong> — The user-facing screen where end users interact. Think of it as a custom-built web form embedded in Bluecopa. Operations teams see a clean upload interface without needing access to back-end systems',
+  '📋 <strong>Form / Workflow</strong> — The interaction and validation layer. The Form defines what data the user must provide (file + metadata). The Workflow defines what happens after submission — validations, routing, approvals, notifications',
+  '📂 <strong>Filebox</strong> — The secure storage destination. Every uploaded file lands in a configured Filebox, which maintains a complete audit trail: who uploaded, when, file hash, and processing status'
+]))}
+${mlcSection('When to Use Manual (Portal) Ingestion', mlcUl([
+  '✅ Source system cannot generate automated file exports',
+  '✅ Data requires human review or approval before processing',
+  '✅ File format or content varies and needs a human to verify before submission',
+  '✅ Client operations team needs to attach metadata (period, entity, department) to each file',
+  '✅ Audit and compliance requirements demand a named responsible uploader',
+  '❌ Do NOT use for high-frequency, recurring, structured data — use connectors instead'
+]))}
+${mlcFlow([
+  'User opens Portal screen in Bluecopa',
+  'Selects file + fills metadata fields (period, entity, file type)',
+  'Submits form → Workflow triggers',
+  'File validated: format, size, required columns',
+  'File lands in Filebox with full audit record',
+  'Downstream: Connector/Dataset picks up for processing',
+  'Email notification sent to team confirming receipt'
+])}
+${mlcSection('Setting Up the Pattern — Key Steps', mlcOl([
+  '<strong>Create a Filebox</strong> — Define the destination filebox with the correct file type expectations',
+  '<strong>Build the Portal screen</strong> — Add a file upload component + metadata fields (dropdowns for period, entity, etc.)',
+  '<strong>Link Portal to Workflow</strong> — On form submit, the workflow triggers and receives the file reference and metadata',
+  '<strong>Add validation nodes</strong> — Check file type (must be CSV/Excel), size limits, required metadata fields',
+  '<strong>Route to Filebox</strong> — Workflow deposits the file into the target Filebox on validation pass',
+  '<strong>Configure failure handling</strong> — If validation fails, show user an error and do NOT deposit the file',
+  '<strong>Add downstream trigger</strong> — After deposit, trigger the connector or dataset refresh automatically'
+]))}
+${mlcSection('Audit Trail — What Gets Recorded', mlcUl([
+  '<strong>Uploader name & email</strong> — Who submitted the file',
+  '<strong>Timestamp</strong> — Exact date and time of submission',
+  '<strong>File name & hash</strong> — Unique fingerprint of the file; detects duplicates and tampering',
+  '<strong>Metadata fields</strong> — Period, entity, department as submitted by the user',
+  '<strong>Processing status</strong> — Pending, validated, failed, ingested — updated at each stage'
+]))}
+${mlcExample('Real-World Use Case', 'Client: NBFC operations team needs to upload daily bank statements. Automated email delivery is not possible. Solution: A Portal screen with three fields — Bank Name (dropdown), Statement Date, and File Upload. On submit, the workflow validates that the file is a CSV, deposits it into the "Bank Statements" Filebox, and sends a confirmation email. The finance team can see every upload in the audit trail and trace any data issue back to the exact file and uploader.')}
+${mlcTakeaway('Portal-based ingestion trades automation speed for control and accountability. In regulated industries and audit-heavy environments, this traceability is not optional — it is a compliance requirement. Always pair it with a downstream automation so the manual step is just the entry point, not the entire process.')}`
+          },
+          {
+            title: 'Invoice Discounting — A Complete End-to-End Ingestion Story',
+            dur: '16 min',
+            html: `<h2>Invoice Discounting — A Complete End-to-End Ingestion Story</h2>
+<p class="mlc-lead">This lesson walks through a full, real-world Bluecopa implementation: automating the invoice discounting lifecycle for an NBFC client. It combines dataset upload, bank allocation, utilization tracking, and automated email delivery into one end-to-end pipeline — a showcase of what Bluecopa ingestion looks like in production.</p>
+${mlcSection('What is Invoice Discounting?', mlcUl([
+  'A financial process where a company receives funds against unpaid invoices <strong>before</strong> customer payment is received',
+  'Normally, businesses wait 30–60 days for customers to pay. With invoice discounting, they submit eligible invoices to banks and receive advance funds immediately',
+  '<strong>Example</strong>: A company has ₹20 Cr in unpaid invoices with a 45-day payment cycle. They submit eligible invoices to HDFC and IDFC banks and receive advance funds today — improving working capital without taking a traditional loan',
+  'The bank charges a small fee (discount rate). When the customer eventually pays, the company repays the bank advance'
+]))}
+${mlcSection('Why Automation Was Needed', mlcUl([
+  'The existing manual process involved exporting data from multiple systems, merging in Excel, and manually emailing banks',
+  'Errors were frequent: wrong allocation amounts, missing invoices, late submissions',
+  'No real-time visibility into utilization across multiple banking lines',
+  'Reconciling repayments against advances was a full-day manual exercise each week'
+]))}
+${mlcSection('The Automated Pipeline — 5 Stages', mlcOl([
+  '<strong>Stage 1 — Dataset Upload</strong>: Operations team uploads the invoice dataset via Portal (Form + Filebox pattern). File: CSV of all eligible invoices with debtor name, amount, due date, and eligibility flag',
+  '<strong>Stage 2 — Eligibility Filtering</strong>: Workflow applies business rules — filter invoices by debtor whitelist, minimum amount threshold, and days-to-due-date window. Output: Eligible Invoice Dataset',
+  '<strong>Stage 3 — Bank Allocation</strong>: Allocation logic distributes eligible invoice amounts across configured banking lines (HDFC: 40%, IDFC: 35%, Kotak: 25%). Workflow writes allocation records to the Bank Allocation Dataset',
+  '<strong>Stage 4 — Utilization Tracking</strong>: A reconciliation sub-workflow matches drawn amounts against sanctioned limits per bank. Utilization % is calculated and written to the Utilization Dashboard Dataset in real time',
+  '<strong>Stage 5 — Automated Email Delivery</strong>: Workflow generates a formatted email report with allocation summary, utilization percentages, and eligible invoice list. Sent automatically to bank relationship managers and internal finance team'
+]))}
+${mlcDiagram('End-to-End Pipeline', `
+<div style="display:flex;flex-direction:column;gap:0;border-radius:10px;overflow:hidden;border:1px solid #334155">
+  ${[
+    ['📋','Invoice Dataset Upload','Portal (Form + Filebox) — Manual trigger by ops team','#1e293b','#475569'],
+    ['🔍','Eligibility Filtering','Workflow: apply business rules → Eligible Invoice Dataset','#1a2035','#1d4ed8'],
+    ['🏦','Bank Allocation','Allocation logic → distribute across HDFC, IDFC, Kotak lines','#1e293b','#7c3aed'],
+    ['📊','Utilization Tracking','Recon workflow → Utilization % → Dashboard Dataset (real-time)','#1a2035','#0891b2'],
+    ['✉️','Automated Email','Formatted report → Bank RMs + Finance team → auto-sent on completion','#0f2818','#059669']
+  ].map(([icon,title,desc,bg,col],i) => `<div style="display:flex;align-items:center;gap:14px;padding:13px 18px;background:${bg};${i<4?'border-bottom:1px solid #334155':''}"><div style="background:${col};border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${icon}</div><div><div style="font-size:13px;font-weight:700;color:#e2e8f0">${title}</div><div style="font-size:12px;color:#94a3b8;margin-top:2px">${desc}</div></div></div>`).join('')}
+</div>`)}
+${mlcSection('Datasets Used in This Implementation', mlcUl([
+  '<strong>RAW_INVOICES</strong> — All uploaded invoices (unfiltered)',
+  '<strong>ELIGIBLE_INVOICES</strong> — Invoices passing all eligibility rules',
+  '<strong>BANK_ALLOCATION</strong> — Per-bank allocation records with amounts and utilization',
+  '<strong>UTILIZATION_SUMMARY</strong> — Current draw vs sanctioned limit per bank, updated every run',
+  '<strong>REPAYMENT_RECON</strong> — Matches customer payments received against bank advances drawn'
+]))}
+${mlcStatGrid([
+  {n:'5', l:'Pipeline stages', note:'From upload to email delivery'},
+  {n:'3', l:'Banking lines', note:'HDFC · IDFC · Kotak'},
+  {n:'100%', l:'Manual effort eliminated', note:'From multi-hour Excel process to 0 human steps'},
+  {n:'<2 min', l:'End-to-end run time', note:'Once triggered, pipeline completes in under 2 minutes'}
+])}
+${mlcTakeaway('This implementation demonstrates Bluecopa at its best: replacing a fragile, error-prone manual workflow with an auditable, real-time automated pipeline. Every ingestion pattern covered in this course — portal upload, blob connections, connectors, workflow routing, and dataset management — comes together here. When you design your own implementations, think in pipelines, not just files.')}`
+          },
+          {
+            title: 'Ingestion Best Practices & Troubleshooting',
+            dur: '10 min',
+            html: `<h2>Ingestion Best Practices & Troubleshooting</h2>
+<p class="mlc-lead">A well-designed ingestion pipeline runs invisibly. A poorly designed one generates midnight alerts and frantic client calls. This lesson consolidates the key best practices from all ingestion patterns and gives you a structured approach to diagnosing failures when they happen.</p>
+${mlcSection('Design Best Practices', mlcUl([
+  '📐 <strong>Always set a target Dataset before designing the ingestion path</strong> — Work backwards from what you need in the Dataset to choose the right source format and connector type',
+  '🔔 <strong>Build alerts into every pipeline</strong> — No-file alerts, schema error alerts, row-count anomaly alerts. Silent failure is the hardest type to detect',
+  '📋 <strong>Use meaningful names</strong> — Blob connections, workflows, and Fileboxes named <code>client-gcs-prod-ar-aging</code> are infinitely easier to maintain than <code>connection_1</code>',
+  '🔒 <strong>Never store credentials in workflow node fields</strong> — Always use the Blob Connection abstraction layer; it handles rotation and auditing',
+  '📄 <strong>Document the file spec with the client</strong> — Column names, data types, encoding, delimiter, date format, and expected row count range. Agree in writing before going live',
+  '🔄 <strong>Test with a full production-size file</strong> — Staging tests often use small samples; the connector must handle peak volume before go-live'
+]))}
+${mlcSection('Troubleshooting — The 5 Most Common Ingestion Failures', mlcOl([
+  '<strong>Zero rows ingested, no error</strong> — Cause: ZIP file passed to a connector. Fix: Switch to the Workflow-based unzip pattern',
+  '<strong>Schema validation errors on every run</strong> — Cause: Client changed column names or data types. Fix: Re-map schema; add a client notification workflow so you are alerted when source changes',
+  '<strong>Connector fails with authentication error</strong> — Cause: Service account key expired or IAM permissions changed. Fix: Refresh credentials in Blob Connection settings; set a calendar reminder 30 days before key expiry',
+  '<strong>Duplicate rows appearing in Dataset</strong> — Cause: Connector running multiple times or delta detection misconfigured. Fix: Enable deduplication on the Dataset; check connector run history for duplicate triggers',
+  '<strong>Workflow stuck at Copy-to-Blob node</strong> — Cause: File does not exist at the configured path (client delivered to wrong folder). Fix: Add a file-exists check node before Copy; send alert if file not found at expected path'
+]))}
+${mlcSection('Pre-Go-Live Ingestion Checklist', mlcUl([
+  '☐ Blob Connection tested with real client credentials',
+  '☐ File spec agreed and documented with client',
+  '☐ Schema configured in target Dataset with correct types',
+  '☐ Ingestion tested with full-size production file',
+  '☐ No-file alert configured and tested',
+  '☐ Schema error alert configured',
+  '☐ Connector/workflow run history reviewed for any anomalies',
+  '☐ Row count validation step added (compare ingested rows vs file rows)',
+  '☐ Downstream processes (reports, recon) verified with ingested data',
+  '☐ Runbook documented: who to call if ingestion fails in production'
+]))}
+${mlcExample('Troubleshooting Example', 'Client reports: "Dashboard hasn\'t refreshed since Monday." You check the connector run history — it shows successful runs but zero rows processed. You inspect the source path — the client changed their folder structure from <code>exports/daily/</code> to <code>exports/2025/07/</code>. The connector was configured for the old path. Fix: update the connector file path, add a file-exists validation node, and agree with the client that any path change must be communicated 5 business days in advance.')}
+${mlcTakeaway('The best ingestion pipelines are the ones that fail loudly, fail early, and provide clear diagnostics. Invest the extra time in alerts, validation nodes, and documentation during setup. In a 200-person organisation using the same platform, one well-documented pipeline pattern benefits everyone.')}`
+          }
+        ]
+      }
+    ]
+  },
+
+  // ════════════════════════════════════════════════════
   //  COURSE 7 — ABOUT BLUECOPA
   // ════════════════════════════════════════════════════
   bc: {
