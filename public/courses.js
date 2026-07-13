@@ -1145,6 +1145,7 @@ ${mlcSection('Ingestion Patterns at a Glance', mlcCompare(
     'Ad hoc or controlled submissions',
     'Operations team review before processing',
     'Best for exceptions and one-off files'
+  ]
 ))}
 ${mlcTakeaway('Data Ingestion is not just file transfer — it is the controlled, traceable, auditable entry point for all data in Bluecopa. Choosing the right pattern up front saves weeks of rework during implementation.')}`
           },
@@ -1313,6 +1314,7 @@ ${mlcSection('When to Use the 3-Phase Pattern vs Direct Connector', mlcCompare(
     'No transformation needed before loading',
     'Source path and filename are stable',
     'Volume is moderate and consistent'
+  ]
 ))}
 ${mlcTakeaway('The 3-Phase Pattern trades simplicity for control. Use it whenever the direct connector path cannot handle the file format, size, or delivery pattern. Once mastered, it becomes the go-to solution for complex client onboarding scenarios.')}`
           },
@@ -1424,6 +1426,7 @@ ${mlcSection('GZIP vs ZIP — Important Distinction', mlcCompare(
     'Max 4 GB uncompressed size',
     'Connector decompresses automatically',
     'Typically wraps a single CSV or JSON'
+  ]
 ))}
 ${mlcTakeaway('When a client says "we will send a ZIP file" — immediately design the Workflow-based unzip pattern. Never attempt to point a connector at a ZIP file. Document this constraint during discovery so clients understand why the delivery format matters.')}`
           },
