@@ -3062,7 +3062,6 @@ function mcDoSearch(q) {
   // Search knowledge articles
   const articleMatches = (allArticles || []).filter(a =>
     (a.title||'').toLowerCase().includes(lower) ||
-    (a.content||'').toLowerCase().includes(lower) ||
     (a.excerpt||'').toLowerCase().includes(lower) ||
     (a.category||'').toLowerCase().includes(lower)
   ).slice(0, 4);
@@ -3133,7 +3132,7 @@ function mcDoSearch(q) {
     html += `<div class="mc-sr-section-label">📚 Knowledge Articles</div>`;
     html += articleMatches.map(a => {
       const col = catColors[a.category] || '#e8c97a';
-      const excerpt = (a.excerpt || a.content || '').replace(/<[^>]+>/g,'').slice(0,80) + '…';
+      const excerpt = (a.excerpt || '').replace(/<[^>]+>/g,'').slice(0,80) + '…';
       return `<div class="mc-sr-item" onclick="mcOpenArticle(${a.id})">
         <span class="mc-sr-cat" style="background:${col}20;color:${col};border:1px solid ${col}40;">${a.category||'Article'}</span>
         <div style="flex:1;min-width:0;">

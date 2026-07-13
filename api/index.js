@@ -249,7 +249,7 @@ app.get('/api/articles', (req, res) => {
       (a.tags   || []).some(t => t.toLowerCase().includes(lq))
     );
   }
-  res.json(list);
+  res.json(list.map(({ content, ...rest }) => rest));
 });
 
 app.get('/api/articles/:id', (req, res) => {
