@@ -67,6 +67,18 @@ async function saveDB(data) {
   // On Vercel file writes are no-ops, so we don't even try
 }
 
+// Atomic field-level update — avoids full-document replace race conditions
+async function atomicUpdate(update) {
+  if (mongoCol) {
+    try {
+      await mongoCol.updateOne({ _id: 'main' }, update, { upsert: true });
+      dbCacheTs = 0; // invalidate read cache so next GET fetches fresh
+      return true;
+    } catch(e) { console.error('[atomicUpdate]', e.message); }
+  }
+  return false;
+}
+
 // ── Data migration / seed ─────────────────────────────────────────────────────
 function migrate() {
   let dirty = false;
@@ -236,12 +248,14 @@ function getWeekNumber(d) {
   return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
 }
 
-// ── Helper: always read fresh from MongoDB when available ─────────────────────
+// ── Helper: read fresh from MongoDB with a 2s cache to avoid per-request hammering
+let dbCacheTs = 0;
 async function freshDB() {
-  if (mongoCol) {
+  if (mongoCol && (Date.now() - dbCacheTs > 2000)) {
     try {
       const doc = await mongoCol.findOne({ _id: 'main' });
       if (doc) { const { _id, ...data } = doc; Object.assign(db, data); }
+      dbCacheTs = Date.now();
     } catch (e) { console.error('[freshDB]', e.message); }
   }
 }
@@ -272,24 +286,42 @@ app.get('/api/articles/:id', async (req, res) => {
 
 // View increment
 app.post('/api/articles/:id/view', async (req, res) => {
-  const a = (db.articles || []).find(x => x.id === parseInt(req.params.id));
-  if (!a) return res.status(404).json({ error: 'Not found' });
+  const articleId = parseInt(req.params.id);
+  const idx = (db.articles || []).findIndex(x => x.id === articleId);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  const a = db.articles[idx];
   a.views = (a.views || 0) + 1;
 
-  // Log who viewed
   const { viewer, viewerInitials } = req.body || {};
-  if (!db.viewLog) db.viewLog = [];
-  db.viewLog.push({
-    articleId: a.id,
-    articleTitle: a.title,
+  const logEntry = {
+    articleId: a.id, articleTitle: a.title,
     viewer: viewer || 'Anonymous',
     viewerInitials: viewerInitials || (viewer ? viewer.slice(0,2).toUpperCase() : 'AN'),
     ts: new Date().toISOString(),
-  });
-  // Keep log capped at 2000 entries
-  if (db.viewLog.length > 2000) db.viewLog = db.viewLog.slice(-2000);
+  };
 
-  await saveDB(db);
+  if (mongoCol) {
+    try {
+      await mongoCol.updateOne(
+        { _id: 'main' },
+        {
+          $inc: { [`articles.${idx}.views`]: 1 },
+          $push: { viewLog: { $each: [logEntry], $slice: -2000 } },
+        }
+      );
+      dbCacheTs = 0;
+    } catch(e) {
+      console.error('[view/mongo]', e.message);
+      if (!db.viewLog) db.viewLog = [];
+      db.viewLog.push(logEntry);
+      if (db.viewLog.length > 2000) db.viewLog = db.viewLog.slice(-2000);
+      await saveDB(db);
+    }
+  } else {
+    if (!db.viewLog) db.viewLog = [];
+    db.viewLog.push(logEntry);
+    if (db.viewLog.length > 2000) db.viewLog = db.viewLog.slice(-2000);
+  }
   res.json({ views: a.views });
 });
 
@@ -300,18 +332,34 @@ app.post('/api/articles', async (req, res) => {
   if (whoCanPost === 'admins_only' && !isAdmin(req)) return res.status(403).json({ error: 'Only admins can post.' });
   const { title, category, author, initials, content, tags } = req.body;
   if (!title || !category || !content) return res.status(400).json({ error: 'title, category, content required' });
-  if (!db.articles) db.articles = [];
-  if (!db.nextId) db.nextId = (Math.max(0, ...db.articles.map(a => a.id)) + 1);
+
+  let articleId;
+  if (mongoCol) {
+    // Atomically increment nextId — safe under concurrent requests
+    const result = await mongoCol.findOneAndUpdate(
+      { _id: 'main' },
+      { $inc: { nextId: 1 } },
+      { returnDocument: 'before', upsert: true }
+    );
+    articleId = (result && result.nextId) || (Math.max(0, ...(db.articles||[]).map(a=>a.id)) + 1);
+    db.nextId = articleId + 1;
+  } else {
+    if (!db.articles) db.articles = [];
+    if (!db.nextId) db.nextId = (Math.max(0, ...db.articles.map(a => a.id)) + 1);
+    articleId = db.nextId++;
+  }
+
   const article = {
-    id: db.nextId++,
+    id: articleId,
     title, category, author: author || 'Anonymous',
     initials: initials || (author || 'A').slice(0,2).toUpperCase(),
     excerpt: content.replace(/<style[\s\S]*?<\/style>/gi,'').replace(/<script[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,180) + '…',
     content, tags: Array.isArray(tags) ? tags : (tags||'').split(',').map(t=>t.trim()).filter(Boolean),
     created_at: new Date().toISOString(), views: 0,
   };
-  db.articles.push(article);
-  await saveDB(db);
+
+  const ok = await atomicUpdate({ $push: { articles: article } });
+  if (!ok) { db.articles = db.articles || []; db.articles.push(article); await saveDB(db); }
   res.status(201).json(article);
 });
 
@@ -351,10 +399,11 @@ app.put('/api/articles/:id', async (req, res) => {
 app.delete('/api/articles/:id', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
   const id  = parseInt(req.params.id);
-  const idx = (db.articles || []).findIndex(x => x.id === id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found' });
-  db.articles.splice(idx, 1);
-  await saveDB(db);
+  const exists = (db.articles || []).some(x => x.id === id);
+  if (!exists) return res.status(404).json({ error: 'Not found' });
+  const ok = await atomicUpdate({ $pull: { articles: { id } } });
+  if (!ok) { db.articles = (db.articles||[]).filter(x => x.id !== id); await saveDB(db); }
+  else db.articles = (db.articles||[]).filter(x => x.id !== id); // keep in-memory in sync
   res.json({ success: true });
 });
 
@@ -371,18 +420,20 @@ app.post('/api/categories', async (req, res) => {
   const hex = color || '#7a7a96';
   const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
   const cat = { id: Date.now(), name: name.trim(), color: hex, bg: `rgba(${r},${g},${b},0.15)` };
-  db.categories.push(cat);
-  await saveDB(db);
+  const ok = await atomicUpdate({ $push: { categories: cat } });
+  if (!ok) { db.categories.push(cat); await saveDB(db); }
+  else db.categories.push(cat);
   res.status(201).json(cat);
 });
 
 app.delete('/api/categories/:id', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
   const idParam = req.params.id;
-  const idx = (db.categories || []).findIndex(c => String(c.id) === idParam);
-  if (idx === -1) return res.status(404).json({ error: 'Not found' });
-  db.categories.splice(idx, 1);
-  await saveDB(db);
+  const cat = (db.categories || []).find(c => String(c.id) === idParam);
+  if (!cat) return res.status(404).json({ error: 'Not found' });
+  const ok = await atomicUpdate({ $pull: { categories: { id: cat.id } } });
+  if (!ok) { db.categories = (db.categories||[]).filter(c => String(c.id) !== idParam); await saveDB(db); }
+  else db.categories = (db.categories||[]).filter(c => String(c.id) !== idParam);
   res.json({ success: true });
 });
 
