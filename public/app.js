@@ -2339,7 +2339,7 @@ function certViewFull(courseId){
       <div class="cert-full-top-bar-thin"></div>
       <div class="cert-full-header">
         <div class="cert-full-logo-wrap">
-          <img src="/bluecopa-icon.png" class="cert-full-logo-img" alt="Bluecopa">
+          <img src="/bluecopa-icon.png" class="cert-full-logo-img" alt="Bluecopa" width="44" height="44" style="width:44px;height:44px;object-fit:contain;flex-shrink:0;">
           <div class="cert-full-brand">
             <div class="cert-full-brand-name">BLUECOPA</div>
             <div class="cert-full-brand-sub">Delivery Team · Knowledge Hub</div>
