@@ -2879,6 +2879,426 @@ ${mlcTakeaway('The Jinja pattern — TABLE_QUERY → JINJA → SEND_EMAIL — is
   },
 
   // ════════════════════════════════════════════════════
+  //  COURSE 12 — EXPORTS & REPORTS
+  // ════════════════════════════════════════════════════
+  er: {
+    modules: [
+      {
+        title: 'Export Fundamentals',
+        lessons: [
+          {
+            title: 'Export Types & Output Formats in Bluecopa',
+            dur: '10 min',
+            html: `<h2>Export Types & Output Formats in Bluecopa</h2>
+<p class="mlc-lead">Before configuring any export workflow, it is essential to understand what export types Bluecopa supports, what output formats are available, and which use case each combination is designed for.</p>
+${mlcSection('The Four Export Types', mlcUl([
+  '<strong>Single Worksheet</strong> — exports one sheet as a CSV (.csv) or Excel (.xlsx) file. Standard single-sheet report for a specific dataset or metric group.',
+  '<strong>Multiple Worksheets</strong> — exports multiple sheets combined into a single Excel workbook with multiple tabs. Ideal for consolidated reports combining multiple data views in one file.',
+  '<strong>Multiple Files (ZIP)</strong> — exports each worksheet as a separate file, bundled into a single ZIP archive (.zip). Used when stakeholders need separate deliverables per dataset.',
+  '<strong>With Statements & Metrics</strong> — exports an Excel workbook with additional summary tabs containing KPI snapshots alongside raw data. Suited for executive reports.'
+]))}
+${mlcSection('Supported Output Formats', mlcCompare(
+  'Format', ['CSV (.csv)', 'Excel (.xlsx)', 'ZIP Archive (.zip)', 'Excel with Statements'],
+  'Best For', ['Simple single-sheet reports, flat data feeds', 'Multi-tab consolidated workbooks', 'Multiple separate files in one delivery', 'Executive reports with KPI summaries alongside raw data']
+))}
+${mlcSection('Additional Export Capabilities', mlcUl([
+  '<strong>Currency Type selection</strong> — specify output currency for multi-region reports',
+  '<strong>Row-level filters</strong> — scope exported rows to an authorised data subset',
+  '<strong>Date range filters</strong> — limit data to a specific period before export',
+  '<strong>Statements and Metrics</strong> — include KPI snapshots alongside worksheet data',
+  '<strong>Filebox Sync</strong> — automatically upload generated files to the Bluecopa Filebox for centralised access'
+]))}
+${mlcSection('Choosing the Right Export Type', mlcUl([
+  'Single report for one team → <strong>Single Worksheet (CSV or XLSX)</strong>',
+  'Consolidated monthly pack for finance → <strong>Multiple Worksheets (single XLSX with tabs)</strong>',
+  'Separate files per business unit → <strong>Multiple Files (ZIP)</strong>',
+  'Executive dashboard with KPI summary → <strong>With Statements & Metrics (XLSX)</strong>'
+]))}
+${mlcExample('Implementation Scenario', 'A finance team needs a month-end pack with three tabs: P&L, Balance Sheet, and Cash Flow. The correct choice is Multiple Worksheets — one XLSX workbook with three tabs, delivered as a single email attachment. If each business unit needed their own separate file, Multiple Files (ZIP) would be used instead.')}
+${mlcTakeaway('The export type and output format are determined by the Export configuration — not by the workflow. Get this decision right before building the workflow, as changing it later requires re-creating the export configuration.')}
+`
+          },
+          {
+            title: 'Prerequisites — Datasets, Workbooks & Export Config',
+            dur: '8 min',
+            html: `<h2>Prerequisites — Datasets, Workbooks & Export Config</h2>
+<p class="mlc-lead">Every export workflow in Bluecopa depends on three components being correctly set up in advance. Skipping any one of these causes the workflow to fail at runtime — not at setup time, making errors hard to debug.</p>
+${mlcSection('The Three Required Prerequisites', mlcOl([
+  '<strong>Dataset</strong> — a dataset containing the data to be exported must exist and be up to date, including all required fields, dimensions, and measures for the intended report output.',
+  '<strong>Workbook</strong> — the dataset must be imported into a Workbook. The workbook is the data source for the export action. Each worksheet within the workbook maps to a sheet or file in the final export.',
+  '<strong>Export Configuration</strong> — an Export must be created from the workbook before configuring the workflow. The export defines output format, sheet selection, filters, and currency settings applied during file generation.'
+]))}
+${mlcSection('Dependency Chain', mlcFlow([
+  'Raw data source (DB, GCS, API)',
+  'Dataset (ingested into Bluecopa)',
+  'Workbook (dataset imported as worksheets)',
+  'Export Configuration (defines format, filters, currency)',
+  'Workflow (orchestrates trigger → export → delivery)'
+]))}
+${mlcSection('Common Prerequisite Mistakes', mlcUl([
+  '<strong>Dataset not refreshed</strong> — the export uses stale data from the last ingestion run. Always verify the dataset was ingested before the scheduled export fires.',
+  '<strong>Workbook not published</strong> — an unpublished workbook cannot be used as an export source. Publish the workbook after every schema change.',
+  '<strong>Export config references a deleted sheet</strong> — if a worksheet is removed from the workbook after the export was configured, the export fails silently. Verify workbook-export alignment after any structural change.',
+  '<strong>Currency not set</strong> — for multi-region reports, leaving currency at default may produce incorrect values for some recipients.'
+]))}
+${mlcSection('Setup Checklist', mlcUl([
+  '☑ Dataset exists and contains all required fields',
+  '☑ Dataset has been ingested and data is current',
+  '☑ Dataset is imported into a Workbook',
+  '☑ All required worksheets are configured within the workbook',
+  '☑ Workbook is published',
+  '☑ Export configuration is created from the workbook with correct format, sheets, and filters',
+  '☑ Export configuration is saved and tested manually before wiring into a workflow'
+]))}
+${mlcTakeaway('Think of it as a pipeline of dependencies: the workflow is only as good as its export config, which is only as good as its workbook, which is only as good as its dataset. Build and verify from the bottom up before touching the workflow.')}
+`
+          }
+        ]
+      },
+      {
+        title: 'Export via Email',
+        lessons: [
+          {
+            title: 'The Export via Email Pipeline — Three Stages',
+            dur: '10 min',
+            html: `<h2>The Export via Email Pipeline — Three Stages</h2>
+<p class="mlc-lead">Export via Email combines two core capabilities — Export (generating a structured file from a worksheet) and Email Delivery (attaching and sending that file automatically) — into a single automated three-stage pipeline.</p>
+${mlcSection('What Export via Email Eliminates', mlcUl([
+  'Manually downloading the report from Bluecopa',
+  'Opening an email client and composing a new message',
+  'Attaching the file and typing recipient addresses',
+  'Hitting send and tracking delivery manually'
+]))}
+${mlcSection('The Three-Stage Sequence', mlcUl([
+  '<strong>Stage 1 — Trigger</strong>: An authorized user triggers the workflow with a single action. All parameters (worksheet source, date range, recipients) are pre-configured — no form input is required at trigger time.',
+  '<strong>Stage 2 — Run Export</strong>: The system connects to the designated worksheet, applies date filters (if configured), and generates the output file. Single worksheet → CSV. Multiple worksheets → each exported as CSV, bundled into a ZIP archive. The file is held as a referenced object with a unique <code>file_id</code>.',
+  '<strong>Stage 3 — Send Email</strong>: Using the <code>file_id</code> from Stage 2, the email service automatically attaches the correct file and dispatches it to configured recipients. No manual download or re-upload is required.'
+]))}
+${mlcSection('File Integrity Guarantee', '<p>Because the file reference (<code>file_id</code>) is passed directly between stages within the same workflow run, there is <strong>zero risk of attaching the wrong file</strong>. The attachment always reflects exactly what was generated in the current run — not a cached or prior version.</p>')}
+${mlcSection('Embedded vs Standalone Mode', mlcCompare(
+  'Standalone Export via Email', [
+    'Manually triggered by an authorized user',
+    'The export and email are the entire workflow',
+    'Used for on-demand report delivery',
+    'User initiates when they decide the report is needed'
+  ],
+  'Embedded in Parent Workflow', [
+    'Automatically triggered when the parent workflow reaches this step',
+    'The export and email are one step in a larger business process',
+    'Used within month-end closing, payroll, or allocation pipelines',
+    'Fully hands-off — no user action at the export/email stage'
+  ]
+))}
+${mlcExample('Business Scenario', 'A collections manager needs to send the outstanding invoices report to the credit team every Monday morning. Rather than downloading and emailing it manually each week, Export via Email is configured once: worksheet source, date filter (last 7 days), recipient list, and subject line. Every Monday, the manager clicks Trigger — and the system generates and delivers the report automatically in under 60 seconds.')}
+${mlcTakeaway('Export via Email is a three-stage sequential pipeline — Trigger → Export → Email. Each stage feeds automatically into the next. Once configured, the only human action needed is triggering (or it can be embedded to need zero human action).')}
+`
+          },
+          {
+            title: 'Manual vs Embedded Triggers & Configuration Options',
+            dur: '10 min',
+            html: `<h2>Manual vs Embedded Triggers & Configuration Options</h2>
+<p class="mlc-lead">Understanding the trigger model and the rich configuration options available in Export via Email determines how flexibly and reliably reports reach their audience.</p>
+${mlcSection('Manual Trigger — How It Works', mlcUl([
+  'An authorized user initiates the workflow with a single action — no data entry at trigger time',
+  'All parameters are pre-configured in the workflow definition: worksheet source, date range, recipient addresses, output settings',
+  'Best for: ad-hoc reports, on-demand delivery, or when the report generation moment is determined by a human decision (e.g. after a data review is complete)',
+  'The user\'s role is to press trigger — the system handles everything else'
+]))}
+${mlcSection('Embedded Trigger — How It Works', mlcUl([
+  'The Export via Email step is a node within a larger parent workflow',
+  'When the parent workflow reaches this node, the export and email fire automatically',
+  'Best for: month-end closing workflows, payroll processing pipelines, allocation reports — where delivery is one step in a larger automated sequence',
+  'No separate trigger is needed — the parent workflow\'s trigger drives everything'
+]))}
+${mlcSection('Key Configuration Options', mlcUl([
+  '<strong>Date & Time Settings</strong> — custom period selection (start/end dates), preset periods (this week, this month, last quarter, year-to-date), or fiscal year-aligned date ranges',
+  '<strong>Output File Type</strong> — CSV (single worksheet) or ZIP archive (multiple worksheets)',
+  '<strong>Currency Conversion</strong> — specify output currency for multi-region reports where stakeholders work in different currencies',
+  '<strong>Recipients (To/CC)</strong> — primary recipients and secondary informational copies; restrict distribution to those who genuinely need the data',
+  '<strong>Subject Line</strong> — include report name and time period for clarity, e.g. "Collections Report June 2026"',
+  '<strong>Email Body</strong> — keep brief; the attachment is the primary deliverable, not the email body'
+]))}
+${mlcSection('Best Practices for Configuration', mlcUl([
+  'Define the date range in the Export configuration — not at trigger time — so the report scope is consistent and auditable',
+  'Use a standardised subject line format: <code>[Report Name] [Period]</code> — recipients can file and search by pattern',
+  'Restrict the recipient list to data owners; avoid broad distribution lists that may expose sensitive data',
+  'Use CC sparingly — only for stakeholders who need visibility, not the data itself'
+]))}
+${mlcTakeaway('Manual trigger gives a human the control point; embedded trigger removes it entirely. Choose based on whether human judgment is needed to decide when the report should be generated. In either case, all parameters are pre-configured — the trigger is never a data-entry moment.')}
+`
+          },
+          {
+            title: 'File Attachment Handler & Delivery Integrity',
+            dur: '8 min',
+            html: `<h2>File Attachment Handler & Delivery Integrity</h2>
+<p class="mlc-lead">The File Attachment Handler is the bridge between the export engine and the email service. Understanding how it works explains why Export via Email always delivers the correct file, even in high-concurrency environments.</p>
+${mlcSection('How the file_id System Works', mlcOl([
+  'Stage 2 (Run Export) generates the output file and stores it internally',
+  'The export engine assigns a unique <code>file_id</code> to the generated file for this specific run',
+  'Stage 3 (Send Email) references the attachment using a <strong>dynamic variable</strong>: <code>${ExportNodeID.file_id}</code>',
+  'At runtime, this variable resolves to the exact <code>file_id</code> generated in Stage 2 of the same execution',
+  'The email service retrieves the file using this reference and attaches it — no manual download or upload'
+]))}
+${mlcSection('Why Dynamic file_id Matters', mlcUl([
+  '<strong>Correctness</strong> — the attachment always reflects exactly what was generated in the current run, never a cached or prior version',
+  '<strong>Concurrency safety</strong> — if multiple instances of the workflow run simultaneously (e.g. for different clients), each instance\'s <code>file_id</code> is unique. There is no risk of cross-contamination between runs.',
+  '<strong>Auditability</strong> — each delivery is logged with its specific <code>file_id</code>, creating a traceable record of exactly which file was sent in each run'
+]))}
+${mlcSection('Configuring the Email Attachment Reference', mlcUl([
+  'In the Send Email node, set <strong>Attachment Type</strong> to <code>Email Attachments</code>',
+  'In the File reference field, enter: <code>${ExportNodeID.file_id}</code>',
+  'Replace <code>ExportNodeID</code> with the actual node ID of the Run Export Excel step (e.g. <code>MQ4U27JWWFDYAADBITD7</code>)',
+  'Example: <code>${MQ4U27JWWFDYAADBITD7.file_id}</code>'
+]))}
+${mlcSection('Supporting Email Service Capabilities', mlcUl([
+  '<strong>CC and BCC</strong> — secondary recipients for visibility or compliance requirements',
+  '<strong>Custom subject lines</strong> — dynamic or static; include report name and period',
+  '<strong>Branded email templates</strong> — consistent look and feel for all report deliveries',
+  '<strong>Delivery confirmation logging</strong> — every dispatch is logged for audit and traceability'
+]))}
+${mlcExample('High-Concurrency Scenario', 'A Bluecopa implementation serves 15 clients. At month-end, all 15 Export via Email workflows fire within the same 5-minute window. Each workflow generates its own file_id. When the email service attaches the file, it uses the file_id from that specific workflow\'s export node — never mixing files between clients. This is guaranteed by design, not by timing.')}
+${mlcTakeaway('The dynamic file_id variable is what makes Export via Email reliable at scale. Never hardcode a file reference — always use ${ExportNodeID.file_id} so the correct, current-run file is always attached.')}
+`
+          }
+        ]
+      },
+      {
+        title: 'Scheduled Report Delivery',
+        lessons: [
+          {
+            title: 'Scheduled Triggers — Standard & Cron Scheduling',
+            dur: '10 min',
+            html: `<h2>Scheduled Triggers — Standard & Cron Scheduling</h2>
+<p class="mlc-lead">Scheduled Report Delivery transforms Bluecopa from a reporting tool into a proactive data distribution platform — generating and distributing reports to recipients automatically at predefined intervals with zero manual intervention after initial configuration.</p>
+${mlcSection('How the Scheduled Trigger Works', '<p>The Scheduled Trigger initiates the workflow at configured intervals. Two scheduling methods are available — Standard Schedule for common patterns and Cron Schedule for precise or complex timing requirements.</p>')}
+${mlcSection('Option A — Standard Schedule', mlcUl([
+  '<strong>Daily</strong> — e.g. every day at 08:00 UTC → morning reports at start of business day',
+  '<strong>Weekly</strong> — e.g. every Monday at 07:00 UTC → weekly summaries for managers',
+  '<strong>Monthly</strong> — e.g. 1st of every month at 06:00 UTC → billing, finance, and payroll reports',
+  '<strong>Hourly</strong> — e.g. every hour at :00 → near real-time operational dashboards',
+  '<strong>Yearly</strong> — e.g. January 1 at 00:00 UTC → annual compliance or audit exports',
+  'Also configure: <strong>execution time</strong>, <strong>timezone</strong>, and <strong>exclusion dates</strong> (public holidays, non-business days)'
+]))}
+${mlcSection('Option B — Cron Schedule', '<p>Use a cron expression for advanced scheduling that standard frequencies cannot cover. Enter the expression directly in the Schedule field.</p>' + mlcUl([
+  '<code>*/5 * * * *</code> — every 5 minutes',
+  '<code>0 8 * * 1-5</code> — Monday to Friday at 08:00',
+  '<code>0 9 1 * *</code> — first day of every month at 09:00',
+  '<code>0 6 * * 1</code> — every Monday at 06:00'
+]))}
+${mlcSection('Standard vs Cron — When to Use Each', mlcCompare(
+  'Standard Schedule', [
+    'Common, predictable patterns (daily, weekly, monthly)',
+    'Easy to configure with dropdowns — no cron syntax needed',
+    'Covers the vast majority of reporting cadences',
+    'Use for: morning reports, weekly summaries, monthly billing packs'
+  ],
+  'Cron Schedule', [
+    'Complex or uncommon timing requirements',
+    'Requires familiarity with cron expression syntax',
+    'Enables minute-level precision and multi-condition patterns',
+    'Use for: workday-only reports, bi-weekly schedules, time-sensitive intraday reporting'
+  ]
+))}
+${mlcSection('Timezone Configuration — Critical', mlcUl([
+  'Always configure the timezone explicitly — <strong>never rely on server defaults</strong>',
+  'Align delivery time with the recipient\'s start-of-day so reports are ready when work begins',
+  'For global teams: schedule for the earliest timezone among recipients, or create separate schedules per region',
+  'Use the <strong>Exclude Schedule</strong> field to suppress delivery on public holidays and non-business days'
+]))}
+${mlcExample('Cron Use Case', 'A client\'s finance team in India needs reports delivered at 09:00 IST on the last working day of each month. Standard schedule cannot handle "last working day" logic. A cron expression combined with an exclusion calendar covering Indian public holidays achieves this precisely.')}
+${mlcTakeaway('Use Standard Schedule for common cadences — it is easier to maintain. Only escalate to Cron when you need minute-level precision or patterns that standard frequencies cannot express. Always set timezone explicitly.')}
+`
+          },
+          {
+            title: 'Three-Node Workflow — Configure & Activate',
+            dur: '12 min',
+            html: `<h2>Three-Node Workflow — Configure & Activate</h2>
+<p class="mlc-lead">The Scheduled Report Delivery workflow is a three-node automation pipeline. Each node executes sequentially, with outputs passed automatically from one stage to the next. Once activated, it runs indefinitely on the configured schedule.</p>
+${mlcSection('The Three-Node Pipeline', mlcUl([
+  '<strong>Node 1 — Scheduled Trigger</strong>: Initiates the workflow at configured intervals using a cron expression or standard frequency setting.',
+  '<strong>Node 2 — Run Export Excel</strong>: Connects to the workbook, applies filters, and generates the output file (CSV, Excel, or ZIP archive). Outputs a <code>file_id</code> reference.',
+  '<strong>Node 3 — Send Email</strong>: Retrieves the generated file via the dynamic <code>file_id</code> variable and dispatches it to all configured recipients.'
+]))}
+${mlcSection('Step 1 — Configure the Trigger Node', mlcUl([
+  'Set <strong>Trigger On</strong>: Schedule',
+  'Set <strong>Event</strong>: Scheduled',
+  'Choose scheduling method: Standard frequency or Cron expression',
+  'Set execution time and timezone',
+  'Add exclusion dates for holidays or non-business days'
+]))}
+${mlcSection('Step 2 — Configure the Run Export Excel Node', mlcUl([
+  'Set <strong>Action Type</strong>: Run Export Excel',
+  'Set <strong>Source for Export Excel WF ID</strong>: Workspace',
+  'Select the required export configuration (e.g. <code>final_collections_usd_amount</code>)',
+  'Set <strong>Run Input Type</strong>: Export Worksheet',
+  'Set <strong>Source for Inputs</strong>: Input (from trigger or previous node)',
+  'This node generates the file and stores it as a <code>file_id</code> reference for the next node'
+]))}
+${mlcSection('Step 3 — Configure the Send Email Node', mlcUl([
+  'Add a <strong>Send Email</strong> node after the export step',
+  'Set <strong>Attachment Type</strong>: Email Attachments',
+  'Set <strong>File reference</strong>: <code>${ExportNodeID.file_id}</code> — replace ExportNodeID with the actual node ID',
+  'Set <strong>To</strong>: primary recipient email address(es)',
+  'Set <strong>CC</strong>: secondary recipients requiring informational copies',
+  'Set <strong>Subject</strong>: include report name and time period — e.g. "Collections Report June 2026"',
+  'Set <strong>Email Body</strong>: keep brief — the attachment is the primary deliverable'
+]))}
+${mlcSection('Activation & Go-Live', mlcFlow([
+  'Verify dataset is ingested and workbook is up to date',
+  'Test the export configuration manually in the Export section',
+  'Configure the three workflow nodes in sequence',
+  'Test with a manual trigger to verify end-to-end delivery',
+  'Activate the workflow to enable recurring automated delivery',
+  'Monitor the first few scheduled runs to confirm delivery and file correctness'
+]))}
+${mlcExample('Dynamic file_id in Action', 'The Run Export Excel node has the ID MQ4U27JWWFDYAADBITD7. In the Send Email node, the file reference is set to ${MQ4U27JWWFDYAADBITD7.file_id}. At runtime, this resolves to the exact file generated in the current workflow execution — guaranteeing the correct, fresh report is always attached.')}
+${mlcTakeaway('The three-node pipeline is simple by design. Trigger fires → Export generates file → Email attaches and sends. The key is the dynamic file_id reference that chains nodes 2 and 3 together. Get this reference right and the rest is just scheduling.')}
+`
+          }
+        ]
+      },
+      {
+        title: 'Multi-sheet Exports & Real-World Automation',
+        lessons: [
+          {
+            title: 'Multi-sheet Excel Export — Configuration & Options',
+            dur: '10 min',
+            html: `<h2>Multi-sheet Excel Export — Configuration & Options</h2>
+<p class="mlc-lead">Multi-sheet Excel Export allows you to consolidate data from multiple workbooks, statements, and metrics into a single Excel (.xlsx) file with multiple tabs. It is essential for financial reporting and cross-functional data delivery where stakeholders expect one organised workbook rather than a collection of individual files.</p>
+${mlcSection('Why Multi-sheet Exports Matter', mlcUl([
+  'Finance teams need P&L, Balance Sheet, and Cash Flow in one workbook — not three separate files',
+  'Operations teams need daily, weekly, and monthly summaries side-by-side in one download',
+  'External stakeholders expect a single, professionally organised deliverable, not a ZIP of separate CSVs',
+  'Multi-sheet workbooks enable pivot tables that span data from multiple source views'
+]))}
+${mlcSection('Method 1 — Merge Excel Files into One XLSX', mlcOl([
+  'Navigate to <strong>Apps → Exports</strong> and click New',
+  'Select your data source: Workbook, Statement, or Statement Plan',
+  'Configure each sheet: specify source, metrics, filters, date ranges, currency',
+  'In the <strong>Export Options</strong> section, enable the checkbox: <code>"Merge Excel files into one XLSX"</code>',
+  'Toggle <strong>Export Datasheet</strong> if you want a dedicated tab for the raw source data',
+  'Save, Publish, and Run'
+]))}
+${mlcSection('Method 2 — Single XLSX With Multiple Sheets (No Merge)', mlcOl([
+  'Navigate to <strong>Apps → Exports</strong>, create or edit an export',
+  'In the output/file configuration, choose <strong>EXCEL</strong> as the file type — keep "Merge Excel files into one XLSX" <strong>disabled</strong>',
+  'Add the first sheet under the same Excel file configuration, selecting the required source',
+  'Configure sheet-specific settings: filters, date range, currency, columns, pivot options',
+  'Add each additional sheet within the <strong>same Excel file configuration</strong> — do not create a new output file entry for each sheet',
+  'Give each sheet a clear and <strong>unique sheet name</strong>',
+  'Arrange tabs in the order they should appear in the final workbook',
+  'Save, Publish, and Run'
+]))}
+${mlcSection('Filebox Sync', mlcUl([
+  'Enable <strong>"Automatic upload to Filebox"</strong> to have generated multi-sheet files automatically uploaded to a designated Filebox folder',
+  'Once there, files are accessible to downstream workflows and other team members without manual distribution',
+  'Filebox sync runs after the export completes — a Filebox upload failure does not indicate export failure'
+]))}
+${mlcSection('Accessing the Exported File', mlcUl([
+  '<strong>Immediate</strong>: Downloads tab on the current Export page',
+  '<strong>Centralised</strong>: Operations → Downloads for later retrieval from a unified download history',
+  '<strong>Filebox</strong>: Designated folder if automatic upload was enabled'
+]))}
+${mlcTakeaway('Use "Merge Excel files into one XLSX" when you have multiple separate export file entries that you want combined into one workbook. Use the single-file, multi-sheet approach (Method 2) when you are building a single workbook with multiple tabs from the start — these are different use cases and should not be mixed.')}
+`
+          },
+          {
+            title: 'Constraints, Failure Scenarios & Best Practices',
+            dur: '10 min',
+            html: `<h2>Constraints, Failure Scenarios & Best Practices</h2>
+<p class="mlc-lead">Understanding the constraints and failure modes of Bluecopa's export system prevents silent failures in production. Most issues are predictable and avoidable through correct configuration.</p>
+${mlcSection('Hard Constraints — Non-Negotiable Rules', mlcUl([
+  '<strong>CSV cannot contain multiple sheets</strong> — if you attempt to save a multi-sheet configuration as CSV, you receive a validation error: "CSV file type cannot contain multiple sheets." Multi-sheet exports must use XLSX.',
+  '<strong>Merge option incompatible with mixed file types</strong> — you cannot select "Merge Excel files" when the export includes both CSV and Excel outputs. The merge option only works when all outputs are Excel.',
+  '<strong>Sheet names must be unique</strong> within the workbook and must follow Excel naming rules — no duplicate names, no unsupported characters (such as <code>: / \\ ? * [ ]</code>).',
+  '<strong>User access required</strong> — any user running the workflow must have access to all selected source data; otherwise the affected sheet may fail or return incomplete data.'
+]))}
+${mlcSection('Failure Scenarios & Root Causes', mlcUl([
+  '<strong>CSV selected for multi-sheet</strong> → validation error at save time. Fix: change output format to XLSX.',
+  '<strong>Mixed CSV + Excel with Merge enabled</strong> → configuration error. Fix: standardise all outputs to XLSX before enabling Merge.',
+  '<strong>Missing or invalid data source</strong> → the export fails if the selected workbook, statement, or statement plan is deleted, inaccessible, or contains no data for the configured filters. Fix: verify source exists and has data before running.',
+  '<strong>Permission restrictions</strong> → users without access to the selected source data or destination Filebox folder cannot generate, download, or sync the export. Fix: verify access before scheduling.',
+  '<strong>Large export timeout</strong> → very large datasets, many sheets, or complex pivot metrics may cause processing delays or execution failures. Fix: reduce date range scope, simplify pivot logic, or split into multiple smaller exports.',
+  '<strong>Filebox upload failure</strong> → the export may complete successfully but fail to sync to Filebox. Fix: check Filebox connectivity and folder configuration. The export file is still available in Downloads.'
+]))}
+${mlcSection('Production Best Practices — Scheduling', mlcUl([
+  'Align delivery time with the recipient\'s start-of-day',
+  'Use the Exclude Schedule field to suppress delivery on public holidays',
+  'For time-sensitive reports, use Cron scheduling for precise minute-level control',
+  'Always configure timezone explicitly — never rely on server defaults'
+]))}
+${mlcSection('Production Best Practices — Email', mlcUl([
+  'Use a clear, consistent subject line: <code>[Report Name] [Period]</code>',
+  'Keep the email body brief — the attachment is the deliverable',
+  'Restrict recipients to those who require the data; avoid broad distribution lists',
+  'Use CC sparingly for secondary stakeholders who need visibility, not the data directly'
+]))}
+${mlcTakeaway('The most common production failures are: wrong output format for multi-sheet (CSV instead of XLSX), source data going stale between ingestion and export, and Filebox sync failures being mistaken for export failures. Each is preventable with pre-flight checks.')}
+`
+          },
+          {
+            title: 'Invoice Discounting Automation — Full Report Pipeline',
+            dur: '12 min',
+            html: `<h2>Invoice Discounting Automation — Full Report Pipeline</h2>
+<p class="mlc-lead">This lesson presents a complete real-world implementation: the Invoice Discounting Automation Platform, where every Exports & Reports capability covered in this course is applied together as part of a production-grade financial automation system.</p>
+${mlcSection('The Business Problem', mlcUl([
+  '<strong>Manual invoice validations</strong> → slow processing cycles',
+  '<strong>Duplicate invoice submissions</strong> → incorrect bank funding',
+  '<strong>No centralised visibility</strong> → difficult tracking across banks and invoices',
+  '<strong>Manual allocation process</strong> → allocation errors and funding delays',
+  '<strong>Delayed report preparation</strong> → slow decision-making for finance leadership'
+]))}
+${mlcSection('The Automated Platform — Six Capabilities', mlcUl([
+  '<strong>1. Dataset Upload</strong> — six distinct dataset types ingested in a single automated pipeline: Transaction, Historical, Mapping, Aging, Payment Tracking, and Utilization datasets.',
+  '<strong>2. Validation & Eligibility</strong> — automated checks: duplicate detection, missing invoice numbers, invalid amounts, missing mandatory fields, incorrect date formats, invalid bank mapping, and refund handling.',
+  '<strong>3. Allocation Processing</strong> — priority-based distribution across banks. Cascade logic: allocate to Bank A (Priority 1) → if capacity exhausted, move to Bank B (Priority 2) → continue until allocated or capacity runs out.',
+  '<strong>4. Utilization Tracking</strong> — real-time monitoring of total limits, utilized amount, and remaining capacity across all banks before each allocation run.',
+  '<strong>5. Report Generation</strong> — automated generation of bank-wise allocation reports, utilization summaries, and exception reports post-processing.',
+  '<strong>6. Email Delivery</strong> — automated dispatch of reports and repayment alerts to stakeholders via the Send Email workflow node.'
+]))}
+${mlcSection('Exports & Reports Layer in This Implementation', mlcFlow([
+  'Validation + Allocation workflows complete processing',
+  'Run Export Excel node generates bank-wise allocation report (XLSX, multi-sheet)',
+  'A second export generates exception report (invoices not allocated)',
+  'Send Email node attaches both files via dynamic file_id references',
+  'Reports delivered to finance leadership and bank relationship managers automatically',
+  'Files also synced to Filebox for audit trail and downstream reconciliation'
+]))}
+${mlcStatGrid([
+  {n:'6', l:'Dataset types ingested', note:'Transaction, Historical, Mapping, Aging, Payment, Utilization'},
+  {n:'7', l:'Validation checks run', note:'Duplicate, missing fields, amounts, dates, bank mapping, refunds'},
+  {n:'0', l:'Manual steps post-config', note:'Fully automated end-to-end'},
+  {n:'100%', l:'Audit trail coverage', note:'Every run logged with file_id references'}
+])}
+${mlcSection('Workflow Engine Capabilities Demonstrated', mlcUl([
+  '<strong>Sequential stage execution</strong> — each stage feeds the next automatically',
+  '<strong>Dependency handling</strong> — resolves dependencies between workflow nodes',
+  '<strong>Retry processing</strong> — automatic retry on transient failures',
+  '<strong>Full audit trail</strong> — all activities logged for every run',
+  '<strong>Dynamic file references</strong> — file_id passed between export and email nodes guarantees correct file delivery'
+]))}
+${mlcExample('Allocation Cascade in Action', 'Total eligible invoices: Rs. 20 Cr. Bank A (Priority 1) limit: Rs. 10 Cr — allocated fully. Bank B (Priority 2) limit: Rs. 8 Cr — allocated fully. Remaining Rs. 2 Cr goes unallocated and appears in the exception report. Finance sees the full picture in one scheduled email delivery before the start of the next business day.')}
+${mlcTakeaway('The Invoice Discounting platform is the synthesis of everything in this course: multi-sheet export for bank-wise reports, dynamic file_id for reliable email attachment, scheduled delivery for proactive stakeholder communication, and Filebox sync for audit archiving. Every Exports & Reports capability serves a real production purpose here.')}
+`
+          }
+        ]
+      }
+    ],
+    quiz: [
+      { q: 'Which export output format is required for multi-sheet workbooks in Bluecopa?', opts: ['CSV (.csv)', 'ZIP Archive (.zip)', 'Excel (.xlsx)', 'PDF (.pdf)'], a: 2, exp: 'Multi-sheet workbooks require Excel (.xlsx) format. CSV files cannot contain multiple sheets — attempting to save a multi-sheet configuration as CSV produces a validation error. ZIP archives bundle multiple separate files, not multiple sheets within a single workbook.' },
+      { q: 'What are the three required prerequisites before configuring any export workflow?', opts: ['Trigger, API Key, and Filebox folder', 'Dataset, Workbook, and Export Configuration', 'Cron expression, Email template, and Service Account', 'Workspace ID, API Secret, and Worksheet'], a: 1, exp: 'The three prerequisites are: (1) a Dataset containing the required data, (2) a Workbook with that dataset imported as worksheets, and (3) an Export Configuration created from that workbook defining format, sheets, and filters. Skipping any one causes the workflow to fail at runtime — not at setup time.' },
+      { q: 'In the Export via Email three-stage pipeline, how is the generated file passed to the email stage?', opts: ['The file is downloaded locally and re-uploaded to the email stage manually', 'The file is referenced using a dynamic ${ExportNodeID.file_id} variable that resolves at runtime', 'The file path is hardcoded in the Send Email node configuration', 'The file is stored in Filebox and the email stage retrieves it from there'], a: 1, exp: 'The generated file is passed via a dynamic variable ${ExportNodeID.file_id}. At runtime, this resolves to the exact file_id generated in the current workflow execution. This design guarantees the correct, current-run file is always attached — never a cached or prior version, and never a file from a concurrent run.' },
+      { q: 'What is the difference between standalone and embedded Export via Email?', opts: ['Standalone uses cron scheduling; embedded uses manual triggering', 'Standalone is triggered manually by a user; embedded fires automatically as part of a larger parent workflow', 'Standalone generates CSV files; embedded generates XLSX files', 'Standalone delivers to one recipient; embedded supports multiple recipients'], a: 1, exp: 'In standalone mode, an authorized user manually triggers the Export via Email workflow. In embedded mode, the export and email delivery are a node within a larger parent workflow — they fire automatically when the parent process reaches that stage, requiring zero user action at the export/email step.' },
+      { q: 'When should you use Cron Schedule instead of Standard Schedule for a trigger?', opts: ['Always — cron is more reliable than standard scheduling', 'When you need minute-level precision or scheduling patterns that standard frequencies cannot express, such as workday-only or bi-weekly schedules', 'Only when the report must be delivered across multiple timezones', 'Only when the export output is a ZIP archive'], a: 1, exp: 'Standard Schedule covers common patterns (daily, weekly, monthly, hourly). Cron Schedule is for advanced requirements that standard frequencies cannot handle — for example, Monday-to-Friday only (0 8 * * 1-5), last working day of month, or every 5 minutes. Use Standard for simplicity; escalate to Cron only when needed.' },
+      { q: 'What happens when the "Merge Excel files into one XLSX" option is enabled with a mix of CSV and Excel output types?', opts: ['Bluecopa automatically converts all CSV files to XLSX before merging', 'A configuration error occurs — the merge option cannot be used with mixed file types', 'Each CSV file is ignored and only Excel files are merged', 'The ZIP archive option overrides and all files are bundled instead'], a: 1, exp: 'The Merge Excel files option is incompatible with mixed file types. If the export configuration includes both CSV and Excel outputs, enabling Merge produces a configuration error. To use the merge option, all output files in the export must be of type Excel/XLSX.' },
+      { q: 'What must you do to ensure changes made to an export workflow take effect in future scheduled runs?', opts: ['Changes auto-apply — no further action needed after saving', 'The workflow must be published — unpublished changes are not executed by scheduled triggers', 'The trigger must be deleted and recreated with the new schedule', 'The dataset must be re-ingested to apply workflow changes'], a: 1, exp: 'Like all Bluecopa workflows, an export workflow must be published after any modification. Unpublished changes are invisible to the scheduler. Only the latest published version is executed when the trigger fires.' },
+      { q: 'In the Invoice Discounting Automation Platform, what happens to invoices that fail eligibility processing?', opts: ['They are automatically submitted to a lower-priority bank without human review', 'They are flagged and appear in an exception report; only eligible invoices proceed to allocation', 'They are deleted from the system to prevent duplicate processing', 'They are held in a queue and retried on the next scheduled run'], a: 1, exp: 'After eligibility processing, invoices are categorised: eligible for one bank, eligible for multiple banks, or not eligible for any bank. Invoices that fail eligibility do not proceed to allocation. They appear in an automatically generated exception report, which is delivered to stakeholders via the Send Email node.' },
+      { q: 'A Filebox upload failure occurs after an export completes successfully. What is the correct interpretation?', opts: ['The export file was not generated — it must be re-run', 'The export completed successfully; the Filebox sync is a separate downstream step that failed independently', 'The export failed mid-way and only a partial file was uploaded', 'The email delivery also failed because the Filebox sync and email share the same file reference'], a: 1, exp: 'Filebox sync runs after the export completes. A Filebox upload failure is a separate, downstream issue — it does not mean the export failed. The export file is still available in the Downloads tab and Operations → Downloads. Email delivery is also unaffected, as it uses the file_id from the export node, not the Filebox path.' },
+      { q: 'What is the purpose of the Exclude Schedule field in the Scheduled Trigger configuration?', opts: ['It limits the schedule to specific users who can trigger the workflow', 'It suppresses workflow execution on specified dates, such as public holidays or non-business days', 'It defines a fallback schedule when the primary cron expression fails', 'It sets the maximum number of concurrent scheduled runs allowed'], a: 1, exp: 'The Exclude Schedule field allows you to specify dates when the scheduled trigger should NOT fire — for example, public holidays or company shutdown periods. This prevents reports from being generated and delivered on days when no one is working to receive them, without requiring the workflow to be manually paused and resumed.' }
+    ]
+  },
+
+  // ════════════════════════════════════════════════════
   //  COURSE 11 — CONNECTORS & INTEGRATIONS
   // ════════════════════════════════════════════════════
   ci: {

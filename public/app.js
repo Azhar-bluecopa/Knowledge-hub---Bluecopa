@@ -4535,6 +4535,18 @@ window.addEventListener('load', () => { setTimeout(liUpdateNavVisibility, 800); 
 
 const ML_COURSES = [
   {
+    id:'er',
+    cat:'er',
+    title:'Exports & Reports Mastery',
+    desc:'Master every export and report delivery pattern in Bluecopa — scheduled delivery, export via email, multi-sheet Excel workbooks, failure scenarios, and a full invoice discounting report automation implementation.',
+    tag:'Exports & Reports',
+    icon:'📊',
+    grad:'linear-gradient(145deg,#7f1d1d 0%,#dc2626 60%,#fca5a5 100%)',
+    level:'Intermediate',
+    lessons:10,
+    badge:'Hot & New', badgeClass:'hot',
+  },
+  {
     id:'ci',
     cat:'ci',
     title:'Connectors & Integrations Mastery',
