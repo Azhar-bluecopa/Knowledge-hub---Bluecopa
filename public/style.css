@@ -2728,6 +2728,15 @@ html{scroll-behavior:smooth;}
 .cert-modal-close{position:absolute;top:-14px;right:-14px;background:rgba(30,30,40,.98);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.65);border-radius:50%;width:36px;height:36px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;z-index:10;}
 .cert-modal-close:hover{background:rgba(255,255,255,.12);color:#fff;}
 
+.cert-modal-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:10px;}
+.cert-action-btn{background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.3);color:#e8c97a;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;font-family:'DM Sans',sans-serif;white-space:nowrap;}
+.cert-action-btn:hover{background:rgba(201,162,39,.22);border-color:rgba(201,162,39,.6);}
+.cert-action-close{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15);color:rgba(255,255,255,.6);border-radius:50%;width:32px;height:32px;padding:0;display:flex;align-items:center;justify-content:center;}
+.cert-action-close:hover{background:rgba(255,255,255,.14);color:#fff;}
+
+.cert-modal-maximised{max-width:96vw !important;width:96vw;}
+.cert-modal-maximised .cert-full{border-radius:10px;}
+
 .cert-full{background:linear-gradient(160deg,#0d0c18 0%,#12102a 50%,#0b0a16 100%);border:1px solid rgba(201,162,39,0.38);border-radius:16px;overflow:hidden;position:relative;}
 .cert-full::before,.cert-full::after{content:'';position:absolute;pointer-events:none;width:80px;height:80px;background-image:radial-gradient(circle at 0% 0%,rgba(201,162,39,0.08),transparent 70%);}
 .cert-full::before{top:0;left:0;}

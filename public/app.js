@@ -2332,8 +2332,12 @@ function certViewFull(courseId){
   modal.className='cert-modal-overlay'; modal.id='certModalOverlay';
   modal.onclick = e => { if(e.target===modal) modal.remove(); };
   modal.innerHTML = `
-  <div class="cert-modal">
-    <button class="cert-modal-close" onclick="document.getElementById('certModalOverlay').remove()">✕</button>
+  <div class="cert-modal" id="certModalCard">
+    <div class="cert-modal-actions">
+      <button class="cert-action-btn" title="Maximise" onclick="(function(){const m=document.getElementById('certModalCard');m.classList.toggle('cert-modal-maximised');this.textContent=m.classList.contains('cert-modal-maximised')?'⤡':'⤢';}).call(this)">⤢</button>
+      <button class="cert-action-btn" title="Print" onclick="(function(){const c=document.querySelector('.cert-full');const w=window.open('','_blank');w.document.write('<html><head><title>Certificate</title><style>body{margin:0;background:#fff;}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></head><body>'+c.outerHTML+'</body></html>');w.document.close();w.focus();setTimeout(()=>w.print(),400);})()">⎙ Print</button>
+      <button class="cert-action-btn cert-action-close" onclick="document.getElementById('certModalOverlay').remove()">✕</button>
+    </div>
     <div class="cert-full">
       <div class="cert-full-top-bar"></div>
       <div class="cert-full-top-bar-thin"></div>
@@ -2342,7 +2346,7 @@ function certViewFull(courseId){
           <img src="/bluecopa-icon.png" class="cert-full-logo-img" alt="Bluecopa" width="44" height="44" style="width:44px;height:44px;object-fit:contain;flex-shrink:0;">
           <div class="cert-full-brand">
             <div class="cert-full-brand-name">BLUECOPA</div>
-            <div class="cert-full-brand-sub">Delivery Team · Knowledge Hub</div>
+            <div class="cert-full-brand-sub">Delivery Team</div>
           </div>
         </div>
         <div class="cert-full-divider">
@@ -2373,7 +2377,6 @@ function certViewFull(courseId){
             <circle cx="50" cy="50" r="32" fill="rgba(201,162,39,0.07)" stroke="rgba(201,162,39,0.3)" stroke-width="1"/>
             <image href="/bluecopa-icon.png" x="27" y="27" width="46" height="46"/>
           </svg>
-          <div class="cert-full-seal-label">OFFICIAL SEAL</div>
         </div>
         <div class="cert-full-footer-col">
           <div class="cert-full-footer-value">Bluecopa</div>
