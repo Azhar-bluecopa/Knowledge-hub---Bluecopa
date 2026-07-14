@@ -2761,15 +2761,15 @@ html{scroll-behavior:smooth;}
 .cert-full-divider-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(201,162,39,.35));}
 .cert-full-divider-line:last-child{background:linear-gradient(90deg,rgba(201,162,39,.35),transparent);}
 .cert-full-divider-diamond{font-size:8px;color:rgba(201,162,39,.6);line-height:1;}
-.cert-full-headline{font-size:22px;font-weight:700;color:rgba(240,238,255,.95);letter-spacing:.02em;}
+.cert-full-headline{font-size:30px;font-weight:700;color:rgba(240,238,255,.95);letter-spacing:.02em;}
 
-.cert-full-body{padding:20px 44px 16px;text-align:center;flex:1;display:flex;flex-direction:column;justify-content:center;}
-.cert-full-presented{font-size:12px;color:rgba(140,138,170,.7);margin-bottom:6px;letter-spacing:.04em;}
-.cert-full-name{font-size:32px;font-weight:800;color:#e8c97a;letter-spacing:.01em;margin-bottom:8px;text-shadow:0 0 40px rgba(201,162,39,.25);}
-.cert-full-desc{font-size:12px;color:rgba(140,138,170,.7);margin-bottom:12px;letter-spacing:.04em;}
-.cert-full-course{font-size:17px;font-weight:700;color:rgba(240,238,255,.95);margin-bottom:4px;line-height:1.3;}
-.cert-full-tag{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.18em;color:rgba(201,162,39,.5);text-transform:uppercase;}
-.cert-full-body-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(201,162,39,.15) 30%,rgba(201,162,39,.15) 70%,transparent);margin-top:16px;}
+.cert-full-body{padding:0 52px;text-align:center;flex:1;display:flex;flex-direction:column;justify-content:space-evenly;}
+.cert-full-presented{font-size:13px;color:rgba(140,138,170,.7);margin:0;letter-spacing:.05em;}
+.cert-full-name{font-size:48px;font-weight:800;color:#e8c97a;letter-spacing:.01em;margin:0;text-shadow:0 0 48px rgba(201,162,39,.3);line-height:1.1;}
+.cert-full-desc{font-size:13px;color:rgba(140,138,170,.7);margin:0;letter-spacing:.04em;}
+.cert-full-course{font-size:22px;font-weight:700;color:rgba(240,238,255,.95);margin:0;line-height:1.3;}
+.cert-full-tag{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.2em;color:rgba(201,162,39,.55);text-transform:uppercase;margin:0;}
+.cert-full-body-divider{display:none;}
 
 .cert-full-footer{padding:16px 44px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;border-top:1px solid rgba(201,162,39,.06);}
 .cert-full-footer-col{text-align:center;min-width:130px;}
