@@ -2335,7 +2335,7 @@ function certViewFull(courseId){
   <div class="cert-modal" id="certModalCard">
     <div class="cert-modal-actions">
       <button class="cert-action-btn" title="Maximise" onclick="(function(){const m=document.getElementById('certModalCard');m.classList.toggle('cert-modal-maximised');this.textContent=m.classList.contains('cert-modal-maximised')?'⤡':'⤢';}).call(this)">⤢</button>
-      <button class="cert-action-btn" title="Save as PDF" onclick="(function(){var s=document.createElement('style');s.id='certPrintStyle';s.textContent='@page{size:297mm 210mm;margin:0}@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body>*{display:none!important}body>#certModalOverlay{display:flex!important;position:fixed!important;top:0!important;left:0!important;width:297mm!important;height:210mm!important;padding:0!important;margin:0!important;background:#0d0c18!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}#certModalOverlay .cert-modal{max-width:100%!important;width:100%!important;margin:0!important;padding:0!important}#certModalOverlay .cert-modal-actions{display:none!important}#certModalOverlay .cert-full{width:297mm!important;height:210mm!important;aspect-ratio:auto!important;border-radius:0!important;flex-shrink:0!important;overflow:hidden!important}}';document.head.appendChild(s);window.print();setTimeout(function(){var e=document.getElementById('certPrintStyle');if(e)e.remove();},2000);})()" >⬇ Save as PDF</button>
+      <button class="cert-action-btn" title="Save as PDF" onclick="certPrint()">⬇ Save as PDF</button>
       <button class="cert-action-btn cert-action-close" onclick="document.getElementById('certModalOverlay').remove()">✕</button>
     </div>
     <div class="cert-full">
@@ -2394,6 +2394,36 @@ function certViewFull(courseId){
     </div>
   </div>`;
   document.body.appendChild(modal);
+}
+
+function certPrint() {
+  var cert = document.querySelector('.cert-full');
+  if (!cert) return;
+  var lnk = document.querySelector('link[href*="style.css"]');
+  var cssHref = lnk ? lnk.href : '/style.css';
+  var fontHref = 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800&family=DM+Mono:wght@400;500&display=swap';
+  var html = [
+    '<!DOCTYPE html><html><head><meta charset="UTF-8">',
+    '<title>Certificate — Bluecopa</title>',
+    '<link rel="stylesheet" href="' + fontHref + '">',
+    '<link rel="stylesheet" href="' + cssHref + '">',
+    '<style>',
+    '@page{size:297mm 210mm;margin:0}',
+    '*,*::before,*::after{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}',
+    'html,body{margin:0;padding:0;width:297mm;height:210mm;overflow:hidden;background:#0d0c18}',
+    '.cert-full{width:297mm!important;height:210mm!important;border-radius:0!important;flex-shrink:0!important;aspect-ratio:auto!important}',
+    '</style>',
+    '<scr' + 'ipt>document.fonts.ready.then(function(){setTimeout(function(){window.print();},300);});<\/scr' + 'ipt>',
+    '</head><body>' + cert.outerHTML + '</body></html>'
+  ].join('');
+  var blob = new Blob([html], {type: 'text/html;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.target = '_blank'; a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);}, 60000);
 }
 
 
