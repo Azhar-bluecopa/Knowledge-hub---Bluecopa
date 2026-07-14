@@ -2043,7 +2043,420 @@ ${mlcTakeaway('The Maker-Checker pattern is not just an approval — it is a con
   },
 
   // ════════════════════════════════════════════════════
-  //  COURSE 8 — ABOUT BLUECOPA
+  //  COURSE 8 — RECONCILIATION
+  // ════════════════════════════════════════════════════
+  rc: {
+    modules: [
+
+      // ─── MODULE 1: Fundamentals ──────────────────────
+      {
+        title: 'Reconciliation Fundamentals',
+        lessons: [
+          {
+            title: 'What Is Reconciliation in Bluecopa?',
+            dur: '10 min',
+            html: `<h2>What Is Reconciliation in Bluecopa?</h2>
+<p class="mlc-lead">Reconciliation is the process of comparing two datasets — from different systems — and verifying they agree based on predefined business rules. In Bluecopa, an automated reconciliation engine processes large datasets, applies sophisticated matching logic, identifies exceptions, and provides detailed analysis — replacing the manual spreadsheet process entirely.</p>
+${mlcSection('Why Reconciliation Is Necessary', mlcUl([
+  '<strong>Multiple systems, one truth</strong> — Organisations maintain financial data across ERPs, banks, payment gateways, accounting platforms, and operational apps. Each records transactions independently.',
+  '<strong>Discrepancies are inevitable</strong> — Timing differences, missing records, data entry errors, and integration issues create gaps between systems.',
+  '<strong>Manual reconciliation is unsustainable</strong> — Spreadsheet-based comparison is time-consuming, error-prone, and impossible to scale across thousands of daily transactions.',
+  '<strong>Regulatory requirement</strong> — Accurate financial records are a compliance obligation; reconciliation is the verification mechanism that ensures no transaction is lost or duplicated.'
+]))}
+${mlcSection('Common Reconciliation Scenarios', mlcUl([
+  '<strong>Bank Statement vs ERP Transactions</strong> — Verify every bank debit/credit against the corresponding ERP journal entry',
+  '<strong>Payment Gateway Settlements vs Sales Orders</strong> — Match Stripe, Razorpay, or other gateway settlements to their originating orders',
+  '<strong>Customer Payments vs Invoices</strong> — Confirm every inbound payment is applied to the correct invoice',
+  '<strong>General Ledger vs Sub-Ledger Balances</strong> — Ensure sub-ledger totals roll up correctly to the GL',
+  '<strong>Intercompany Transactions</strong> — Match transactions between entities in a group to eliminate intercompany balances'
+]))}
+${mlcDiagram('The Reconciliation Problem', `
+<div style="display:flex;gap:16px;align-items:center;justify-content:center;flex-wrap:wrap;padding:8px 0">
+  <div style="background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);border-radius:8px;padding:12px 18px;text-align:center;min-width:110px">
+    <div style="font-size:20px;margin-bottom:4px">🏦</div>
+    <div style="font-size:11px;font-weight:600;color:#c4b5fd">System A</div>
+    <div style="font-size:10px;color:#94a3b8;margin-top:2px">ERP / Ledger</div>
+  </div>
+  <div style="text-align:center">
+    <div style="font-size:24px;color:#6b7280">⟷</div>
+    <div style="font-size:10px;color:#f59e0b;font-weight:600;margin-top:2px">Compare &amp; Match</div>
+  </div>
+  <div style="background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);border-radius:8px;padding:12px 18px;text-align:center;min-width:110px">
+    <div style="font-size:20px;margin-bottom:4px">💳</div>
+    <div style="font-size:11px;font-weight:600;color:#c4b5fd">System B</div>
+    <div style="font-size:10px;color:#94a3b8;margin-top:2px">Bank / Gateway</div>
+  </div>
+  <div style="color:#6b7280;font-size:20px">→</div>
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:6px;padding:6px 12px;font-size:11px;color:#4ade80;font-weight:600">✅ Matched</div>
+    <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:6px 12px;font-size:11px;color:#f87171;font-weight:600">❌ Exceptions</div>
+    <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:6px;padding:6px 12px;font-size:11px;color:#fbbf24;font-weight:600">⚠️ Missing</div>
+  </div>
+</div>`)}
+${mlcSection('What Bluecopa Automates', mlcUl([
+  '<strong>Data ingestion</strong> — Pulls both datasets from configured sources (cloud storage, connectors, manual upload)',
+  '<strong>Rule-based matching</strong> — Applies your configured match rules across thousands of records in seconds',
+  '<strong>Exception classification</strong> — Every unmatched record is automatically classified: Left Missing, Right Missing, or Unmatched',
+  '<strong>Audit trail</strong> — Every match, manual match, and exception is recorded with a timestamp and source',
+  '<strong>Notifications</strong> — Sends alerts to accountants, controllers, or finance managers when a run completes'
+]))}
+${mlcTakeaway('Reconciliation is not just a month-end task — it is a continuous data integrity check. Bluecopa turns what used to take hours of manual spreadsheet work into an automated, auditable process that runs on demand or on schedule.')}`
+          },
+          {
+            title: 'Reconciliation Types — Match vs Balance',
+            dur: '8 min',
+            html: `<h2>Reconciliation Types — Match vs Balance</h2>
+<p class="mlc-lead">Bluecopa supports two fundamentally different reconciliation methodologies. Choosing the right type for your use case determines whether you are comparing individual transactions or verifying that totals agree — and the configuration differs significantly between them.</p>
+${mlcCompare(
+  '🔍 Match Reconciliation (Line-by-Line)',
+  ['Compares individual transactions row by row', 'Asks: does a corresponding transaction exist in BOTH systems?', 'Result: each record is Matched, Left Missing, or Right Missing', 'Best for: high-volume transactional data', 'Examples: Invoice vs Customer Payment · Sales Order vs Payment Gateway · ERP Entry vs Bank Transaction'],
+  '⚖️ Balance Reconciliation',
+  ['Compares summarized totals rather than individual rows', 'Asks: do the closing balances agree between systems?', 'Result: balances match or a difference amount is identified', 'Best for: period-end closing and summary verification', 'Examples: GL vs Sub-Ledger · Trial Balance Validation · Bank Closing Balance Verification']
+)}
+${mlcSection('How to Choose the Right Type', mlcUl([
+  '<strong>Use Match Reconciliation when</strong> you need to identify which specific transactions are missing or unmatched — the output tells you the exact record that needs investigation',
+  '<strong>Use Balance Reconciliation when</strong> you only need to verify that totals agree — the output tells you whether the difference is zero or how large the gap is',
+  '<strong>A common combination</strong> — Run Match Reconciliation daily for transaction-level verification, and Balance Reconciliation at month-end to confirm closing positions',
+  '<strong>Balance Reconciliation cannot replace Match</strong> — Balanced totals can hide individual errors that cancel each other out; Match Reconciliation catches these'
+]))}
+${mlcStatGrid([
+  { n: 'Match', l: 'Row-by-row transaction comparison', note: 'Most common type' },
+  { n: 'Balance', l: 'Summarized total verification', note: 'Period-end focus' },
+  { n: '3', l: 'Match results: Matched / Left Missing / Right Missing', note: 'Per record' },
+  { n: '1', l: 'Balance result: difference amount', note: 'Single aggregate' }
+])}
+${mlcSection('Selecting the Type During Setup', mlcUl([
+  'The reconciliation type is selected in Step 1 (Basic Details) when creating a new reconciliation',
+  'Once a reconciliation is saved and run, the type cannot be changed — you must create a new configuration',
+  'The type determines which matching rule options are available in subsequent configuration steps',
+  'Match Reconciliation requires Rule Groups; Balance Reconciliation requires column mappings for the totals being compared'
+]))}
+${mlcTakeaway('Match Reconciliation gives you precision — which specific record is missing. Balance Reconciliation gives you speed — whether the totals agree. Most enterprise finance teams use both: Match for daily operations, Balance for period-end close.')}`
+          },
+          {
+            title: 'Dataset Prerequisites — Four Requirements',
+            dur: '8 min',
+            html: `<h2>Dataset Prerequisites — Four Requirements</h2>
+<p class="mlc-lead">Before configuring a reconciliation, your datasets must meet four requirements. Failing any one of them causes the reconciliation to produce incorrect results or fail entirely — often silently, which makes them hard to debug after the fact.</p>
+${mlcSection('The Four Requirements', mlcOl([
+  '<strong>Transaction-Level Data</strong> — Both datasets must contain individual transaction records, not aggregated or summarized data. Using summaries produces incorrect results because the matching engine compares rows, not totals.',
+  '<strong>Consistent Column Names</strong> — Column names must be standardized across both datasets. "Amount" and "amount" are treated as different columns — inconsistent casing causes validation errors during rule configuration.',
+  '<strong>Matching Data Types</strong> — Columns used in match rules must have identical data types. Valid: Amount (Number) ↔ Amount (Number). Invalid: Amount (Number) ↔ Amount (Text). Type mismatches cause silent failures.',
+  '<strong>Unique Key Values</strong> — Columns selected as keys (identifiers) must contain unique values. Duplicate IDs cause duplicate reconciliation records and incorrect matches that are difficult to unravel after the run.'
+]))}
+${mlcCompare(
+  '✅ Dataset Ready for Reconciliation',
+  ['Individual transaction rows — one row per payment/invoice', 'Column named "TransactionID" in both left and right datasets', 'Amount column is Number type in both datasets', 'TransactionID values are unique — no duplicates'],
+  '❌ Dataset Will Cause Problems',
+  ['Monthly summary totals — "January total: ₹4,50,000"', 'Left dataset: "Amount" | Right dataset: "amount" (casing mismatch)', 'Left: Amount (Number) | Right: Amount (Text from CSV)', 'TransactionID contains duplicates — same ID for two records']
+)}
+${mlcSection('How to Verify Your Datasets', mlcUl([
+  '<strong>Check for aggregates:</strong> If your dataset has one row per day/month/category, it is summarized — you need the underlying transaction file',
+  '<strong>Check column names:</strong> Open both datasets side by side and compare column headers exactly — case, spacing, and spelling must match',
+  '<strong>Check data types:</strong> In the Bluecopa Dataset viewer, inspect the column type icons — Number (123), Text (Abc), Date (📅) must match on both sides for join columns',
+  '<strong>Check for duplicates:</strong> Run a simple count-distinct on your key column — if distinct count < total rows, you have duplicates to resolve'
+]))}
+${mlcSection('Fixing Common Issues Before Running', mlcUl([
+  '<strong>Naming mismatch:</strong> Rename columns in the source file before ingestion, or use a transformation step to standardize names',
+  '<strong>Type mismatch:</strong> Ensure the ingestion pipeline parses amounts as numbers — CSV files often import numeric columns as text if not configured correctly',
+  '<strong>Duplicate keys:</strong> Investigate and resolve duplicate IDs in the source — deduplication logic should live upstream in the ingestion pipeline, not in the reconciliation config',
+  '<strong>Summary data:</strong> Contact the source system team for transaction-level exports — reconciliation cannot be decomposed from summary data'
+]))}
+${mlcTakeaway('Garbage in, garbage out. Every reconciliation failure that looks like a configuration problem is usually a data quality problem. Verify these four requirements before you touch the reconciliation config and you will eliminate the most common class of failures.')}`
+          }
+        ]
+      },
+
+      // ─── MODULE 2: Building a Reconciliation ─────────
+      {
+        title: 'Building a Reconciliation',
+        lessons: [
+          {
+            title: 'Creating a New Reconciliation — Five Configuration Steps',
+            dur: '10 min',
+            html: `<h2>Creating a New Reconciliation — Five Configuration Steps</h2>
+<p class="mlc-lead">Every reconciliation in Bluecopa is configured through five sequential steps. Each step builds on the previous — get the foundation right in Steps 1 and 2 before investing time in matching rules. The configuration is saved and reusable; you run it repeatedly against new data.</p>
+${mlcFlow(['Step 1: Basic Details', 'Step 2: Dataset Selection', 'Step 3: Define Matching Rules', 'Step 4: Configure Notifications', 'Step 5: Save and Execute'])}
+${mlcSection('Step 1 — Basic Details', mlcUl([
+  '<strong>Name:</strong> Give the reconciliation a meaningful, specific name — e.g. "Monthly Bank Reconciliation — HDFC Current Account" or "Stripe Settlement vs Sales Orders — Daily"',
+  '<strong>Type:</strong> Select Match (line-by-line) or Balance (totals) — this cannot be changed after saving',
+  '<strong>Best practice:</strong> Include the source systems and frequency in the name so any team member can identify the reconciliation without opening it'
+]))}
+${mlcSection('Step 2 — Dataset Selection', mlcUl([
+  '<strong>Primary Dataset (Left):</strong> Your source of truth — typically ERP records, internal ledger, or the system you control',
+  '<strong>Secondary Dataset (Right):</strong> The source being verified — bank statements, payment gateway exports, or external partner data',
+  '<strong>Important:</strong> The "left" and "right" designation matters — Copa Match Group results label missing records as "Left Missing" or "Right Missing" based on which dataset the record is absent from',
+  '<strong>Both datasets must already be ingested</strong> into Bluecopa before this step — configure your data pipelines first'
+]))}
+${mlcSection('Step 3 — Define Matching Rules', mlcUl([
+  'Configure Rule Groups that define how transactions are matched across the two datasets',
+  'Each Rule Group contains one or more conditions — all conditions in a group must be satisfied simultaneously for a match',
+  'Multiple Rule Groups provide fallback logic — if Rule Group 1 fails to match, Rule Group 2 tries with looser criteria',
+  'This step is the most critical — covered in depth in the next lesson'
+]))}
+${mlcSection('Step 4 — Configure Notifications', mlcUl([
+  'Select recipients who should receive alerts when a reconciliation run completes — accountants, finance managers, controllers',
+  'Notifications are sent for both Succeeded and Failed run statuses',
+  'Include the reconciliation owner and at least one backup — never configure notifications to a single person',
+  'Failed run notifications should go to the implementation team as well — data type mismatches and missing columns need engineering attention'
+]))}
+${mlcSection('Step 5 — Save and Execute', mlcUl([
+  '<strong>Save:</strong> Persists the configuration — the reconciliation appears on the dashboard and can be run repeatedly',
+  '<strong>Run All (Full Refresh):</strong> All records from both datasets participate; previous results are recalculated from scratch',
+  '<strong>Run (Incremental):</strong> Only newly ingested data participates; previously reconciled records are preserved',
+  '<strong>First run:</strong> Always use Run All on the first execution to establish the baseline; switch to incremental Run for daily operations'
+]))}
+${mlcTakeaway('The five steps follow a logical dependency: you need a name and type before selecting datasets, datasets before writing rules, and rules before running. Rushing steps 1 and 2 is the most common cause of rule configuration rework.')}`
+          },
+          {
+            title: 'Configuring Match Rules & Rule Groups',
+            dur: '12 min',
+            html: `<h2>Configuring Match Rules & Rule Groups</h2>
+<p class="mlc-lead">Match Rules are the heart of reconciliation. They define the conditions under which a left-dataset record is considered to match a right-dataset record. Rule Groups let you configure multiple matching strategies — from exact matching down to fallback approximate matching — in a single reconciliation.</p>
+${mlcSection('What Is a Rule Group?', mlcUl([
+  'A Rule Group is a set of conditions that must ALL be satisfied simultaneously for two records to be considered a match',
+  'You can have multiple Rule Groups in a single reconciliation — each group defines a different matching strategy',
+  'Rule Groups are evaluated in priority order — the first group to match a record claims it; that record is removed from the pool and never re-evaluated by later groups',
+  'Think of Rule Groups as a hierarchy: Rule Group 1 is your strictest, most reliable match; later groups are fallbacks for records that don\'t meet the stricter criteria'
+]))}
+${mlcSection('Example Rule Groups', mlcUl([
+  '<strong>Rule Group 1 — Exact match:</strong> Transaction ID (Left) = Transaction ID (Right) AND Amount (Left) = Amount (Right) → strict two-field exact match',
+  '<strong>Rule Group 2 — Reference-based:</strong> Reference Number (Left) = Reference Number (Right) AND Amount (Left) = Amount (Right) → for records where Transaction ID differs but reference aligns',
+  '<strong>Rule Group 3 — Date + Amount fallback:</strong> Date (Left) = Date (Right) AND Amount (Left) = Amount (Right) → last-resort match for records missing a reference'
+]))}
+${mlcDiagram('Rule Group Priority Flow', `
+<div style="display:flex;flex-direction:column;gap:0;padding:8px 0">
+  <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:8px 8px 0 0">
+    <div style="background:#7c3aed;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">1</div>
+    <div style="font-size:12px;color:#c4b5fd"><strong>Rule Group 1</strong> — All records evaluated. Matches removed from pool.</div>
+  </div>
+  <div style="display:flex;justify-content:center;padding:4px 0;color:#6b7280;font-size:16px">↓ Remaining unmatched records only</div>
+  <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(139,92,246,0.07);border:1px solid rgba(139,92,246,0.2)">
+    <div style="background:#6d28d9;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">2</div>
+    <div style="font-size:12px;color:#c4b5fd"><strong>Rule Group 2</strong> — Only unmatched records from Step 1. Further matches removed.</div>
+  </div>
+  <div style="display:flex;justify-content:center;padding:4px 0;color:#6b7280;font-size:16px">↓ Remaining unmatched records only</div>
+  <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.15);border-radius:0 0 8px 8px">
+    <div style="background:#5b21b6;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">3</div>
+    <div style="font-size:12px;color:#c4b5fd"><strong>Rule Group 3</strong> — Final fallback. Remaining records become Left/Right Missing.</div>
+  </div>
+</div>`)}
+${mlcSection('Why Rule Priority Matters', mlcUl([
+  '<strong>No duplicate matching</strong> — A record matched by Group 1 cannot also be matched by Group 2; this prevents the same transaction appearing as matched twice',
+  '<strong>Faster processing</strong> — Each subsequent group processes a smaller pool (only unmatched records), reducing computation time',
+  '<strong>Clear rule ownership</strong> — You can see in Copa Match Group exactly which rule matched each record, making debugging straightforward',
+  '<strong>Better accuracy</strong> — Stricter rules run first; looser fallback rules only apply to records that genuinely couldn\'t be matched strictly'
+]))}
+${mlcSection('Conditions Within a Rule Group', mlcUl([
+  'Each condition specifies: Left Column, Operator, Right Column',
+  '<strong>Exact match:</strong> Left.TransactionID = Right.TransactionID',
+  '<strong>Amount within tolerance:</strong> Left.Amount ≈ Right.Amount (within ±0.01 for rounding differences)',
+  '<strong>Date range:</strong> Left.Date within ±1 day of Right.Date (for timing differences)',
+  'All conditions in a group are AND — all must be true simultaneously for the group to declare a match'
+]))}
+${mlcTakeaway('Start strict, get looser. Rule Group 1 should use your most reliable identifiers — a Transaction ID or Invoice Number. Only add looser fallback groups if you know there are legitimate cases where those identifiers differ between systems.')}`
+          }
+        ]
+      },
+
+      // ─── MODULE 3: Running & Results ─────────────────
+      {
+        title: 'Running Reconciliations & Understanding Results',
+        lessons: [
+          {
+            title: 'Running a Reconciliation — Full vs Incremental',
+            dur: '8 min',
+            html: `<h2>Running a Reconciliation — Full vs Incremental</h2>
+<p class="mlc-lead">Once a reconciliation is configured, you have two execution modes. Choosing the right mode for the right situation is critical — using Full Refresh when Incremental would do wastes significant compute; using Incremental when Full Refresh is needed produces stale results.</p>
+${mlcCompare(
+  '🔄 Run All (Full Refresh)',
+  ['All records from BOTH datasets participate', 'Previous results are discarded and recalculated from scratch', 'Every transaction is re-evaluated against all rules', 'Computationally expensive — takes longer on large datasets', 'Use when: rules have changed · historical data corrected · first-time run · need a clean baseline'],
+  '⚡ Run (Incremental)',
+  ['Only NEWLY ingested data participates', 'Previously reconciled records are preserved as-is', 'Historical results remain unchanged', 'Much faster — processes only the delta since the last run', 'Use when: new transactions arrive daily · daily/weekly operations · no rule changes since last run']
+)}
+${mlcSection('Run Statuses', mlcUl([
+  '<strong>Running</strong> — Engine is actively processing data; do not modify the configuration or trigger another run',
+  '<strong>Succeeded</strong> — Run completed; results are ready to review in the Results tab',
+  '<strong>Failed</strong> — An error was encountered; check the logs for details. Common causes: data type mismatch between rule columns, missing columns that rules reference, invalid column mappings'
+]))}
+${mlcSection('When to Use Each Mode', mlcUl([
+  '<strong>Always use Run All for:</strong> first execution of a new reconciliation, after any rule change, after correcting historical source data, when you suspect the previous run produced incorrect results',
+  '<strong>Always use Run (Incremental) for:</strong> daily operations when only new transactions are being added, weekly batch processing, high-volume datasets where full refresh would be too slow',
+  '<strong>Rule of thumb:</strong> If anything changed in the data or configuration since the last run, use Run All. If only new data was added, use Run.'
+]))}
+${mlcStatGrid([
+  { n: 'Run All', l: 'Complete recalculation — all historical + new data', note: 'Use for config changes' },
+  { n: 'Run', l: 'Delta only — new records since last run', note: 'Use for daily ops' },
+  { n: '3', l: 'Possible run statuses: Running, Succeeded, Failed', note: '' },
+  { n: '~10×', l: 'Typical speed advantage of Incremental over Full Refresh', note: 'On large datasets' }
+])}
+${mlcSection('Debugging Failed Runs', mlcUl([
+  '<strong>Data type mismatch:</strong> A column used in a match rule has different types on left vs right — fix the dataset ingestion pipeline and re-run',
+  '<strong>Missing column:</strong> A column referenced in a rule no longer exists in the dataset — check if the source schema changed',
+  '<strong>Invalid mapping:</strong> A dataset mapping points to a column that has been renamed — update the reconciliation configuration',
+  '<strong>Memory/timeout:</strong> Very large datasets may time out on Run All — consider splitting by date range or increasing the dataset partition size'
+]))}
+${mlcTakeaway('Incremental runs are the workhorse of day-to-day reconciliation. Full Refresh is the reset button. Use Full Refresh deliberately — it is the right tool when something fundamentally changed, not the default for every execution.')}`
+          },
+          {
+            title: 'System Columns & Copa Match Groups Explained',
+            dur: '10 min',
+            html: `<h2>System Columns & Copa Match Groups Explained</h2>
+<p class="mlc-lead">After a successful run, Bluecopa automatically adds four system columns to every record in the results. These columns are your primary tool for understanding what happened to each transaction — which rule matched it, whether it matched at all, and whether the match was automatic or manual.</p>
+${mlcSection('The Four System Columns', mlcUl([
+  '<strong>Copa Match Group</strong> — Which rule group matched this record, or which side is missing. Values: Rule Group 1 / Rule Group 2 / Rule Group 3 / Left Missing / Right Missing',
+  '<strong>Copa Match Status</strong> — Quick pass/fail for each record. Values: Matched / Unmatched',
+  '<strong>Copa Match Type</strong> — How the match was made. Values: Auto Matched (by a rule group) / Manual Matched (by a human) / Unmatched (no match found)',
+  '<strong>Copa Match Count</strong> — Numeric flag: 1 = record has a match, 0 = no match. Designed for use in reporting dashboards and aggregation formulas'
+]))}
+${mlcSection('Understanding Copa Match Group Values', mlcUl([
+  '<strong>Rule Group 1 / 2 / 3:</strong> The record was matched by the specified rule group. Use this to understand which rules are doing the most work — high counts on Group 1 means your primary matching logic is strong',
+  '<strong>Left Missing:</strong> A transaction exists in the right (secondary) dataset but NOT in the left (primary) dataset. The right dataset columns contain data; left columns are blank',
+  '<strong>Right Missing:</strong> A transaction exists in the left (primary) dataset but NOT in the right (secondary) dataset. The left columns contain data; right columns are blank',
+  '<strong>Practical example:</strong> A "Left Missing" bank transaction means the bank recorded a debit that has no corresponding ERP entry — a potential fraud risk or missed booking'
+]))}
+${mlcDiagram('Copa Match Group — What Each Value Means', `
+<div style="display:flex;flex-direction:column;gap:8px;padding:8px 0">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;color:#4ade80;min-width:110px;text-align:center">Rule Group 1</div>
+    <div style="font-size:11px;color:#94a3b8">Matched by strictest rule — highest confidence</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;color:#86efac;min-width:110px;text-align:center">Rule Group 2/3</div>
+    <div style="font-size:11px;color:#94a3b8">Matched by fallback rule — review for accuracy</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;color:#fbbf24;min-width:110px;text-align:center">Left Missing</div>
+    <div style="font-size:11px;color:#94a3b8">In right dataset only — not in left (primary). Date taken from right dataset.</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;color:#fbbf24;min-width:110px;text-align:center">Right Missing</div>
+    <div style="font-size:11px;color:#94a3b8">In left dataset only — not in right (secondary)</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;color:#f87171;min-width:110px;text-align:center">Manual Matched</div>
+    <div style="font-size:11px;color:#94a3b8">Matched manually by a user — investigate rule quality if count is high</div>
+  </div>
+</div>`)}
+${mlcSection('Using System Columns for Analysis', mlcUl([
+  '<strong>Filter by Copa Match Status = Unmatched</strong> to get your exception queue — these are the records requiring investigation',
+  '<strong>Group by Copa Match Group</strong> to see which rule group is responsible for the most matches — if Group 3 (fallback) dominates, your primary rules need strengthening',
+  '<strong>Track Copa Match Count over time</strong> — a declining match rate is an early warning of data quality degradation upstream',
+  '<strong>Copa Match Type = Manual Matched rising over time</strong> is a signal that automatic rules are not covering a growing class of transactions'
+]))}
+${mlcTakeaway('The four Copa system columns convert a raw results table into an actionable exception report. Learn to read them fluently — Copa Match Group tells you where each record ended up; Copa Match Type tells you whether it got there automatically or needed human intervention.')}`
+          }
+        ]
+      },
+
+      // ─── MODULE 4: Resolving Exceptions ──────────────
+      {
+        title: 'Resolving Unmatched Items',
+        lessons: [
+          {
+            title: 'Manual Match from the Results Tab',
+            dur: '10 min',
+            html: `<h2>Manual Match from the Results Tab</h2>
+<p class="mlc-lead">After a reconciliation run, not every record will be automatically matched. Some mismatches are not data errors — they are legitimate matches that look different due to typos, formatting, or timing. The Results tab lets you manually force a match between two records without reconfiguring any rules.</p>
+${mlcSection('When to Use Manual Matching', mlcUl([
+  '<strong>Typographical differences:</strong> INV001 vs INVO01 — a transposed character that prevents automatic matching',
+  '<strong>Formatting inconsistencies:</strong> "2026-07-14" vs "14/07/2026" — same date, different format',
+  '<strong>Minor amount differences:</strong> ₹10,000.00 vs ₹10,000.01 — a rounding difference within tolerance',
+  '<strong>Known exceptions:</strong> Records you can positively identify as matching based on business context, even if the system cannot'
+]))}
+${mlcSection('Step-by-Step: Manual Match from Results Tab', mlcOl([
+  '<strong>Go to the Results Tab</strong> — Navigate to the reconciliation and open the Results tab after a successful run',
+  '<strong>View Unmatched Items</strong> — Filter the results to show only unmatched records (Copa Match Status = Unmatched)',
+  '<strong>Use Align Vertically view</strong> — Switch to the Align Vertically view to display left and right records side by side for easier visual comparison',
+  '<strong>Select records on both sides</strong> — Check the box for the unmatched record on the left dataset AND its counterpart on the right dataset',
+  '<strong>Click Match</strong> — Bluecopa creates a manual match; Copa Match Type updates to "Manual Matched" for both records',
+  '<strong>Add a note</strong> — Go to Match Config → Manual Matches section; find the paired record by Primary Key and enter a short comment explaining the reason for the match',
+  '<strong>Verify the result</strong> — Click Test to re-run; confirm the Manual Match Count in the summary updates correctly'
+]))}
+${mlcSection('The Note-Adding Step — Why It Matters', mlcUl([
+  'A manual match without a note is an unexplained override — future auditors cannot understand why the records were paired',
+  'The note becomes part of the audit trail — it is stored permanently with the match record',
+  'Useful note format: "[Reviewer Name] — [Date] — [Reason]: INV001 matched to INVO01; confirmed same invoice, reference typo in bank feed"',
+  'High volumes of manual matches with no notes is a significant audit risk — enforce the note discipline from day one'
+]))}
+${mlcCompare(
+  '✅ Good Manual Match Practice',
+  ['Both records visually confirmed before clicking Match', 'Note added explaining the reason', 'Test run completed to verify count updates', 'Manual match volume tracked weekly', 'High-frequency manual matches escalated for rule refinement'],
+  '❌ Poor Manual Match Practice',
+  ['Records matched based on amount alone without verifying identity', 'No note added — unexplained override', 'No test run — count not verified', 'Manual matches accumulate with no review', 'No feedback loop to improve automatic rules']
+)}
+${mlcTakeaway('Manual matching is a safety valve, not a workflow. Every manual match should come with a note explaining why automatic rules failed, and every batch of manual matches should feed back into a rule-refinement conversation with the implementation team.')}`
+          },
+          {
+            title: 'Automated Resolution via Form Trigger Workflow',
+            dur: '12 min',
+            html: `<h2>Automated Resolution via Form Trigger Workflow</h2>
+<p class="mlc-lead">Manual selection from the Results tab works well for a handful of records. When you have hundreds or thousands of unmatched items, it becomes impractical. The workflow-based approach lets users download the full unmatched list, map matches in a spreadsheet, and upload them back — the system processes the entire batch automatically.</p>
+${mlcSection('When to Use the Workflow Approach', mlcUl([
+  '<strong>High-volume exceptions:</strong> More than 20–30 unmatched items per run — checkbox selection becomes too slow',
+  '<strong>Distributed teams:</strong> The person reviewing unmatched items is not the same as the person with Bluecopa access — the form can be shared via Portal',
+  '<strong>Audit-grade documentation:</strong> The workflow creates a formal submission record — who uploaded the matches, when, and what file they used',
+  '<strong>Recurring large batches:</strong> Month-end or quarter-end reconciliations that consistently produce large exception queues'
+]))}
+${mlcSection('Phase 1 — Setting Up the Workflow', mlcOl([
+  '<strong>Create the Workflow:</strong> Start a new workflow in Bluecopa and select Form Trigger as the starting point',
+  '<strong>Design the Form:</strong> Open the form builder and drag the Reconciliation Widget onto the form canvas',
+  '<strong>Link your Reconciliation:</strong> In the widget properties panel, select the specific reconciliation workflow ID you want to target',
+  '<strong>Add Update Recon Config Action:</strong> This action reads the manual match mappings from the uploaded file and applies them to the reconciliation configuration',
+  '<strong>Add Update and Run Recon Action:</strong> This tells the system to automatically re-run the reconciliation once the config is updated — no manual trigger needed'
+]))}
+${mlcDiagram('Workflow Architecture', `
+<div style="display:flex;flex-direction:column;gap:0;padding:8px 0">
+  <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:8px 8px 0 0">
+    <div style="font-size:16px">📋</div>
+    <div style="font-size:12px;color:#c4b5fd"><strong>Form Trigger</strong> — User opens the form and uploads the mapped match file</div>
+  </div>
+  <div style="display:flex;justify-content:center;padding:4px 0;color:#6b7280;font-size:14px">↓</div>
+  <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(139,92,246,0.07);border:1px solid rgba(139,92,246,0.2)">
+    <div style="font-size:16px">⚙️</div>
+    <div style="font-size:12px;color:#c4b5fd"><strong>Update Recon Config Action</strong> — Reads match mappings from uploaded file and applies to config</div>
+  </div>
+  <div style="display:flex;justify-content:center;padding:4px 0;color:#6b7280;font-size:14px">↓</div>
+  <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.15);border-radius:0 0 8px 8px">
+    <div style="font-size:16px">▶️</div>
+    <div style="font-size:12px;color:#c4b5fd"><strong>Update and Run Recon Action</strong> — Automatically re-runs the reconciliation; summary updates instantly</div>
+  </div>
+</div>`)}
+${mlcSection('Phase 2 — The User Journey', mlcOl([
+  '<strong>Open the Form:</strong> User opens the form via Instances or from the Portal',
+  '<strong>Download Unmatched Items:</strong> Click "Match Manually / Archive" → navigate to Unmatched Items → download the full list as a spreadsheet',
+  '<strong>Review and Map:</strong> Open the downloaded file; in Sheet 3, map left-record IDs to their corresponding right-record IDs',
+  '<strong>Upload and Submit:</strong> Upload the completed mapping file back into the form and click Submit',
+  '<strong>Automatic processing:</strong> The workflow runs the Update Recon Config and Update and Run Recon actions in sequence — the reconciliation re-runs automatically',
+  '<strong>Verify:</strong> The Manual Match Count on the summary dashboard updates instantly — no manual re-run required'
+]))}
+${mlcSection('Sheet 3 — The Mapping Format', mlcUl([
+  'Sheet 3 in the downloaded file is where the match mapping is entered — Sheets 1 and 2 contain the left and right unmatched records for reference',
+  'Each row in Sheet 3 pairs a left-record primary key with a right-record primary key',
+  'Leave the reason column blank to apply default notes, or fill it in for audit documentation',
+  'Do not modify Sheets 1 and 2 — only Sheet 3 is read by the Update Recon Config action'
+]))}
+${mlcTakeaway('The form-trigger workflow scales manual reconciliation to any volume. Ten records or ten thousand — the user downloads, maps in a spreadsheet, uploads, and the system handles the rest. Build this workflow once and it becomes a permanent, reusable resolution channel for every reconciliation run.')}`
+          }
+        ]
+      }
+    ],
+    quiz: [
+      { q: 'What is the primary purpose of reconciliation in Bluecopa?', opts: ['To generate financial reports automatically', 'To compare two datasets from different systems and verify they agree based on match rules', 'To ingest data from external cloud storage sources', 'To create approval workflows for financial transactions'], a: 1, exp: 'Reconciliation compares data from two different systems — such as an ERP and a bank — and identifies matches, mismatches, and missing records based on configured business rules. It is a data integrity verification process, not a reporting or ingestion tool.' },
+      { q: 'Which reconciliation type compares individual transactions row by row?', opts: ['Balance Reconciliation', 'Summary Reconciliation', 'Match Reconciliation', 'Aggregate Reconciliation'], a: 2, exp: 'Match Reconciliation (line-by-line) compares individual transaction records to determine whether a corresponding record exists in both datasets. Balance Reconciliation compares summarized totals and does not identify which specific transactions are missing.' },
+      { q: 'A dataset has Amount column as Number type on the left but Text type on the right. What will happen when a match rule uses Amount?', opts: ['The rule will work but produce slower results', 'The rule will automatically convert Text to Number', 'The rule will produce silent failures or incorrect results', 'An error will appear immediately when saving the rule'], a: 2, exp: 'Data type mismatches cause silent failures that are hard to debug. The matching engine cannot compare a Number to a Text value — records that should match will not. Always verify that columns used in match rules have identical data types on both sides.' },
+      { q: 'Rule Group 1 matches 800 of 1,000 records. Rule Group 2 then evaluates how many records?', opts: ['1,000 — all records are evaluated by every group', '800 — only the matched records', '200 — only the unmatched records remaining after Group 1', '400 — half of the original pool'], a: 2, exp: 'Rule Groups process in sequence. Records matched by Group 1 are removed from the pool. Group 2 only evaluates the 200 records that Group 1 did not match. This prevents duplicate matching and makes subsequent groups faster.' },
+      { q: 'A record has Copa Match Group = "Left Missing". What does this mean?', opts: ['The record exists in the left dataset but not the right', 'The record exists in the right dataset but not the left', 'The record was matched by the last rule group', 'The record was manually matched by a user'], a: 1, exp: '"Left Missing" means the transaction was found in the right (secondary) dataset — such as a bank statement — but has no corresponding record in the left (primary) dataset — such as the ERP. The right dataset columns contain data; the left columns are blank.' },
+      { q: 'When should you use "Run All" (Full Refresh) instead of "Run" (Incremental)?', opts: ['Every time new transactions are added', 'Only on the first execution, never after', 'When match rules have changed, historical data was corrected, or a clean baseline is needed', 'When the dataset has more than 10,000 records'], a: 2, exp: 'Run All recalculates everything from scratch — it is the right choice when something fundamental changed: rules were updated, historical data was corrected, or you need a reliable baseline. For daily operations where only new data is added, use Incremental Run — it is much faster.' },
+      { q: 'What does Copa Match Count = 0 indicate for a record?', opts: ['The record was matched by Rule Group 1', 'The record has no match — it is unmatched or missing', 'The record was manually matched', 'The record was excluded from the run'], a: 1, exp: 'Copa Match Count is a numeric flag: 1 = the record has a match, 0 = no match was found. A value of 0 means the record is either Left Missing, Right Missing, or Unmatched — it requires investigation.' },
+      { q: 'What is the correct way to add context to a manual match in Bluecopa?', opts: ['Add a comment in the source dataset before re-ingesting', 'Enter a note in Match Config → Manual Matches section after clicking Match', 'Send an email to the reconciliation owner explaining the match', 'The Copa Match Type column automatically records the reason'], a: 1, exp: 'After clicking Match in the Results tab, go to Match Config → Manual Matches to find the paired record by Primary Key and enter a short note explaining the reason. This note becomes part of the permanent audit trail and is required for audit-grade documentation.' },
+      { q: 'In the form-trigger workflow for automated resolution, what does the "Update and Run Recon Action" do?', opts: ['Downloads the unmatched items list for the user', 'Sends a notification to the reconciliation owner', 'Automatically re-runs the reconciliation after the config is updated', 'Creates a new reconciliation configuration from the uploaded file'], a: 2, exp: 'The "Update and Run Recon Action" triggers an automatic re-run of the reconciliation immediately after the "Update Recon Config Action" applies the uploaded match mappings. This means the user just uploads the file and submits — no manual re-run is needed.' },
+      { q: 'A rising Manual Match count across successive reconciliation runs is a signal of what?', opts: ['Improving data quality — more records are being captured', 'A system error in the automatic matching engine', 'A rule-quality problem — automatic rules are not covering a growing class of transactions', 'Normal variation — manual match volume always fluctuates'], a: 2, exp: 'A rising Manual Match trend means the automatic rules are falling behind the data. Either new transaction patterns have emerged that rules don\'t cover, or data quality in the source systems has degraded. The correct response is to analyse the manual match patterns and add or refine rule groups.' }
+    ]
+  },
+
+  // ════════════════════════════════════════════════════
+  //  COURSE 9 — ABOUT BLUECOPA
   // ════════════════════════════════════════════════════
   bc: {
     modules: [

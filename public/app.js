@@ -4535,6 +4535,18 @@ window.addEventListener('load', () => { setTimeout(liUpdateNavVisibility, 800); 
 
 const ML_COURSES = [
   {
+    id:'rc',
+    cat:'rc',
+    title:'Reconciliation Mastery',
+    desc:'Master Bluecopa\'s reconciliation engine — dataset setup, match rule groups, full vs incremental runs, Copa system columns, and resolving exceptions manually and via workflow.',
+    tag:'Reconciliation',
+    icon:'🔁',
+    grad:'linear-gradient(145deg,#312e81 0%,#6d28d9 60%,#a78bfa 100%)',
+    level:'Intermediate',
+    lessons:10,
+    badge:'Hot & New', badgeClass:'hot',
+  },
+  {
     id:'aw',
     cat:'aw',
     title:'Approval Workflows Mastery',
