@@ -2337,7 +2337,7 @@ function certViewFull(courseId){
     <div class="cert-full">
 
       <!-- ── Background: bokeh glow + golden wave ribbon ── -->
-      <svg class="cert-bg-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 500" preserveAspectRatio="xMidYMid slice">
+      <svg class="cert-bg-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 500" preserveAspectRatio="xMidYMid slice" width="100%" height="100%">
         <defs>
           <radialGradient id="cBokeh1" cx="25%" cy="28%" r="55%"><stop offset="0%" stop-color="rgba(201,162,39,.13)"/><stop offset="100%" stop-color="transparent"/></radialGradient>
           <radialGradient id="cBokeh2" cx="78%" cy="72%" r="50%"><stop offset="0%" stop-color="rgba(201,162,39,.09)"/><stop offset="100%" stop-color="transparent"/></radialGradient>
@@ -2351,34 +2351,17 @@ function certViewFull(courseId){
         <!-- wave ribbon (wide soft ribbon) -->
         <path d="M-30,340 C60,295 150,370 260,320 C370,270 430,345 540,295 C620,260 685,290 800,265" stroke="url(#cWave1)" stroke-width="70" fill="none" stroke-linecap="round"/>
         <path d="M-30,355 C60,308 150,383 260,333 C370,283 430,358 540,308 C620,273 685,303 800,278" stroke="url(#cWave2)" stroke-width="36" fill="none" stroke-linecap="round"/>
-        <!-- sparkle dots scattered -->
+        <!-- sparkle dots scattered (kept away from text areas) -->
         <circle cx="610" cy="68"  r="2.2" fill="rgba(255,230,150,.7)"/><circle cx="648" cy="108" r="1.4" fill="rgba(255,230,150,.5)"/><circle cx="628" cy="148" r="1.0" fill="rgba(255,230,150,.4)"/>
-        <circle cx="82"  cy="412" r="2.0" fill="rgba(255,230,150,.6)"/><circle cx="48"  cy="448" r="1.4" fill="rgba(255,230,150,.4)"/>
         <circle cx="700" cy="200" r="1.8" fill="rgba(255,230,150,.5)"/><circle cx="720" cy="160" r="1.0" fill="rgba(255,230,150,.3)"/>
-        <circle cx="140" cy="460" r="1.6" fill="rgba(255,230,150,.4)"/>
+        <circle cx="680" cy="420" r="1.6" fill="rgba(255,230,150,.4)"/><circle cx="710" cy="450" r="1.2" fill="rgba(255,230,150,.3)"/>
       </svg>
 
-      <!-- ── Top-left corner filigree ── -->
-      <svg class="cert-corner-svg cert-corner-tl" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12,12 L12,85" stroke="#c9a227" stroke-width="1.8" fill="none" opacity=".85"/>
-        <path d="M12,12 L85,12" stroke="#c9a227" stroke-width="1.8" fill="none" opacity=".85"/>
-        <path d="M12,85 C12,110 35,118 52,106 C69,94 66,72 52,66 C38,60 26,70 30,82 C34,94 50,93 52,83 C54,73 46,67 40,72" stroke="#c9a227" stroke-width="1.6" fill="none" opacity=".85"/>
-        <path d="M85,12 C110,12 118,35 106,52 C94,69 72,66 66,52 C60,38 70,26 82,30 C94,34 93,50 83,52 C73,54 67,46 72,40" stroke="#c9a227" stroke-width="1.6" fill="none" opacity=".85"/>
-        <circle cx="12" cy="12" r="3.5" fill="#c9a227" opacity=".9"/>
-        <circle cx="85" cy="12" r="1.5" fill="#c9a227" opacity=".6"/>
-        <circle cx="12" cy="85" r="1.5" fill="#c9a227" opacity=".6"/>
-      </svg>
-
-      <!-- ── Bottom-right corner filigree ── -->
-      <svg class="cert-corner-svg cert-corner-br" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-        <path d="M108,108 L108,35" stroke="#c9a227" stroke-width="1.8" fill="none" opacity=".85"/>
-        <path d="M108,108 L35,108" stroke="#c9a227" stroke-width="1.8" fill="none" opacity=".85"/>
-        <path d="M108,35 C108,10 85,2 68,14 C51,26 54,48 68,54 C82,60 94,50 90,38 C86,26 70,27 68,37 C66,47 74,53 80,48" stroke="#c9a227" stroke-width="1.6" fill="none" opacity=".85"/>
-        <path d="M35,108 C10,108 2,85 14,68 C26,51 48,54 54,68 C60,82 50,94 38,90 C26,86 27,70 37,68 C47,66 53,74 48,80" stroke="#c9a227" stroke-width="1.6" fill="none" opacity=".85"/>
-        <circle cx="108" cy="108" r="3.5" fill="#c9a227" opacity=".9"/>
-        <circle cx="35"  cy="108" r="1.5" fill="#c9a227" opacity=".6"/>
-        <circle cx="108" cy="35"  r="1.5" fill="#c9a227" opacity=".6"/>
-      </svg>
+      <!-- ── Corner ornaments (CSS only) ── -->
+      <div class="cert-corner cert-corner-tl"></div>
+      <div class="cert-corner cert-corner-tr"></div>
+      <div class="cert-corner cert-corner-bl"></div>
+      <div class="cert-corner cert-corner-br"></div>
 
       <!-- ── Double border frame ── -->
       <div class="cert-border-outer"></div>
