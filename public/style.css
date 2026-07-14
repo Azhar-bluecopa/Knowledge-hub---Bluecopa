@@ -2722,27 +2722,69 @@ html{scroll-behavior:smooth;}
 .cert-card-date{font-size:11px;color:rgba(122,122,150,.7);}
 .cert-card-score{font-size:11px;color:rgba(122,232,180,.85);font-family:'DM Mono',monospace;font-weight:600;}
 .cert-card-seal{display:inline-block;background:rgba(201,162,39,0.1);border:1px solid rgba(201,162,39,0.25);color:#e8c97a;border-radius:6px;padding:4px 10px;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;letter-spacing:.1em;}
-.cert-modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:24px;}
-.cert-modal{position:relative;max-width:620px;width:100%;}
-.cert-modal-close{position:absolute;top:-14px;right:-14px;background:rgba(30,30,40,.95);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.65);border-radius:50%;width:36px;height:36px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;z-index:2;}
-.cert-modal-close:hover{background:rgba(255,255,255,.12);}
-.cert-full{background:linear-gradient(160deg,#0f0e18 0%,#110f1d 50%,#0c0b14 100%);border:1px solid rgba(201,162,39,0.32);border-radius:20px;overflow:hidden;position:relative;}
-.cert-full::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 15% 15%,rgba(201,162,39,0.05) 0%,transparent 55%),radial-gradient(circle at 85% 85%,rgba(201,162,39,0.04) 0%,transparent 55%);pointer-events:none;}
-.cert-full-top-bar{height:3px;background:linear-gradient(90deg,transparent,#c9a227 30%,#e8d68a 60%,transparent);}
-.cert-full-header{padding:36px 40px 28px;text-align:center;border-bottom:1px solid rgba(201,162,39,0.1);}
-.cert-full-logo{font-size:38px;margin-bottom:10px;}
-.cert-full-issuer{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.24em;color:rgba(201,162,39,.45);text-transform:uppercase;margin-bottom:12px;}
-.cert-full-headline{font-size:22px;font-weight:700;color:rgba(232,232,240,.95);}
-.cert-full-body{padding:32px 40px;text-align:center;border-bottom:1px solid rgba(201,162,39,0.08);}
-.cert-full-presented{font-size:12px;color:rgba(122,122,150,.65);margin-bottom:10px;}
-.cert-full-name{font-size:30px;font-weight:800;color:#e8c97a;letter-spacing:.01em;margin-bottom:12px;}
-.cert-full-desc{font-size:12px;color:rgba(122,122,150,.65);margin-bottom:12px;}
-.cert-full-course{font-size:18px;font-weight:700;color:rgba(232,232,240,.95);margin-bottom:6px;}
-.cert-full-tag{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;color:rgba(201,162,39,.45);text-transform:uppercase;}
-.cert-full-footer{padding:24px 40px;display:flex;align-items:center;justify-content:space-between;}
-.cert-full-meta{text-align:center;}
-.cert-full-date{font-size:15px;font-weight:700;color:rgba(232,232,240,.9);}
-.cert-full-date-label{font-size:10px;color:rgba(122,122,150,.55);font-family:'DM Mono',monospace;letter-spacing:.08em;margin-top:3px;}
+/* ── Certificate Modal ─────────────────────────────── */
+.cert-modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:24px;}
+.cert-modal{position:relative;max-width:680px;width:100%;}
+.cert-modal-close{position:absolute;top:-14px;right:-14px;background:rgba(30,30,40,.98);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.65);border-radius:50%;width:36px;height:36px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;z-index:10;}
+.cert-modal-close:hover{background:rgba(255,255,255,.12);color:#fff;}
+
+/* certificate card */
+.cert-full{
+  background:linear-gradient(160deg,#0d0c18 0%,#12102a 50%,#0b0a16 100%);
+  border:1px solid rgba(201,162,39,0.38);
+  border-radius:16px;overflow:hidden;position:relative;
+}
+/* corner ornaments */
+.cert-full::before,.cert-full::after{
+  content:'';position:absolute;pointer-events:none;
+  width:80px;height:80px;
+  background-image:radial-gradient(circle at 0% 0%,rgba(201,162,39,0.08),transparent 70%);
+}
+.cert-full::before{top:0;left:0;}
+.cert-full::after{bottom:0;right:0;transform:rotate(180deg);}
+
+/* accent bars */
+.cert-full-top-bar{height:4px;background:linear-gradient(90deg,transparent 0%,#b8891c 20%,#e8c96a 50%,#b8891c 80%,transparent 100%);}
+.cert-full-top-bar-thin{height:1px;background:linear-gradient(90deg,transparent 0%,rgba(201,162,39,.25) 30%,rgba(201,162,39,.5) 50%,rgba(201,162,39,.25) 70%,transparent 100%);margin-bottom:0;}
+.cert-full-bottom-bar{height:4px;background:linear-gradient(90deg,transparent 0%,#b8891c 20%,#e8c96a 50%,#b8891c 80%,transparent 100%);}
+
+/* header */
+.cert-full-header{padding:28px 44px 22px;text-align:center;border-bottom:1px solid rgba(201,162,39,0.12);}
+.cert-full-logo-wrap{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:18px;}
+.cert-full-logo-img{width:44px;height:44px;object-fit:contain;filter:drop-shadow(0 2px 12px rgba(201,162,39,.3));}
+.cert-full-brand{text-align:left;}
+.cert-full-brand-name{font-size:20px;font-weight:800;color:#fff;letter-spacing:.06em;}
+.cert-full-brand-sub{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.18em;color:rgba(201,162,39,.5);text-transform:uppercase;margin-top:2px;}
+
+/* divider */
+.cert-full-divider{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.cert-full-divider-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(201,162,39,.35));}
+.cert-full-divider-line:last-child{background:linear-gradient(90deg,rgba(201,162,39,.35),transparent);}
+.cert-full-divider-diamond{font-size:8px;color:rgba(201,162,39,.6);line-height:1;}
+.cert-full-headline{font-size:24px;font-weight:700;color:rgba(240,238,255,.95);letter-spacing:.02em;}
+
+/* body */
+.cert-full-body{padding:28px 44px 22px;text-align:center;}
+.cert-full-presented{font-size:12px;color:rgba(140,138,170,.7);margin-bottom:8px;letter-spacing:.04em;}
+.cert-full-name{font-size:34px;font-weight:800;color:#e8c97a;letter-spacing:.01em;margin-bottom:10px;text-shadow:0 0 40px rgba(201,162,39,.25);}
+.cert-full-desc{font-size:12px;color:rgba(140,138,170,.7);margin-bottom:14px;letter-spacing:.04em;}
+.cert-full-course{font-size:17px;font-weight:700;color:rgba(240,238,255,.95);margin-bottom:6px;line-height:1.3;}
+.cert-full-tag{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.18em;color:rgba(201,162,39,.5);text-transform:uppercase;}
+.cert-full-body-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(201,162,39,.15) 30%,rgba(201,162,39,.15) 70%,transparent);margin-top:22px;}
+
+/* footer */
+.cert-full-footer{padding:22px 44px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.cert-full-footer-col{text-align:center;min-width:130px;}
+.cert-full-footer-value{font-size:13px;font-weight:600;color:rgba(240,238,255,.88);margin-bottom:8px;}
+.cert-full-footer-rule{height:1px;background:rgba(201,162,39,.35);margin-bottom:6px;}
+.cert-full-footer-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;color:rgba(140,138,170,.55);text-transform:uppercase;}
+
+/* seal */
+.cert-full-seal{display:flex;flex-direction:column;align-items:center;gap:5px;}
+.cert-full-seal-label{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.2em;color:rgba(201,162,39,.45);text-transform:uppercase;}
+
+/* certificate id */
+.cert-full-id{text-align:center;padding:10px 44px 14px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:rgba(140,138,170,.3);border-top:1px solid rgba(201,162,39,.06);}
 
 /* ═══════════════════════════════════════════════════════════════
    LEARNING MANAGEMENT SYSTEM — Personal Dashboard + Admin Overlay

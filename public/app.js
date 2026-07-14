@@ -2326,6 +2326,8 @@ function certViewFull(courseId){
   const existing = document.getElementById('certModalOverlay');
   if(existing) existing.remove();
 
+  const certId = 'BC-' + (courseId + userName + dateStr).split('').reduce((h,ch)=>((h<<5)-h+ch.charCodeAt(0))|0,0).toString(36).replace('-','').toUpperCase().slice(0,8);
+
   const modal = document.createElement('div');
   modal.className='cert-modal-overlay'; modal.id='certModalOverlay';
   modal.onclick = e => { if(e.target===modal) modal.remove(); };
@@ -2333,30 +2335,67 @@ function certViewFull(courseId){
   <div class="cert-modal">
     <button class="cert-modal-close" onclick="document.getElementById('certModalOverlay').remove()">✕</button>
     <div class="cert-full">
+      <!-- top accent bars -->
       <div class="cert-full-top-bar"></div>
+      <div class="cert-full-top-bar-thin"></div>
+
+      <!-- header: logo + company -->
       <div class="cert-full-header">
-        <div class="cert-full-logo">🏆</div>
-        <div class="cert-full-issuer">BLUECOPA · DELIVERY TEAM</div>
+        <div class="cert-full-logo-wrap">
+          <img src="/bluecopa-icon.png" class="cert-full-logo-img" alt="Bluecopa">
+          <div class="cert-full-brand">
+            <div class="cert-full-brand-name">BLUECOPA</div>
+            <div class="cert-full-brand-sub">Delivery Team · Knowledge Hub</div>
+          </div>
+        </div>
+        <div class="cert-full-divider">
+          <span class="cert-full-divider-line"></span>
+          <span class="cert-full-divider-diamond">◆</span>
+          <span class="cert-full-divider-line"></span>
+        </div>
         <div class="cert-full-headline">Certificate of Completion</div>
       </div>
+
+      <!-- body: recipient + course -->
       <div class="cert-full-body">
-        <div class="cert-full-presented">This certifies that</div>
+        <div class="cert-full-presented">This is to certify that</div>
         <div class="cert-full-name">${userName}</div>
-        <div class="cert-full-desc">has successfully completed</div>
+        <div class="cert-full-desc">has successfully completed the course</div>
         <div class="cert-full-course">${c.title}</div>
         <div class="cert-full-tag">${c.tag||''}</div>
+        <div class="cert-full-body-divider"></div>
       </div>
+
+      <!-- footer: date | seal | authorised -->
       <div class="cert-full-footer">
-        <div class="cert-full-meta"><div class="cert-full-date">${dateStr}</div><div class="cert-full-date-label">Date Completed</div></div>
-        <div class="cert-full-seal">
-          <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" width="72" height="72">
-            <circle cx="40" cy="40" r="36" stroke="rgba(201,162,39,0.45)" stroke-width="2" stroke-dasharray="6 3"/>
-            <circle cx="40" cy="40" r="27" fill="rgba(201,162,39,0.09)" stroke="rgba(201,162,39,0.6)" stroke-width="2"/>
-            <text x="40" y="48" text-anchor="middle" font-size="22">🏆</text>
-          </svg>
+        <div class="cert-full-footer-col">
+          <div class="cert-full-footer-value">${dateStr}</div>
+          <div class="cert-full-footer-rule"></div>
+          <div class="cert-full-footer-label">Date of Completion</div>
         </div>
-        <div class="cert-full-meta"><div class="cert-full-date">${score}%</div><div class="cert-full-date-label">Assessment Score</div></div>
+
+        <div class="cert-full-seal">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" width="90" height="90">
+            <circle cx="50" cy="50" r="46" stroke="rgba(201,162,39,0.35)" stroke-width="1.5" stroke-dasharray="5 3"/>
+            <circle cx="50" cy="50" r="38" stroke="rgba(201,162,39,0.55)" stroke-width="1.5"/>
+            <circle cx="50" cy="50" r="32" fill="rgba(201,162,39,0.07)" stroke="rgba(201,162,39,0.3)" stroke-width="1"/>
+            <image href="/bluecopa-icon.png" x="27" y="27" width="46" height="46"/>
+          </svg>
+          <div class="cert-full-seal-label">OFFICIAL SEAL</div>
+        </div>
+
+        <div class="cert-full-footer-col">
+          <div class="cert-full-footer-value">Bluecopa</div>
+          <div class="cert-full-footer-rule"></div>
+          <div class="cert-full-footer-label">Authorised by</div>
+        </div>
       </div>
+
+      <!-- cert id -->
+      <div class="cert-full-id">Certificate ID: ${certId}</div>
+
+      <!-- bottom bar -->
+      <div class="cert-full-bottom-bar"></div>
     </div>
   </div>`;
   document.body.appendChild(modal);
@@ -4613,7 +4652,7 @@ const ML_COURSES = [
     desc:'Understand the Bluecopa platform from the ground up — its four-layer architecture, Foundation capabilities, Processing Engines, pre-built Solutions, and the Samyx AI layer.',
     tag:'Platform Overview',
     icon:'🔵',
-    img:'/bluecopa-logo.png',
+    img:'/bluecopa-icon.png',
     grad:'linear-gradient(145deg,#0c4a6e 0%,#0284c7 60%,#38bdf8 100%)',
     level:'Beginner',
     lessons:10,
