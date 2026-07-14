@@ -2456,7 +2456,430 @@ ${mlcTakeaway('The form-trigger workflow scales manual reconciliation to any vol
   },
 
   // ════════════════════════════════════════════════════
-  //  COURSE 9 — ABOUT BLUECOPA
+  //  COURSE 9 — WORKFLOWS
+  // ════════════════════════════════════════════════════
+  wf: {
+    modules: [
+
+      // ─── MODULE 1: Fundamentals ──────────────────────
+      {
+        title: 'Workflow Fundamentals',
+        lessons: [
+          {
+            title: 'What Is a Workflow? Triggers & Core Concepts',
+            dur: '10 min',
+            html: `<h2>What Is a Workflow?</h2>
+<p class="mlc-lead">A workflow is an automated sequence of actions that runs in response to a starting condition called a trigger. In Bluecopa, workflows connect data ingestion, transformation, human tasks, API calls, and notifications into a single auditable automation — replacing manual, multi-step processes with a reliable, repeatable pipeline.</p>
+${mlcSection('Why Workflows Exist', mlcUl([
+  '<strong>Replace manual processes</strong> — Invoice validation, approval routing, data sync, and report delivery that used to require human coordination are now automated end-to-end',
+  '<strong>React in real time</strong> — Event-based triggers ensure the workflow fires the moment something happens — a form submitted, a file uploaded, a dataset updated — without polling or delay',
+  '<strong>Enforce consistency</strong> — The same logic runs every time: no skipped steps, no forgotten notifications, no process variation across team members',
+  '<strong>Provide auditability</strong> — Every workflow execution is logged with timestamps, step statuses, and outputs — a complete audit trail without any extra effort'
+]))}
+${mlcSection('The Four Building Blocks', mlcOl([
+  '<strong>Trigger</strong> — The starting condition: what causes the workflow to run (form submission, schedule, API call, data change)',
+  '<strong>Nodes / Steps</strong> — The actions the workflow performs: run a pipeline, call an API, assign a human task, send an email, transform data',
+  '<strong>Conditions</strong> — Branching logic: if a step succeeds, go this way; if it fails or the approver rejects, go another way',
+  '<strong>Outputs</strong> — The result of the workflow: a dataset updated, a file moved, an email sent, a task closed'
+]))}
+${mlcDiagram('Workflow — Core Anatomy', `
+<div style="display:flex;gap:0;align-items:center;justify-content:center;flex-wrap:wrap;padding:8px 0">
+  <div style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);border-radius:8px;padding:10px 16px;font-size:12px;font-weight:600;color:#34d399;text-align:center;min-width:80px">⚡<br>Trigger</div>
+  <div style="color:#6b7280;font-size:18px;margin:0 8px">→</div>
+  <div style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);border-radius:8px;padding:10px 16px;font-size:12px;font-weight:600;color:#34d399;text-align:center;min-width:80px">⚙️<br>Steps</div>
+  <div style="color:#6b7280;font-size:18px;margin:0 8px">→</div>
+  <div style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);border-radius:8px;padding:10px 16px;font-size:12px;font-weight:600;color:#34d399;text-align:center;min-width:80px">🔀<br>Conditions</div>
+  <div style="color:#6b7280;font-size:18px;margin:0 8px">→</div>
+  <div style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);border-radius:8px;padding:10px 16px;font-size:12px;font-weight:600;color:#34d399;text-align:center;min-width:80px">📤<br>Outputs</div>
+</div>`)}
+${mlcSection('Trigger Families', mlcUl([
+  '<strong>Scheduled (Time-based)</strong> — The workflow fires at a pre-defined time or repeating schedule. No external dependency. Examples: nightly reports, daily data sync, weekly reminders.',
+  '<strong>Event-based (Condition-based)</strong> — The workflow fires immediately when something specific happens — a data change, a form submission, a file upload, an API call. Examples: real-time validation, on-demand processing, third-party webhooks.'
+]))}
+${mlcTakeaway('Every workflow — whether it runs a 3-step report or a 20-step invoice discounting pipeline — is built from the same four blocks: Trigger, Nodes, Conditions, and Outputs. Master these four and you can build any automation.')}`
+          },
+          {
+            title: 'The Nine Trigger Types — When to Use Each',
+            dur: '12 min',
+            html: `<h2>The Nine Trigger Types — When to Use Each</h2>
+<p class="mlc-lead">Choosing the right trigger is the first and most consequential decision when building a workflow. The trigger determines when your automation starts, how it reacts to the outside world, and how reliably it delivers results. Bluecopa provides nine trigger types covering every common automation pattern.</p>
+${mlcSection('Trigger Quick Reference', mlcUl([
+  '<strong>Dataset Update</strong> — Fires when a record in a linked dataset is created or updated. Use for: data validation pipelines, change notifications, downstream sync. Tip: filter by field conditions to avoid unnecessary runs.',
+  '<strong>Form Submission</strong> — Fires when a user submits a linked form. All form field values are available as trigger data. Use for: intake forms, service requests, approval workflows, lead capture.',
+  '<strong>Filebox</strong> — Fires when a file is uploaded to a designated filebox. Provides file name, size, and path as metadata. Use for: document processing, OCR, file routing, ZIP extraction.',
+  '<strong>Schedule</strong> — Fires at a configured time or cron expression. No external dependency. Use for: nightly reports, daily data sync, periodic reminders. Most reliable trigger for batch operations.',
+  '<strong>HTTP Trigger</strong> — Fires on an incoming HTTP request to a Bluecopa-exposed endpoint. Use for: third-party webhooks, API integrations, event-driven triggers from external systems.',
+  '<strong>Manual Trigger</strong> — Fires when a user clicks "Run" in the UI. Use for: ad-hoc tasks, testing, on-demand operations. Not suitable for production automation — requires a human to initiate.',
+  '<strong>Process Task Reassignment</strong> — Fires when a task\'s ownership changes. Use for: escalations, out-of-office routing, load balancing across team members.',
+  '<strong>External Event</strong> — Fires when an event arrives from an external system (IoT, event streaming platforms). Use for: sensor-driven automation, real-time event processing.',
+  '<strong>Workflow Event</strong> — Fires when another workflow emits a named event. Use for: chaining workflows, sub-workflow patterns, orchestrating a sequence of dependent automations.'
+]))}
+${mlcCompare(
+  '⏰ Scheduled Triggers — Best For',
+  ['Predictable, time-based batch operations', 'Nightly reconciliation runs', 'Weekly report delivery', 'Daily dataset sync windows', 'No dependency on external events'],
+  '⚡ Event-Based Triggers — Best For',
+  ['Real-time reactions to data changes', 'Processing form submissions immediately', 'File-driven automation (upload → process)', 'Webhook-driven integrations', 'Chaining workflows in an orchestration sequence']
+)}
+${mlcSection('Configuration Tips by Trigger Type', mlcUl([
+  '<strong>Dataset Update:</strong> Always filter by specific field conditions — triggering on every record update can cause thousands of unnecessary runs per day',
+  '<strong>Form Submission:</strong> Map form fields to clearly named variables at the trigger level; add a confirmation step immediately after so submitters know their form was received',
+  '<strong>Filebox:</strong> The filebox must be configured before the trigger is set — ensure the correct filebox ID is linked',
+  '<strong>Schedule:</strong> Use cron expressions for advanced patterns (e.g. "every weekday at 8 AM"). Simple time-based schedules have a UI picker',
+  '<strong>HTTP Trigger:</strong> The endpoint must be explicitly exposed — note the generated URL and secure it with authentication if the data is sensitive',
+  '<strong>Workflow Event:</strong> Ensure the emitting workflow uses the exact same event name as the listening workflow\'s trigger — a name mismatch causes silent failures'
+]))}
+${mlcStatGrid([
+  { n: '9', l: 'Total trigger types available in Bluecopa', note: 'Covers all automation patterns' },
+  { n: '2', l: 'Trigger families: Scheduled and Event-based', note: '' },
+  { n: 'Schedule', l: 'Most reliable for batch/periodic operations', note: 'No external dependency' },
+  { n: 'HTTP', l: 'Most flexible for external integrations', note: 'Requires endpoint exposure' }
+])}
+${mlcTakeaway('Use Scheduled triggers when you control the timing and Event-based triggers when the timing is determined by something external. Mixing both patterns in a single workflow (e.g. a scheduled run that also listens for on-demand HTTP triggers) requires two separate workflow configurations pointing to the same core logic.')}`
+          },
+          {
+            title: 'Data Transformation Nodes — The Complete Reference',
+            dur: '12 min',
+            html: `<h2>Data Transformation Nodes — The Complete Reference</h2>
+<p class="mlc-lead">Bluecopa's Allocation Studio provides 16 transformation node types that shape, enrich, and restructure data as it flows through a pipeline. Each node has a specific purpose. Understanding what each one does — and when to use it — is fundamental to building efficient, accurate data pipelines.</p>
+${mlcSection('Selection & Ordering Nodes', mlcUl([
+  '<strong>Select</strong> — Column picker. Choose which columns pass downstream; unused columns from the source are excluded. Each column can be assigned an alias. Column order can be adjusted.',
+  '<strong>Sort</strong> — Row ordering. Define multiple sort rules applied sequentially (Rule 1, then Rule 2). Each rule specifies a column and direction (Ascending / Descending).',
+  '<strong>Filter</strong> — Row conditions. Include only rows satisfying specified criteria. Supports Match All (AND) or Match Any (OR). Operators include: Equal, Contains, In, Is Null, Starts With, and more.'
+]))}
+${mlcSection('Combining Nodes', mlcUl([
+  '<strong>Merge</strong> — Union two datasets by appending rows. Both datasets must share identical schemas (same column names and data types). Enable "Union Distinct" to remove duplicate rows.',
+  '<strong>Lookup</strong> — Key-based enrichment. Enrich a dataset with columns from a second dataset using a key match — similar to a spreadsheet VLOOKUP.',
+  '<strong>Join</strong> — Multi-join types. Combine two datasets on a key with configurable join types: Inner, Left, Right, Full Outer.'
+]))}
+${mlcSection('Calculation & Aggregation Nodes', mlcUl([
+  '<strong>Aggregate</strong> — Summary calculations. Group rows and compute aggregates: SUM, COUNT, AVG, MIN, MAX per group.',
+  '<strong>Calculate</strong> — Custom formulas. Apply expression-based computed columns using functions, arithmetic, and conditional logic.',
+  '<strong>SQL</strong> — Direct SQL. Write raw SQL against the dataset for complex transformations not covered by visual nodes.',
+  '<strong>Window Aggregate</strong> — Partition calculations. Compute running totals, rankings, and moving averages partitioned by a grouping key — without collapsing rows.'
+]))}
+${mlcSection('Quality & Classification Nodes', mlcUl([
+  '<strong>Classify</strong> — Rule-based bucketing. Assign records to categories based on conditions — e.g. "if Amount > 100000, classify as Large".',
+  '<strong>Deduplicate</strong> — Remove duplicate rows based on specified key columns. Keeps the first or last occurrence based on configuration.',
+  '<strong>Replace</strong> — Value mapping. Replace specific values in a column with alternatives — e.g. map "Y" → "Yes", "N" → "No".',
+  '<strong>Reconciliation</strong> — Match/balance. Apply reconciliation logic within a pipeline step — connects to a configured reconciliation run.'
+]))}
+${mlcSection('Reshaping Nodes', mlcUl([
+  '<strong>Pivot</strong> — Long to wide. Convert row values into columns — e.g. turn monthly rows into monthly columns across a single record.',
+  '<strong>Unpivot</strong> — Wide to long. Reverse of Pivot: convert column headers into row values — useful for normalizing wide datasets.'
+]))}
+${mlcDiagram('Transformation Node Categories', `
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:8px 0">
+  <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:6px;padding:8px 10px;font-size:11px;color:#6ee7b7"><strong>Selection</strong><br>Select · Sort · Filter</div>
+  <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:6px;padding:8px 10px;font-size:11px;color:#6ee7b7"><strong>Combining</strong><br>Merge · Lookup · Join</div>
+  <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:6px;padding:8px 10px;font-size:11px;color:#6ee7b7"><strong>Calculation</strong><br>Aggregate · Calculate · SQL · Window</div>
+  <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:6px;padding:8px 10px;font-size:11px;color:#6ee7b7"><strong>Quality</strong><br>Classify · Deduplicate · Replace · Reconciliation</div>
+  <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:6px;padding:8px 10px;font-size:11px;color:#6ee7b7"><strong>Reshaping</strong><br>Pivot · Unpivot</div>
+  <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:6px;padding:8px 10px;font-size:11px;color:#94a3b8"><strong>Total: 16 nodes</strong><br>across 5 categories</div>
+</div>`)}
+${mlcTakeaway('You rarely need all 16 nodes in a single pipeline. Most pipelines use 4–6: Select to scope columns, Filter to scope rows, Join or Lookup to enrich, Aggregate for summary, and Calculate for custom metrics. Add Deduplicate and Replace when data quality is a concern.')}`
+          }
+        ]
+      },
+
+      // ─── MODULE 2: Integration & Reliability ─────────
+      {
+        title: 'Integration & Reliability',
+        lessons: [
+          {
+            title: 'API Integration Nodes — Connecting External Systems',
+            dur: '10 min',
+            html: `<h2>API Integration Nodes — Connecting External Systems</h2>
+<p class="mlc-lead">An API Integration Node is a specialized workflow step that connects Bluecopa to external systems — ERPs, CRMs, payment gateways, or custom databases. It acts as The Orchestrator: it handles business logic, variable mapping, and state tracking, then delegates the actual HTTP communication to a separate transport connector layer.</p>
+${mlcSection('Core Responsibilities', mlcUl([
+  '<strong>Business Logic Awareness</strong> — Processes domain logic, handles conditional sequence logic, reads active canvas parameters, and mutates workflow instance states based on data outcomes (e.g. transitioning an invoice state from PENDING to PROCESSED_SUCCESSFULLY)',
+  '<strong>Data Transformation & Contracting</strong> — Handles data filters, validates mandatory field payloads, maps complex application entities to strict external flat schemas, and prepares outbound data structures',
+  '<strong>State Machine & Exception Handling</strong> — Tracks execution logs, evaluates response status codes, and determines whether to trigger conditional execution branches, retry loops, or failure paths',
+  '<strong>Protocol Abstraction</strong> — The node is completely agnostic to raw network sockets, connection pooling, or stream parsing — it relies entirely on a separate REST API Connector layer to handle transmission'
+]))}
+${mlcDiagram('API Integration Node — Data Path', `
+<div style="display:flex;flex-direction:column;gap:0;padding:8px 0">
+  <div style="display:flex;align-items:center;gap:12px;padding:8px 14px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px 8px 0 0">
+    <div style="font-size:14px">⚙️</div>
+    <div style="font-size:12px;color:#6ee7b7"><strong>Internal Workflow Engine</strong> — Triggers the integration process step</div>
+  </div>
+  <div style="display:flex;justify-content:center;padding:3px 0;color:#6b7280;font-size:13px">↓</div>
+  <div style="display:flex;align-items:center;gap:12px;padding:8px 14px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15)">
+    <div style="font-size:14px">🧠</div>
+    <div style="font-size:12px;color:#6ee7b7"><strong>API Integration Node (Orchestrator)</strong> — Business logic, variable mapping, state machine, conditional routing</div>
+  </div>
+  <div style="display:flex;justify-content:center;padding:3px 0;color:#6b7280;font-size:13px">↓</div>
+  <div style="display:flex;align-items:center;gap:12px;padding:8px 14px;background:rgba(16,185,129,0.04);border:1px solid rgba(16,185,129,0.1)">
+    <div style="font-size:14px">🚀</div>
+    <div style="font-size:12px;color:#6ee7b7"><strong>REST API Connector (Transport)</strong> — Auth headers, network pooling, timeouts, JSON serialization</div>
+  </div>
+  <div style="display:flex;justify-content:center;padding:3px 0;color:#6b7280;font-size:13px">↓</div>
+  <div style="display:flex;align-items:center;gap:12px;padding:8px 14px;background:rgba(16,185,129,0.02);border:1px solid rgba(16,185,129,0.08);border-radius:0 0 8px 8px">
+    <div style="font-size:14px">🌐</div>
+    <div style="font-size:12px;color:#6ee7b7"><strong>External API Endpoint</strong> — ERP, CRM, custom database, third-party service</div>
+  </div>
+</div>`)}
+${mlcSection('Runtime Execution — Four Steps', mlcOl([
+  '<strong>Map Dynamic Data Tokens</strong> — The node captures live data variables from preceding workflow steps and maps them into the template parameter placeholders configured for the target API action',
+  '<strong>Handle Context & Credential Verification</strong> — The node fetches active workspace tokens and identity metrics (such as the mandatory x-bluecopa-workspace-id header) from the platform\'s secure secret state',
+  '<strong>Execute Request Asynchronously</strong> — The node packages the final payload and dispatches the execution request; it hands off control to the connector and records an in-progress state',
+  '<strong>Evaluate Response & Route</strong> — On response, the node evaluates the status code: success triggers the next step; error triggers the configured retry or failure branch'
+]))}
+${mlcSection('Key Design Principles', mlcUl([
+  '<strong>Separation of concerns:</strong> The integration node owns business logic; the connector owns transport — never mix these responsibilities',
+  '<strong>Idempotency:</strong> Design API calls so retrying them produces the same result — avoid double-posting by using idempotency keys where the external API supports them',
+  '<strong>Response validation:</strong> Always configure response code evaluation — a 200 response does not always mean success; check the response body for application-level error codes',
+  '<strong>Secrets management:</strong> Never hardcode credentials in the integration node — use the platform\'s secure secret state for all API keys and tokens'
+]))}
+${mlcTakeaway('The API Integration Node is Bluecopa\'s boundary with the outside world. Everything upstream of it is internal workflow logic; everything downstream of the connector is the external network. Keeping this boundary clean — business logic in the node, transport in the connector — makes integrations testable, maintainable, and replaceable.')}`
+          },
+          {
+            title: 'Error Handling & Retry Policy — Building Reliable Workflows',
+            dur: '10 min',
+            html: `<h2>Error Handling & Retry Policy — Building Reliable Workflows</h2>
+<p class="mlc-lead">A workflow that works under perfect conditions is not a reliable workflow. Error handling and retry policy define how each step behaves when things go wrong — network timeouts, transient failures, downstream API outages. Configuring these correctly is the difference between a workflow that recovers automatically and one that silently fails.</p>
+${mlcSection('Timeout Configuration', mlcUl([
+  '<strong>Timeout (Seconds)</strong> — Maximum allowed execution time for a step. If the step does not complete within this window, it is marked as a timeout error',
+  '<strong>Continue on Timeout: Enabled</strong> — The workflow continues to execute the next step even if this step timed out. Use when the step is non-critical (e.g. a logging step) and downstream steps must run regardless',
+  '<strong>Continue on Timeout: Disabled</strong> — The workflow fails immediately if this step times out. Use for critical steps where downstream logic depends on successful completion'
+]))}
+${mlcSection('Retry Policy — Four Settings', mlcUl([
+  '<strong>Interval (Seconds)</strong> — The delay before the first retry attempt after a failure. Gives the failing system time to recover before being hit again.',
+  '<strong>Max Attempts</strong> — How many times the system will retry after failure. Once exhausted, the step is marked as failed. Example: Max Attempts = 4 means the step is tried 5 times total (1 original + 4 retries).',
+  '<strong>Backoff Coefficient</strong> — Controls how the retry delay increases after each failed attempt. A multiplier applied to the previous delay. Coefficient = 2 doubles the delay each time; Coefficient = 5 increases it fivefold. Example: Interval = 5s, Coefficient = 2 → delays of 5s, 10s, 20s, 40s.',
+  '<strong>Continue on Failure</strong> — When enabled, the workflow proceeds to the next step even after all retries are exhausted and the step is marked failed. The failed step is still recorded — it does not block downstream steps.'
+]))}
+${mlcDiagram('Retry Timeline — Example Configuration', `
+<div style="padding:8px 0">
+  <div style="font-size:11px;color:#94a3b8;margin-bottom:8px">Timeout: 5s · Interval: 5s · Max Attempts: 4 · Backoff: 2.0</div>
+  <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+    <div style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:4px;padding:4px 8px;font-size:11px;color:#f87171">Attempt 1<br>Fails</div>
+    <div style="font-size:10px;color:#94a3b8">5s →</div>
+    <div style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:4px;padding:4px 8px;font-size:11px;color:#f87171">Retry 1<br>Fails</div>
+    <div style="font-size:10px;color:#94a3b8">10s →</div>
+    <div style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:4px;padding:4px 8px;font-size:11px;color:#f87171">Retry 2<br>Fails</div>
+    <div style="font-size:10px;color:#94a3b8">20s →</div>
+    <div style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:4px;padding:4px 8px;font-size:11px;color:#f87171">Retry 3<br>Fails</div>
+    <div style="font-size:10px;color:#94a3b8">40s →</div>
+    <div style="background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.4);border-radius:4px;padding:4px 8px;font-size:11px;color:#f87171;font-weight:700">Retry 4<br>FAILED</div>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:#94a3b8">Total wait before final failure: 5 + 10 + 20 + 40 = 75 seconds</div>
+</div>`)}
+${mlcSection('Continue on Failure — Real-World Scenario', mlcUl([
+  '<strong>Trigger</strong> → executes successfully',
+  '<strong>Run Pipeline</strong> → fails (red status); all 4 retries exhausted',
+  '<strong>Continue on Failure = Enabled</strong> → workflow does NOT stop',
+  '<strong>Updating Input Table with Status</strong> → executes successfully (green status)',
+  'Result: even though the pipeline step failed, the status update and downstream cleanup steps still run — ensuring the system remains in a known state'
+]))}
+${mlcCompare(
+  '✅ When to Enable Continue on Failure',
+  ['Logging / audit steps that must run regardless', 'Cleanup steps that release locks or update status', 'Notification steps that inform users of failure', 'Non-critical enrichment that is nice-to-have'],
+  '❌ When to DISABLE Continue on Failure',
+  ['Any step whose output is required by downstream steps', 'Financial write steps where partial completion causes inconsistency', 'Steps that create records — a failed creation should not trigger downstream processing', 'Any step where failure means the data is incorrect']
+)}
+${mlcTakeaway('Backoff coefficient is your most important reliability tool. Without it, all retries hit the failing system at the same interval — if the system is overloaded, rapid retries make it worse. With exponential backoff, each retry gives the system progressively more time to recover.')}`
+          }
+        ]
+      },
+
+      // ─── MODULE 3: Architecture & Troubleshooting ────
+      {
+        title: 'Architecture & Troubleshooting',
+        lessons: [
+          {
+            title: 'Monitoring & Alerting — Diagnosing Slow, Stuck & Broken Pipelines',
+            dur: '12 min',
+            html: `<h2>Monitoring & Alerting — Diagnosing Slow, Stuck & Broken Pipelines</h2>
+<p class="mlc-lead">Understanding whether a pipeline is slow, stuck, or broken is the first step to resolving it. Each state has distinct indicators, root causes, and resolution strategies. Confusing them leads to wasted debugging time — applying a slow-pipeline fix to a stuck pipeline changes nothing.</p>
+${mlcSection('The Three States — Quick Identification', mlcUl([
+  '<strong>Slow</strong> — Pipeline eventually completes but execution time is significantly longer than the historical baseline (e.g. 10 minutes vs. the usual 1 minute). Typical duration: minutes to hours.',
+  '<strong>Stuck</strong> — Status remains "Running", "Scheduled", or "Preview" indefinitely with no progress. No explicit error message appears. Typical duration: hours to days.',
+  '<strong>Broken</strong> — Explicit error messages appear immediately: TimeoutError, Failed to fetch data, PusherBadRequest. Immediate failure — the pipeline does not complete at all.'
+]))}
+${mlcSection('Slow Pipelines — Root Causes & Resolutions', mlcUl([
+  '<strong>Large datasets without materialization:</strong> Nodes process millions of rows without intermediate caching; each downstream node re-executes the full query chain, compounding query complexity exponentially. Resolution: Enable "Materialize" on heavy nodes to store intermediate results as physical datasets.',
+  '<strong>Complex transformations:</strong> Multiple joins, window functions, or recursive CTEs increase query execution time — especially when BigQuery needs to shuffle data across slots. Resolution: Simplify join logic; push filters upstream before joins to reduce row counts.',
+  '<strong>Resource contention:</strong> Multiple pipelines running simultaneously in environments with limited worker pods compete for CPU and memory. Resolution: Stagger pipeline schedules; request additional pod allocation from DevOps.'
+]))}
+${mlcSection('Stuck Pipelines — Root Causes & Resolutions', mlcUl([
+  '<strong>Calculation node misconfiguration:</strong> An oversized function or improperly formatted logic in a Calculation node causes the pipeline to hang during evaluation without throwing an explicit error. Resolution: Review the Calculation node — ensure functions are properly scoped with no recursive loops or malformed syntax.',
+  '<strong>V1 pipeline deprecation:</strong> Pipelines created in V1 architecture may appear scheduled but never execute because V1 execution infrastructure is deprecated. Resolution: Migrate to Pipeline V2.',
+  '<strong>NATS messaging layer failure:</strong> Temporal workflows rely on NATS for job coordination. Stale connections or stream initialisation failures cause pipelines to hang in scheduled state without feedback. Resolution: DevOps restart of NATS cluster — this is an environment-level issue affecting all pipelines simultaneously.',
+  '<strong>Single-pod environments:</strong> Environments with only one worker pod experience downtime during pod restarts. During restart windows, pipelines remain scheduled but cannot execute. Resolution: Wait for the pod to come back online or request additional pod allocation.'
+]))}
+${mlcSection('Broken Pipelines — Root Causes & Resolutions', mlcUl([
+  '<strong>TimeoutError:</strong> A step exceeded its configured timeout. Resolution: Increase the step timeout, optimize the underlying query, or enable materialization to reduce compute time.',
+  '<strong>Failed to fetch data:</strong> A connector or data source is unreachable — network issue, credential expiry, or endpoint change. Resolution: Verify connector configuration and credentials; check external service status.',
+  '<strong>PusherBadRequest:</strong> A real-time messaging error — typically caused by payload size exceeding limits or malformed event data. Resolution: Reduce payload size; review the data being pushed.'
+]))}
+${mlcCompare(
+  '🔍 Diagnostic Checklist',
+  ['Check run status: Running / Scheduled / Error?', 'Check for explicit error messages in logs', 'Compare execution time to historical baseline', 'Check if multiple pipelines are running simultaneously', 'Check Calculation node configurations'],
+  '🛠️ Resolution Priority Order',
+  ['Broken → fix error first (credentials, config, timeout)', 'Stuck → check Calculation nodes, NATS, V1 migration', 'Slow → enable materialization on heaviest nodes', 'Slow due to contention → stagger schedules', 'Persistent issues → escalate to DevOps (NATS, pods)']
+)}
+${mlcTakeaway('The single most impactful fix for slow pipelines is materialization. The single most impactful fix for stuck pipelines is checking Calculation nodes. Broken pipelines always have an error message — read it before doing anything else.')}`
+          },
+          {
+            title: 'Reusable Orchestration — Parent-Child Workflow Architecture',
+            dur: '12 min',
+            html: `<h2>Reusable Orchestration — Parent-Child Workflow Architecture</h2>
+<p class="mlc-lead">As the number of pipelines in a Bluecopa implementation grows, running them independently creates redundant configurations and no centralized visibility. The Parent-Child orchestration pattern solves this: one Parent Workflow acts as the central controller, sequentially triggering a reusable Child Workflow template for each pipeline — with a full audit trail and zero code duplication.</p>
+${mlcSection('Why This Pattern Exists', mlcUl([
+  '<strong>Eliminates redundancy:</strong> Without orchestration, each pipeline requires its own separate workflow — 20 pipelines means 20 separate trigger + run + notify configurations',
+  '<strong>Enforces sequential execution:</strong> The "Wait for Completion" option ensures each child instance finishes before the next one starts — preventing race conditions and data dependency failures',
+  '<strong>Centralized audit trail:</strong> All pipeline executions are visible from a single Parent Workflow run log — one place to see what ran, when, and whether it succeeded',
+  '<strong>Reusability:</strong> The Child Workflow is a generic template — it runs any pipeline by receiving its pipeline_id and pipeline_name dynamically from the Parent'
+]))}
+${mlcDiagram('Parent-Child Architecture', `
+<div style="display:flex;flex-direction:column;gap:0;padding:8px 0">
+  <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:10px 14px;text-align:center;margin-bottom:8px">
+    <div style="font-size:11px;font-weight:700;color:#34d399;letter-spacing:.05em">PARENT WORKFLOW — Central Orchestrator</div>
+    <div style="font-size:10px;color:#94a3b8;margin-top:2px">Manages sequence · Maintains audit trail</div>
+  </div>
+  <div style="display:flex;justify-content:space-around;flex-wrap:wrap;gap:6px">
+    <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:6px;padding:8px 10px;font-size:11px;color:#6ee7b7;text-align:center;min-width:80px">trigger_process<br><span style="color:#94a3b8">Pipeline A</span></div>
+    <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:6px;padding:8px 10px;font-size:11px;color:#6ee7b7;text-align:center;min-width:80px">trigger_process<br><span style="color:#94a3b8">Pipeline B</span></div>
+    <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:6px;padding:8px 10px;font-size:11px;color:#6ee7b7;text-align:center;min-width:80px">trigger_process<br><span style="color:#94a3b8">Pipeline C</span></div>
+    <div style="background:rgba(16,185,129,0.04);border:1px dashed rgba(16,185,129,0.15);border-radius:6px;padding:8px 10px;font-size:11px;color:#64748b;text-align:center;min-width:80px">+ unlimited<br>more...</div>
+  </div>
+  <div style="display:flex;justify-content:center;margin:8px 0;color:#6b7280;font-size:13px">↓ Each triggers ↓</div>
+  <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:10px 14px;text-align:center">
+    <div style="font-size:11px;font-weight:700;color:#34d399;letter-spacing:.05em">CHILD WORKFLOW — Reusable Template</div>
+    <div style="font-size:10px;color:#94a3b8;margin-top:2px">Receives pipeline_id + pipeline_name · Executes any pipeline dynamically</div>
+  </div>
+</div>`)}
+${mlcSection('Parent Workflow Setup', mlcOl([
+  'Add a <strong>trigger_process_action</strong> node for every unique pipeline or robot intended for execution',
+  'Specify the Child Workflow identifier in each node\'s configuration',
+  'Define Trigger Data variables for each node: <code>pipeline_id</code> (unique system identifier) and <code>pipeline_name</code> (human-readable label for auditing)',
+  '<strong>Enable "Wait for Completion"</strong> — critical: ensures each child instance finishes before the next one begins, preventing parallel execution conflicts and race conditions'
+]))}
+${mlcSection('Child Workflow Setup', mlcUl([
+  '<strong>Trigger Node:</strong> Receives TRIGGER_DATA (containing pipeline_id and pipeline_name) from the Parent Workflow',
+  '<strong>Run Pipeline node:</strong> Executes the process using dynamic values: <code>{{Trigger_id.TRIGGER_DATA.pipeline_id}}</code>',
+  '<strong>On Success:</strong> The process_completion_action node notifies the Parent Workflow, which then proceeds to the next sequential node',
+  '<strong>On Failure:</strong> An error-handling node logs the failure in the audit trail and dispatches an automated email alert to stakeholders'
+]))}
+${mlcTakeaway('"Wait for Completion" is the most critical setting in the Parent-Child pattern. Without it, all child workflows run simultaneously — data from Pipeline A may not be available when Pipeline B needs it, causing silent data quality failures that are extremely hard to debug.')}`
+          }
+        ]
+      },
+
+      // ─── MODULE 4: Real-World Implementations ────────
+      {
+        title: 'Real-World Workflow Implementations',
+        lessons: [
+          {
+            title: 'Invoice Discounting Automation — End-to-End Pipeline',
+            dur: '12 min',
+            html: `<h2>Invoice Discounting Automation — End-to-End Pipeline</h2>
+<p class="mlc-lead">Invoice discounting is a financial process where a company receives advance funds against unpaid invoices before the customer completes payment. The original process was entirely manual — spreadsheets, email coordination, and operational validations — leading to duplicate submissions, allocation errors, and no centralized visibility. This implementation replaced the entire lifecycle with a single automated pipeline.</p>
+${mlcSection('The Business Problem', mlcUl([
+  '<strong>What is invoice discounting?</strong> A company submits eligible invoices to banks and receives advance funds immediately instead of waiting 30–60 days for customer payment',
+  '<strong>Why automation was needed:</strong> The existing manual process used spreadsheets and email coordination, creating: duplicate invoice submissions, incorrect funding allocations, high operational effort, no centralized visibility across banks, and slow decision-making',
+  '<strong>Scale of the problem:</strong> Without automation, every submitted invoice required manual validation, manual allocation to a bank, and manual report preparation — unsustainable at volume'
+]))}
+${mlcSection('Platform Capabilities Built', mlcUl([
+  '<strong>Dataset Upload</strong> — Accepts and processes multiple dataset types required for invoice discounting in a single automated pipeline',
+  '<strong>Validation & Eligibility</strong> — Automatically validates invoices and evaluates eligibility against predefined funding rules before allocation',
+  '<strong>Allocation Processing</strong> — Distributes invoices to banks based on priority order and available limits — fully automated',
+  '<strong>Utilization Tracking</strong> — Continuously monitors total limits, utilized amount, and remaining capacity across all banks in real time',
+  '<strong>Report Generation</strong> — Automatically generates bank-wise reports, allocation summaries, and exception reports post-processing',
+  '<strong>Email Delivery</strong> — Sends automated reports and repayment alerts to stakeholders without any manual intervention'
+]))}
+${mlcFlow(['Upload Datasets', 'Validation & Eligibility Check', 'Allocation Processing (bank priority order)', 'Utilization Tracking Update', 'Export Generation (bank-wise reports)', 'Email & File Delivery to stakeholders'])}
+${mlcSection('Workflow Engine Capabilities Demonstrated', mlcUl([
+  '<strong>Sequential stage execution</strong> — Each stage feeds the next automatically; no manual handoffs between steps',
+  '<strong>Dependency resolution</strong> — Allocation cannot run before validation; reports cannot generate before allocation completes',
+  '<strong>Retry logic</strong> — Transient failures in any stage are retried automatically before the workflow flags an error',
+  '<strong>Audit tracking</strong> — Every stage execution is logged with input, output, and status — a complete trail from upload to delivery'
+]))}
+${mlcCompare(
+  '✅ After Automation',
+  ['Zero duplicate invoice submissions — validation catches them', 'Correct allocation based on configured bank priority rules', 'Real-time utilization dashboard — no manual tracking', 'Reports generated and emailed automatically post-run', 'Finance users operate independently — no ops team dependency'],
+  '❌ Before Automation',
+  ['Duplicate submissions caused incorrect funding', 'Manual allocation — error-prone and slow', 'Spreadsheet tracking — outdated within hours', 'Manual report preparation delayed decisions', 'Every step required ops team involvement']
+)}
+${mlcTakeaway('The Invoice Discounting implementation demonstrates the full power of workflow orchestration: data flows from upload through validation, allocation, utilization tracking, report generation, and email delivery — without a single human step in between. The business impact is not just speed but accuracy: rules enforce eligibility and allocation priorities that humans consistently got wrong.')}`
+          },
+          {
+            title: 'Dynamic Email Rendering — Jinja Templates & Smart Email Controls',
+            dur: '10 min',
+            html: `<h2>Dynamic Email Rendering — Jinja Templates & Smart Email Controls</h2>
+<p class="mlc-lead">A financial operations team needed automated repayment reminder emails with properly formatted HTML tables. The workflow existed — but the email body showed raw JSON instead of a readable table. The fix: a Jinja transformation layer inserted between the data query and the email send step. This lesson covers the pattern that transforms any raw query output into a business-ready email.</p>
+${mlcSection('The Problem — Raw JSON in Email Body', mlcUl([
+  'A workflow exported dataset records, looped through them, and persisted fields to an input table',
+  'The final step — TABLE_QUERY → SEND_EMAIL — passed raw query output directly to the email node',
+  'Recipients received a raw JSON array: no headers, no structure, unreadable for non-technical stakeholders',
+  '<strong>Root cause:</strong> No transformation layer between the query output and the email. Email clients expected HTML; the workflow was delivering JSON.'
+]))}
+${mlcSection('The Five Requirements the Solution Had to Meet', mlcOl([
+  '<strong>HTML Table Rendering</strong> — Display repayment data as a properly formatted HTML table visible in all email clients',
+  '<strong>Due Date Filtering</strong> — Scope results to payments due within the next 5 days only — not the entire dataset',
+  '<strong>Duplicate Removal</strong> — Eliminate duplicate entries arising from multiple dataset inserts on the same record',
+  '<strong>INR Currency Formatting</strong> — Format monetary values in Indian numbering style: 5000000 → INR 50,00,000',
+  '<strong>Smart Email Controls</strong> — Suppress the email entirely when no records exist; dynamically assemble the subject line from companies in the result set'
+]))}
+${mlcDiagram('Before vs After — Pipeline Architecture', `
+<div style="display:flex;flex-direction:column;gap:12px;padding:8px 0">
+  <div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:10px 14px">
+    <div style="font-size:11px;font-weight:700;color:#f87171;margin-bottom:6px">❌ BEFORE (Broken Pipeline)</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div style="font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.05);border-radius:4px;padding:4px 8px">TABLE_QUERY</div>
+      <div style="color:#6b7280">→</div>
+      <div style="font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.05);border-radius:4px;padding:4px 8px">SEND_EMAIL</div>
+    </div>
+    <div style="font-size:10px;color:#f87171;margin-top:6px">Raw JSON in body · Unreadable · Static subject line</div>
+  </div>
+  <div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:10px 14px">
+    <div style="font-size:11px;font-weight:700;color:#4ade80;margin-bottom:6px">✅ AFTER (Fixed Pipeline)</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div style="font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.05);border-radius:4px;padding:4px 8px">TABLE_QUERY</div>
+      <div style="color:#6b7280">→</div>
+      <div style="font-size:11px;color:#4ade80;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:4px;padding:4px 8px;font-weight:600">JINJA_ACTION ✨</div>
+      <div style="color:#6b7280">→</div>
+      <div style="font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.05);border-radius:4px;padding:4px 8px">SEND_EMAIL</div>
+    </div>
+    <div style="font-size:10px;color:#4ade80;margin-top:6px">Formatted HTML table · Dynamic subject · Smart suppression</div>
+  </div>
+</div>`)}
+${mlcSection('The Jinja Action — What It Does', mlcUl([
+  'Receives the raw JSON array from TABLE_QUERY as input',
+  'Applies a Jinja template that: iterates over each row, formats amounts as INR, filters records outside the 5-day window, and renders the result as an HTML <code>&lt;table&gt;</code>',
+  'Simultaneously builds a dynamic subject line by extracting company names from the result set',
+  'If no records pass the filter, the template outputs an empty result — the Conditional Guard upstream detects this and exits the workflow without sending the email'
+]))}
+${mlcSection('The Complete Redesigned Pipeline', mlcOl([
+  '<strong>Dataset Export</strong> — Exports dataset records into record format for loop processing',
+  '<strong>ForEach Processing</strong> — Iterates over each record, passing it individually to the insertion step',
+  '<strong>Insert into Input Table</strong> — Persists each record\'s fields via RUN_INPUT_TABLE_ACTION INSERT',
+  '<strong>Conditional Guard</strong> — Exits cleanly if record count < 1, preventing empty emails',
+  '<strong>TABLE_QUERY + SQL</strong> — Fetches deduplicated, date-scoped, INR-formatted records',
+  '<strong>JINJA_ACTION</strong> — Converts JSON to HTML table; builds dynamic subject line',
+  '<strong>SEND_EMAIL</strong> — Dispatches the rendered email to stakeholders'
+]))}
+${mlcTakeaway('The Jinja pattern — TABLE_QUERY → JINJA → SEND_EMAIL — is reusable for any workflow that needs to email structured data. The key insight is simple: queries return data; Jinja renders presentation. Never pass raw query output directly to an email node.')}`
+          }
+        ]
+      }
+    ],
+    quiz: [
+      { q: 'Which trigger type fires when a user submits a form linked to the workflow?', opts: ['Dataset Update', 'HTTP Trigger', 'Form Submission', 'Workflow Event'], a: 2, exp: 'Form Submission fires when a user submits a linked form, making all form field values available as trigger data inside the workflow steps. It is the standard trigger for intake forms, approval workflows, and service requests.' },
+      { q: 'A pipeline is still in "Running" status after 6 hours with no error messages. Which state is this?', opts: ['Slow — it will eventually complete', 'Stuck — it needs investigation', 'Broken — there is an explicit error', 'Scheduled — it has not started yet'], a: 1, exp: 'A pipeline that stays in "Running" state for hours without progress and without showing any error messages is in the Stuck state. The most common causes are Calculation node misconfiguration, NATS messaging layer failure, or V1 pipeline deprecation.' },
+      { q: 'In the Retry Policy, what does a Backoff Coefficient of 2 with Interval = 10 seconds produce?', opts: ['Retries at: 10s, 10s, 10s, 10s', 'Retries at: 10s, 20s, 40s, 80s', 'Retries at: 2s, 4s, 8s, 16s', 'Retries at: 20s, 40s, 80s, 160s'], a: 1, exp: 'Backoff Coefficient is a multiplier applied to the previous delay. Starting with Interval = 10s and Coefficient = 2: first retry at 10s, second at 20s (10×2), third at 40s (20×2), fourth at 80s (40×2). This exponential spacing reduces pressure on failing systems.' },
+      { q: 'In the Parent-Child orchestration pattern, what is the critical setting that prevents parallel execution conflicts?', opts: ['Sequential Mode enabled on the Child Workflow', '"Wait for Completion" enabled on each trigger_process_action', 'Setting Max Attempts = 1 on the Parent Workflow', 'Configuring a Schedule trigger on the Parent instead of Manual'], a: 1, exp: '"Wait for Completion" must be enabled on each trigger_process_action node in the Parent Workflow. Without it, all child workflows launch simultaneously — Pipeline B may attempt to use data from Pipeline A before Pipeline A has finished producing it.' },
+      { q: 'What does the Select node do in Allocation Studio?', opts: ['Filters rows based on conditions', 'Combines two datasets by appending rows', 'Chooses specific columns to pass downstream, excluding unused columns', 'Sorts rows in a specified order'], a: 2, exp: 'The Select node is a column picker — it allows you to choose which columns pass to the next node in the pipeline. Unused columns from the source are excluded from the output. Each selected column can be given an alias.' },
+      { q: 'A pipeline is slow because downstream nodes are re-executing the full query chain on millions of rows. What is the correct fix?', opts: ['Increase the step timeout value', 'Enable "Materialize" on heavy intermediate nodes', 'Restart the NATS cluster', 'Migrate from V1 to Pipeline V2'], a: 1, exp: 'When nodes process large datasets without intermediate caching, each downstream node re-executes the entire upstream query chain — compounding complexity exponentially. Enabling "Materialize" on heavy nodes stores intermediate results as physical datasets, allowing downstream nodes to query precomputed data.' },
+      { q: 'In the API Integration Node architecture, which layer handles raw network sockets, connection pooling, and JSON serialization?', opts: ['The API Integration Node (Orchestrator)', 'The Internal Workflow Engine', 'The REST API Connector (Transport Layer)', 'The External API Endpoint'], a: 2, exp: 'The REST API Connector is the transport layer. The API Integration Node (Orchestrator) handles business logic, variable mapping, and state tracking — it is completely agnostic to network-level concerns. This separation of concerns makes integrations maintainable and replaceable.' },
+      { q: 'What does "Continue on Failure" do when enabled on a workflow step?', opts: ['The step retries indefinitely until it succeeds', 'The workflow proceeds to the next step even though this step failed, while still recording the failure', 'The step is skipped and marked as successful', 'An alert is sent to the workflow owner and execution pauses'], a: 1, exp: '"Continue on Failure" allows the workflow to proceed past a failed step — the failed step is still marked as failed and recorded in the logs, but it does not block downstream steps. This is useful for cleanup, logging, or notification steps that must run regardless of upstream failures.' },
+      { q: 'In the Dynamic Email Rendering pattern, what is the role of the Jinja Action between TABLE_QUERY and SEND_EMAIL?', opts: ['It filters the query results to the correct date range', 'It converts raw JSON query output into a rendered HTML table and builds the dynamic subject line', 'It inserts records into the input table before the email is sent', 'It validates the email addresses of recipients before dispatch'], a: 1, exp: 'The Jinja Action is the transformation layer that bridges data and presentation. It receives the raw JSON array from TABLE_QUERY, applies a template to render it as an HTML table, formats amounts (INR), and assembles a dynamic subject line from the result set. Without it, recipients see unreadable raw JSON.' },
+      { q: 'The Merge node in Allocation Studio requires that both source datasets share what property?', opts: ['The same number of rows', 'The same primary key column', 'Identical schema — same column names and data types', 'The same trigger source'], a: 2, exp: 'The Merge node combines two datasets by appending rows (union). For this to work correctly, both datasets must share identical schemas — the same column names in the same order with the same data types. Mismatched schemas cause column misalignment in the merged output.' }
+    ]
+  },
+
+  // ════════════════════════════════════════════════════
+  //  COURSE 10 — ABOUT BLUECOPA
   // ════════════════════════════════════════════════════
   bc: {
     modules: [

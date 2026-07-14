@@ -4535,6 +4535,18 @@ window.addEventListener('load', () => { setTimeout(liUpdateNavVisibility, 800); 
 
 const ML_COURSES = [
   {
+    id:'wf',
+    cat:'wf',
+    title:'Workflows Mastery',
+    desc:'Master Bluecopa workflows end-to-end — all 9 trigger types, 16 transformation nodes, API integration, error handling, parent-child orchestration, and real-world pipeline implementations.',
+    tag:'Workflows',
+    icon:'⚡',
+    grad:'linear-gradient(145deg,#064e3b 0%,#059669 60%,#6ee7b7 100%)',
+    level:'Advanced',
+    lessons:10,
+    badge:'Hot & New', badgeClass:'hot',
+  },
+  {
     id:'rc',
     cat:'rc',
     title:'Reconciliation Mastery',
