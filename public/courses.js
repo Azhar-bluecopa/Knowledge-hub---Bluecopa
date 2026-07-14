@@ -1614,7 +1614,436 @@ ${mlcTakeaway('The best ingestion pipelines are the ones that fail loudly, fail 
   },
 
   // ════════════════════════════════════════════════════
-  //  COURSE 7 — ABOUT BLUECOPA
+  //  COURSE 7 — APPROVAL WORKFLOWS
+  // ════════════════════════════════════════════════════
+  aw: {
+    modules: [
+
+      // ─── MODULE 1: Fundamentals ──────────────────────
+      {
+        title: 'Approval Workflow Fundamentals',
+        lessons: [
+          {
+            title: 'What Is an Approval Workflow in Bluecopa?',
+            dur: '10 min',
+            html: `<h2>What Is an Approval Workflow in Bluecopa?</h2>
+<p class="mlc-lead">An Approval Workflow is a structured automation that routes a request through one or more human reviewers before a final outcome is reached. In Bluecopa, approval workflows are built on the workflow engine and combine forms, human tasks, notifications, and conditional logic into a single auditable process.</p>
+${mlcSection('Why Approval Workflows Exist', mlcUl([
+  '<strong>Control</strong> — Certain decisions — payments, configurations, document classification — are too consequential to automate without a human sign-off',
+  '<strong>Auditability</strong> — Every approval action is timestamped, attributed to a named person, and stored for compliance review',
+  '<strong>Speed</strong> — Structured automation removes the bottleneck of chasing approvers via email or Slack — the platform does it automatically',
+  '<strong>Consistency</strong> — The same rules apply to every request; no ad-hoc approvals or skipped steps'
+]))}
+${mlcSection('The Four Building Blocks', mlcOl([
+  '<strong>Form</strong> — The requester submits structured data (name, product, amount, document) through a configured form',
+  '<strong>Human Task node</strong> — The workflow pauses and assigns a task to a named approver or role; the approver acts inside the platform',
+  '<strong>Condition node</strong> — The workflow branches based on the approver\'s decision: Approved → one path, Rejected → another path',
+  '<strong>Notification / Email</strong> — Automated alerts keep all parties informed at every stage transition'
+]))}
+${mlcDiagram('Approval Workflow — Core Pattern', `
+<div style="display:flex;gap:0;align-items:center;justify-content:center;flex-wrap:wrap;padding:8px 0">
+  <div style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:8px;padding:10px 16px;font-size:12px;font-weight:600;color:#fbbf24;text-align:center;min-width:90px">📋<br>Form<br>Submission</div>
+  <div style="color:#6b7280;font-size:18px;margin:0 6px">→</div>
+  <div style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:8px;padding:10px 16px;font-size:12px;font-weight:600;color:#fbbf24;text-align:center;min-width:90px">👤<br>Human<br>Task</div>
+  <div style="color:#6b7280;font-size:18px;margin:0 6px">→</div>
+  <div style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:8px;padding:10px 16px;font-size:12px;font-weight:600;color:#fbbf24;text-align:center;min-width:90px">🔀<br>Condition<br>Branch</div>
+  <div style="color:#6b7280;font-size:18px;margin:0 6px">→</div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;color:#4ade80;text-align:center">✅ Approved</div>
+    <div style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;color:#f87171;text-align:center">❌ Rejected</div>
+  </div>
+</div>`)}
+${mlcSection('Types of Approval Workflows in Bluecopa', mlcUl([
+  '<strong>Single-Level Approval</strong> — One approver, one decision; simplest pattern. Used for deals, product requests, and routine business decisions',
+  '<strong>Approval via Email</strong> — Approver receives an email with a unique action link; logs in via OTP; acts without needing a pre-existing account',
+  '<strong>Conditional Routing</strong> — Different paths based on the approver\'s choice (e.g. Invoice → Filebox A, PO → Filebox B, Reject → notify requester)',
+  '<strong>Maker-Checker</strong> — Two roles: Maker submits data, Checker independently validates; used for high-risk financial configurations',
+  '<strong>Multi-Level with SLA</strong> — Approval chains with defined deadlines, automated reminders, and escalation if a deadline is missed'
+]))}
+${mlcTakeaway('Every approval workflow in Bluecopa — no matter how complex — is built from the same four blocks: a Form, a Human Task, a Condition, and Notifications. Mastering these blocks lets you build any approval pattern.')}`
+          },
+          {
+            title: 'Single-Level Approval — Form, Task & Repeat-Until Loop',
+            dur: '12 min',
+            html: `<h2>Single-Level Approval — Form, Task & Repeat-Until Loop</h2>
+<p class="mlc-lead">The single-level approval workflow is the foundation pattern. One requester submits a form, one approver reviews it, and the outcome is either approval (workflow completes) or rejection (requester revises and resubmits). The Repeat-Until loop is what makes resubmission automatic.</p>
+${mlcSection('The Five Workflow Components', mlcOl([
+  '<strong>Approval Form</strong> — Collects the requester\'s input: Name, Role, Product Name, Requirements',
+  '<strong>Hidden Field Element</strong> — Controls which sections of the form are visible. Requester sees only input fields; approver sees the APPROVED / REJECTED decision panel',
+  '<strong>Alert / Email node</strong> — Sends a notification to the approver when a task is assigned; sends a result notification to the requester after the decision',
+  '<strong>Human Task node</strong> — Pauses the workflow and assigns a review task to the Deal Approver with a due date',
+  '<strong>Repeat-Until loop</strong> — Wraps the entire approval cycle; keeps looping until the consent field equals APPROVED'
+]))}
+${mlcFlow(['Form Submitted by Requester', 'Alert sent to Approver', 'Human Task assigned', 'Approver decides: APPROVED or REJECTED', 'Condition checked', 'If APPROVED → workflow ends; If REJECTED → revise task sent to Requester → loop back'])}
+${mlcSection('The Repeat-Until Loop — Why It Matters', mlcUl([
+  'Without a loop: a rejected request has nowhere to go — the workflow simply ends and the requester must resubmit from scratch',
+  'With a loop: rejection triggers a "Revise and Resubmit" task back to the requester; once they update, the loop restarts and the approver reviews again',
+  'The loop condition is always checked <strong>after</strong> the approver acts — it continues until <code>consent_field === "APPROVED"</code>',
+  'There is no limit to how many loops can occur — the cycle repeats until the requester gets approval or the workflow is manually terminated'
+]))}
+${mlcCompare(
+  '✅ Approved Path',
+  ['Condition evaluates consent = APPROVED', 'Confirmation alert sent to requester', 'Workflow completes successfully', 'Loop exits — no further action needed'],
+  '❌ Rejected Path',
+  ['Condition evaluates consent = REJECTED', 'Rejection notification sent with remarks', 'Requester receives a "Revise and Resubmit" task', 'Loop restarts — approver reviews updated submission']
+)}
+${mlcSection('Key Configuration Points', mlcUl([
+  '<strong>Hidden field element</strong> — Set visibility rules so the Deal Approver panel is hidden from requesters and revealed only when the task is assigned',
+  '<strong>APPROVED / REJECTED radio buttons</strong> — These write to the consent field that the Repeat-Until condition evaluates',
+  '<strong>Remarks field</strong> — Approver adds comments on rejection; requester sees this when the revise task is assigned',
+  '<strong>Due date on Human Task</strong> — Set SLA window on the task node to track whether the approver acts in time (covered in Module 3)'
+]))}
+${mlcTakeaway('The Repeat-Until loop is the engine of every approval workflow. Without it, rejection is a dead end. With it, rejection becomes a revision cycle — the request keeps moving until it reaches approval or is explicitly cancelled.')}`
+          },
+          {
+            title: 'Form Design — Requester View vs Approver View',
+            dur: '8 min',
+            html: `<h2>Form Design — Requester View vs Approver View</h2>
+<p class="mlc-lead">A single form serves two different users in an approval workflow: the requester who submits the request, and the approver who reviews and decides. The <strong>hidden form element</strong> is the mechanism that shows the right fields to the right person at the right time.</p>
+${mlcSection('How the Hidden Form Element Works', mlcUl([
+  'The form contains all fields — requester inputs AND approver decision panel — in a single form definition',
+  'The <code>hidden_form_element</code> is a visibility controller: it hides specified sections from specific users or workflow stages',
+  'When the workflow reaches the Human Task node, a Form Update Activity toggles the hidden element to reveal the Deal Approver section',
+  'The requester never sees the APPROVED/REJECTED radio buttons; the approver sees everything'
+]))}
+${mlcCompare(
+  '👤 Requester View',
+  ['Name field — requester\'s full name', 'Designation / Role field', 'Product Name field', 'Requirements field (text area)', 'Submit button — triggers workflow', 'Deal Approver section: HIDDEN'],
+  '✅ Approver View',
+  ['All requester fields (read-only for context)', 'APPROVED / REJECTED radio buttons', 'Remarks field for rejection notes', 'Decision submission button', 'Full task context visible', 'Hidden element toggled by Form Update Activity']
+)}
+${mlcSection('The Form Update Activity', mlcUl([
+  'Sits between the form trigger and the Human Task node in the workflow',
+  'Its job is to update the hidden field value — switching the visibility state from "requester mode" to "approver mode"',
+  'Without the Form Update Activity, the approver would see the same blank form the requester saw — no decision panel',
+  'After the Form Update Activity runs, the Human Task node assigns the task with the updated form state'
+]))}
+${mlcDiagram('Form Visibility Flow', `
+<div style="display:flex;flex-direction:column;gap:10px;padding:8px 0">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:6px;padding:8px 14px;font-size:12px;font-weight:600;color:#fbbf24;min-width:160px;text-align:center">Requester submits form</div>
+    <div style="font-size:12px;color:#94a3b8">Hidden element = ON (approver panel hidden)</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.4);border-radius:6px;padding:8px 14px;font-size:12px;font-weight:600;color:#a5b4fc;min-width:160px;text-align:center">Form Update Activity</div>
+    <div style="font-size:12px;color:#94a3b8">Flips hidden element → OFF (approver panel revealed)</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);border-radius:6px;padding:8px 14px;font-size:12px;font-weight:600;color:#4ade80;min-width:160px;text-align:center">Human Task assigned</div>
+    <div style="font-size:12px;color:#94a3b8">Approver sees full form including decision panel</div>
+  </div>
+</div>`)}
+${mlcSection('Design Best Practices', mlcUl([
+  '<strong>Label fields clearly</strong> — Approvers need to understand requester intent at a glance; vague field names cause delays',
+  '<strong>Make requester fields read-only for approver</strong> — Approvers should review, not edit the original submission',
+  '<strong>Always include a Remarks field</strong> — Rejection without explanation leaves requesters unable to correct their submission',
+  '<strong>Test both views before deployment</strong> — Submit as a requester, then act as an approver to confirm the visibility toggle works correctly'
+]))}
+${mlcTakeaway('One form, two experiences. The hidden form element is the key — it keeps the approval interface clean for requesters while revealing the full decision panel to approvers only when the task is ready for review.')}`
+          }
+        ]
+      },
+
+      // ─── MODULE 2: Approval via Email ─────────────────
+      {
+        title: 'Approval via Email — OTP-Based Access',
+        lessons: [
+          {
+            title: 'Approval via Email — How OTP-Based Login Works',
+            dur: '10 min',
+            html: `<h2>Approval via Email — How OTP-Based Login Works</h2>
+<p class="mlc-lead">Approval via Email is a human-in-the-loop capability that lets approvers act on pending tasks directly from their inbox — without a Bluecopa account, without a password. Their email address is their credential. A One-Time Password sent to the same inbox is the authentication mechanism.</p>
+${mlcSection('Why This Matters', mlcUl([
+  '<strong>External approvers</strong> — Senior managers, client contacts, or legal reviewers who are not regular Bluecopa users can still participate in approval workflows',
+  '<strong>No account setup overhead</strong> — No IT onboarding, no password management, no training required for occasional approvers',
+  '<strong>Secure</strong> — Each OTP is unique, time-limited, and single-use; the action link is personal to this approver for this task only',
+  '<strong>Mobile-friendly</strong> — Approvers can act from any device that receives email'
+]))}
+${mlcFlow(['Workflow reaches approval checkpoint', 'Bluecopa sends notification email with unique action link', 'Approver clicks the link', 'Bluecopa generates OTP and sends to same inbox', 'Approver enters OTP on login screen', 'Approver lands directly on the task inside Bluecopa', 'Approver submits decision → workflow continues'])}
+${mlcSection('The Six Stages in Detail', mlcUl([
+  '<strong>Stage 1 — Workflow Reaches Approval:</strong> A record requiring human review is identified in the automated pipeline',
+  '<strong>Stage 2 — Notification Email Sent:</strong> Bluecopa sends a notification email containing task context, record details, and a prominent action button',
+  '<strong>Stage 3 — OTP Generated on Click:</strong> The moment the approver clicks the action button, Bluecopa validates the link, identifies the approver\'s email, generates a fresh OTP, and sends it to their inbox',
+  '<strong>Stage 4 — Approver Logs In with OTP:</strong> Approver copies the OTP from the second email and enters it on the Bluecopa login screen',
+  '<strong>Stage 5 — Approver Acts Inside Platform:</strong> Approver is authenticated and lands directly on the relevant task — no navigation needed',
+  '<strong>Stage 6 — Workflow Continues:</strong> Submission triggers the next automated step; the task is closed and the action link is permanently invalidated'
+]))}
+${mlcSection('OTP Properties', mlcUl([
+  '<strong>Delivery:</strong> Sent to the same email that received the action link — no separate OTP channel',
+  '<strong>Validity window:</strong> Configurable — typically 15 to 30 days from generation',
+  '<strong>Single-use:</strong> Once submitted, the OTP cannot be reused',
+  '<strong>Link invalidation:</strong> After the approver acts, the original action link is permanently disabled — it cannot be shared or reused by anyone else',
+  '<strong>Personal:</strong> The action link is tied to a specific approver email and a specific task — it cannot be acted on by a different person'
+]))}
+${mlcTakeaway('Approval via Email removes the biggest friction point in human-in-the-loop workflows: account access. Any person with an email address can be an approver. The OTP ensures the right person is acting on the right task.')}`
+          },
+          {
+            title: 'The Approver Journey — Step by Step',
+            dur: '8 min',
+            html: `<h2>The Approver Journey — Step by Step</h2>
+<p class="mlc-lead">Understanding the approver's experience is essential for configuring email approvals correctly. A poorly written notification email or an unclear action button creates confusion and delays. This lesson walks through every touchpoint from the approver's perspective.</p>
+${mlcSection('Step 1 — Receive the Notification Email', mlcUl([
+  'The approver receives a notification email in their inbox',
+  'The email contains: a personalised greeting, a description of what needs action, a summary of the pending record or task details, and a prominent action button (e.g. "Review & Submit" or "Take Action")',
+  '<strong>Important:</strong> The action link is personal to this approver and this task — it cannot be shared, reused, or acted on by anyone else',
+  'The email should be configured to include enough context for the approver to understand the request without opening any other system'
+]))}
+${mlcSection('Step 2 — Click the Action Link', mlcUl([
+  'When the approver clicks the action button, Bluecopa immediately validates the link is still active and within its expiry window',
+  'Identifies the approver\'s registered email address from the task record',
+  'Generates a fresh One-Time Password and sends it to the approver\'s inbox',
+  'Redirects the approver\'s browser to the Bluecopa OTP entry screen',
+  '<strong>Tip:</strong> The OTP is sent to the same inbox that received the notification — the approver only needs access to their email'
+]))}
+${mlcSection('Step 3 — Enter OTP and Log In', mlcUl([
+  'Approver opens the OTP email, copies the code, and enters it on the Bluecopa login screen',
+  'Bluecopa validates the OTP against the task record',
+  'On success: approver is authenticated and redirected directly to the task',
+  'On failure: OTP expired or already used — approver must request a new action email'
+]))}
+${mlcSection('Step 4 — Review and Act', mlcUl([
+  'Approver lands directly on the assigned task — no dashboard navigation required',
+  'The task displays all relevant record details: requester information, submitted data, attachments',
+  'Approver performs required operations: reviews details, selects decision (Approve/Reject), adds remarks',
+  'Approver submits — this triggers the next automated step in the workflow'
+]))}
+${mlcCompare(
+  '✅ What Makes a Good Email Approval',
+  ['Clear subject line identifying the task', 'Requester name and request summary in the body', 'Single prominent action button — no clutter', 'Deadline stated in the email body', 'Reply-to address configured for questions'],
+  '❌ Common Configuration Mistakes',
+  ['Generic subject line ("Task assigned") with no context', 'No record details — approver must log in to understand', 'Multiple competing buttons confusing the approver', 'No expiry information — approver doesn\'t know urgency', 'No reply-to — approver has no way to ask questions']
+)}
+${mlcTakeaway('The notification email is the approver\'s first and most important interaction. Treat it like a briefing document: enough context to decide, a single clear action, and a visible deadline. Everything else is friction.')}`
+          }
+        ]
+      },
+
+      // ─── MODULE 3: SLA & Escalation ──────────────────
+      {
+        title: 'SLA & Escalation Handling',
+        lessons: [
+          {
+            title: 'SLA Concepts — Soft Deadlines & Hard Escalation',
+            dur: '10 min',
+            html: `<h2>SLA Concepts — Soft Deadlines & Hard Escalation</h2>
+<p class="mlc-lead">Every approval workflow has one fundamental risk: someone does not act in time. SLA Handling and Escalation are the mechanisms in Bluecopa that prevent this. Together they ensure that every task has a defined deadline, approvers are reminded automatically, and managers are notified if the deadline is missed.</p>
+${mlcSection('What Is an SLA in Bluecopa?', mlcUl([
+  'SLA stands for Service Level Agreement — the maximum acceptable time between when a task is assigned and when it must be completed',
+  'In Bluecopa, every Human Task node can have its own SLA — the clock starts the moment the task is assigned',
+  'If the approver acts in time, the workflow continues normally',
+  'If they do not act in time, the platform responds automatically — no manual chase required'
+]))}
+${mlcCompare(
+  '🟡 Soft Deadline',
+  ['Configured via: Due (In Hours)', 'Effect: Sends in-app reminder alerts to the approver\'s Alerts tab', 'Approver CAN still submit after soft deadline fires', 'Purpose: Remind before the hard deadline hits', 'Example: Due = 48 hours → alert fires at hour 44 (if offset = 4)'],
+  '🔴 Hard Deadline',
+  ['Configured via: Timeout (Seconds)', 'Effect: Routes workflow to the escalation branch; task is timed out', 'Approver CANNOT submit after timeout fires', 'Purpose: Escalate to manager when deadline is missed', 'Example: Timeout = 86400 (24 hours) → escalation fires at hour 24']
+)}
+${mlcSection('The Two-Layer Model', mlcUl([
+  'Soft Deadline (Due) and Hard Deadline (Timeout) are <strong>independent</strong> — they run in parallel, not in sequence',
+  'You can set Due = 48 hours and Timeout = 86400 seconds (24 hours): alerts start at hour 44 but escalation fires at hour 24',
+  '<strong>Continue on Timeout</strong> must be UNCHECKED — if it is checked, the timeout branch never fires and escalation never happens',
+  'Both layers are configured on the same Human Task node — there is no separate "escalation node"'
+]))}
+${mlcStatGrid([
+  { n: '48h', l: 'Typical soft deadline for standard approvals', note: 'Alert fires before this' },
+  { n: '86400s', l: '24 hours in seconds — common timeout value', note: '= 24 × 60 × 60' },
+  { n: '172800s', l: '48 hours in seconds', note: '= 48 × 60 × 60' },
+  { n: '60 min', l: 'Typical alert repeat interval after first reminder', note: 'Configurable' }
+])}
+${mlcSection('What Happens When Escalation Fires', mlcUl([
+  'The Human Task is marked as timed out — the approver loses the ability to submit',
+  'The workflow routes to the escalation branch (configured in the timeout path)',
+  'An escalation email is automatically sent to the manager or designated escalation recipient',
+  'The escalation branch can: notify a manager, reassign the task, or trigger a different approval path',
+  'The original requester may also receive a notification that their request is under escalation'
+]))}
+${mlcTakeaway('SLA without escalation is just a deadline that nobody enforces. Bluecopa\'s two-layer model — soft alerts for reminders, hard timeout for escalation — makes every deadline enforceable without any manual intervention.')}`
+          },
+          {
+            title: 'The Five SLA Configuration Fields',
+            dur: '10 min',
+            html: `<h2>The Five SLA Configuration Fields</h2>
+<p class="mlc-lead">Every Human Task node in Bluecopa exposes five SLA fields. Understanding what each one controls — and how they interact — is essential for building approval workflows that escalate correctly.</p>
+${mlcSection('Field Reference', mlcUl([
+  '<strong>Due (In Hours)</strong> — The SLA window: how long the approver has from task assignment. Example: 48 means 48 hours from assignment. This is the soft deadline.',
+  '<strong>Due Alert Offset (In Hours)</strong> — How many hours before the Due time the first reminder fires. Example: Due = 48, Offset = 4 means first alert fires at hour 44.',
+  '<strong>Due Alert Interval (In Minutes)</strong> — How often the reminder repeats after the first alert. Example: 60 means a new in-app alert every hour until the approver acts.',
+  '<strong>Timeout (Seconds)</strong> — The hard deadline. When this timer reaches zero, the escalation branch fires. Example: 172800 = 48 hours, 86400 = 24 hours.',
+  '<strong>Continue on Timeout</strong> — Must be UNCHECKED. If checked, the timeout path is bypassed and escalation never fires even if the timer runs out.'
+]))}
+${mlcDiagram('SLA Timeline — Example Configuration', `
+<div style="padding:12px 0">
+  <div style="position:relative;height:60px;background:rgba(255,255,255,0.04);border-radius:8px;overflow:hidden;margin-bottom:12px">
+    <div style="position:absolute;left:0;top:0;width:100%;height:100%;display:flex;align-items:center;padding:0 12px;gap:4px">
+      <div style="flex:1;height:6px;background:rgba(34,197,94,0.3);border-radius:3px;position:relative">
+        <div style="position:absolute;right:0;top:-18px;font-size:10px;color:#4ade80">Hour 44 — First Alert</div>
+      </div>
+      <div style="width:2px;height:30px;background:#fbbf24"></div>
+      <div style="width:80px;height:6px;background:rgba(245,158,11,0.4);border-radius:3px;position:relative">
+        <div style="position:absolute;right:0;top:-18px;font-size:10px;color:#fbbf24;white-space:nowrap">Hour 48 — Due</div>
+      </div>
+      <div style="width:2px;height:30px;background:#f87171"></div>
+      <div style="width:40px;font-size:10px;color:#f87171;white-space:nowrap">Timeout → Escalation</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
+    <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:6px;padding:8px 10px;color:#86efac"><strong>Soft Zone (Hours 0–48)</strong><br>Approver can still submit. Reminder alerts fire from hour 44 onward, every 60 min.</div>
+    <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:6px;padding:8px 10px;color:#fca5a5"><strong>Escalation Zone (After Timeout)</strong><br>Task times out. Escalation email fires. Approver can no longer submit.</div>
+  </div>
+</div>`)}
+${mlcSection('Common Configuration Patterns', mlcUl([
+  '<strong>Standard business approval (48h SLA):</strong> Due = 48h, Offset = 4h, Interval = 60 min, Timeout = 172800s (48h)',
+  '<strong>Urgent approval (24h SLA):</strong> Due = 24h, Offset = 2h, Interval = 30 min, Timeout = 86400s (24h)',
+  '<strong>Soft reminder only (no hard escalation):</strong> Due = 48h, Offset = 4h, Interval = 60 min, Timeout = very large value (e.g. 30 days in seconds)',
+  '<strong>Escalation-first (hard deadline before soft):</strong> Possible but unusual — Timeout fires before Due alerts; used when hard deadlines are contractual'
+]))}
+${mlcSection('Critical Mistakes to Avoid', mlcUl([
+  '❌ <strong>Leaving "Continue on Timeout" checked</strong> — The escalation branch will never fire; the workflow waits indefinitely',
+  '❌ <strong>Setting Due and Timeout to the same value</strong> — Due is in hours, Timeout is in seconds; 48 hours ≠ 48 seconds',
+  '❌ <strong>No escalation path configured</strong> — If the timeout fires but there is no action on the escalation branch, the workflow silently stalls',
+  '❌ <strong>Forgetting to test with accelerated timers</strong> — Always test escalation with a very short timeout (e.g. 60 seconds) before deploying to production'
+]))}
+${mlcTakeaway('The five fields work together: Due sets the soft window, Offset and Interval control the reminders within that window, Timeout sets the hard cut-off, and Continue on Timeout must be OFF. Get these five right and the workflow enforces itself.')}`
+          },
+          {
+            title: 'Escalation Branches & Timeout in Practice',
+            dur: '8 min',
+            html: `<h2>Escalation Branches & Timeout in Practice</h2>
+<p class="mlc-lead">Configuring the five SLA fields is only half the job. The escalation branch — what happens after the timeout fires — is where most implementations either succeed or silently fail. This lesson covers how to build an effective escalation path.</p>
+${mlcSection('What the Escalation Branch Contains', mlcUl([
+  'The escalation branch is the "timeout path" out of the Human Task node — it fires when Timeout reaches zero and Continue on Timeout is OFF',
+  'Minimum viable escalation: an <strong>Email node</strong> that notifies the manager or team lead with task details and the original request summary',
+  'Better escalation: Email to manager + in-app alert to requester explaining the delay + optional reassignment of the task to a backup approver',
+  'Full escalation: Email chain + Slack notification + task reassignment + audit log entry recording the breach'
+]))}
+${mlcFlow(['Timeout fires (Timeout seconds elapsed)', 'Human Task marked as TIMED OUT', 'Workflow exits Human Task via timeout path', 'Escalation Email node fires → manager notified', 'Optional: Reassign task to backup approver', 'Optional: Alert requester of the delay', 'Workflow continues from escalation point'])}
+${mlcSection('Designing the Escalation Email', mlcUl([
+  '<strong>Recipient:</strong> Manager or designated escalation contact — not the original approver (they already received reminders)',
+  '<strong>Subject:</strong> Clear and urgent — e.g. "ACTION REQUIRED: [Request Name] approval overdue by [X] hours"',
+  '<strong>Body:</strong> Include requester name, request summary, original due time, and how long it has been overdue',
+  '<strong>Link:</strong> Deep link to the task in Bluecopa so the manager can act immediately without navigating',
+  '<strong>Tone:</strong> Informational, not accusatory — escalation is a process failure, not necessarily a personal failure'
+]))}
+${mlcCompare(
+  '✅ Effective Escalation Branch',
+  ['Manager email with full request context', 'Requester notified the approval is delayed', 'Task reassigned to backup approver', 'Audit log records the timeout event', 'SLA breach metric captured for reporting'],
+  '❌ Weak Escalation Branch',
+  ['Generic email with no request details', 'Requester left in the dark', 'Task remains with original approver (who is unresponsive)', 'No record of the breach', 'No reporting — escalations are invisible']
+)}
+${mlcSection('Testing Escalation Before Go-Live', mlcUl([
+  'Set Timeout to 60 seconds on the task node for testing purposes',
+  'Submit a test request and do NOT act on the approval task',
+  'After 60 seconds, confirm the escalation email arrives at the configured manager address',
+  'Confirm the task is marked as timed out and the requester receives the delay notification if configured',
+  'Reset Timeout to the production value before deploying'
+]))}
+${mlcTakeaway('An escalation branch that sends a vague email to no one is worse than no escalation at all — it creates a false sense of safety. Design every escalation branch as if you are the manager receiving the alert: context, urgency, and a direct link to act.')}`
+          }
+        ]
+      },
+
+      // ─── MODULE 4: Advanced Patterns ─────────────────
+      {
+        title: 'Advanced Approval Patterns',
+        lessons: [
+          {
+            title: 'Conditional Routing — Document Classification & Routing',
+            dur: '12 min',
+            html: `<h2>Conditional Routing — Document Classification & Routing</h2>
+<p class="mlc-lead">Conditional routing takes the basic approve/reject pattern and extends it: instead of a binary decision, the approver selects a classification, and the workflow routes the document to different destinations based on that choice. This pattern eliminates manual file sorting entirely.</p>
+${mlcSection('The Business Problem', mlcUl([
+  'Organisations receive multiple document types — Invoices, Purchase Orders, Delivery Challans — through a single intake channel',
+  'Manually reviewing and sorting these into the correct repositories is time-consuming and error-prone',
+  'The conditional routing workflow lets the approver classify the document and the system automatically routes it — no manual file movement required'
+]))}
+${mlcSection('The Six Key Components', mlcOl([
+  '<strong>Form Trigger</strong> — Initiates the workflow when a user uploads a document via the File Drop control',
+  '<strong>Form Update Activity</strong> — Updates the hidden field to reveal the Selection Panel to the approver',
+  '<strong>Approver Task</strong> — Approver previews the uploaded document and selects its type',
+  '<strong>Selection Panel</strong> — Provides four classification options: Invoice, PO, DC, or Reject',
+  '<strong>Conditional Routing node</strong> — Evaluates the selected document type and determines the routing path (one branch per document type)',
+  '<strong>Drop To Filebox</strong> — Moves the file to the designated Filebox repository for the selected type'
+]))}
+${mlcFlow(['User uploads document via form', 'Form Update Activity reveals Selection Panel to approver', 'Human Task assigned to approver', 'Approver previews document and selects type', 'Condition evaluates selection', 'Invoice → Filebox A | PO → Filebox B | DC → Filebox C | Reject → notify user'])}
+${mlcSection('How the Condition Node Works', mlcUl([
+  'The Condition node reads the value of the Selection Panel field from the form',
+  'It evaluates the value against configured rules: if value = "Invoice" → take branch 1; if value = "PO" → take branch 2; etc.',
+  'Each branch leads to a Drop To Filebox node configured for the appropriate repository',
+  'The Reject branch leads to a notification back to the original user — no file is moved',
+  'All branches eventually merge or terminate — no branch should be left dangling'
+]))}
+${mlcCompare(
+  '✅ What This Achieves',
+  ['Automated sorting — no manual file movement', 'Consistent routing — same logic every time', 'Faster processing — routing is instant after submission', 'Scalable — add new document types by adding branches', 'Auditable — every routing decision is recorded'],
+  '❌ Without This Pattern',
+  ['Someone must manually review every uploaded document', 'Files get misrouted when the reviewer is tired or distracted', 'Processing time depends on when someone checks the queue', 'Adding a new document type requires process redesign', 'No automatic record of where each document went']
+)}
+${mlcSection('Extending the Pattern', mlcUl([
+  '<strong>Sub-classifications:</strong> Add a second condition layer — e.g. Invoice can branch into Domestic vs International based on a secondary field',
+  '<strong>Validation before routing:</strong> Add a validation step before the condition — reject documents that fail format or completeness checks before asking the approver to classify',
+  '<strong>Parallel routing:</strong> Some documents may need to go to multiple Fileboxes — use parallel branches after the condition',
+  '<strong>Notification per path:</strong> Add an email notification on each branch to inform downstream teams that a document has arrived in their Filebox'
+]))}
+${mlcTakeaway('Conditional routing transforms the approver from a manual sorter into a classifier. They make one decision; the platform handles all the logistics. Every branch is automatic, consistent, and auditable.')}`
+          },
+          {
+            title: 'Maker-Checker — Multi-Level Authorization, Rejection Loops & Audit Trail',
+            dur: '15 min',
+            html: `<h2>Maker-Checker — Multi-Level Authorization, Rejection Loops & Audit Trail</h2>
+<p class="mlc-lead">The Maker-Checker pattern is the most rigorous approval structure in Bluecopa. Two distinct roles — the Maker who prepares and submits, and the Checker who independently validates — ensure that no single person can unilaterally complete a high-risk transaction. Iteration loops and audit trails make the cycle both repeatable and fully accountable.</p>
+${mlcSection('Why Maker-Checker Exists', mlcUl([
+  '<strong>Risk mitigation:</strong> Critical transactions — payment rate cards, volume discounts, configuration changes — carry financial risk that single-operator execution cannot safely absorb',
+  '<strong>Separation of duties:</strong> The Maker cannot approve their own submission; the Checker cannot initiate a submission they will review',
+  '<strong>Compliance:</strong> Many financial and regulatory frameworks mandate an independent verification step before high-value configurations are committed',
+  '<strong>Error interception:</strong> Errors caught at the Checker gate are correctable; errors that reach downstream systems often require costly remediation'
+]))}
+${mlcSection('The Two Roles', mlcUl([
+  '<strong>The Maker (Uploader):</strong> Initiates the task, configures data, uploads the primary data sheet via the workflow form. Owns the data entry phase entirely. Once submitted, editing privileges on core fields are locked until a rejection event restores them.',
+  '<strong>The Checker (Approver):</strong> The independent second-level user — typically an L0/L1 manager or Bizfin controller — who receives the submitted form for review. Validates data against source documents and business rules. Cannot edit Maker-owned fields. Either signs off (advancing to next stage) or formally rejects with documented commentary.'
+]))}
+${mlcFlow(['Maker prepares and submits data', 'Checker receives task in review queue', 'Checker validates against source documents', 'Decision: Approve → advance to next stage', 'Decision: Reject → rejection with commentary sent to Maker', 'Maker receives revision task with Checker\'s notes', 'Maker corrects and resubmits', 'Loop repeats until Checker approves or escalation fires'])}
+${mlcSection('The Iteration Loop', mlcUl([
+  'The Repeat-Until loop wraps the Maker-Checker cycle — it continues until the Checker approves or an escalation condition is met',
+  'On rejection: the Maker\'s editing privileges are restored; they receive a task with the Checker\'s specific rejection comments',
+  'The Maker corrects the identified issues and resubmits — the Checker reviews the updated version',
+  'Each iteration is a full cycle: Maker submits → Checker reviews → decision → if rejected, loop again',
+  'The loop has no inherent limit — it runs until approval or manual termination'
+]))}
+${mlcSection('Audit Trail & Traceability', mlcUl([
+  '<strong>Every submission is timestamped</strong> — when the Maker submitted, when the Checker received the task, when the decision was made',
+  '<strong>Every rejection is documented</strong> — the Checker\'s commentary is stored with the rejection event; it cannot be edited after submission',
+  '<strong>Role attribution</strong> — each action is attributed to the specific named user (Maker name, Checker name) — not just a role or team',
+  '<strong>Iteration count</strong> — the audit trail records how many loops occurred before final approval; high loop counts flag process quality issues',
+  '<strong>Final approval record</strong> — the Checker\'s sign-off is permanently recorded; this is the compliance artefact'
+]))}
+${mlcCompare(
+  '✅ Maker-Checker Best Practices',
+  ['Maker and Checker must be different named individuals', 'Checker commentary is mandatory on rejection', 'All Maker-owned fields are locked during Checker review', 'Audit trail is immutable after each action', 'Escalation configured if Checker does not act within SLA'],
+  '❌ Common Implementation Gaps',
+  ['Same person assigned as both Maker and Checker (defeats the purpose)', 'Rejection allowed without mandatory commentary field', 'Checker can edit Maker fields (breaks separation of duties)', 'Audit log is optional or can be cleared', 'No SLA on the Checker task — approval can be delayed indefinitely']
+)}
+${mlcTakeaway('The Maker-Checker pattern is not just an approval — it is a control framework. The loop, the locked fields, the mandatory commentary, and the immutable audit trail together create a process where every high-risk transaction is independently verified, every rejection is documented, and every approval is fully accountable.')}`
+          }
+        ]
+      }
+    ],
+    quiz: [
+      { q: 'Which component controls what fields are visible to the requester versus the approver in a single form?', opts: ['Human Task node', 'Condition node', 'Hidden form element', 'Form Update Activity'], a: 2, exp: 'The hidden_form_element controls field visibility. The Form Update Activity then toggles it — but the element itself is the visibility controller. The Form Update Activity changes its state; the hidden element determines what is shown.' },
+      { q: 'In a Repeat-Until approval loop, when does the loop exit?', opts: ['After the first rejection', 'When the requester submits for the third time', 'When the consent field equals APPROVED', 'When the workflow timer expires'], a: 2, exp: 'The Repeat-Until loop exits when its condition is satisfied — consent_field === "APPROVED". It continues looping through rejection and resubmission cycles until the approver approves the request.' },
+      { q: 'A workflow has Due = 48h and Timeout = 86400 seconds. In what order do events fire?', opts: ['Timeout fires at hour 24, alerts start at hour 44, Due fires at hour 48', 'Alerts start at hour 44, Due fires at hour 48, Timeout fires at hour 48', 'Due fires at hour 48, then Timeout fires after another 24 hours', 'Timeout and Due fire simultaneously at hour 24'], a: 0, exp: '86400 seconds = 24 hours. So Timeout fires at hour 24 (hard escalation). Due = 48 hours with typical offset means alerts start at hour 44. Due and Timeout are independent — Timeout can fire before Due.' },
+      { q: 'What must be the state of "Continue on Timeout" for escalation to fire correctly?', opts: ['Checked (enabled)', 'Unchecked (disabled)', 'Does not matter — timeout fires regardless', 'Only relevant when SLA > 24 hours'], a: 1, exp: 'Continue on Timeout must be UNCHECKED. If it is checked, the timeout branch is bypassed and escalation never fires — the workflow behaves as if no timeout was set.' },
+      { q: 'In Approval via Email, when is the OTP generated?', opts: ['When the workflow reaches the approval checkpoint', 'When the notification email is sent', 'When the approver clicks the action link', 'When the approver enters their email address on the login screen'], a: 2, exp: 'The OTP is generated on demand — the moment the approver clicks the action link. Bluecopa validates the link, identifies the approver\'s email, generates a fresh OTP, and immediately sends it to that inbox.' },
+      { q: 'What happens to the action link after the approver completes their task in Approval via Email?', opts: ['It expires after 24 hours automatically', 'It is permanently invalidated and cannot be reused', 'It can be shared with a colleague for backup approval', 'It remains active for the configured OTP validity window'], a: 1, exp: 'Once the approver submits their decision, the action link is permanently invalidated. It cannot be shared, reused, or acted on by anyone else — not even the original approver.' },
+      { q: 'In a Conditional Routing workflow, what node evaluates the approver\'s document classification selection?', opts: ['Human Task node', 'Form Update Activity', 'Drop To Filebox node', 'Condition node'], a: 3, exp: 'The Condition node reads the Selection Panel field value and evaluates it against configured rules (Invoice → branch 1, PO → branch 2, etc.). It then routes the workflow to the appropriate Filebox branch.' },
+      { q: 'Which statement correctly describes the Maker\'s editing privileges in a Maker-Checker workflow?', opts: ['The Maker can edit fields at any time including during Checker review', 'The Maker\'s editing privileges are locked after submission until a rejection event restores them', 'Only the Checker can edit fields once the workflow starts', 'Editing privileges depend on which role is assigned in the workflow settings'], a: 1, exp: 'Once the Maker submits, their editing privileges on core data fields are locked. The Checker reviews a frozen version of the data. If the Checker rejects, the rejection event restores the Maker\'s editing privileges so they can correct the identified issues.' },
+      { q: 'What is the primary purpose of the Due Alert Offset field in Human Task SLA configuration?', opts: ['Sets how long the approver has before the task is timed out', 'Defines how many hours before the Due deadline the first reminder fires', 'Controls how often reminder alerts repeat', 'Determines when the escalation email is sent to the manager'], a: 1, exp: 'Due Alert Offset sets how many hours before the Due deadline the first reminder fires. For example, Due = 48h and Offset = 4h means the first alert fires at hour 44 — giving the approver advance warning before the soft deadline.' },
+      { q: 'In the Maker-Checker pattern, what is mandatory when a Checker rejects a submission?', opts: ['The Checker must immediately reassign the task to another Checker', 'The Checker must provide documented rejection commentary', 'The Maker receives an automatic SLA extension', 'A third-party auditor must be notified'], a: 1, exp: 'Rejection must include documented commentary from the Checker. This commentary is stored with the rejection event, is immutable, and is what the Maker receives to understand what needs to be corrected. Rejection without commentary leaves the Maker unable to fix the right issues.' }
+    ]
+  },
+
+  // ════════════════════════════════════════════════════
+  //  COURSE 8 — ABOUT BLUECOPA
   // ════════════════════════════════════════════════════
   bc: {
     modules: [

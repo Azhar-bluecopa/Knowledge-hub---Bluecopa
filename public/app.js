@@ -4535,6 +4535,18 @@ window.addEventListener('load', () => { setTimeout(liUpdateNavVisibility, 800); 
 
 const ML_COURSES = [
   {
+    id:'aw',
+    cat:'aw',
+    title:'Approval Workflows Mastery',
+    desc:'Master every approval pattern in Bluecopa — single-level approvals, email OTP, SLA handling, conditional routing, and maker-checker multi-level authorization.',
+    tag:'Approval Workflows',
+    icon:'✅',
+    grad:'linear-gradient(145deg,#78350f 0%,#d97706 60%,#fcd34d 100%)',
+    level:'Intermediate',
+    lessons:10,
+    badge:'Hot & New', badgeClass:'hot',
+  },
+  {
     id:'di',
     cat:'di',
     title:'Data Ingestion Mastery',
