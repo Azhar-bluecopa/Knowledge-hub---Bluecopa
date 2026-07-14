@@ -4535,6 +4535,18 @@ window.addEventListener('load', () => { setTimeout(liUpdateNavVisibility, 800); 
 
 const ML_COURSES = [
   {
+    id:'ci',
+    cat:'ci',
+    title:'Connectors & Integrations Mastery',
+    desc:'Master every integration pattern in Bluecopa — GCS connectors, REST API configuration, HTTP Triggers, External Data module, BigQuery dataset integration, and real-world automation implementations.',
+    tag:'Connectors & Integrations',
+    icon:'🔌',
+    grad:'linear-gradient(145deg,#134e4a 0%,#0d9488 60%,#5eead4 100%)',
+    level:'Intermediate',
+    lessons:10,
+    badge:'Hot & New', badgeClass:'hot',
+  },
+  {
     id:'wf',
     cat:'wf',
     title:'Workflows Mastery',

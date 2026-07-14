@@ -2879,6 +2879,416 @@ ${mlcTakeaway('The Jinja pattern — TABLE_QUERY → JINJA → SEND_EMAIL — is
   },
 
   // ════════════════════════════════════════════════════
+  //  COURSE 11 — CONNECTORS & INTEGRATIONS
+  // ════════════════════════════════════════════════════
+  ci: {
+    modules: [
+      {
+        title: 'GCS Connector Fundamentals',
+        lessons: [
+          {
+            title: 'GCS Connector Types — Normal vs Bulk',
+            dur: '10 min',
+            html: `<h2>GCS Connector Types — Normal vs Bulk</h2>
+<p class="mlc-lead">Bluecopa offers two native connectors for ingesting data from a Google Cloud Storage bucket. Choosing the right one depends on file size, volume, and sync cadence.</p>
+${mlcSection('The Two Native GCS Connectors', mlcCompare(
+  'Normal GCS Connector', [
+    'Best for routine, schema-stable file pickups',
+    'Underlying mechanism: streamed read of a specific object path',
+    'Ideal for smaller files with predictable cadence',
+    'Lower resource overhead, faster setup'
+  ],
+  'Bulk GCS Connector', [
+    'Best for large files (multi-GB) or high-volume initial syncs',
+    'Underlying mechanism: BigQuery bulk load operation',
+    'Designed for heavy initial data loads',
+    'Higher throughput at the cost of more infrastructure'
+  ]
+))}
+${mlcSection('Shared Foundation Rule', '<p>Both connectors share one non-negotiable rule: <strong>One Connector = One Schema = One File.</strong> A connector binds to a specific object path and schema — it does not crawl a folder or auto-discover files.</p>')}
+${mlcSection('When to Use Each', mlcUl([
+  '<strong>Use Normal</strong> when: files are ≤ a few hundred MB, schema is stable, syncs are regular and predictable',
+  '<strong>Use Bulk</strong> when: files are multi-GB, performing an initial historical data load, or throughput is the primary concern',
+  '<strong>Never use either</strong> when: the source bucket has date-shifting filenames or multiple files in one folder — this requires the Archive Bucket workaround pattern'
+]))}
+${mlcExample('Implementation Scenario', 'A vendor drops a daily invoice file at gs://client-bucket/invoices/daily_feed.csv — same path, same schema every day. This is the ideal case for a Normal GCS Connector: one path, one schema, predictable cadence. A connector is configured once and runs automatically on schedule.')}
+${mlcTakeaway('Always start with the Normal connector. Only escalate to Bulk when file size or initial load volume demands it. The architecture is identical — only the underlying transport mechanism differs.')}
+${mlcFlow(['Identify source GCS bucket and object path', 'Assess file size and sync volume', 'Choose Normal (streamed) or Bulk (BigQuery load)', 'Configure one connector per file schema', 'Test with a sample file before going live'])}`
+          },
+          {
+            title: 'The One-Connector-One-Schema Rule',
+            dur: '8 min',
+            html: `<h2>The One-Connector-One-Schema Rule</h2>
+<p class="mlc-lead">Every architectural decision in GCS connector setup flows from one foundational constraint: a single connector targets a single object path with a single fixed schema.</p>
+${mlcSection('The Three Constraints', mlcUl([
+  '<strong>One Object Path</strong> — the connector is configured with a fully-qualified GCS URI, e.g. <code>gs://bucket/folder/file.csv</code>. The connector reads exactly that object — nothing else.',
+  '<strong>One Schema</strong> — column names, types, and order are locked at configuration time. Schema drift is not tolerated; any change requires reconfiguring or creating a new connector.',
+  '<strong>One File at a Time</strong> — each sync run reads exactly the object the connector points to. No folder crawls, no auto-discovery, no wildcard pattern matching.'
+]))}
+${mlcSection('Why This Design Exists', mlcUl([
+  'Keeps data lineage <strong>deterministic</strong> — every sync is traceable to a single known source',
+  'Prevents <strong>silent schema drift</strong> — column mismatches surface immediately at config time, not during a production run',
+  'Makes debugging trivial — if a sync fails, the cause is isolated to one file at one path'
+]))}
+${mlcSection('What This Means for Implementation', mlcUl([
+  'Multiple source files with different schemas → multiple connectors (one per schema)',
+  'Source that rotates filenames over time → use the Archive Bucket workaround (covered in the next lesson)',
+  'Source with multiple files in one folder → a connector cannot iterate; redesign the source path or use preprocessing'
+]))}
+${mlcDiagram('Connector Scope', mlcUl([
+  'Connector A → gs://bucket/ar/receivables.csv (Schema: InvoiceID, Amount, DueDate)',
+  'Connector B → gs://bucket/ap/payables.csv (Schema: VendorID, InvoiceNo, PaidDate)',
+  'Connector C → gs://bucket/mis/summary.csv (Schema: Month, Revenue, EBITDA)',
+  'Each connector is independent. Changing one has zero impact on others.'
+]))}
+${mlcExample('Schema Drift Example', 'If a vendor adds a new column "TaxCode" to their invoice file in February, the existing connector will reject the load because the schema no longer matches. This is intentional — it forces a deliberate review and schema update rather than silently ingesting corrupted data.')}
+${mlcTakeaway('The One-Connector-One-Schema rule is a feature, not a limitation. It trades flexibility for determinism, making pipelines auditable and production-safe.')}
+`
+          },
+          {
+            title: 'Archive Bucket Pattern & Workarounds',
+            dur: '10 min',
+            html: `<h2>Archive Bucket Pattern & Workarounds</h2>
+<p class="mlc-lead">Large enterprise customers often use archive-style GCS buckets where all files land in one folder with date-shifting filenames. This pattern directly conflicts with the One-Connector-One-Schema rule and requires a specific workaround.</p>
+${mlcSection('What Is an Archive Bucket?', mlcUl([
+  '<strong>Folder layout</strong> — all files dropped into one folder with no nested path partitions',
+  '<strong>Filename pattern</strong> — filenames follow a template but the date component changes every cycle, e.g. <code>MEC_BASE_202605.csv</code>, <code>MEC_BASE_202606.csv</code>',
+  '<strong>Cadence</strong> — typically monthly drops; old files remain in place (archive semantics, files accumulate)',
+  '<strong>Result</strong> — the folder contains many files, none at a stable path'
+]))}
+${mlcSection('Why Native GCS Connectors Break Here', mlcCompare(
+  'Problem', [
+    'Multiple files in one folder — connector can only target one file at a time',
+    'Filename changes each cycle — connector URI would need manual reconfiguration monthly',
+    'Wildcard patterns like MEC_BASE_*.csv could match prior months, test files, or partially-written files'
+  ],
+  'Consequence', [
+    'Cannot iterate over the folder automatically',
+    'Unsustainable operational burden on the implementation team',
+    'Risk of duplicate loads or wrong-period data ingestion'
+  ]
+))}
+${mlcSection('Why Wildcards Are NOT the Solution', '<p>Even though GCS URIs and BigQuery load jobs technically support <code>*</code> wildcards, using them for archive buckets creates three serious risks:</p>' + mlcUl([
+  '<strong>Month overlap</strong> — a wildcard match may pick up prior months, leading to duplicate records in the target dataset',
+  '<strong>Partial file inclusion</strong> — if a file is still being written when the sync runs, a wildcard may include an incomplete file',
+  '<strong>Test file pollution</strong> — staging or test files in the same folder are indistinguishable from production files by a wildcard'
+]))}
+${mlcSection('The Recommended Workaround — Copy-to-Blob Store', mlcFlow([
+  'Client drops MEC_BASE_202606.csv into the archive GCS bucket',
+  'A pre-processing step (e.g. Cloud Function or Bluecopa workflow) detects the new file',
+  'The file is copied to a stable, fixed-path location in Blob Store (Azure) or a controlled GCS path',
+  'The Bluecopa GCS connector points to that stable path — path never changes',
+  'Each month, the stable path is overwritten with the latest file',
+  'Connector runs against the stable path — always ingests the correct current file'
+]))}
+${mlcTakeaway('Archive buckets are common at large customers. Never try to bend the connector to fit the archive pattern — instead, introduce a copy/landing step that converts the dynamic filename pattern into a stable, connector-compatible path.')}
+`
+          }
+        ]
+      },
+      {
+        title: 'REST API Connector Configuration',
+        lessons: [
+          {
+            title: 'Connection Profile Setup — Phase A',
+            dur: '10 min',
+            html: `<h2>Connection Profile Setup — Phase A</h2>
+<p class="mlc-lead">The REST API Connector in Bluecopa uses a two-phase configuration model. Phase A establishes the root network gateway — the connection profile — which all API actions in Phase B will inherit.</p>
+${mlcSection('Navigation Path', mlcFlow(['Main Menu', 'Data', 'External Data', 'New Connection']))}
+${mlcSection('Phase A — Connection Profile Fields', mlcUl([
+  '<strong>Field 1: Connection Name & Description</strong> — Enter a unique name (e.g. <code>SampleHTTPConnection</code>) and a meaningful description. This name appears in integration logs and downstream pipelines.',
+  '<strong>Field 2: Connection Specification</strong> — Select <strong>HTTP</strong> as the primary type. Other supported types are SQL, BigQuery, and BlueDB, but HTTP is standard for REST API integrations.',
+  '<strong>Field 3: Base URL</strong> — Enter the root network address for the API, e.g. <code>https://mockapi.randomserver.com</code>. All API Actions defined in Phase B will append their endpoint paths to this URL.',
+  '<strong>Field 4: Subpath (optional)</strong> — A static test routing subpath (e.g. <code>/health</code> or <code>/ping</code>) used to validate connectivity. Leave blank if no test endpoint exists.',
+  '<strong>Field 5: Authentication Strategy</strong> — Choose <code>NoAuth</code> for public or whitelisted APIs. For secured APIs, options include <code>Basic Auth</code>, <code>API Key</code>, <code>Bearer Token</code>, and <code>OAuth</code>.',
+  '<strong>Field 6: Global Headers (optional)</strong> — Declare headers that must apply across ALL nested API Actions, e.g. <code>Accept: application/json</code>.',
+  '<strong>Field 7: Timeout</strong> — Maximum seconds Bluecopa waits before terminating the connection. Default is 30 seconds; adjust based on expected API latency.',
+  '<strong>Field 8: SSL Validation</strong> — Enforce SSL/HTTPS to encrypt payload data in transit. Enable for all production integrations.',
+  '<strong>Field 9: Save & Test</strong> — Click Save to store the profile, then Test to fire a cloud network ping verifying socket accessibility and firewall permissions.'
+]))}
+${mlcSection('Authentication Strategy Selection Guide', mlcUl([
+  '<strong>NoAuth</strong> — public APIs or internally whitelisted endpoints with no auth requirement',
+  '<strong>Basic Auth</strong> — username + password encoded in the Authorization header',
+  '<strong>API Key</strong> — a static token passed as a header or query parameter',
+  '<strong>Bearer Token</strong> — JWT or OAuth access token in the Authorization header',
+  '<strong>OAuth</strong> — full OAuth 2.0 flow with token refresh support'
+]))}
+${mlcExample('Real Configuration', 'Connection Name: ClientAPI_Prod | Base URL: https://api.client.com | Auth: Bearer Token | Timeout: 45 seconds | SSL: Enabled. After clicking Test, Bluecopa pings the /health subpath. On success, the connection is unlocked for Phase B API Action setup.')}
+${mlcTakeaway('The connection profile is the gateway — get it right once and all Phase B actions inherit its network and auth configuration. Never hardcode credentials in individual API Actions.')}
+`
+          },
+          {
+            title: 'API Action Definition — Phase B',
+            dur: '12 min',
+            html: `<h2>API Action Definition — Phase B</h2>
+<p class="mlc-lead">Once the connection gateway is established in Phase A, individual API endpoints are declared as API Actions. Each action represents one callable endpoint that can be invoked from a Bluecopa workflow.</p>
+${mlcSection('Initialising an API Action', mlcOl([
+  'Open the verified connection gateway folder',
+  'Click <strong>Add</strong> to create a new API Action',
+  'Enter an <strong>Action Name</strong> (e.g. <code>Retrieve Order Details</code>) and a description',
+  'Select <strong>HTTP</strong> as the Action Specification to match the connection layer'
+]))}
+${mlcSection('Step 2 — HTTP Verb Assignment', mlcUl([
+  '<strong>GET</strong> — retrieve data assets from the remote system (no body required)',
+  '<strong>POST</strong> — send data or create new records on the remote system',
+  '<strong>PUT</strong> — overwrite existing data structures entirely',
+  '<strong>DELETE</strong> — remove data entirely from the remote system',
+  '<strong>PATCH</strong> — update partial data fields within an existing record'
+]))}
+${mlcSection('Step 3 — Endpoint Path with Jinja Templates', '<p>Enter the trailing path relative to the Base URL. Use Jinja template markers for dynamic fields:</p>' + mlcUl([
+  'Static path: <code>v1/api/orders</code>',
+  'Dynamic path: <code>v1/api/orders/{order_id}</code> — the <code>{order_id}</code> placeholder is resolved at runtime from the workflow\'s variable context',
+  'Multiple params: <code>v1/api/invoices/{invoice_id}/lines/{line_id}</code>'
+]))}
+${mlcSection('Step 4 — Headers, Template Parameters & Request Body', mlcUl([
+  '<strong>Action-specific headers</strong> — headers required only by this endpoint (e.g. <code>Content-Type: application/json</code>)',
+  '<strong>Template Parameters panel</strong> — declare each dynamic field (e.g. <code>{order_id}</code>) and map it to the workflow variable that will supply the value at runtime',
+  '<strong>Request Body</strong> — for POST, PUT, PATCH: provide the body template in raw JSON format. Dynamic values are injected using Jinja markers.'
+]))}
+${mlcSection('Step 5 — Save & Test the Action', mlcOl([
+  'Click Save to store the API Action configuration',
+  'Enter mock values for each template parameter (e.g. map <code>{order_id}</code> = <code>12345</code>)',
+  'Click <strong>Run Action</strong> to execute the endpoint manually against the live API',
+  'Inspect the returned server payload — verify the response schema matches expectations'
+]))}
+${mlcDiagram('Full Two-Phase Configuration Flow', mlcUl([
+  'Phase A: Connection Profile → Base URL + Auth + Global Headers + SSL',
+  'Phase B: API Action 1 → GET /v1/api/orders/{order_id}',
+  'Phase B: API Action 2 → POST /v1/api/invoices with JSON body',
+  'Phase B: API Action 3 → PATCH /v1/api/payments/{payment_id}',
+  'Workflow → calls API Action 2 with runtime variables from workflow context'
+]))}
+${mlcTakeaway('Every distinct API endpoint = one API Action. The two-phase model separates network configuration (Phase A) from business logic endpoints (Phase B), keeping the setup modular and maintainable.')}
+`
+          },
+          {
+            title: 'External Data Module — Sending Data to Client APIs',
+            dur: '10 min',
+            html: `<h2>External Data Module — Sending Data to Client APIs</h2>
+<p class="mlc-lead">The External Data module in Bluecopa enables sending data and files from Bluecopa outward to any client API — no custom code required. The experience mirrors configuring and testing APIs in Postman, but fully embedded within Bluecopa workflows.</p>
+${mlcSection('Step 1 — Navigate to External Data & Create a Connection', mlcUl([
+  'Go to <strong>Integrations → External Data</strong> from the main menu',
+  'Click <strong>New Connection</strong>',
+  'Fill in: Connection Name, Connection Type (HTTP), Base API URL, and Authentication credentials',
+  'Click <strong>Save</strong> to store the connection'
+]))}
+${mlcSection('Step 2 — Create and Configure an API Action', '<p>Open the saved connection to reveal the <strong>Actions panel</strong> on the left side. Click <strong>Add</strong> to define a new action. Each action corresponds to one API endpoint.</p>' + mlcUl([
+  '<strong>HTTP Method</strong> — GET, POST, PUT, DELETE, or PATCH',
+  '<strong>Endpoint URL</strong> — the specific endpoint path for this action',
+  '<strong>Request Headers</strong> — Content-Type, custom tokens, or any API-required headers',
+  '<strong>Query Parameters</strong> — URL query strings passed to the endpoint',
+  '<strong>Request Body</strong> — body format and structure for state-changing methods'
+]))}
+${mlcSection('Working with Query Parameters', '<p>Query parameters let an API action pull dynamic runtime values from the workflow and pass them as URL query strings — e.g. <code>?employee_id=1024&status=active</code>.</p>' + mlcUl([
+  '<strong>Key</strong> — the exact parameter name expected by the client API (e.g. <code>employee_id</code>, <code>status</code>, <code>page</code>)',
+  '<strong>Static value</strong> — used when the parameter never changes (e.g. a fixed <code>file_type</code> or shared <code>api_key</code>)',
+  '<strong>Dynamic value</strong> — uses template syntax (<code>parameter_name</code>) and is substituted at runtime from an earlier workflow node',
+  'Multiple query parameters can be added using the <strong>Add Query Param</strong> button'
+]))}
+${mlcSection('Running the External Action from a Workflow', mlcFlow([
+  'Workflow triggers (schedule, HTTP trigger, or event)',
+  'Earlier node produces data (query result, transformation output)',
+  'External Data action node is configured with the connection and API action',
+  'Runtime variables from the workflow are mapped to template parameters',
+  'Bluecopa executes the API call — sends data or file to the client endpoint',
+  'Response is captured and can be used by downstream workflow nodes'
+]))}
+${mlcExample('Use Case — Sending a Report File', 'After generating a monthly finance report, a workflow uses the External Data module to POST the file to a client\'s SFTP-backed API endpoint. The endpoint URL includes a dynamic {client_id} and {month} pulled from workflow variables. No code is written — the entire integration is configured through the UI.')}
+${mlcTakeaway('The External Data module is Bluecopa\'s outbound integration layer. It turns any client API into a workflow-callable action with dynamic parameters — eliminating the need for custom scripts or middleware.')}
+`
+          }
+        ]
+      },
+      {
+        title: 'HTTP Triggers & Workflow Automation',
+        lessons: [
+          {
+            title: 'Creating HTTP Triggers & API Credentials',
+            dur: '10 min',
+            html: `<h2>Creating HTTP Triggers & API Credentials</h2>
+<p class="mlc-lead">The HTTP Trigger mechanism makes Bluecopa workflows externally callable. Any system capable of sending an HTTP request — a client application, a cron job, or a CI/CD pipeline — can trigger a Bluecopa workflow and pass structured data.</p>
+${mlcSection('Step 1 — Create the HTTP Trigger', mlcUl([
+  'Navigate to <strong>Integrations → HTTP Triggers</strong>',
+  'Click <strong>New</strong>',
+  'Enter a <strong>Name</strong> (e.g. <code>report_trigger</code>) and a <strong>Description</strong>',
+  'Click <strong>Add</strong>',
+  'Bluecopa generates a unique HTTP Trigger URL in the format: <code>https://[domain]/api/v1/http-trigger/[trigger-id]</code>'
+]))}
+${mlcSection('Step 2 — Generate API Credentials', '<p>Each HTTP Trigger must be called with secure credentials. These are generated separately and linked to the trigger.</p>' + mlcOl([
+  'Navigate to <strong>Access Credentials</strong>',
+  'Click <strong>New</strong>',
+  'Enter a meaningful <strong>Name</strong> (e.g. <code>staging_creds_for_document</code>) and optional description',
+  'Click <strong>Create</strong>',
+  'Bluecopa generates an <strong>API Key</strong> (Username) and <strong>API Secret</strong> (Password)',
+  '<strong>Copy and save both immediately</strong> — the API Secret cannot be viewed again once the popup is closed'
+]))}
+${mlcSection('Step 3 — Obtain the Workspace ID', mlcUl([
+  'Navigate to <strong>Settings → Project</strong>',
+  'The selected Project name IS the Workspace ID — e.g. <code>Prod</code>',
+  'Include it in every API request as the header: <code>x-bluecopa-workspace-id: Prod</code>',
+  'The value is <strong>case-sensitive</strong> — use exactly as it appears in Settings'
+]))}
+${mlcStatGrid([
+  {n:'1', l:'Trigger URL per trigger', note:'Unique, immutable after creation'},
+  {n:'2', l:'Credentials: Key + Secret', note:'Secret shown once — save immediately'},
+  {n:'3', l:'Items needed by client', note:'URL + API Key + API Secret + Workspace ID'},
+  {n:'1', l:'Header for Workspace ID', note:'x-bluecopa-workspace-id'}
+])}
+${mlcExample('Security Note', 'API credentials are scoped to specific integrations. Create separate credentials for each client or system connecting to Bluecopa — never share credentials across clients. This allows individual credential revocation without impacting other integrations.')}
+${mlcTakeaway('The HTTP Trigger URL + API Key + API Secret + Workspace ID are the four pieces a client needs to call Bluecopa externally. Always generate fresh credentials per integration and store the API Secret the moment it is displayed.')}
+`
+          },
+          {
+            title: 'Publishing Workflows & Client Integration',
+            dur: '10 min',
+            html: `<h2>Publishing Workflows & Client Integration</h2>
+<p class="mlc-lead">An HTTP Trigger does nothing until it is wired to a published workflow. This lesson covers connecting the trigger, publishing the workflow, sharing integration details with clients, and verifying successful execution.</p>
+${mlcSection('Step 4 — Configure and Publish the Workflow', mlcOl([
+  'Navigate to <strong>Workflows</strong> and create a new or open an existing workflow',
+  'Click <strong>Add Trigger</strong> and select <strong>Trigger Type = HTTP Trigger</strong>',
+  'Set <strong>Event = Submitted</strong>',
+  'Select the HTTP Trigger created earlier (e.g. <code>report_trigger</code>)',
+  'Add the required workflow steps (e.g. update input table → run pipeline → send email)',
+  'Click <strong>Publish</strong> when all steps are configured',
+  '<strong>Important:</strong> Any changes made after publishing will NOT take effect until the workflow is published again. Always publish after every modification.'
+]))}
+${mlcSection('Step 5 — Share API Details with the Client', '<p>Provide these four items to the client for integration:</p>' + mlcUl([
+  '<strong>HTTP Trigger URL</strong>: <code>https://[domain]/api/v1/http-trigger/[trigger-id]</code>',
+  '<strong>API Key</strong> — used as the Username in Basic Auth',
+  '<strong>API Secret</strong> — used as the Password in Basic Auth',
+  '<strong>Workspace ID Header</strong>: <code>x-bluecopa-workspace-id: Prod</code>'
+]))}
+${mlcSection('Step 6 — Sample cURL Request', '<p>A client can trigger the workflow with a standard cURL command:</p>' + mlcUl([
+  '<code>curl --location "https://domain/api/v1/http-trigger/trigger-id"</code>',
+  '<code>--user "API_KEY:API_SECRET"</code>',
+  '<code>--header "Content-Type: application/json"</code>',
+  '<code>--header "x-bluecopa-workspace-id: Prod"</code>',
+  '<code>--data \'{"month": "2026-05"}\'</code>'
+]))}
+${mlcSection('Step 7 — Test and Verify with Postman', mlcOl([
+  'Open Postman and set the request URL to the HTTP Trigger URL',
+  'Set Authorization to <strong>Basic Auth</strong> — API Key as Username, API Secret as Password',
+  'Add header: <code>x-bluecopa-workspace-id: Prod</code>',
+  'Set request body to raw JSON with required fields',
+  'Click Send — a successful response returns a <code>triggeredWorkflows</code> JSON object with <code>workflowId</code>, <code>triggerId</code>, and <code>instanceId</code>',
+  'Copy the <code>instanceId</code> and look up the execution in Workflows → Instances to verify the trigger fired correctly'
+]))}
+${mlcExample('Business Use Case', 'A client runs a monthly finance close process. At month-end, their ERP automatically POSTs {"month": "2026-06"} to Bluecopa\'s HTTP Trigger. Bluecopa receives the call, updates the input table with the month value, executes the pipeline, and emails the reports to stakeholders — all without any manual intervention from the Bluecopa team.')}
+${mlcTakeaway('Publishing is mandatory — unpublished changes are invisible to incoming triggers. Always verify with Postman before handing off to the client, and save the instanceId from the test response to confirm end-to-end workflow execution.')}
+`
+          }
+        ]
+      },
+      {
+        title: 'External Datasets & Real-World Use Cases',
+        lessons: [
+          {
+            title: 'BigQuery & GCS External Dataset Integration',
+            dur: '12 min',
+            html: `<h2>BigQuery & GCS External Dataset Integration</h2>
+<p class="mlc-lead">External Dataset is a data ingestion integration inside Bluecopa that connects to a BigQuery table or view backed by Google Cloud Storage and pulls the data into Bluecopa's internal dataset layer — ready for analytics and reporting.</p>
+${mlcSection('How It Works', mlcUl([
+  '<strong>Source</strong> — a BigQuery table or view backed by GCS',
+  '<strong>Authentication</strong> — GCP Service Account',
+  '<strong>Output</strong> — data appears in two places: the <strong>Library</strong> (for reuse across the platform) and <strong>Data → Clean section</strong> (for analytics and reporting)',
+  '<strong>Trigger</strong> — Auto (on GCS refresh), Manual (Run Now button), or Scheduled'
+]))}
+${mlcSection('Navigation Path', mlcFlow(['Bluecopa UI', 'Menu tab', 'Search: "External Dataset"', 'Integration section', 'New button']))}
+${mlcSection('Step 1 — Prerequisites: Who Owns the Source Table?', mlcCompare(
+  'Bluecopa-Owned Table', [
+    'Contact the SRE team to get the fully qualified table name (project_id.dataset_name.table_name)',
+    'No access setup required — Bluecopa already has permissions',
+    'Proceed directly to the configuration form'
+  ],
+  'Client-Owned Table', [
+    'Get the full table name from the client',
+    'Ask the SRE team for the Bluecopa service account key',
+    'Share the service account key with the client and request read access',
+    'Wait for client confirmation before creating the integration'
+  ]
+))}
+${mlcSection('Step 2 — Configuration Fields', mlcUl([
+  '<strong>Name</strong> — must be unique, lowercase, alphanumeric + underscores only, no spaces or hyphens. Example: <code>retail_full_qoh_b2b_may_26</code>',
+  '<strong>Source Type</strong> — <code>Table</code> (connect to a BigQuery external table backed by GCS) or <code>View</code> (connect to a BigQuery view over GCS data)',
+  '<strong>Table Identifier</strong> — fully qualified BigQuery name in the format: <code>project_id.dataset_name.table_name</code>',
+  '<strong>Service Account</strong> — the GCP service account key (JSON) that Bluecopa will use to authenticate with BigQuery',
+  '<strong>Dataset Name</strong> — the label this dataset will carry inside Bluecopa Library and Data → Clean section'
+]))}
+${mlcSection('Step 3 — Publish and Trigger', mlcOl([
+  'Review all configuration fields for accuracy',
+  'Click <strong>Publish</strong> to activate the integration',
+  'For first run: click <strong>Run Now</strong> to trigger an immediate ingest',
+  'Verify data appears in <strong>Library</strong> and <strong>Data → Clean</strong> after the run completes',
+  'For subsequent runs: data auto-ingests whenever the source GCS table or view is refreshed'
+]))}
+${mlcExample('Real Configuration', 'A retail client stores their inventory data in BigQuery (backed by a GCS export). The table is client-owned: retail_project.inventory_ds.qoh_b2b. After the client grants Bluecopa service account read access and confirms, the External Dataset integration is named "retail_full_qoh_b2b_may_26". After publishing, the dataset auto-ingests daily when the GCS source refreshes, and becomes available in Bluecopa\'s Clean section for MIS reporting.')}
+${mlcTakeaway('Never create the integration before the client confirms service account access. A failed first run due to missing permissions often requires full re-configuration, not just a retry.')}
+`
+          },
+          {
+            title: 'Invoice Discounting Automation — End-to-End',
+            dur: '12 min',
+            html: `<h2>Invoice Discounting Automation — End-to-End</h2>
+<p class="mlc-lead">This lesson walks through a complete real-world implementation: automating the invoice discounting lifecycle using Bluecopa's integration and workflow capabilities — from dataset upload to bank allocation, utilization tracking, and automated report delivery.</p>
+${mlcSection('What Is Invoice Discounting?', '<p>Invoice discounting is a financial process where a company receives funds against unpaid invoices <em>before</em> the customer completes payment.</p>' + mlcUl([
+  'Normally, businesses wait 30–60 days for customer payments',
+  'Instead, eligible invoices are submitted to banks and advance funds are received immediately',
+  'A company with Rs. 20 Cr in unpaid invoices can unlock working capital immediately rather than waiting 45 days'
+]))}
+${mlcSection('Why Automation Was Needed', mlcUl([
+  '<strong>Manual invoice validations</strong> → slow processing',
+  '<strong>Duplicate invoice submissions</strong> → incorrect funding',
+  '<strong>Multiple spreadsheet handling</strong> → high operational effort',
+  '<strong>No centralized visibility</strong> → difficult tracking across banks',
+  '<strong>Manual allocation process</strong> → allocation errors',
+  '<strong>Delayed report preparation</strong> → slow decision-making'
+]))}
+${mlcSection('Platform Capabilities Built', mlcUl([
+  '<strong>Dataset Upload</strong> — accepts and processes multiple dataset types in a single automated pipeline',
+  '<strong>Validation & Eligibility</strong> — automatically validates invoices and evaluates eligibility against predefined funding rules before allocation',
+  '<strong>Allocation Processing</strong> — distributes invoices to banks based on priority order and available limits, fully automated',
+  '<strong>Utilization Tracking</strong> — continuously monitors total limits, utilized amount, and remaining capacity across all banks in real time',
+  '<strong>Report Generation</strong> — automatically generates bank-wise reports, allocation summaries, and exception reports post-processing',
+  '<strong>Email Delivery</strong> — sends automated reports and repayment alerts to stakeholders without manual intervention'
+]))}
+${mlcSection('How Bluecopa Connectors Enable This', mlcFlow([
+  'Client uploads invoice dataset via portal or GCS connector',
+  'Bluecopa ingests dataset through Data Ingestion pipeline',
+  'Validation workflow runs eligibility checks (rules-based)',
+  'Allocation workflow distributes to banks (priority order)',
+  'External Data module updates bank portals via REST API',
+  'Utilization tracking queries are run and summarized',
+  'Report generation workflow builds bank-wise summaries',
+  'Email workflow (HTTP Trigger or schedule) delivers reports to stakeholders'
+]))}
+${mlcStatGrid([
+  {n:'6', l:'Platform capabilities automated', note:'Upload → Validate → Allocate → Track → Report → Email'},
+  {n:'0', l:'Manual steps for finance users', note:'Fully self-service after setup'},
+  {n:'30–60', l:'Days of cash cycle compressed', note:'Advance funds received same day'},
+  {n:'100%', l:'Centralized visibility', note:'All banks in one dashboard'}
+])}
+${mlcExample('Key Architecture Insight', 'This implementation combines all four integration layers covered in this course: GCS connectors for dataset upload, REST API connector to push allocation data to bank portals, HTTP Triggers for client-initiated report generation, and External Dataset integration for pulling back bank confirmation data into Bluecopa for reconciliation.')}
+${mlcTakeaway('Real enterprise implementations are not single-connector problems. The Invoice Discounting platform is a composite of GCS ingestion, REST API outbound calls, HTTP Triggers for client initiation, and workflow orchestration — all working together as an integrated system.')}
+`
+          }
+        ]
+      }
+    ],
+    quiz: [
+      { q: 'Which GCS connector type uses BigQuery bulk load as its underlying mechanism?', opts: ['Normal GCS Connector', 'Bulk GCS Connector', 'External Dataset Connector', 'Blob Store Connector'], a: 1, exp: 'The Bulk GCS Connector uses BigQuery bulk load under the hood, making it suited for large files (multi-GB) and high-volume initial syncs. The Normal connector uses streamed reads, which is lighter-weight and appropriate for routine, smaller file pickups.' },
+      { q: 'According to the One-Connector-One-Schema rule, what happens when a vendor adds a new column to their invoice file?', opts: ['Bluecopa auto-detects the new column and updates the schema', 'The connector rejects the load because the schema no longer matches the configured schema', 'The new column is silently ignored and the load proceeds', 'The connector switches to wildcard mode to accommodate the change'], a: 1, exp: 'Schema drift is not tolerated by Bluecopa GCS connectors. When a vendor adds a new column, the load is rejected because the file schema no longer matches the schema locked at configuration time. This is intentional — it forces a deliberate review rather than silently ingesting corrupted data.' },
+      { q: 'Why are wildcard patterns (e.g. MEC_BASE_*.csv) NOT recommended for archive buckets?', opts: ['Wildcards are not supported by GCS or BigQuery', 'Wildcards could match prior months, partially-written files, or test files — causing duplicate or wrong-period loads', 'Wildcards reduce ingestion speed significantly', 'Wildcards require additional service account permissions'], a: 1, exp: 'Wildcards create three serious risks in archive buckets: month overlap (prior months matched), partial file inclusion (in-progress files picked up), and test file pollution (staging files indistinguishable from production). The recommended approach is the Copy-to-Blob Store workaround that normalises to a stable fixed path.' },
+      { q: 'In the REST API Connector two-phase model, what does Phase A establish?', opts: ['Individual API endpoints and their HTTP verbs', 'The root network gateway — connection profile — including Base URL, authentication, and global headers', 'Jinja template parameters for dynamic endpoint paths', 'The Bluecopa workflow that will invoke the connector'], a: 1, exp: 'Phase A establishes the connection profile — the root network gateway. This includes the Base URL, authentication strategy, global headers, timeout, and SSL settings. All API Actions defined in Phase B inherit this gateway configuration, keeping individual actions free of redundant network setup.' },
+      { q: 'What is the purpose of Jinja template markers (e.g. {order_id}) in API Action endpoint paths?', opts: ['They define the HTTP method for the request', 'They are placeholders resolved at runtime from the workflow\'s variable context, enabling dynamic endpoint URLs', 'They specify the authentication token for the request', 'They control the request timeout duration'], a: 1, exp: 'Jinja template markers like {order_id} in a path such as v1/api/orders/{order_id} are placeholders. At runtime, the workflow resolves them using variables from the workflow context — for example, substituting the actual order ID from a preceding workflow step. This makes a single API Action reusable for any order.' },
+      { q: 'After creating API credentials for an HTTP Trigger, when can you view the API Secret again?', opts: ['Anytime by navigating to Access Credentials → View Secret', 'Only within 24 hours of creation', 'Never — the API Secret cannot be viewed again once the creation popup is closed', 'By resetting the credentials from the admin panel'], a: 2, exp: 'Bluecopa only displays the API Secret once — at the moment of creation. Once the popup is closed, it is never shown again. If the secret is lost, new credentials must be generated. This is standard security practice for API keys.' },
+      { q: 'What must happen before changes to a published workflow take effect when called via HTTP Trigger?', opts: ['Changes auto-apply — no action needed after saving', 'The workflow must be re-published — only the latest published version is executed', 'The HTTP Trigger URL must be regenerated', 'Existing in-flight workflow instances must complete first'], a: 1, exp: 'Any changes made to a workflow — adding steps, modifying logic, changing triggers — do NOT take effect until the workflow is published again. Only the latest published version is executed when the HTTP Trigger fires. This is a critical point that trips up many implementations.' },
+      { q: 'For a client-owned BigQuery table, what must happen before creating an External Dataset integration?', opts: ['The SRE team creates the integration directly without client involvement', 'The client must explicitly grant read access to the Bluecopa service account, and you must wait for their confirmation before proceeding', 'Bluecopa auto-requests access from the client\'s GCP project', 'The integration can be created immediately and access is granted retroactively'], a: 1, exp: 'For client-owned tables, the process is: (1) get the full table name from the client, (2) ask SRE for the Bluecopa service account key, (3) share the key with the client and request access, (4) wait for confirmation. Creating the integration before access is granted typically results in a failed first run that may require full reconfiguration.' },
+      { q: 'What is the naming convention for External Dataset names in Bluecopa?', opts: ['Any format is accepted — spaces and special characters are allowed', 'Unique, lowercase, alphanumeric and underscores only — no spaces, hyphens, or special characters', 'Must match the source BigQuery table name exactly', 'CamelCase format with a numeric suffix'], a: 1, exp: 'External Dataset names must be: unique across all External Datasets, lowercase only, alphanumeric characters and underscores only — no spaces, hyphens, or special characters. A valid example is retail_full_qoh_b2b_may_26. This constraint ensures compatibility with Bluecopa\'s internal referencing system.' },
+      { q: 'In the Invoice Discounting Automation platform, which Bluecopa integration layer handles pushing allocation data to bank portals?', opts: ['GCS Connector — reads the allocation data from cloud storage', 'REST API Connector (External Data module) — sends outbound calls to bank portal APIs', 'HTTP Trigger — receives incoming requests from the banks', 'External Dataset — pulls bank confirmation data from BigQuery'], a: 1, exp: 'The REST API Connector (via the External Data module) is the outbound integration layer. It sends allocation data to bank portals by calling their REST APIs. The GCS connector handles inbound dataset upload, HTTP Triggers handle client-initiated report generation, and External Dataset pulls back bank confirmation data for reconciliation.' }
+    ]
+  },
+
+  // ════════════════════════════════════════════════════
   //  COURSE 10 — ABOUT BLUECOPA
   // ════════════════════════════════════════════════════
   bc: {
