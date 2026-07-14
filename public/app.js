@@ -2401,20 +2401,47 @@ function certPrint() {
   if (!cert) return;
   var lnk = document.querySelector('link[href*="style.css"]');
   var cssHref = lnk ? lnk.href : '/style.css';
+  var origin = window.location.origin;
   var fontHref = 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800&family=DM+Mono:wght@400;500&display=swap';
+  // Convert relative /paths to absolute URLs so images load inside the blob page
+  var certHTML = cert.outerHTML
+    .replace(/ src="(\/[^"]+)"/g, ' src="' + origin + '$1"')
+    .replace(/ href="(\/[^"]+)"/g, ' href="' + origin + '$1"');
   var html = [
     '<!DOCTYPE html><html><head><meta charset="UTF-8">',
     '<title>Certificate — Bluecopa</title>',
     '<link rel="stylesheet" href="' + fontHref + '">',
     '<link rel="stylesheet" href="' + cssHref + '">',
     '<style>',
+    // Chrome/Edge: force A4 landscape page
     '@page{size:297mm 210mm;margin:0}',
-    '*,*::before,*::after{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}',
-    'html,body{margin:0;padding:0;width:297mm;height:210mm;overflow:hidden;background:#0d0c18}',
-    '.cert-full{width:297mm!important;height:210mm!important;border-radius:0!important;flex-shrink:0!important;aspect-ratio:auto!important}',
+    '*, *::before, *::after{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}',
+    // Screen view: show banner + cert scaled to viewport
+    '@media screen{',
+    'body{margin:0;padding:20px;background:#0a0a12;display:flex;flex-direction:column;align-items:center;gap:16px;min-height:100vh;}',
+    '.cert-note{font-family:sans-serif;font-size:13px;color:#e8c97a;background:rgba(201,162,39,.08);border:1px solid rgba(201,162,39,.35);border-radius:8px;padding:10px 20px;text-align:center;max-width:860px;width:100%;}',
+    '.cert-note strong{color:#fff}',
+    '.cert-note button{margin-top:8px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.45);color:#e8c97a;border-radius:6px;padding:7px 20px;font-size:13px;font-weight:600;cursor:pointer;}',
+    '.cert-full{width:min(860px,100%)!important;height:auto!important;aspect-ratio:297/210!important;border-radius:12px!important;}',
+    '}',
+    // Print view: hide banner, fill page with cert
+    '@media print{',
+    '.cert-note{display:none!important}',
+    'html,body{margin:0!important;padding:0!important;width:297mm!important;height:210mm!important;overflow:hidden!important;background:#0d0c18!important;}',
+    '.cert-full{width:297mm!important;height:210mm!important;aspect-ratio:auto!important;border-radius:0!important;flex-shrink:0!important;}',
+    '}',
     '</style>',
-    '<scr' + 'ipt>document.fonts.ready.then(function(){setTimeout(function(){window.print();},300);});<\/scr' + 'ipt>',
-    '</head><body>' + cert.outerHTML + '</body></html>'
+    '<scr'+'ipt>',
+    'function doPrint(){window.print();}',
+    'document.fonts.ready.then(function(){setTimeout(doPrint,400);});',
+    '<\/scr'+'ipt>',
+    '</head><body>',
+    '<div class="cert-note">',
+    '<strong>Safari / Firefox:</strong> When the print dialog opens, set <strong>Orientation = Landscape</strong> to get the correct A4 layout.',
+    ' &nbsp;<button onclick="doPrint()">Open Print Dialog</button>',
+    '</div>',
+    certHTML,
+    '</body></html>'
   ].join('');
   var blob = new Blob([html], {type: 'text/html;charset=utf-8'});
   var url = URL.createObjectURL(blob);
