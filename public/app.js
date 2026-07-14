@@ -4541,7 +4541,6 @@ const ML_COURSES = [
     desc:'Master every export and report delivery pattern in Bluecopa — scheduled delivery, export via email, multi-sheet Excel workbooks, failure scenarios, and a full invoice discounting report automation implementation.',
     tag:'Exports & Reports',
     icon:'📊',
-    img:'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=360&q=80&fit=crop&auto=format',
     grad:'linear-gradient(145deg,#7f1d1d 0%,#dc2626 60%,#fca5a5 100%)',
     level:'Intermediate',
     lessons:10,
@@ -4554,7 +4553,6 @@ const ML_COURSES = [
     desc:'Master every integration pattern in Bluecopa — GCS connectors, REST API configuration, HTTP Triggers, External Data module, BigQuery dataset integration, and real-world automation implementations.',
     tag:'Connectors & Integrations',
     icon:'🔌',
-    img:'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&h=360&q=80&fit=crop&auto=format',
     grad:'linear-gradient(145deg,#134e4a 0%,#0d9488 60%,#5eead4 100%)',
     level:'Intermediate',
     lessons:10,
@@ -4567,7 +4565,6 @@ const ML_COURSES = [
     desc:'Master Bluecopa workflows end-to-end — all 9 trigger types, 16 transformation nodes, API integration, error handling, parent-child orchestration, and real-world pipeline implementations.',
     tag:'Workflows',
     icon:'⚡',
-    img:'https://images.unsplash.com/photo-1518432031352-d6fc5c10da5a?w=600&h=360&q=80&fit=crop&auto=format',
     grad:'linear-gradient(145deg,#064e3b 0%,#059669 60%,#6ee7b7 100%)',
     level:'Advanced',
     lessons:10,
@@ -4580,7 +4577,6 @@ const ML_COURSES = [
     desc:'Master Bluecopa\'s reconciliation engine — dataset setup, match rule groups, full vs incremental runs, Copa system columns, and resolving exceptions manually and via workflow.',
     tag:'Reconciliation',
     icon:'🔁',
-    img:'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=600&h=360&q=80&fit=crop&auto=format',
     grad:'linear-gradient(145deg,#312e81 0%,#6d28d9 60%,#a78bfa 100%)',
     level:'Intermediate',
     lessons:10,
@@ -4593,7 +4589,6 @@ const ML_COURSES = [
     desc:'Master every approval pattern in Bluecopa — single-level approvals, email OTP, SLA handling, conditional routing, and maker-checker multi-level authorization.',
     tag:'Approval Workflows',
     icon:'✅',
-    img:'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=600&h=360&q=80&fit=crop&auto=format',
     grad:'linear-gradient(145deg,#78350f 0%,#d97706 60%,#fcd34d 100%)',
     level:'Intermediate',
     lessons:10,
@@ -4606,7 +4601,6 @@ const ML_COURSES = [
     desc:'Master every ingestion pattern in Bluecopa — cloud storage connectors, ZIP workflows, portal-based uploads, and real-world pipeline design for production-scale implementations.',
     tag:'Data Ingestion',
     icon:'📥',
-    img:'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&h=360&q=80&fit=crop&auto=format',
     grad:'linear-gradient(145deg,#0f4c81 0%,#0891b2 60%,#22d3ee 100%)',
     level:'Intermediate',
     lessons:10,
@@ -4619,7 +4613,7 @@ const ML_COURSES = [
     desc:'Understand the Bluecopa platform from the ground up — its four-layer architecture, Foundation capabilities, Processing Engines, pre-built Solutions, and the Samyx AI layer.',
     tag:'Platform Overview',
     icon:'🔵',
-    img:'https://images.unsplash.com/photo-1617791160505-6f00504e3519?w=600&h=360&q=80&fit=crop&auto=format',
+    img:'/bluecopa-logo.png',
     grad:'linear-gradient(145deg,#0c4a6e 0%,#0284c7 60%,#38bdf8 100%)',
     level:'Beginner',
     lessons:10,
@@ -4632,7 +4626,6 @@ const ML_COURSES = [
     desc:'Master vendor management, three-way matching, invoice processing and payment workflows from PO to final settlement.',
     tag:'Account Payable',
     icon:'📑',
-    img:'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&h=360&q=80&fit=crop&auto=format',
     grad:'linear-gradient(145deg,#3730a3 0%,#6d28d9 60%,#a78bfa 100%)',
     level:'Beginner',
     lessons:7,
@@ -4645,7 +4638,6 @@ const ML_COURSES = [
     desc:'Understand the complete AR lifecycle — from invoicing and credit management to collections, aging reports, and reconciliation.',
     tag:'Account Receivable',
     icon:'💰',
-    img:'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&h=360&q=80&fit=crop&auto=format',
     grad:'linear-gradient(145deg,#065f46 0%,#059669 60%,#34d399 100%)',
     level:'Intermediate',
     lessons:8,
@@ -4658,7 +4650,6 @@ const ML_COURSES = [
     desc:'Build, interpret and automate management information system reports that drive real-time decisions across finance and operations.',
     tag:'MIS Reports',
     icon:'📊',
-    img:'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=360&q=80&fit=crop&auto=format',
     grad:'linear-gradient(145deg,#1e3a8a 0%,#2563eb 60%,#60a5fa 100%)',
     level:'Intermediate',
     lessons:6,
@@ -4671,7 +4662,6 @@ const ML_COURSES = [
     desc:'Navigate the full order lifecycle — customer order through fulfilment, billing, collections and revenue recognition — end to end.',
     tag:'Order-to-Cash',
     icon:'📦',
-    img:'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=360&q=80&fit=crop&auto=format',
     grad:'linear-gradient(145deg,#7f1d1d 0%,#dc2626 60%,#f87171 100%)',
     level:'Advanced',
     lessons:10,
@@ -4684,7 +4674,6 @@ const ML_COURSES = [
     desc:'Trace every step of the procurement cycle — requisition, vendor selection, PO management, GRN and final payment — with real Bluecopa scenarios.',
     tag:'Procure-to-Pay',
     icon:'🛒',
-    img:'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&h=360&q=80&fit=crop&auto=format',
     grad:'linear-gradient(145deg,#92400e 0%,#d97706 60%,#fcd34d 100%)',
     level:'Intermediate',
     lessons:9,
@@ -4697,7 +4686,6 @@ const ML_COURSES = [
     desc:'Close the financial period right — from journal entries and intercompany reconciliation to trial balance and management reporting.',
     tag:'Record-to-Report',
     icon:'📋',
-    img:'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=600&h=360&q=80&fit=crop&auto=format',
     grad:'linear-gradient(145deg,#1e1b4b 0%,#4338ca 60%,#818cf8 100%)',
     level:'Intermediate',
     lessons:8,
@@ -4728,8 +4716,7 @@ function mlCardHTML(c) {
   return `<div class="ml-card" onclick="mlOpenCourse('${c.id}')" style="cursor:pointer" title="Open ${c.title}">
     ${assignStrip}
     <div class="ml-card-thumb" style="background:${c.grad}">
-      ${c.img ? `<img class="ml-card-thumb-img" src="${c.img}" alt="">` : ''}
-      <div class="ml-card-thumb-icon">${c.icon}</div>
+      ${c.img ? `<img class="ml-card-thumb-img" src="${c.img}" alt="${c.title}">` : `<div class="ml-card-thumb-icon">${c.icon}</div>`}
       <div class="ml-card-thumb-label">${c.tag}</div>
       ${prog.passed ? '<div class="ml-card-cert-badge">🏆</div>' : ''}
     </div>
