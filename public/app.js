@@ -2339,6 +2339,24 @@ function certViewFull(courseId){
       <button class="cert-action-btn cert-action-close" onclick="document.getElementById('certModalOverlay').remove()">✕</button>
     </div>
     <div class="cert-full">
+      <div class="cert-corner cert-corner-tl"></div>
+      <div class="cert-corner cert-corner-tr"></div>
+      <div class="cert-corner cert-corner-bl"></div>
+      <div class="cert-corner cert-corner-br"></div>
+      <svg class="cert-medal-badge" width="84" height="98" viewBox="0 0 84 98" xmlns="http://www.w3.org/2000/svg">
+        <defs><radialGradient id="certMedalGold" cx="38%" cy="32%" r="65%"><stop offset="0%" stop-color="#f7e87a"/><stop offset="45%" stop-color="#c9a227"/><stop offset="100%" stop-color="#7a5c0a"/></radialGradient></defs>
+        <path d="M29,64 L23,95 L42,82 L61,95 L55,64 Z" fill="#9a6c0a"/>
+        <circle cx="42" cy="42" r="40" fill="url(#certMedalGold)"/>
+        <circle cx="42" cy="42" r="33" fill="#0d0c18"/>
+        <circle cx="42" cy="42" r="31" fill="none" stroke="rgba(201,162,39,.55)" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <image href="/bluecopa-icon.png" x="19" y="19" width="46" height="46"/>
+      </svg>
+      <svg class="cert-trophy-badge" width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <defs><radialGradient id="certTrophyGold" cx="40%" cy="28%" r="68%"><stop offset="0%" stop-color="#f7e87a"/><stop offset="55%" stop-color="#c9a227"/><stop offset="100%" stop-color="#7a5c0a"/></radialGradient></defs>
+        <circle cx="32" cy="32" r="30" fill="rgba(201,162,39,.07)" stroke="rgba(201,162,39,.28)" stroke-width="1"/>
+        <polygon points="32,10 37,23 52,23 40.5,31.5 45,45 32,36 19,45 23.5,31.5 12,23 27,23" fill="url(#certTrophyGold)"/>
+        <polygon points="32,16 35.5,24.5 45,24.5 37.5,29.5 40.5,38 32,33 23.5,38 26.5,29.5 19,24.5 28.5,24.5" fill="rgba(255,248,180,.18)"/>
+      </svg>
       <div class="cert-full-top-bar"></div>
       <div class="cert-full-top-bar-thin"></div>
       <div class="cert-full-header">
@@ -2354,7 +2372,8 @@ function certViewFull(courseId){
           <span class="cert-full-divider-diamond">◆</span>
           <span class="cert-full-divider-line"></span>
         </div>
-        <div class="cert-full-headline">Certificate of Completion</div>
+        <div class="cert-full-headline">CERTIFICATE</div>
+        <div class="cert-full-subline">OF COMPLETION</div>
       </div>
       <div class="cert-full-body">
         <div class="cert-full-presented">This is to certify that</div>
