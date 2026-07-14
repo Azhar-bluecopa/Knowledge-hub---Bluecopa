@@ -2335,105 +2335,54 @@ function certViewFull(courseId){
   <div class="cert-modal">
     <button class="cert-modal-close" onclick="document.getElementById('certModalOverlay').remove()">✕</button>
     <div class="cert-full">
-
-      <!-- ── Background: bokeh glow + golden wave ribbon ── -->
-      <svg class="cert-bg-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 500" preserveAspectRatio="xMidYMid slice" width="100%" height="100%">
-        <defs>
-          <radialGradient id="cBokeh1" cx="25%" cy="28%" r="55%"><stop offset="0%" stop-color="rgba(201,162,39,.13)"/><stop offset="100%" stop-color="transparent"/></radialGradient>
-          <radialGradient id="cBokeh2" cx="78%" cy="72%" r="50%"><stop offset="0%" stop-color="rgba(201,162,39,.09)"/><stop offset="100%" stop-color="transparent"/></radialGradient>
-          <radialGradient id="cBokeh3" cx="65%" cy="18%" r="35%"><stop offset="0%" stop-color="rgba(255,255,255,.04)"/><stop offset="100%" stop-color="transparent"/></radialGradient>
-          <linearGradient id="cWave1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="rgba(160,115,10,0)"/><stop offset="25%" stop-color="rgba(201,162,39,.55)"/><stop offset="50%" stop-color="rgba(240,205,100,.75)"/><stop offset="75%" stop-color="rgba(201,162,39,.55)"/><stop offset="100%" stop-color="rgba(160,115,10,0)"/></linearGradient>
-          <linearGradient id="cWave2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="rgba(160,115,10,0)"/><stop offset="25%" stop-color="rgba(201,162,39,.3)"/><stop offset="50%" stop-color="rgba(240,205,100,.45)"/><stop offset="75%" stop-color="rgba(201,162,39,.3)"/><stop offset="100%" stop-color="rgba(160,115,10,0)"/></linearGradient>
-        </defs>
-        <ellipse cx="190" cy="140" rx="320" ry="220" fill="url(#cBokeh1)"/>
-        <ellipse cx="570" cy="360" rx="280" ry="200" fill="url(#cBokeh2)"/>
-        <ellipse cx="495" cy="90" rx="180" ry="130" fill="url(#cBokeh3)"/>
-        <!-- wave ribbon (wide soft ribbon) -->
-        <path d="M-30,340 C60,295 150,370 260,320 C370,270 430,345 540,295 C620,260 685,290 800,265" stroke="url(#cWave1)" stroke-width="70" fill="none" stroke-linecap="round"/>
-        <path d="M-30,355 C60,308 150,383 260,333 C370,283 430,358 540,308 C620,273 685,303 800,278" stroke="url(#cWave2)" stroke-width="36" fill="none" stroke-linecap="round"/>
-        <!-- sparkle dots scattered (kept away from text areas) -->
-        <circle cx="610" cy="68"  r="2.2" fill="rgba(255,230,150,.7)"/><circle cx="648" cy="108" r="1.4" fill="rgba(255,230,150,.5)"/><circle cx="628" cy="148" r="1.0" fill="rgba(255,230,150,.4)"/>
-        <circle cx="700" cy="200" r="1.8" fill="rgba(255,230,150,.5)"/><circle cx="720" cy="160" r="1.0" fill="rgba(255,230,150,.3)"/>
-        <circle cx="680" cy="420" r="1.6" fill="rgba(255,230,150,.4)"/><circle cx="710" cy="450" r="1.2" fill="rgba(255,230,150,.3)"/>
-      </svg>
-
-      <!-- ── Corner ornaments (CSS only) ── -->
-      <div class="cert-corner cert-corner-tl"></div>
-      <div class="cert-corner cert-corner-tr"></div>
-      <div class="cert-corner cert-corner-bl"></div>
-      <div class="cert-corner cert-corner-br"></div>
-
-      <!-- ── Double border frame ── -->
-      <div class="cert-border-outer"></div>
-      <div class="cert-border-inner"></div>
-
-      <!-- ── Content layer ── -->
-      <div class="cert-content">
-
-        <!-- Issuer -->
-        <div class="cert-issuer-row">
-          <img src="/bluecopa-icon.png" class="cert-icon-sm" alt="Bluecopa">
-          <span class="cert-issuer-text">BLUECOPA &nbsp;·&nbsp; DELIVERY TEAM</span>
-        </div>
-
-        <!-- Main heading -->
-        <div class="cert-title-main">CERTIFICATE</div>
-        <div class="cert-title-sub">OF COMPLETION</div>
-
-        <!-- Divider with label -->
-        <div class="cert-presented-row">
-          <span class="cert-presented-line"></span>
-          <span class="cert-presented-text">THIS CERTIFICATE IS PROUDLY PRESENTED TO</span>
-          <span class="cert-presented-line"></span>
-        </div>
-
-        <!-- Recipient name (script font) -->
-        <div class="cert-name-script">${userName}</div>
-
-        <!-- Award text -->
-        <p class="cert-award-body">For successfully completing the course</p>
-        <div class="cert-course-name">${c.title}</div>
-        <div class="cert-course-cat">${c.tag||''}</div>
-
-        <!-- Footer row: date | medal | authorised -->
-        <div class="cert-footer-cols">
-          <div class="cert-sig-block">
-            <div class="cert-sig-val">${dateStr}</div>
-            <div class="cert-sig-rule"></div>
-            <div class="cert-sig-lbl">DATE OF COMPLETION</div>
-          </div>
-
-          <div class="cert-medal-wrap">
-            <svg viewBox="0 0 96 96" width="84" height="84" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <radialGradient id="cMedal" cx="38%" cy="32%" r="65%">
-                  <stop offset="0%"   stop-color="#f7e87a"/>
-                  <stop offset="45%"  stop-color="#c9a227"/>
-                  <stop offset="100%" stop-color="#7a5c0a"/>
-                </radialGradient>
-              </defs>
-              <!-- ribbon tails -->
-              <polygon points="40,62 33,93 48,82 63,93 56,62" fill="#a07810" opacity=".95"/>
-              <!-- medallion -->
-              <circle cx="48" cy="44" r="33" fill="url(#cMedal)"/>
-              <circle cx="48" cy="44" r="28" fill="none" stroke="rgba(255,245,160,.55)" stroke-width="1.5"/>
-              <circle cx="48" cy="44" r="22" fill="none" stroke="rgba(255,245,160,.28)" stroke-width="1"/>
-              <image href="/bluecopa-icon.png" x="30" y="26" width="36" height="36"/>
-            </svg>
-            <div class="cert-medal-label">OFFICIAL SEAL</div>
-          </div>
-
-          <div class="cert-sig-block">
-            <div class="cert-sig-val">Bluecopa</div>
-            <div class="cert-sig-rule"></div>
-            <div class="cert-sig-lbl">AUTHORISED BY</div>
+      <div class="cert-full-top-bar"></div>
+      <div class="cert-full-top-bar-thin"></div>
+      <div class="cert-full-header">
+        <div class="cert-full-logo-wrap">
+          <img src="/bluecopa-icon.png" class="cert-full-logo-img" alt="Bluecopa">
+          <div class="cert-full-brand">
+            <div class="cert-full-brand-name">BLUECOPA</div>
+            <div class="cert-full-brand-sub">Delivery Team · Knowledge Hub</div>
           </div>
         </div>
-
-        <!-- Certificate ID -->
-        <div class="cert-id-line">Certificate No. &nbsp;${certId}</div>
+        <div class="cert-full-divider">
+          <span class="cert-full-divider-line"></span>
+          <span class="cert-full-divider-diamond">◆</span>
+          <span class="cert-full-divider-line"></span>
+        </div>
+        <div class="cert-full-headline">Certificate of Completion</div>
       </div>
-    </div>
+      <div class="cert-full-body">
+        <div class="cert-full-presented">This is to certify that</div>
+        <div class="cert-full-name">${userName}</div>
+        <div class="cert-full-desc">has successfully completed the course</div>
+        <div class="cert-full-course">${c.title}</div>
+        <div class="cert-full-tag">${c.tag||''}</div>
+        <div class="cert-full-body-divider"></div>
+      </div>
+      <div class="cert-full-footer">
+        <div class="cert-full-footer-col">
+          <div class="cert-full-footer-value">${dateStr}</div>
+          <div class="cert-full-footer-rule"></div>
+          <div class="cert-full-footer-label">Date of Completion</div>
+        </div>
+        <div class="cert-full-seal">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" width="90" height="90">
+            <circle cx="50" cy="50" r="46" stroke="rgba(201,162,39,0.35)" stroke-width="1.5" stroke-dasharray="5 3"/>
+            <circle cx="50" cy="50" r="38" stroke="rgba(201,162,39,0.55)" stroke-width="1.5"/>
+            <circle cx="50" cy="50" r="32" fill="rgba(201,162,39,0.07)" stroke="rgba(201,162,39,0.3)" stroke-width="1"/>
+            <image href="/bluecopa-icon.png" x="27" y="27" width="46" height="46"/>
+          </svg>
+          <div class="cert-full-seal-label">OFFICIAL SEAL</div>
+        </div>
+        <div class="cert-full-footer-col">
+          <div class="cert-full-footer-value">Bluecopa</div>
+          <div class="cert-full-footer-rule"></div>
+          <div class="cert-full-footer-label">Authorised by</div>
+        </div>
+      </div>
+      <div class="cert-full-id">Certificate ID: ${certId}</div>
+      <div class="cert-full-bottom-bar"></div>
     </div>
   </div>`;
   document.body.appendChild(modal);
