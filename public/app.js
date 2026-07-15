@@ -1597,7 +1597,7 @@ function ppRenderLanding() {
   // Badge — use formatColor if available, fall back to type
   const colorKey = g.formatColor || g.type || 'quiz';
   const badgeEl = document.getElementById('ppTypeBadge');
-  const FMT_LABELS = {knowledge_quiz:'Multiple Choice',true_false:'True or False',fill_blank:'Fill in the Blank',riddle_round:'Riddle Round',emoji_quiz:'Emoji Decode',who_am_i:'Who Am I?',rapid_fire:'Rapid Fire',scenario:'Scenario Challenge',spot_mistake:'Spot the Mistake',term_buster:'Term Buster',what_next:'What Comes Next?',mixed_bag:'Mixed Bag'};
+  const FMT_LABELS = {knowledge_quiz:'Multiple Choice',true_false:'True or False',fill_blank:'Fill in the Blank',riddle_round:'Riddle Round',emoji_quiz:'Emoji Decode',who_am_i:'Who Am I?',rapid_fire:'Rapid Fire',scenario:'Scenario Challenge',spot_mistake:'Spot the Mistake',term_buster:'Term Buster',what_next:'What Comes Next?',mixed_bag:'Mixed Bag',puzzle:'Puzzle'};
   badgeEl.className = `pp-badge pp-badge-${colorKey}`;
   badgeEl.style.display = 'inline-flex';
   const icon = g.formatIcon || '🧩';
@@ -1813,12 +1813,13 @@ function ppStartGame() {
     riddle_round:   {icon:'🔮', label:'Riddle Round',        desc:'Solve metaphorical riddles using domain knowledge'},
     emoji_quiz:     {icon:'🎯', label:'Emoji Decode',        desc:'Decode process workflows from emoji sequences'},
     who_am_i:       {icon:'🕵️', label:'Who Am I?',           desc:'Identify the concept from 3 progressive clues'},
-    rapid_fire:     {icon:'⚡', label:'Rapid Fire',          desc:'10 quick questions — speed & accuracy count!'},
+    rapid_fire:     {icon:'⚡', label:'Rapid Fire',          desc:'12 quick questions — speed & accuracy count!'},
     scenario:       {icon:'🎭', label:'Scenario Challenge',  desc:'Make the right call in real-world situations'},
     spot_mistake:   {icon:'🔍', label:'Spot the Mistake',    desc:'Find the deliberate error in each description'},
     term_buster:    {icon:'📖', label:'Term Buster',         desc:'Match terms, acronyms and definitions'},
     what_next:      {icon:'⏭️', label:'What Comes Next?',    desc:'Identify the next correct step in the workflow'},
     mixed_bag:      {icon:'🎲', label:'Mixed Bag',           desc:'A surprise mix of all question types'},
+    puzzle:         {icon:'🧩', label:'Puzzle',              desc:'Piece together 3 clues to identify the concept'},
   };
   const gameType = (ppCurrentGame.type || 'knowledge_quiz').trim();
   const meta = FMT_META[gameType] || {icon:'🎮', label: gameType.replace(/_/g,' '), desc:'Answer all questions'};
@@ -1892,6 +1893,7 @@ function ppRenderQuestion() {
     term_buster:    {icon:'📖', label:'Term Buster'},
     what_next:      {icon:'⏭️', label:'What Comes Next?'},
     mixed_bag:      {icon:'🎲', label:'Mixed Bag'},
+    puzzle:         {icon:'🧩', label:'Puzzle'},
   };
   const fmtMeta = FMT_META[gameType] || {icon:'🎮', label: gameType.replace(/_/g,' ')};
   const bannerEl = document.getElementById('ppFormatBanner');

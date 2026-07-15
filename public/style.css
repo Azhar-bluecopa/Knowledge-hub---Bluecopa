@@ -864,7 +864,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .pp-lb-rank.bronze{color:#cd8b6a;}
 /* ══════════════ GAMING LEADERBOARD v2 — NEXRISE INSPIRED ════════════════ */
 /* Outer wrap — properly contains particles */
-.pp-gl-wrap{position:relative;width:100%;max-width:800px;margin:0 auto;padding:0 0 80px;overflow:hidden;}
+.pp-gl-wrap{position:relative;z-index:4;width:100%;max-width:800px;margin:0 auto;padding:0 0 80px;overflow:hidden;background:#080606;}
 /* Stage light cone from top (like Nexrise) */
 .pp-gl-wrap::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:700px;height:500px;background:radial-gradient(ellipse 55% 45% at 50% 0%,rgba(232,201,122,.1) 0%,rgba(200,160,60,.04) 40%,transparent 70%);pointer-events:none;z-index:0;}
 /* Inner content container */
