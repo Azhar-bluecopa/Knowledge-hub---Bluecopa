@@ -983,9 +983,10 @@ app.post('/api/puzzle/generate', async (req, res) => {
     return res.status(503).json({ error: 'AI not configured. Add ANTHROPIC_API_KEY to Vercel env vars.' });
   }
 
-  const articles = (db.articles || []).slice(0, 12).map(a =>
-    `Title: ${a.title}\nCategory: ${a.category}\nExcerpt: ${(a.content || a.excerpt || '').replace(/<[^>]+>/g, '').slice(0, 600)}`
+  const articles = (db.articles || []).map(a =>
+    `Title: ${a.title}\nCategory: ${a.category}\nExcerpt: ${(a.content || a.excerpt || '').replace(/<[^>]+>/g, '').slice(0, 400)}`
   ).join('\n\n---\n\n');
+  const mlCourseSummary = `\n\n---\n\nMY LEARNING COURSES (Key Topics for Quiz Generation):\n- Accounts Receivable (AR): customer invoicing, cash application, dunning & collections, AR aging reports, DSO metric, credit management, period-end AR close\n- Accounts Payable (AP): vendor master data, three-way matching (PO/GR/Invoice), payment runs, GR/IR reconciliation, AP internal controls, DPO metric, period-end AP close\n- Management Information System (MIS): financial statements (P&L, Balance Sheet, Cash Flow), AR/AP/working capital reports, operational KPIs, finance dashboards, exception management\n- Procure-to-Pay (P2P): purchase requisition, purchase orders (PO types), goods receipt (GRN), invoice verification & exceptions, payment processing, P2P KPIs\n- Order-to-Cash (O2C): sales order processing, credit checks, delivery & fulfilment, billing & invoicing, cash collection, dispute management, O2C KPIs\n- Record-to-Report (R2R): journal entries, subledger accounting, GL reconciliation, bank reconciliation, period-end close activities, financial reporting\n- Analytics & Warehousing: data warehousing concepts, data pipelines, ETL processes, analytics frameworks, reporting layers\n- Reconciliation: account reconciliation, intercompany reconciliation, balance confirmation, exception handling & escalation\n- Workflow Automation: workflow design, approval chains, SLA management, process automation tools\n- Enterprise Reporting: management reporting, executive dashboards, data visualization, report governance & distribution\n- Client Integration: data onboarding, API integration, data validation rules, client data mapping & transformation\n- Business Communication: stakeholder communication, escalation protocols, documentation standards, delivery team coordination`;
   const processAreas = (db.skillMatrix && db.skillMatrix.processAreas || []).join(', ') || 'Data Ingestion, Workflows, Portal Creation, Reconciliation, Exports';
   const now = new Date();
   const year = now.getFullYear();
@@ -1000,53 +1001,57 @@ app.post('/api/puzzle/generate', async (req, res) => {
   const PP_FORMATS = [
     { id:'knowledge_quiz', name:'Knowledge Quiz',     icon:'📝', color:'quiz',
       desc:'Test your knowledge of delivery processes and workflows',
-      rules:`Generate 8 multiple-choice KNOWLEDGE questions. Each must have exactly 4 options. Test understanding of processes, tools, and workflows. One option is clearly correct; the other 3 are plausible but wrong. Mix 2 easy, 4 medium, 2 hard.` },
+      rules:`Generate 12 multiple-choice KNOWLEDGE questions. Each must have exactly 4 options. Test understanding of processes, tools, and workflows. One option is clearly correct; the other 3 are plausible but wrong. Mix 3 easy, 6 medium, 3 hard.` },
     { id:'true_false',     name:'True or False',      icon:'⚖️', color:'trivia',
       desc:'Decide if each statement is true or false',
-      rules:`Generate 8 TRUE/FALSE questions. Each question MUST be a statement (not a question). Options MUST be exactly ["True","False"] — only 2 options. Set correct to 0 if True, 1 if False. Mix ~4 true and ~4 false.` },
+      rules:`Generate 12 TRUE/FALSE questions. Each question MUST be a statement (not a question). Options MUST be exactly ["True","False"] — only 2 options. Set correct to 0 if True, 1 if False. Mix ~6 true and ~6 false.` },
     { id:'riddle_round',   name:'Riddle Round',       icon:'🔮', color:'scenario',
       desc:'Solve creative riddles about delivery and data concepts',
-      rules:`Generate 8 RIDDLES. Each riddle is metaphorical, written in first person ("I flow between systems..."). Provide 4 answer options, one correct.` },
+      rules:`Generate 12 RIDDLES. Each riddle is metaphorical, written in first person ("I flow between systems..."). Provide 4 answer options, one correct.` },
     { id:'fill_blank',     name:'Fill in the Blank',  icon:'✏️', color:'quiz',
       desc:'Complete the missing word or phrase in each statement',
-      rules:`Generate 8 FILL-IN-THE-BLANK questions. Each is a sentence with exactly ONE blank marked as _____. Provide 4 options to fill the blank — only one is correct.` },
+      rules:`Generate 12 FILL-IN-THE-BLANK questions. Each is a sentence with exactly ONE blank marked as _____. Provide 4 options to fill the blank — only one is correct.` },
     { id:'spot_mistake',   name:'Spot the Mistake',   icon:'🔍', color:'trivia',
       desc:'Find the deliberate error hidden in each description',
-      rules:`Generate 8 SPOT-THE-MISTAKE questions. Each describes a process with ONE deliberate factual mistake. Ask "What is incorrect?" with 4 options.` },
+      rules:`Generate 12 SPOT-THE-MISTAKE questions. Each describes a process with ONE deliberate factual mistake. Ask "What is incorrect?" with 4 options.` },
     { id:'scenario',       name:'Scenario Challenge', icon:'🎯', color:'scenario',
       desc:'Make the right call in real-world delivery situations',
-      rules:`Generate 8 SCENARIO-BASED questions. Each presents a work situation with a decision. Provide 4 possible actions — one is clearly best.` },
+      rules:`Generate 12 SCENARIO-BASED questions. Each presents a work situation with a decision. Provide 4 possible actions — one is clearly best.` },
     { id:'what_next',      name:'What Comes Next?',   icon:'⏭️', color:'quiz',
       desc:'Identify the next correct step in a delivery workflow',
-      rules:`Generate 8 SEQUENCING questions. Each describes a process up to a step, then asks "What should happen next?" Provide 4 options.` },
+      rules:`Generate 12 SEQUENCING questions. Each describes a process up to a step, then asks "What should happen next?" Provide 4 options.` },
     { id:'term_buster',    name:'Term Buster',        icon:'📖', color:'trivia',
       desc:'Match terms, acronyms, and definitions from the knowledge base',
-      rules:`Generate 8 TERMINOLOGY questions. Format: "What is [TERM]?", "What does [ACRONYM] stand for?". Provide 4 options — one correct definition.` },
-    { id:'rapid_fire',     name:'Rapid Fire',         icon:'⚡', color:'scenario',
-      desc:'10 quick-fire questions — speed and accuracy both count!',
-      rules:`Generate 10 SHORT multiple-choice questions. Each question MUST be one concise sentence (max 15 words). Each has 4 options, one correct. Focus on quick-recall facts.` },
-    { id:'emoji_quiz',     name:'Emoji Decode',       icon:'🎯', color:'scenario',
+      rules:`Generate 12 TERMINOLOGY questions. Format: "What is [TERM]?", "What does [ACRONYM] stand for?". Provide 4 options — one correct definition. Include at least 3 acronym questions.` },
+    { id:'rapid_fire',     name:'Rapid Fire ⚡',       icon:'⚡', color:'scenario',
+      desc:'12 quick-fire questions — speed and accuracy both count!',
+      rules:`Generate 12 SHORT multiple-choice questions. Each question MUST be one concise sentence (max 15 words). Each has 4 options, one correct. Focus on quick-recall facts. Mix 4 easy, 5 medium, 3 hard.` },
+    { id:'emoji_quiz',     name:'Emoji Decode 🎯',    icon:'🎯', color:'scenario',
       desc:'Decode process workflows and concepts from emoji sequences!',
-      rules:`Generate 8 EMOJI-CLUE questions. Each question shows 3–5 emojis representing a process or concept. Format: "📥 → 🔍 → ✅ — What process does this represent?" Provide 4 answer options.` },
-    { id:'who_am_i',       name:'Who Am I?',          icon:'🕵️', color:'trivia',
+      rules:`Generate 12 EMOJI-CLUE questions. Each question shows 3–5 emojis representing a process or concept. Format: "📥 → 🔍 → ✅ — What process does this represent?" Provide 4 answer options.` },
+    { id:'who_am_i',       name:'Who Am I? 🕵️',       icon:'🕵️', color:'trivia',
       desc:'Guess the role, tool, or process from cryptic clues!',
-      rules:`Generate 8 "WHO/WHAT AM I?" questions with 3 progressive clues. Format: "Clue 1: [vague]. Clue 2: [more specific]. Clue 3: [most specific]. Who/What am I?" Provide 4 options.` },
+      rules:`Generate 12 "WHO/WHAT AM I?" questions with 3 progressive clues. Format: "Clue 1: [vague]. Clue 2: [more specific]. Clue 3: [most specific]. Who/What am I?" Provide 4 options.` },
     { id:'mixed_bag',      name:'Mixed Bag',          icon:'🎲', color:'quiz',
       desc:'A surprise mix of all question types — stay on your toes!',
-      rules:`Generate 8 questions using a MIX: 2 standard MCQ, 2 TRUE/FALSE (options MUST be ["True","False"]), 2 fill-in-the-blank (with _____), 2 riddles (metaphorical, first person).` },
+      rules:`Generate 12 questions using a MIX: 3 standard MCQ, 3 TRUE/FALSE (options MUST be ["True","False"]), 3 fill-in-the-blank (with _____), 3 riddles (metaphorical, first person).` },
+    { id:'puzzle',         name:'Puzzle',             icon:'🧩', color:'quiz',
+      desc:'Piece together clues to identify the correct process or concept',
+      rules:`Generate 12 PUZZLE questions. Each presents exactly 3 numbered facts about a delivery process, tool, concept, or workflow term from the knowledge base. Format: "Given these facts: [1] ... [2] ... [3] ... — what is being described?" Provide 4 answer options (one correct, three plausible alternatives). The 3 facts approach the concept from different angles: function, outcome, and usage context. Mix difficulty: easier puzzles use direct facts, harder ones use abstract or indirect descriptions.` },
   ];
 
   const fmt = (formatId && formatId !== 'random')
     ? (PP_FORMATS.find(f => f.id === formatId) || PP_FORMATS[Math.floor(Math.random() * PP_FORMATS.length)])
     : PP_FORMATS[Math.floor(Math.random() * PP_FORMATS.length)];
 
-  const questionCount = fmt.id === 'rapid_fire' ? 10 : 8;
+  const questionCount = 12;
   const optionsExample = fmt.id === 'true_false' ? '["True","False"]' : '["Option A","Option B","Option C","Option D"]';
   const questionExample =
     fmt.id === 'fill_blank'  ? '"Teams use _____ to verify that ingested data matches source system counts."' :
     fmt.id === 'emoji_quiz'  ? '"📥 → 🔍 → ✅ → 📊 — What process does this emoji sequence represent?"' :
     fmt.id === 'who_am_i'   ? '"Clue 1: I am invisible until something breaks. Clue 2: I watch every data load. Clue 3: Teams set my thresholds. Who/What am I?"' :
     fmt.id === 'riddle_round'? '"I travel between systems carrying data, transforming as I go. What am I?"' :
+    fmt.id === 'puzzle'      ? '"Given these facts: [1] It matches amounts across two different ledgers. [2] It is performed at month-end to verify completeness. [3] Discrepancies found are escalated to the finance team. — What process is being described?"' :
     '"Full question text here."';
 
   const formatEnforcement = [
@@ -1055,7 +1060,8 @@ app.post('/api/puzzle/generate', async (req, res) => {
     fmt.id === 'who_am_i'    ? '⚠️ EVERY question MUST follow "Clue 1: ... Clue 2: ... Clue 3: ... Who/What am I?" format.' : '',
     fmt.id === 'riddle_round' ? '⚠️ EVERY question MUST be first-person metaphorical riddle ("I am...", "I do...").' : '',
     fmt.id === 'true_false'   ? '⚠️ options array MUST be exactly ["True","False"] for every question — no 4-option arrays.' : '',
-    fmt.id === 'rapid_fire'   ? '⚠️ EVERY question must be ≤15 words. Generate 10, not 8.' : '',
+    fmt.id === 'rapid_fire'   ? '⚠️ EVERY question must be ≤15 words. Generate exactly 12 questions.' : '',
+    fmt.id === 'puzzle'       ? '⚠️ PUZZLE RULE: Every question MUST be formatted as "Given these facts: [1] ... [2] ... [3] ... — what is being described?" No other format accepted.' : '',
   ].filter(Boolean).join('\n');
 
   const prompt = `You are generating a "${fmt.name}" format quiz for a delivery team's weekly "Process Puzzle" challenge.
@@ -1063,7 +1069,7 @@ app.post('/api/puzzle/generate', async (req, res) => {
 THIS IS A "${fmt.id.toUpperCase()}" FORMAT — NOT STANDARD MULTIPLE CHOICE.
 
 KNOWLEDGE BASE:
-${articles}
+${articles}${mlCourseSummary}
 
 PROCESS AREAS: ${processAreas}
 
@@ -1100,7 +1106,7 @@ Generate exactly ${questionCount} questions. Every question MUST match the ${fmt
     const client = new Anthropic.default({ apiKey: anthropicKey });
     const message = await client.messages.create({
       model: 'claude-opus-4-5',
-      max_tokens: 3000,
+      max_tokens: 4096,
       system: `You are a quiz generator that STRICTLY follows format instructions. You NEVER output standard MCQ unless the format is "knowledge_quiz". Match the exact format specified. Return ONLY valid JSON.`,
       messages: [{ role: 'user', content: prompt }]
     });
