@@ -2082,7 +2082,7 @@ async function ppGenerateGame() {
   try {
     const weekNum = parseInt(document.getElementById('ppWeekNum')?.value) || 1;
     const formatId = document.getElementById('ppFormatSelect')?.value || 'random';
-    const r=await fetch('/api/puzzle/generate',{method:'POST',headers:{'x-admin-password':getAdminPwd(),'content-type':'application/json'},body:JSON.stringify({weekNumber:weekNum,formatId})});
+    const r=await fetch('/api/puzzle/generate',{method:'POST',headers:{'x-user-email':getAdminPwd(),'content-type':'application/json'},body:JSON.stringify({weekNumber:weekNum,formatId})});
     const data=await r.json();
     if(data.success){
       ppCurrentGame=data.game;
@@ -4361,7 +4361,7 @@ async function liAdmLoad() {
   if (!list) return;
   list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;">Loading…</div>';
   try {
-    const r = await fetch('/api/leadership/users', { headers: { 'x-admin-password': getAdminPwd() } });
+    const r = await fetch('/api/leadership/users', { headers: { 'x-user-email': getAdminPwd() } });
     const d = await r.json();
     const users = d.users || [];
     if (!users.length) {
@@ -4393,7 +4393,7 @@ async function liAddUser() {
   try {
     const r = await fetch('/api/leadership/users', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-password': getAdminPwd() },
+      headers: { 'Content-Type': 'application/json', 'x-user-email': getAdminPwd() },
       body: JSON.stringify({ userName: name })
     });
     const d = await r.json();
@@ -4414,7 +4414,7 @@ async function liAdmRemove(userName) {
   try {
     const r = await fetch('/api/leadership/users', {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json', 'x-admin-password': getAdminPwd() },
+      headers: { 'Content-Type': 'application/json', 'x-user-email': getAdminPwd() },
       body: JSON.stringify({ userName })
     });
     const d = await r.json();
@@ -4992,7 +4992,7 @@ async function lmLoadTeam() {
   }
   if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="lm-table-loading">Loading team data…</td></tr>';
   try {
-    const r = await fetch('/api/learning/team', { headers: { 'x-admin-password': pwd } });
+    const r = await fetch('/api/learning/team', { headers: { 'x-user-email': pwd } });
     if (r.status === 401) {
       localStorage.removeItem('kb_admin_pwd');
       if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="lm-table-loading" style="color:#f87171">Wrong admin password. Close and re-click 📋 Manage to re-enter.</td></tr>';
@@ -5109,7 +5109,7 @@ function lmPopulateUserDropdowns() {
   if (!lmTeamData) {
     const pwd = getAdminPwd();
     if (!pwd) return;
-    fetch('/api/learning/team', { headers: { 'x-admin-password': pwd } })
+    fetch('/api/learning/team', { headers: { 'x-user-email': pwd } })
       .then(r => r.json()).then(d => { lmTeamData = d; lmPopulateUserDropdowns(); }).catch(()=>{});
     return;
   }
@@ -5149,7 +5149,7 @@ async function lmAssignSubmit() {
   try {
     await fetch('/api/learning/bulk-assign', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-password': pwd },
+      headers: { 'Content-Type': 'application/json', 'x-user-email': pwd },
       body: JSON.stringify({ userNames: [user], courseIds: checked, type, dueDate: due || null })
     });
     lmShowMsg(msg, `✓ ${checked.length} course(s) assigned to ${user}`, 'ok');
@@ -5182,7 +5182,7 @@ async function lmDeleteAssignment(id) {
   const pwd = getAdminPwd();
   if (!confirm('Remove this assignment?')) return;
   await fetch(`/api/learning/assignments/${id}`, {
-    method: 'DELETE', headers: { 'x-admin-password': pwd }
+    method: 'DELETE', headers: { 'x-user-email': pwd }
   });
   await lmLoadTeam();
   lmRenderRecent();
@@ -5199,7 +5199,7 @@ async function lmEnrollNewJoiner() {
   try {
     const r = await fetch('/api/learning/bulk-assign', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-password': pwd },
+      headers: { 'Content-Type': 'application/json', 'x-user-email': pwd },
       body: JSON.stringify({ userNames: [user], courseIds, pathId: 'new-joiner', type: 'mandatory', dueDate: due || null })
     });
     const d = await r.json();
@@ -5218,7 +5218,7 @@ async function lmEnrollAll() {
   try {
     const r = await fetch('/api/learning/bulk-assign', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-password': pwd },
+      headers: { 'Content-Type': 'application/json', 'x-user-email': pwd },
       body: JSON.stringify({ userNames, courseIds, pathId: 'new-joiner', type: 'mandatory' })
     });
     const d = await r.json();
@@ -5251,7 +5251,7 @@ async function lmUnenroll(userName) {
     a => a.userName.toLowerCase() === userName.toLowerCase() && a.pathId === 'new-joiner'
   );
   for (const a of toDelete) {
-    await fetch(`/api/learning/assignments/${a.id}`, { method: 'DELETE', headers: { 'x-admin-password': pwd } });
+    await fetch(`/api/learning/assignments/${a.id}`, { method: 'DELETE', headers: { 'x-user-email': pwd } });
   }
   await lmLoadTeam();
   lmRenderEnrolled();
