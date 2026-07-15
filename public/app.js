@@ -1618,13 +1618,36 @@ function ppRenderLanding() {
   }
   document.getElementById('ppQCount').textContent = g.totalQuestions || (g.questions||[]).length;
   document.getElementById('ppParticipants').textContent = g.participantCount || 0;
-  ppLoadLandingLb();
-  const glWrap = document.getElementById('ppGLWrap');
-  if (glWrap) glWrap.style.display = 'block';
 }
 
-async function ppLoadLandingLb() {
-  await ppGLLoad('weekly');
+function ppShowLeaderboard() {
+  const wrap = document.getElementById('ppGLWrap');
+  if (!wrap) return;
+  wrap.classList.add('active');
+  ppGLCurrentPeriod = 'weekly';
+  document.querySelectorAll('.pp-gl-tab').forEach(t => t.classList.remove('active'));
+  const weeklyBtn = document.querySelector('.pp-gl-tab');
+  if (weeklyBtn) weeklyBtn.classList.add('active');
+  ppGLLoad('weekly');
+  ppGLSpawnShootingStars(wrap);
+  ppGLSpawnParticles();
+}
+
+function ppHideLeaderboard() {
+  const wrap = document.getElementById('ppGLWrap');
+  if (wrap) wrap.classList.remove('active');
+}
+
+function ppGLSpawnShootingStars(wrap) {
+  if (wrap.querySelector('.pp-gl-sstar')) return;
+  for (let i = 0; i < 6; i++) {
+    const s = document.createElement('div');
+    s.className = 'pp-gl-sstar';
+    const delay = (i * 2.2 + Math.random() * 2).toFixed(1);
+    const dur   = (5 + Math.random() * 6).toFixed(1);
+    s.style.cssText = `left:${5 + Math.random() * 75}%;top:${2 + Math.random() * 38}%;animation-delay:${delay}s;animation-duration:${dur}s;`;
+    wrap.appendChild(s);
+  }
 }
 
 // ── Gaming Leaderboard ────────────────────────────────────────────────────────

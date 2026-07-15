@@ -18,7 +18,7 @@
   <noscript>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
-  <link rel="stylesheet" href="/style.css?v=72">
+  <link rel="stylesheet" href="/style.css?v=73">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -4912,7 +4912,7 @@ async function updateFeedbackStatus(id) {
               <span class="pp-dg-btn-icon">🧩</span>
               <span class="pp-dg-btn-label">Start New Game</span>
             </button>
-            <button class="pp-dg-btn pp-dg-btn-secondary" onclick="document.getElementById('ppGLWrap').scrollIntoView({behavior:'smooth'})">
+            <button class="pp-dg-btn pp-dg-btn-secondary" onclick="ppShowLeaderboard()">
               <span class="pp-dg-btn-icon">🏆</span>
               <span class="pp-dg-btn-label">View Leaderboard</span>
             </button>
@@ -4927,11 +4927,13 @@ async function updateFeedbackStatus(id) {
         </div>
       </div>
 
-      <!-- Gaming Leaderboard v2 -->
-      <div id="ppGLWrap" class="pp-gl-wrap" style="display:none;">
+      <!-- Gaming Leaderboard v2 — full-screen overlay -->
+      <div id="ppGLWrap" class="pp-gl-wrap">
+        <!-- Sticky top nav -->
+        <div class="pp-gl-nav">
+          <button class="pp-gl-back-btn" onclick="ppHideLeaderboard()">← Back to Game</button>
+        </div>
         <div class="pp-gl-inner">
-          <!-- Back button -->
-          <button class="pp-gl-back-btn" onclick="document.getElementById('ppGameInfo').scrollIntoView({behavior:'smooth'})">← Back to Game</button>
           <!-- Header -->
           <div class="pp-gl-header">
             <div class="pp-gl-main-title">Leaderboard</div>
@@ -6626,7 +6628,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=12" defer></script>
-  <script src="/app.js?v=60" defer></script>
+  <script src="/app.js?v=61" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      ISSUE RESOLUTION PORTAL
