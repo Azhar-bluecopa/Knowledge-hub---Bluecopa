@@ -18,7 +18,7 @@
   <noscript>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
-  <link rel="stylesheet" href="/style.css?v=76">
+  <link rel="stylesheet" href="/style.css?v=77">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -5075,12 +5075,17 @@ async function updateFeedbackStatus(id) {
     <div class="dw-ab-glow dw-ab-glow-1"></div>
     <div class="dw-ab-glow dw-ab-glow-2"></div>
 
-    <!-- Opening — full-width hero -->
+    <!-- Opening — split hero: text left, animated orb right -->
     <section class="dw-ab-opener">
-      <div class="dw-ab-kicker dw-ab-anim-1">BLUECOPA · DELIVERY TEAM'S GO-TO PLACE</div>
-      <h1 class="dw-ab-h1 dw-ab-anim-2">The answer existed.<br><em>Finding it was the problem.</em></h1>
-      <p class="dw-ab-lead dw-ab-anim-3">So we built one place where everything the delivery team knows actually lives. Not in scattered docs. Not inside someone's head. Here — searchable, structured, and always current.</p>
-      <div class="dw-ab-divider-line dw-ab-anim-4"></div>
+      <div class="dw-ab-opener-text">
+        <div class="dw-ab-kicker dw-ab-anim-1">BLUECOPA · DELIVERY TEAM'S GO-TO PLACE</div>
+        <h1 class="dw-ab-h1 dw-ab-anim-2">The answer existed.<br><em>Finding it was the problem.</em></h1>
+        <p class="dw-ab-lead dw-ab-anim-3">So we built one place where everything the delivery team knows actually lives. Not in scattered docs. Not inside someone's head. Here — searchable, structured, and always current.</p>
+        <div class="dw-ab-divider-line dw-ab-anim-4"></div>
+      </div>
+      <div class="dw-ab-opener-orb dw-ab-anim-1">
+        <canvas id="dwAbOrb"></canvas>
+      </div>
     </section>
 
     <!-- Live stats — full-width, colored -->
@@ -6611,7 +6616,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=12" defer></script>
-  <script src="/app.js?v=65" defer></script>
+  <script src="/app.js?v=66" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      ISSUE RESOLUTION PORTAL

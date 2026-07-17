@@ -3306,6 +3306,120 @@ document.addEventListener('click', (e) => {
 const DW_AV_SLIDES = 7;
 const DW_AV_DURATION = 8000; // ms per slide
 let _dwAbObserver = null;
+let _dwAbOrbRaf  = null;
+
+/* ── Knowledge-graph orb animation ─────────────────────────────────────── */
+function _dwAbStartOrb() {
+  const canvas = document.getElementById('dwAbOrb');
+  if (!canvas) return;
+  const wrap = canvas.parentElement;
+  const W = wrap.offsetWidth  || 600;
+  const H = wrap.offsetHeight || 520;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const NODES = [
+    { label:'AR',   color:'#818cf8', ox:.22, oy:.18, r:32 },
+    { label:'AP',   color:'#e8c97a', ox:.72, oy:.14, r:27 },
+    { label:'O2C',  color:'#00c8cc', ox:.12, oy:.52, r:35 },
+    { label:'P2P',  color:'#f87171', ox:.58, oy:.38, r:29 },
+    { label:'R2R',  color:'#4ade80', ox:.82, oy:.56, r:31 },
+    { label:'MIS',  color:'#818cf8', ox:.38, oy:.78, r:24 },
+    { label:'AI',   color:'#00c8cc', ox:.68, oy:.82, r:22 },
+    { label:'WIKI', color:'#e8c97a', ox:.18, oy:.86, r:20 },
+    { label:'ERP',  color:'#f87171', ox:.50, oy:.12, r:19 },
+    { label:'OPS',  color:'#4ade80', ox:.88, oy:.28, r:18 },
+  ].map(n => ({
+    ...n,
+    x: n.ox * W, y: n.oy * H,
+    vx: (Math.random() - .5) * .28,
+    vy: (Math.random() - .5) * .28,
+    phase: Math.random() * Math.PI * 2,
+    spd:   .5 + Math.random() * .5,
+  }));
+
+  const LINK_DIST = Math.min(W, H) * .42;
+
+  function frame(ts) {
+    ctx.clearRect(0, 0, W, H);
+
+    /* connections */
+    for (let i = 0; i < NODES.length; i++) {
+      for (let j = i + 1; j < NODES.length; j++) {
+        const a = NODES[i], b = NODES[j];
+        const dx = a.x - b.x, dy = a.y - b.y;
+        const d  = Math.sqrt(dx*dx + dy*dy);
+        if (d < LINK_DIST) {
+          const alpha = (1 - d / LINK_DIST) * .22;
+          const grd = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+          grd.addColorStop(0, a.color + Math.round(alpha*255).toString(16).padStart(2,'0'));
+          grd.addColorStop(1, b.color + Math.round(alpha*255).toString(16).padStart(2,'0'));
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.strokeStyle = grd;
+          ctx.lineWidth = .9;
+          ctx.stroke();
+        }
+      }
+    }
+
+    /* nodes */
+    NODES.forEach(n => {
+      const pulse = 1 + .07 * Math.sin(ts * .001 * n.spd + n.phase);
+      const r = n.r * pulse;
+
+      /* outer glow */
+      const grd = ctx.createRadialGradient(n.x, n.y, r * .2, n.x, n.y, r * 3);
+      grd.addColorStop(0, n.color + '28');
+      grd.addColorStop(1, 'transparent');
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r * 3, 0, Math.PI*2);
+      ctx.fillStyle = grd;
+      ctx.fill();
+
+      /* ring */
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r, 0, Math.PI*2);
+      ctx.fillStyle   = n.color + '14';
+      ctx.fill();
+      ctx.strokeStyle = n.color + '90';
+      ctx.lineWidth   = 1.4;
+      ctx.stroke();
+
+      /* inner bright ring */
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r * .55, 0, Math.PI*2);
+      ctx.fillStyle = n.color + '22';
+      ctx.fill();
+
+      /* label */
+      const fs = Math.max(8, r * .44);
+      ctx.font         = `500 ${fs}px 'DM Mono',monospace`;
+      ctx.fillStyle    = n.color;
+      ctx.textAlign    = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(n.label, n.x, n.y);
+
+      /* move & bounce */
+      n.x += n.vx; n.y += n.vy;
+      if (n.x < r + 4 || n.x > W - r - 4) n.vx *= -1;
+      if (n.y < r + 4 || n.y > H - r - 4) n.vy *= -1;
+    });
+
+    _dwAbOrbRaf = requestAnimationFrame(frame);
+  }
+
+  if (_dwAbOrbRaf) cancelAnimationFrame(_dwAbOrbRaf);
+  _dwAbOrbRaf = requestAnimationFrame(frame);
+}
+
+function _dwAbStopOrb() {
+  if (_dwAbOrbRaf) { cancelAnimationFrame(_dwAbOrbRaf); _dwAbOrbRaf = null; }
+}
 
 function dwOpenAbout() {
   const overlay = document.getElementById('dwAboutOverlay');
@@ -3332,12 +3446,16 @@ function dwOpenAbout() {
 
   overlay.querySelectorAll('.dw-ab-scroll-reveal').forEach(el => _dwAbObserver.observe(el));
 
+  // Start orb after overlay is visible so offsetWidth/Height are correct
+  requestAnimationFrame(_dwAbStartOrb);
+
   _dwAbInjectLive();
 }
 
 function dwCloseAbout() {
   document.getElementById('dwAboutOverlay').classList.remove('active');
   if (_dwAbObserver) { _dwAbObserver.disconnect(); _dwAbObserver = null; }
+  _dwAbStopOrb();
 }
 
 function _dwAbInjectLive() {
