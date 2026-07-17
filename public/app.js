@@ -2199,11 +2199,16 @@ async function updateLandingStats(){
   // 0. My Learning courses
   const cEl=document.getElementById('dwStatCourses');
   const cSubEl=document.getElementById('dwStatCoursesSub');
-  if(cEl&&typeof ML_COURSES!=='undefined'){
+  if(typeof ML_COURSES!=='undefined'){
     const total=ML_COURSES.length;
+    const totalLessons=ML_COURSES.reduce((t,c)=>t+(c.lessons||0),0);
     const done=ML_COURSES.filter(c=>mlGetCourseProgress(c.id).passed).length;
-    dwCountUp(cEl,total,800);
+    if(cEl){dwCountUp(cEl,total,800);}
     if(cSubEl)cSubEl.textContent=done>0?`${done} completed`:'self-paced';
+    const ccEl=document.getElementById('dwCardCourseCount');
+    const clEl=document.getElementById('dwCardLessonsCount');
+    if(ccEl)dwCountUp(ccEl,total,800);
+    if(clEl)dwCountUp(clEl,totalLessons,800);
   }
   // 1. Articles — total + personal unread count
   const posted=allArticles.length||0;
@@ -2215,12 +2220,17 @@ async function updateLandingStats(){
     const unread=Math.max(0,posted-read.size);
     planEl.textContent=unread>0?`${unread} unread`:'✓ all read';
   }
-  // 2. Skill matrix people
-  let smCount=null;
-  if(typeof smData!=='undefined'&&smData&&smData.employees)smCount=smData.employees.length;
-  else{try{const r=await fetch('/api/skillmatrix');if(r.ok){const d=await r.json();smCount=d.employees?d.employees.length:null;}}catch(e){}}
+  // 2. Skill matrix people + process areas
+  let smCount=null, smPACount=null;
+  let _smD=(typeof smData!=='undefined'&&smData)?smData:null;
+  if(!_smD){try{const r=await fetch('/api/skillmatrix');if(r.ok)_smD=await r.json();}catch(e){}}
+  if(_smD){smCount=_smD.employees?_smD.employees.length:null;smPACount=_smD.processAreas?_smD.processAreas.length:null;}
   const smEl=document.getElementById('dwStatSMPeople');
   if(smEl){if(smCount!==null)dwCountUp(smEl,smCount,800);else smEl.textContent='—';}
+  const paEl=document.getElementById('dwCardPACount');
+  const empEl=document.getElementById('dwCardEmpCount');
+  if(paEl){if(smPACount!==null)dwCountUp(paEl,smPACount,800);else paEl.textContent='—';}
+  if(empEl){if(smCount!==null)dwCountUp(empEl,smCount,800);else empEl.textContent='—';}
   // 3. Games hosted
   let games=null;
   try{const r=await fetch('/api/puzzle/leaderboard');if(r.ok){const d=await r.json();if(d.game&&d.game.week!=null)games=d.game.week;}}catch(e){}

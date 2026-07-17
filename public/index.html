@@ -4339,8 +4339,8 @@ async function updateFeedbackStatus(id) {
           <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Earn completion certificates</div>
         </div>
         <div class="dw-card-stat-row">
-          <div class="dw-card-stat"><div class="dw-card-stat-n">7</div><div class="dw-card-stat-l">Courses</div></div>
-          <div class="dw-card-stat"><div class="dw-card-stat-n">60+</div><div class="dw-card-stat-l">Lessons</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n" id="dwCardCourseCount">—</div><div class="dw-card-stat-l">Courses</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n" id="dwCardLessonsCount">—</div><div class="dw-card-stat-l">Lessons</div></div>
           <div class="dw-card-stat"><div class="dw-card-stat-n">∞</div><div class="dw-card-stat-l">Self-paced</div></div>
         </div>
         <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
@@ -4395,8 +4395,8 @@ async function updateFeedbackStatus(id) {
           <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Visual dashboard with live snapshots</div>
         </div>
         <div class="dw-card-stat-row">
-          <div class="dw-card-stat"><div class="dw-card-stat-n">6</div><div class="dw-card-stat-l">Process Areas</div></div>
-          <div class="dw-card-stat"><div class="dw-card-stat-n">5</div><div class="dw-card-stat-l">Skill Levels</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n" id="dwCardPACount">—</div><div class="dw-card-stat-l">Process Areas</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n" id="dwCardEmpCount">—</div><div class="dw-card-stat-l">Team Members</div></div>
           <div class="dw-card-stat"><div class="dw-card-stat-n">Live</div><div class="dw-card-stat-l">Data</div></div>
         </div>
         <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
@@ -6628,7 +6628,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=12" defer></script>
-  <script src="/app.js?v=62" defer></script>
+  <script src="/app.js?v=63" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      ISSUE RESOLUTION PORTAL
