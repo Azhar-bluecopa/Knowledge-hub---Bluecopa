@@ -18,7 +18,7 @@
   <noscript>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
-  <link rel="stylesheet" href="/style.css?v=75">
+  <link rel="stylesheet" href="/style.css?v=76">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -5071,115 +5071,117 @@ async function updateFeedbackStatus(id) {
 
   <!-- Scrollable body -->
   <div class="dw-ab-scroll">
-    <div class="dw-ab-glow"></div>
+    <!-- Ambient layers -->
+    <div class="dw-ab-glow dw-ab-glow-1"></div>
+    <div class="dw-ab-glow dw-ab-glow-2"></div>
 
-    <!-- Opening -->
+    <!-- Opening — full-width hero -->
     <section class="dw-ab-opener">
-      <div class="dw-ab-kicker">BLUECOPA · DELIVERY TEAM'S GO-TO PLACE</div>
-      <h1 class="dw-ab-h1">We got tired of<br>searching Slack for answers.</h1>
-      <p class="dw-ab-lead">So we built this. Everything the delivery team does, knows, and learns — in one place that's actually easy to use. Not another tool to manage. A resource you'll reach for on your own.</p>
+      <div class="dw-ab-kicker dw-ab-anim-1">BLUECOPA · DELIVERY TEAM'S GO-TO PLACE</div>
+      <h1 class="dw-ab-h1 dw-ab-anim-2">The answer existed.<br><em>Finding it was the problem.</em></h1>
+      <p class="dw-ab-lead dw-ab-anim-3">So we built one place where everything the delivery team knows actually lives. Not in scattered docs. Not inside someone's head. Here — searchable, structured, and always current.</p>
+      <div class="dw-ab-divider-line dw-ab-anim-4"></div>
     </section>
 
-    <!-- Live stats row -->
-    <div class="dw-ab-numbers">
-      <div class="dw-ab-num"><strong id="dwAbN1">—</strong><span>courses</span></div>
+    <!-- Live stats — full-width, colored -->
+    <div class="dw-ab-numbers dw-ab-anim-5">
+      <div class="dw-ab-num" style="--nc:#e8c97a;"><strong id="dwAbN1">—</strong><span>courses</span></div>
       <div class="dw-ab-num-div"></div>
-      <div class="dw-ab-num"><strong id="dwAbN2">—</strong><span>lessons</span></div>
+      <div class="dw-ab-num" style="--nc:#f87171;"><strong id="dwAbN2">—</strong><span>lessons</span></div>
       <div class="dw-ab-num-div"></div>
-      <div class="dw-ab-num"><strong id="dwAbN3">—</strong><span>articles</span></div>
+      <div class="dw-ab-num" style="--nc:#00c8cc;"><strong id="dwAbN3">—</strong><span>articles</span></div>
       <div class="dw-ab-num-div"></div>
-      <div class="dw-ab-num"><strong id="dwAbN4">—</strong><span>team members</span></div>
+      <div class="dw-ab-num" style="--nc:#818cf8;"><strong id="dwAbN4">—</strong><span>team members</span></div>
       <div class="dw-ab-num-div"></div>
-      <div class="dw-ab-num"><strong id="dwAbN5">—</strong><span>process areas</span></div>
+      <div class="dw-ab-num" style="--nc:#4ade80;"><strong id="dwAbN5">—</strong><span>process areas</span></div>
     </div>
 
-    <!-- Features -->
-    <div class="dw-ab-feats">
+    <!-- Live features — 2-column card grid -->
+    <div class="dw-ab-feat-grid">
 
-      <div class="dw-ab-feat">
-        <div class="dw-ab-feat-left">
-          <div class="dw-ab-feat-num">01</div>
-          <div class="dw-ab-feat-icon">📚</div>
+      <div class="dw-ab-fcard dw-ab-scroll-reveal" style="--fc:#00c8cc;">
+        <div class="dw-ab-fc-accent"></div>
+        <div class="dw-ab-fc-header">
+          <span class="dw-ab-fc-icon">📚</span>
+          <span class="dw-ab-fc-num">01</span>
+          <span class="dw-ab-live-chip">LIVE</span>
         </div>
-        <div class="dw-ab-feat-body">
-          <div class="dw-ab-feat-name">Knowledge Articles <span class="dw-ab-live-chip">LIVE</span></div>
-          <div class="dw-ab-feat-hl">Stop rediscovering things that already happened.</div>
-          <p class="dw-ab-feat-p"><span id="dwAbT3">—</span> articles written by the people who actually do the work — not documentation created for compliance checkboxes. When a configuration question comes up at 11pm, the answer is here. Not buried in someone's DMs from six months ago.</p>
-          <div class="dw-ab-feat-tags"><span>How-Tos</span><span>Deep Dives</span><span>Best Practices</span><span>FAQs</span></div>
-        </div>
+        <div class="dw-ab-fc-label">Knowledge Articles</div>
+        <div class="dw-ab-fc-hl">Stop rediscovering things that already happened.</div>
+        <p class="dw-ab-fc-p"><strong id="dwAbT3">—</strong> articles written by the people who actually do the work — not documentation created for compliance checkboxes. When a configuration question comes up at 11pm, the answer is here. Not buried somewhere six months ago.</p>
+        <div class="dw-ab-fc-tags"><span>How-Tos</span><span>Deep Dives</span><span>Best Practices</span><span>FAQs</span></div>
       </div>
 
-      <div class="dw-ab-feat">
-        <div class="dw-ab-feat-left">
-          <div class="dw-ab-feat-num">02</div>
-          <div class="dw-ab-feat-icon">🎓</div>
+      <div class="dw-ab-fcard dw-ab-scroll-reveal" style="--fc:#e8c97a;">
+        <div class="dw-ab-fc-accent"></div>
+        <div class="dw-ab-fc-header">
+          <span class="dw-ab-fc-icon">🎓</span>
+          <span class="dw-ab-fc-num">02</span>
+          <span class="dw-ab-live-chip">LIVE</span>
         </div>
-        <div class="dw-ab-feat-body">
-          <div class="dw-ab-feat-name">My Learning <span class="dw-ab-live-chip">LIVE</span></div>
-          <div class="dw-ab-feat-hl">Not another mandatory training you'll click through in 20 minutes.</div>
-          <p class="dw-ab-feat-p"><span id="dwAbT1">—</span> courses built around what we actually do — AR, AP, MIS, P2P, O2C, R2R and more. <span id="dwAbT2">—</span> lessons, each tied to how Bluecopa works in the real world. Self-paced, with quizzes, completion certificates, and progress tracking. Go at your speed.</p>
-          <div class="dw-ab-feat-tags"><span>AR</span><span>AP</span><span>MIS</span><span>P2P</span><span>O2C</span><span>R2R</span><span>+ more</span></div>
-        </div>
+        <div class="dw-ab-fc-label">My Learning</div>
+        <div class="dw-ab-fc-hl">Not another mandatory training you'll click through in 20 minutes.</div>
+        <p class="dw-ab-fc-p"><strong id="dwAbT1">—</strong> courses built around what we actually do — AR, AP, MIS, P2P, O2C, R2R and more. <strong id="dwAbT2">—</strong> lessons, each tied to how Bluecopa works in the real world. Self-paced, with quizzes and certificates. Go at your own speed.</p>
+        <div class="dw-ab-fc-tags"><span>AR</span><span>AP</span><span>MIS</span><span>P2P</span><span>O2C</span><span>R2R</span><span>+ more</span></div>
       </div>
 
-      <div class="dw-ab-feat">
-        <div class="dw-ab-feat-left">
-          <div class="dw-ab-feat-num">03</div>
-          <div class="dw-ab-feat-icon">🧠</div>
+      <div class="dw-ab-fcard dw-ab-scroll-reveal" style="--fc:#818cf8;">
+        <div class="dw-ab-fc-accent"></div>
+        <div class="dw-ab-fc-header">
+          <span class="dw-ab-fc-icon">🧠</span>
+          <span class="dw-ab-fc-num">03</span>
+          <span class="dw-ab-live-chip">LIVE</span>
         </div>
-        <div class="dw-ab-feat-body">
-          <div class="dw-ab-feat-name">Skill Matrix <span class="dw-ab-live-chip">LIVE</span></div>
-          <div class="dw-ab-feat-hl">No more guessing who knows what.</div>
-          <p class="dw-ab-feat-p"><span id="dwAbT5">—</span> process areas, <span id="dwAbT4">—</span> people — each assessed honestly across Beginner → Intermediate → Advanced → Expert. The org can finally see where gaps are. Team members know exactly where to grow next. No more awkward "who should handle this?" moments in client calls.</p>
-          <div class="dw-ab-feat-tags"><span>Self-Assessments</span><span>Team Dashboard</span><span>Snapshots</span><span>Growth Tracking</span></div>
-        </div>
+        <div class="dw-ab-fc-label">Skill Matrix</div>
+        <div class="dw-ab-fc-hl">No more guessing who knows what.</div>
+        <p class="dw-ab-fc-p"><strong id="dwAbT5">—</strong> process areas, <strong id="dwAbT4">—</strong> people — each rated honestly across Beginner → Intermediate → Advanced → Expert. The org sees where gaps are. Everyone knows exactly where to grow next. No more awkward "who should own this?" in a client call.</p>
+        <div class="dw-ab-fc-tags"><span>Self-Assessments</span><span>Team Dashboard</span><span>Snapshots</span><span>Growth Tracking</span></div>
       </div>
 
-      <div class="dw-ab-feat">
-        <div class="dw-ab-feat-left">
-          <div class="dw-ab-feat-num">04</div>
-          <div class="dw-ab-feat-icon">🧩</div>
+      <div class="dw-ab-fcard dw-ab-scroll-reveal" style="--fc:#f87171;">
+        <div class="dw-ab-fc-accent"></div>
+        <div class="dw-ab-fc-header">
+          <span class="dw-ab-fc-icon">🧩</span>
+          <span class="dw-ab-fc-num">04</span>
+          <span class="dw-ab-live-chip">LIVE</span>
         </div>
-        <div class="dw-ab-feat-body">
-          <div class="dw-ab-feat-name">Process Puzzle <span class="dw-ab-live-chip">LIVE</span></div>
-          <div class="dw-ab-feat-hl">Yes, it's a game. Also the most competitive section on the platform.</div>
-          <p class="dw-ab-feat-p">12 questions per session across 6 formats — Scenario Analysis, Deep Dives, Rapid Fire, Mixed Bag, Puzzles, and more. Weekly, monthly, quarterly, yearly leaderboards. Ranks from Bronze all the way to Legend. The friendly rivalry you didn't know the team needed until it started.</p>
-          <div class="dw-ab-feat-tags"><span>Weekly Challenges</span><span>Leaderboards</span><span>Ranks</span><span>Badges</span></div>
-        </div>
+        <div class="dw-ab-fc-label">Process Puzzle</div>
+        <div class="dw-ab-fc-hl">Yes, it's a game. Also the most competitive section on the platform.</div>
+        <p class="dw-ab-fc-p">12 questions per session across 6 formats — Scenario Analysis, Deep Dives, Rapid Fire, Mixed Bag, Puzzles, and more. Leaderboards by week, month, quarter, year. Ranks from Bronze to Legend. The friendly rivalry that crept up on everyone.</p>
+        <div class="dw-ab-fc-tags"><span>Weekly Challenges</span><span>Leaderboards</span><span>Ranks</span><span>Badges</span></div>
       </div>
 
-      <div class="dw-ab-feat dw-ab-feat-soon">
-        <div class="dw-ab-feat-left">
-          <div class="dw-ab-feat-num">05</div>
-          <div class="dw-ab-feat-icon">📊</div>
+    </div><!-- /dw-ab-feat-grid -->
+
+    <!-- Coming soon — horizontal strip -->
+    <div class="dw-ab-coming dw-ab-scroll-reveal">
+      <div class="dw-ab-coming-label">IN THE PIPELINE</div>
+      <div class="dw-ab-coming-row">
+        <div class="dw-ab-citem" style="--fc:#f9a74f;">
+          <div class="dw-ab-citem-icon">📊</div>
+          <div>
+            <div class="dw-ab-citem-name">KPIs <span class="dw-ab-soon-chip">COMING SOON</span></div>
+            <div class="dw-ab-citem-hl">Own your performance numbers — don't wait for someone to tell you.</div>
+            <p class="dw-ab-citem-p">Real-time delivery metrics. Velocity, quality, team health. No more quarterly surprises. Just the data, up front.</p>
+          </div>
         </div>
-        <div class="dw-ab-feat-body">
-          <div class="dw-ab-feat-name">KPIs <span class="dw-ab-soon-chip">COMING SOON</span></div>
-          <div class="dw-ab-feat-hl">Own your performance numbers — don't wait for someone to tell you.</div>
-          <p class="dw-ab-feat-p">Real-time delivery metrics. Velocity, quality, team health — all visible, all the time. No more quarterly surprises. No more "we'll review this in retro." Just the data, up front.</p>
+        <div class="dw-ab-citem-div"></div>
+        <div class="dw-ab-citem" style="--fc:#34d399;">
+          <div class="dw-ab-citem-icon">🏛️</div>
+          <div>
+            <div class="dw-ab-citem-name">The Delivery Journey <span class="dw-ab-soon-chip">COMING SOON</span></div>
+            <div class="dw-ab-citem-hl">Every project leaves a story worth keeping.</div>
+            <p class="dw-ab-citem-p">A living record of past implementations — what worked, what didn't, and why. Institutional memory that doesn't walk out the door.</p>
+          </div>
         </div>
       </div>
+    </div>
 
-      <div class="dw-ab-feat dw-ab-feat-soon">
-        <div class="dw-ab-feat-left">
-          <div class="dw-ab-feat-num">06</div>
-          <div class="dw-ab-feat-icon">🏛️</div>
-        </div>
-        <div class="dw-ab-feat-body">
-          <div class="dw-ab-feat-name">The Delivery Journey <span class="dw-ab-soon-chip">COMING SOON</span></div>
-          <div class="dw-ab-feat-hl">Every project leaves a story worth keeping.</div>
-          <p class="dw-ab-feat-p">A living record of past implementations — what worked, what didn't, and why. The kind of institutional memory that usually walks out the door when someone leaves. It won't here.</p>
-        </div>
-      </div>
-
-    </div><!-- /dw-ab-feats -->
-
-    <div class="dw-ab-rule"></div>
-
-    <!-- Footer note -->
-    <section class="dw-ab-footer">
-      <div class="dw-ab-footer-q">One last thing:</div>
-      <p class="dw-ab-footer-p">This isn't a finished product. It evolves as the team grows, adds knowledge, and finds new gaps. The numbers in this page are live — they change as the platform does. If something's missing, it's probably because no one wrote it yet. That someone could be you.</p>
+    <!-- Footer -->
+    <section class="dw-ab-footer dw-ab-scroll-reveal">
+      <div class="dw-ab-footer-q">ONE LAST THING</div>
+      <p class="dw-ab-footer-p">This isn't a finished product. It evolves as the team grows, adds knowledge, and finds new gaps. The numbers above are live — they change as the platform does. If something's missing, it's probably because no one wrote it yet.</p>
+      <p class="dw-ab-footer-accent">That someone could be you.</p>
       <button class="dw-ab-footer-close" onclick="dwCloseAbout()">Got it — let me explore →</button>
     </section>
   </div><!-- /dw-ab-scroll -->
@@ -6609,7 +6611,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=12" defer></script>
-  <script src="/app.js?v=64" defer></script>
+  <script src="/app.js?v=65" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      ISSUE RESOLUTION PORTAL

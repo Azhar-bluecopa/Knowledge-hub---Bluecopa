@@ -1240,53 +1240,79 @@ html{scroll-behavior:smooth;}
 
 /* ══════════════ ABOUT VIDEO OVERLAY ════════════════════════════════════ */
 /* ── About This Platform overlay ──────────────────────────────────────────── */
-#dwAboutOverlay{position:fixed;inset:0;z-index:190;background:#07070f;display:none;flex-direction:column;font-family:'DM Sans',sans-serif;overflow:hidden;}
-#dwAboutOverlay.active{display:flex;animation:dwAbIn .4s cubic-bezier(.16,1,.3,1) both;}
-@keyframes dwAbIn{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
+#dwAboutOverlay{position:fixed;inset:0;z-index:190;background:#06060e;display:none;flex-direction:column;font-family:'DM Sans',sans-serif;overflow:hidden;}
+#dwAboutOverlay.active{display:flex;}
 .dw-av-close{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);border-radius:99px;padding:8px 20px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .2s;}
 .dw-av-close:hover{background:rgba(232,201,122,.12);border-color:rgba(232,201,122,.4);color:#e8c97a;}
 /* Sticky topbar */
-.dw-ab-bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:14px 40px;background:rgba(7,7,15,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;}
-.dw-ab-bar-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:rgba(255,255,255,.28);}
+.dw-ab-bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:13px 48px;background:rgba(6,6,14,.96);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0;}
+.dw-ab-bar-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,.22);}
 /* Scrollable body */
-.dw-ab-scroll{flex:1;overflow-y:auto;position:relative;scrollbar-width:thin;scrollbar-color:rgba(232,201,122,.15) transparent;}
-.dw-ab-glow{position:fixed;top:-15%;left:50%;transform:translateX(-50%);width:80%;height:55%;background:radial-gradient(ellipse 55% 55% at 50% 0%,rgba(232,201,122,.055),transparent 70%);pointer-events:none;z-index:0;}
-/* Opening */
-.dw-ab-opener{position:relative;z-index:1;max-width:780px;margin:0 auto;padding:72px 40px 44px;}
-.dw-ab-kicker{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:rgba(232,201,122,.45);margin-bottom:22px;}
-.dw-ab-h1{font-family:'Playfair Display',serif;font-size:clamp(30px,4.5vw,56px);font-weight:700;color:#f0f0f6;line-height:1.1;letter-spacing:-.02em;margin-bottom:18px;}
-.dw-ab-lead{font-size:16px;color:rgba(255,255,255,.48);line-height:1.85;font-weight:300;max-width:580px;}
-/* Live stats row */
-.dw-ab-numbers{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;background:rgba(255,255,255,.022);border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06);padding:24px 40px;position:relative;z-index:1;}
-.dw-ab-num{display:flex;flex-direction:column;align-items:center;gap:5px;padding:0 24px;}
-.dw-ab-num strong{font-size:30px;font-weight:800;color:#e8c97a;letter-spacing:-.03em;line-height:1;}
-.dw-ab-num span{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.28);}
-.dw-ab-num-div{width:1px;height:30px;background:rgba(255,255,255,.07);}
-/* Rule */
-.dw-ab-rule{height:1px;background:rgba(255,255,255,.05);margin:0 40px;position:relative;z-index:1;}
-/* Features */
-.dw-ab-feats{max-width:860px;margin:0 auto;padding:32px 40px 16px;position:relative;z-index:1;}
-.dw-ab-feat{display:grid;grid-template-columns:72px 1fr;gap:20px;padding:32px 0;border-bottom:1px solid rgba(255,255,255,.05);}
-.dw-ab-feat:last-child{border-bottom:none;}
-.dw-ab-feat-soon{opacity:.55;}
-.dw-ab-feat-left{display:flex;flex-direction:column;align-items:flex-end;gap:8px;padding-top:2px;}
-.dw-ab-feat-num{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.2em;color:rgba(255,255,255,.18);}
-.dw-ab-feat-icon{font-size:26px;line-height:1;}
-.dw-ab-feat-name{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.dw-ab-live-chip{background:rgba(34,197,94,.1);color:#4ade80;border:1px solid rgba(34,197,94,.22);border-radius:3px;padding:1px 6px;font-size:7.5px;letter-spacing:.16em;}
-.dw-ab-soon-chip{background:rgba(249,167,79,.07);color:#f9a74f;border:1px solid rgba(249,167,79,.18);border-radius:3px;padding:1px 6px;font-size:7.5px;letter-spacing:.16em;}
-.dw-ab-feat-hl{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;color:#eeeef6;line-height:1.3;margin-bottom:10px;}
-.dw-ab-feat-p{font-size:13.5px;color:rgba(255,255,255,.44);line-height:1.85;margin-bottom:12px;}
-.dw-ab-feat-p span{color:#e8c97a;font-weight:600;}
-.dw-ab-feat-tags{display:flex;flex-wrap:wrap;gap:5px;}
-.dw-ab-feat-tags span{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.1em;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:3px;padding:3px 8px;color:rgba(255,255,255,.26);text-transform:uppercase;}
-/* Footer */
-.dw-ab-footer{max-width:780px;margin:0 auto;padding:36px 40px 72px;text-align:center;position:relative;z-index:1;}
-.dw-ab-footer-q{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:rgba(232,201,122,.38);margin-bottom:14px;}
-.dw-ab-footer-p{font-size:13.5px;color:rgba(255,255,255,.36);line-height:1.95;max-width:540px;margin:0 auto 28px;}
-.dw-ab-footer-close{background:rgba(232,201,122,.07);border:1px solid rgba(232,201,122,.22);color:#e8c97a;border-radius:99px;padding:11px 28px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;letter-spacing:.02em;transition:all .22s;}
-.dw-ab-footer-close:hover{background:rgba(232,201,122,.13);border-color:rgba(232,201,122,.48);box-shadow:0 0 22px rgba(232,201,122,.09);}
-/* About button on landing page */
+.dw-ab-scroll{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.06) transparent;}
+/* Ambient glows */
+.dw-ab-glow{position:fixed;pointer-events:none;z-index:0;}
+.dw-ab-glow-1{top:-10%;left:20%;width:55%;height:60%;background:radial-gradient(ellipse 60% 60% at 40% 0%,rgba(129,140,248,.08),transparent 70%);}
+.dw-ab-glow-2{top:10%;right:-5%;width:45%;height:50%;background:radial-gradient(ellipse 55% 55% at 80% 20%,rgba(0,200,204,.05),transparent 70%);}
+/* ── Entrance animations ─────────────────────────────────── */
+@keyframes dwAbFadeUp{from{opacity:0;transform:translateY(28px);}to{opacity:1;transform:translateY(0);}}
+@keyframes dwAbFadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes dwAbLineGrow{from{transform:scaleX(0);opacity:0;}to{transform:scaleX(1);opacity:1;}}
+.dw-ab-anim-1{animation:dwAbFadeUp .65s .05s cubic-bezier(.16,1,.3,1) both;}
+.dw-ab-anim-2{animation:dwAbFadeUp .75s .18s cubic-bezier(.16,1,.3,1) both;}
+.dw-ab-anim-3{animation:dwAbFadeUp .65s .32s cubic-bezier(.16,1,.3,1) both;}
+.dw-ab-anim-4{animation:dwAbLineGrow .8s .5s cubic-bezier(.16,1,.3,1) both;transform-origin:left;}
+.dw-ab-anim-5{animation:dwAbFadeUp .65s .55s cubic-bezier(.16,1,.3,1) both;}
+/* Scroll reveal */
+.dw-ab-scroll-reveal{opacity:0;transform:translateY(32px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1);}
+.dw-ab-scroll-reveal.dw-ab-visible{opacity:1;transform:translateY(0);}
+/* ── Opening section ─────────────────────────────────────── */
+.dw-ab-opener{position:relative;z-index:1;padding:80px 64px 48px;max-width:100%;}
+.dw-ab-kicker{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:rgba(232,201,122,.5);margin-bottom:24px;}
+.dw-ab-h1{font-family:'Playfair Display',serif;font-size:clamp(36px,5.5vw,76px);font-weight:700;color:#f0f0f6;line-height:1.06;letter-spacing:-.025em;margin-bottom:22px;max-width:900px;}
+.dw-ab-h1 em{font-style:normal;background:linear-gradient(120deg,#818cf8 0%,#00c8cc 45%,#4ade80 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.dw-ab-lead{font-size:17px;color:rgba(255,255,255,.45);line-height:1.9;font-weight:300;max-width:640px;margin-bottom:36px;}
+.dw-ab-divider-line{height:1px;width:100%;background:linear-gradient(90deg,rgba(129,140,248,.4) 0%,rgba(0,200,204,.3) 40%,rgba(248,113,113,.2) 70%,transparent 100%);transform-origin:left;}
+/* ── Stats row ───────────────────────────────────────────── */
+.dw-ab-numbers{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;padding:32px 64px;position:relative;z-index:1;gap:0;border-bottom:1px solid rgba(255,255,255,.04);}
+.dw-ab-num{display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 36px;}
+.dw-ab-num strong{font-size:40px;font-weight:800;color:var(--nc,#e8c97a);letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums;}
+.dw-ab-num span{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.25em;text-transform:uppercase;color:rgba(255,255,255,.25);}
+.dw-ab-num-div{width:1px;height:40px;background:rgba(255,255,255,.06);}
+/* ── Feature card grid (2-column) ────────────────────────── */
+.dw-ab-feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.04);position:relative;z-index:1;}
+.dw-ab-fcard{background:#06060e;padding:48px 52px;position:relative;overflow:hidden;transition:background .3s;}
+.dw-ab-fcard:hover{background:#08081a;}
+.dw-ab-fc-accent{position:absolute;top:0;left:0;right:0;height:2px;background:var(--fc,#818cf8);opacity:.7;}
+.dw-ab-fcard::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse 70% 60% at 10% 0%,color-mix(in srgb,var(--fc,#818cf8) 6%,transparent),transparent 70%);pointer-events:none;}
+.dw-ab-fc-header{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.dw-ab-fc-icon{font-size:28px;line-height:1;}
+.dw-ab-fc-num{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.22em;color:rgba(255,255,255,.18);margin-left:auto;}
+.dw-ab-fc-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--fc,#818cf8);opacity:.7;margin-bottom:10px;}
+.dw-ab-fc-hl{font-family:'Playfair Display',serif;font-size:clamp(17px,1.6vw,22px);font-weight:700;color:var(--fc,#818cf8);line-height:1.3;margin-bottom:14px;}
+.dw-ab-fc-p{font-size:13.5px;color:rgba(255,255,255,.42);line-height:1.85;margin-bottom:16px;}
+.dw-ab-fc-p strong{color:var(--fc,#818cf8);font-weight:700;}
+.dw-ab-fc-tags{display:flex;flex-wrap:wrap;gap:5px;}
+.dw-ab-fc-tags span{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.1em;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:3px;padding:3px 8px;color:rgba(255,255,255,.22);text-transform:uppercase;}
+.dw-ab-live-chip{background:rgba(74,222,128,.1);color:#4ade80;border:1px solid rgba(74,222,128,.2);border-radius:3px;padding:1px 6px;font-size:7.5px;letter-spacing:.16em;font-family:'DM Mono',monospace;}
+.dw-ab-soon-chip{background:rgba(249,167,79,.07);color:#f9a74f;border:1px solid rgba(249,167,79,.18);border-radius:3px;padding:1px 6px;font-size:7.5px;letter-spacing:.14em;font-family:'DM Mono',monospace;}
+/* ── Coming soon strip ───────────────────────────────────── */
+.dw-ab-coming{position:relative;z-index:1;padding:0;}
+.dw-ab-coming-label{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.32em;text-transform:uppercase;color:rgba(255,255,255,.18);padding:28px 64px 20px;border-top:1px solid rgba(255,255,255,.04);}
+.dw-ab-coming-row{display:grid;grid-template-columns:1fr 1px 1fr;background:rgba(255,255,255,.015);border-top:1px solid rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.04);}
+.dw-ab-citem{display:flex;align-items:flex-start;gap:20px;padding:36px 52px;opacity:.6;}
+.dw-ab-citem-icon{font-size:24px;flex-shrink:0;margin-top:2px;}
+.dw-ab-citem-name{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--fc,#f9a74f);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.dw-ab-citem-hl{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:rgba(255,255,255,.6);line-height:1.3;margin-bottom:8px;}
+.dw-ab-citem-p{font-size:12.5px;color:rgba(255,255,255,.3);line-height:1.8;}
+.dw-ab-citem-div{background:rgba(255,255,255,.05);}
+/* ── Footer ──────────────────────────────────────────────── */
+.dw-ab-footer{padding:56px 64px 88px;text-align:center;position:relative;z-index:1;}
+.dw-ab-footer-q{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:18px;}
+.dw-ab-footer-p{font-size:14px;color:rgba(255,255,255,.3);line-height:2;max-width:520px;margin:0 auto 12px;}
+.dw-ab-footer-accent{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;background:linear-gradient(120deg,#818cf8,#00c8cc,#4ade80);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:32px;}
+.dw-ab-footer-close{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.55);border-radius:99px;padding:12px 32px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;letter-spacing:.03em;transition:all .25s;}
+.dw-ab-footer-close:hover{background:rgba(232,201,122,.08);border-color:rgba(232,201,122,.35);color:#e8c97a;box-shadow:0 0 24px rgba(232,201,122,.08);}
+/* ── About button on landing ─────────────────────────────── */
 .dw-about-btn-wrap{margin-top:20px;text-align:center;}
 .dw-about-btn{display:inline-flex;align-items:center;gap:8px;background:transparent;border:1px solid rgba(232,201,122,.22);color:rgba(232,201,122,.65);border-radius:99px;padding:9px 22px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .22s;letter-spacing:.02em;}
 .dw-about-btn:hover{background:rgba(232,201,122,.07);border-color:rgba(232,201,122,.48);color:#e8c97a;box-shadow:0 0 18px rgba(232,201,122,.08);}

@@ -3305,40 +3305,65 @@ document.addEventListener('click', (e) => {
 // ══ ABOUT VIDEO PLAYER ═══════════════════════════════════════════════════════
 const DW_AV_SLIDES = 7;
 const DW_AV_DURATION = 8000; // ms per slide
+let _dwAbObserver = null;
+
 function dwOpenAbout() {
   const overlay = document.getElementById('dwAboutOverlay');
   overlay.classList.add('active');
   const scroller = overlay.querySelector('.dw-ab-scroll');
   if (scroller) scroller.scrollTop = 0;
+
+  // Reset scroll-reveal elements so they animate fresh each open
+  overlay.querySelectorAll('.dw-ab-scroll-reveal').forEach(el => el.classList.remove('dw-ab-visible'));
+
+  // Disconnect any prior observer
+  if (_dwAbObserver) { _dwAbObserver.disconnect(); _dwAbObserver = null; }
+
+  // Set up IntersectionObserver inside the scrollable container
+  const root = scroller || overlay;
+  _dwAbObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('dw-ab-visible');
+        _dwAbObserver.unobserve(entry.target);
+      }
+    });
+  }, { root, threshold: 0.12, rootMargin: '0px 0px -32px 0px' });
+
+  overlay.querySelectorAll('.dw-ab-scroll-reveal').forEach(el => _dwAbObserver.observe(el));
+
   _dwAbInjectLive();
 }
 
 function dwCloseAbout() {
   document.getElementById('dwAboutOverlay').classList.remove('active');
+  if (_dwAbObserver) { _dwAbObserver.disconnect(); _dwAbObserver = null; }
 }
 
 function _dwAbInjectLive() {
+  function _abCount(ids, val) {
+    ids.forEach(id => { const el = document.getElementById(id); if (el) dwCountUp(el, val, 900); });
+  }
   // Courses + lessons from ML_COURSES metadata
   if (typeof ML_COURSES !== 'undefined') {
     const total   = ML_COURSES.length;
     const lessons = ML_COURSES.reduce((t, c) => t + (c.lessons || 0), 0);
-    ['dwAbN1','dwAbT1'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=total; });
-    ['dwAbN2','dwAbT2'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=lessons; });
+    _abCount(['dwAbN1','dwAbT1'], total);
+    _abCount(['dwAbN2','dwAbT2'], lessons);
   }
   // Articles from already-loaded allArticles array
   if (typeof allArticles !== 'undefined' && allArticles.length) {
-    const n = allArticles.length;
-    ['dwAbN3','dwAbT3'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=n; });
+    _abCount(['dwAbN3','dwAbT3'], allArticles.length);
   }
   // Skill matrix — reuse cached smData or fetch fresh
   (async () => {
     let d = (typeof smData !== 'undefined' && smData) ? smData : null;
     if (!d) { try { const r=await fetch('/api/skillmatrix'); if(r.ok) d=await r.json(); } catch(e){} }
     if (!d) return;
-    const emp = d.employees   ? d.employees.length   : null;
-    const pa  = d.processAreas? d.processAreas.length : null;
-    if (emp !== null) ['dwAbN4','dwAbT4'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=emp; });
-    if (pa  !== null) ['dwAbN5','dwAbT5'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=pa; });
+    const emp = d.employees    ? d.employees.length    : null;
+    const pa  = d.processAreas ? d.processAreas.length : null;
+    if (emp !== null) _abCount(['dwAbN4','dwAbT4'], emp);
+    if (pa  !== null) _abCount(['dwAbN5','dwAbT5'], pa);
   })();
 }
 
