@@ -1316,9 +1316,21 @@ html{scroll-behavior:smooth;}
 .dw-ab-footer-close{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.55);border-radius:99px;padding:12px 32px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;letter-spacing:.03em;transition:all .25s;}
 .dw-ab-footer-close:hover{background:rgba(232,201,122,.08);border-color:rgba(232,201,122,.35);color:#e8c97a;box-shadow:0 0 24px rgba(232,201,122,.08);}
 /* ── About button on landing ─────────────────────────────── */
-.dw-about-btn-wrap{margin-top:20px;text-align:center;}
-.dw-about-btn{display:inline-flex;align-items:center;gap:8px;background:transparent;border:1px solid rgba(232,201,122,.22);color:rgba(232,201,122,.65);border-radius:99px;padding:9px 22px;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .22s;letter-spacing:.02em;}
-.dw-about-btn:hover{background:rgba(232,201,122,.07);border-color:rgba(232,201,122,.48);color:#e8c97a;box-shadow:0 0 18px rgba(232,201,122,.08);}
+/* ── About This Platform button ───────────────────────────── */
+.dw-about-btn-wrap{margin-top:32px;text-align:center;position:relative;display:flex;justify-content:center;}
+/* outer floating halo ring */
+.dw-about-btn-wrap::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:calc(100% + 32px);height:calc(100% + 24px);border-radius:99px;border:1px solid rgba(232,201,122,.16);animation:dwAbHalo 4s ease-in-out infinite;pointer-events:none;z-index:0;}
+.dw-about-btn{position:relative;z-index:1;display:inline-flex;align-items:center;gap:10px;padding:15px 44px;background:rgba(7,7,12,.92);border:1px solid rgba(232,201,122,.45);border-radius:99px;color:rgba(232,201,122,.88);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;overflow:hidden;transition:background .35s,border-color .35s,color .35s,box-shadow .35s,transform .35s;box-shadow:0 0 24px rgba(232,201,122,.1),inset 0 1px 0 rgba(255,248,200,.08);animation:dwAbBtnGlow 4s ease-in-out infinite;}
+/* shimmer sweep */
+.dw-about-btn::before{content:'';position:absolute;top:-50%;left:-60%;width:38%;height:200%;background:linear-gradient(90deg,transparent,rgba(255,248,200,.28),transparent);transform:skewX(-18deg);animation:dwAbBtnShim 4s ease-in-out infinite;pointer-events:none;}
+.dw-about-btn-spark{font-size:14px;display:inline-block;animation:dwAbSparkSpin 10s linear infinite;}
+.dw-about-btn-label{display:inline;}
+.dw-about-btn:hover{background:rgba(232,201,122,.1);border-color:rgba(232,201,122,.82);color:#fae8a8;box-shadow:0 0 52px rgba(232,201,122,.3),0 8px 40px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,248,200,.22);transform:translateY(-3px);animation-play-state:paused;}
+.dw-about-btn:hover::before{animation-duration:1.4s;}
+@keyframes dwAbBtnGlow{0%,100%{box-shadow:0 0 24px rgba(232,201,122,.1),inset 0 1px 0 rgba(255,248,200,.08);}50%{box-shadow:0 0 44px rgba(232,201,122,.22),inset 0 1px 0 rgba(255,248,200,.15);}}
+@keyframes dwAbBtnShim{0%{left:-60%;opacity:0;}12%{opacity:1;}58%,100%{left:140%;opacity:0;}}
+@keyframes dwAbHalo{0%,100%{opacity:0;transform:translate(-50%,-50%) scale(1);}50%{opacity:.75;transform:translate(-50%,-50%) scale(1.03);}}
+@keyframes dwAbSparkSpin{to{transform:rotate(360deg);}}
 /* ══ TECH LAYER ANIMATIONS ════════════════════════════════════════════════ */
 /* Floating character rain */
 .dw-tech-layer{position:fixed;inset:0;z-index:3;pointer-events:none;overflow:hidden;}
