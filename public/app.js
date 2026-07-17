@@ -902,6 +902,7 @@ function smRenderDashboard() {
       </div>
     </div>`;
 
+  requireChartJs(function() {
   // Set default snapshot selections
   if (snapshots.length >= 2) {
     document.getElementById('smSnap1Sel').value = snap2.id;
@@ -1013,6 +1014,7 @@ function smRenderDashboard() {
       </tbody>
     </table>`;
   }
+  });
 }
 
 function smRenderComparison() {
