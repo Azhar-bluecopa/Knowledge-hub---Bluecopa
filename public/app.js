@@ -3305,121 +3305,45 @@ document.addEventListener('click', (e) => {
 // ══ ABOUT VIDEO PLAYER ═══════════════════════════════════════════════════════
 const DW_AV_SLIDES = 7;
 const DW_AV_DURATION = 8000; // ms per slide
-const DW_AV_CHAPTER_LABELS = ['Introduction','Knowledge Hub','Skill Matrix','KPI Dashboard','Project Stories','Process Puzzle','Why It Matters'];
-
-let dwAvIdx = 0;
-let dwAvPlaying = true;
-let dwAvProgInterval = null;
-let dwAvProgElapsed = 0;
-
 function dwOpenAbout() {
-  document.getElementById('dwAboutOverlay').classList.add('active');
-  dwAvIdx = 0;
-  dwAvPlaying = true;
-  _dwAvBuildChapters();
-  _dwAvShow(0);
-  _dwAvStartTimer();
+  const overlay = document.getElementById('dwAboutOverlay');
+  overlay.classList.add('active');
+  const scroller = overlay.querySelector('.dw-ab-scroll');
+  if (scroller) scroller.scrollTop = 0;
+  _dwAbInjectLive();
 }
 
 function dwCloseAbout() {
   document.getElementById('dwAboutOverlay').classList.remove('active');
-  _dwAvStopTimer();
 }
 
-function _dwAvBuildChapters() {
-  document.getElementById('dwAvChapters').innerHTML =
-    DW_AV_CHAPTER_LABELS.map((l,i)=>`<div class="dw-av-chap${i===0?' active':''}" onclick="dwAvGoTo(${i})" title="${l}"></div>`).join('');
-}
-
-function _dwAvShow(idx) {
-  const slides = document.querySelectorAll('.dw-av-slide');
-  const chaps  = document.querySelectorAll('.dw-av-chap');
-
-  // Remove entering/leaving from all
-  slides.forEach(s => { s.classList.remove('active','entering','leaving'); });
-
-  slides[idx].classList.add('active','entering');
-
-  chaps.forEach((c,i) => {
-    c.className = 'dw-av-chap' + (i===idx?' active':i<idx?' done':'');
-  });
-
-  document.getElementById('dwAvBarTitle').textContent = DW_AV_CHAPTER_LABELS[idx];
-  document.getElementById('dwAvSlideNum').textContent = `${idx+1} / ${DW_AV_SLIDES}`;
-  document.getElementById('dwAvPlayBtn').textContent = dwAvPlaying ? '⏸' : '▶';
-  _dwAvResetProg();
-}
-
-function _dwAvResetProg() {
-  dwAvProgElapsed = 0;
-  document.getElementById('dwAvProgFill').style.width = '0%';
-}
-
-function _dwAvStartTimer() {
-  _dwAvStopTimer();
-  if (!dwAvPlaying) return;
-  const tick = 50;
-  dwAvProgInterval = setInterval(() => {
-    dwAvProgElapsed += tick;
-    const pct = Math.min(dwAvProgElapsed / DW_AV_DURATION * 100, 100);
-    document.getElementById('dwAvProgFill').style.width = pct + '%';
-    if (dwAvProgElapsed >= DW_AV_DURATION) dwAvNext();
-  }, tick);
-}
-
-function _dwAvStopTimer() {
-  if (dwAvProgInterval) { clearInterval(dwAvProgInterval); dwAvProgInterval = null; }
-}
-
-function dwAvNext() {
-  _dwAvStopTimer();
-  if (dwAvIdx < DW_AV_SLIDES - 1) {
-    dwAvIdx++;
-    _dwAvShow(dwAvIdx);
-    if (dwAvPlaying) _dwAvStartTimer();
-  } else {
-    // End of all slides
-    dwAvPlaying = false;
-    document.getElementById('dwAvPlayBtn').textContent = '↺';
-    document.getElementById('dwAvProgFill').style.width = '100%';
+function _dwAbInjectLive() {
+  // Courses + lessons from ML_COURSES metadata
+  if (typeof ML_COURSES !== 'undefined') {
+    const total   = ML_COURSES.length;
+    const lessons = ML_COURSES.reduce((t, c) => t + (c.lessons || 0), 0);
+    ['dwAbN1','dwAbT1'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=total; });
+    ['dwAbN2','dwAbT2'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=lessons; });
   }
-}
-
-function dwAvPrev() {
-  _dwAvStopTimer();
-  if (dwAvIdx > 0) {
-    dwAvIdx--;
-    _dwAvShow(dwAvIdx);
-    if (dwAvPlaying) _dwAvStartTimer();
+  // Articles from already-loaded allArticles array
+  if (typeof allArticles !== 'undefined' && allArticles.length) {
+    const n = allArticles.length;
+    ['dwAbN3','dwAbT3'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=n; });
   }
+  // Skill matrix — reuse cached smData or fetch fresh
+  (async () => {
+    let d = (typeof smData !== 'undefined' && smData) ? smData : null;
+    if (!d) { try { const r=await fetch('/api/skillmatrix'); if(r.ok) d=await r.json(); } catch(e){} }
+    if (!d) return;
+    const emp = d.employees   ? d.employees.length   : null;
+    const pa  = d.processAreas? d.processAreas.length : null;
+    if (emp !== null) ['dwAbN4','dwAbT4'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=emp; });
+    if (pa  !== null) ['dwAbN5','dwAbT5'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=pa; });
+  })();
 }
 
-function dwAvGoTo(idx) {
-  _dwAvStopTimer();
-  dwAvIdx = idx;
-  _dwAvShow(idx);
-  if (dwAvPlaying) _dwAvStartTimer();
-}
-
-function dwAvTogglePlay() {
-  dwAvPlaying = !dwAvPlaying;
-  if (dwAvPlaying) {
-    // Restart from beginning if at end
-    if (dwAvIdx >= DW_AV_SLIDES - 1) { dwAvIdx = 0; _dwAvShow(0); }
-    _dwAvStartTimer();
-  } else {
-    _dwAvStopTimer();
-  }
-  document.getElementById('dwAvPlayBtn').textContent = dwAvPlaying ? '⏸' : '▶';
-}
-
-// Keyboard navigation
 document.addEventListener('keydown', e => {
-  if (!document.getElementById('dwAboutOverlay').classList.contains('active')) return;
-  if (e.key === 'ArrowRight') { e.preventDefault(); dwAvNext(); }
-  if (e.key === 'ArrowLeft')  { e.preventDefault(); dwAvPrev(); }
-  if (e.key === ' ')          { e.preventDefault(); dwAvTogglePlay(); }
-  if (e.key === 'Escape')     { dwCloseAbout(); }
+  if (e.key === 'Escape' && document.getElementById('dwAboutOverlay').classList.contains('active')) dwCloseAbout();
 });
 
 // ══ LEADERSHIP INSIGHTS ═══════════════════════════════════════════════════════

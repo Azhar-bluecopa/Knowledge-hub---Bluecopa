@@ -18,7 +18,7 @@
   <noscript>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
-  <link rel="stylesheet" href="/style.css?v=74">
+  <link rel="stylesheet" href="/style.css?v=75">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -4276,7 +4276,7 @@ async function updateFeedbackStatus(id) {
         <span class="dw-hero-phrase dw-phrase-active">Single Source of truth for Bluecopa Delivery Team</span>
       </div>
       <div class="dw-about-btn-wrap">
-        <button class="dw-about-btn" onclick="dwOpenAbout()">▶ Watch — About This Platform</button>
+        <button class="dw-about-btn" onclick="dwOpenAbout()">✦ About This Platform</button>
       </div>
       <div class="dw-hero-stats">
         <div class="dw-h-stat">
@@ -5063,145 +5063,126 @@ async function updateFeedbackStatus(id) {
 
 <!-- ══════════════ ABOUT VIDEO OVERLAY ════════════════════════════════════ -->
 <div id="dwAboutOverlay">
-  <!-- Topbar -->
-  <div class="dw-av-bar">
-    <div class="dw-av-bar-title" id="dwAvBarTitle">Introduction</div>
+  <!-- Sticky bar -->
+  <div class="dw-ab-bar">
+    <div class="dw-ab-bar-label">DELIVERY WIKIPEDIA · ABOUT</div>
     <button class="dw-av-close" onclick="dwCloseAbout()">✕ Close</button>
   </div>
 
-  <!-- Slides -->
-  <div class="dw-av-slides">
+  <!-- Scrollable body -->
+  <div class="dw-ab-scroll">
+    <div class="dw-ab-glow"></div>
 
-    <!-- Slide 1: Hero -->
-    <div class="dw-av-slide" data-idx="0">
-      <div class="dv-bg" style="background:radial-gradient(ellipse 65% 55% at 50% 30%,rgba(232,201,122,.09),transparent 70%);"></div>
-      <div class="dv-slide-content">
-        <div class="dv-logo-ring"><img src="/bluecopa-icon.png" style="height:42px;filter:brightness(1.1);"></div>
-        <div class="dv-eyebrow">Bluecopa · Delivery Team's Go-To Place</div>
-        <div class="dv-title">Your Team's Central Hub<br>for <em>Delivery Excellence</em></div>
-        <div class="dv-sub">One platform. Every resource. Designed for every team member — from day one to seasoned expert. Discover how Delivery Wikipedia helps you learn faster, deliver better, and grow continuously.</div>
-      </div>
+    <!-- Opening -->
+    <section class="dw-ab-opener">
+      <div class="dw-ab-kicker">BLUECOPA · DELIVERY TEAM'S GO-TO PLACE</div>
+      <h1 class="dw-ab-h1">We got tired of<br>searching Slack for answers.</h1>
+      <p class="dw-ab-lead">So we built this. Everything the delivery team does, knows, and learns — in one place that's actually easy to use. Not another tool to manage. A resource you'll reach for on your own.</p>
+    </section>
+
+    <!-- Live stats row -->
+    <div class="dw-ab-numbers">
+      <div class="dw-ab-num"><strong id="dwAbN1">—</strong><span>courses</span></div>
+      <div class="dw-ab-num-div"></div>
+      <div class="dw-ab-num"><strong id="dwAbN2">—</strong><span>lessons</span></div>
+      <div class="dw-ab-num-div"></div>
+      <div class="dw-ab-num"><strong id="dwAbN3">—</strong><span>articles</span></div>
+      <div class="dw-ab-num-div"></div>
+      <div class="dw-ab-num"><strong id="dwAbN4">—</strong><span>team members</span></div>
+      <div class="dw-ab-num-div"></div>
+      <div class="dw-ab-num"><strong id="dwAbN5">—</strong><span>process areas</span></div>
     </div>
 
-    <!-- Slide 2: Knowledge Hub -->
-    <div class="dw-av-slide" data-idx="1">
-      <div class="dv-bg" style="background:radial-gradient(ellipse 55% 45% at 50% 25%,rgba(0,200,204,.07),transparent 70%);"></div>
-      <div class="dv-slide-content">
-        <div class="dv-icon" style="filter:drop-shadow(0 0 20px rgba(0,200,204,.6));">📚</div>
-        <div class="dv-eyebrow">01 · Feature</div>
-        <div class="dv-title"><em>Knowledge Hub</em></div>
-        <div class="dv-sub">Stop reinventing the wheel. Access proven processes, best practices, and lessons learned from every project — all in one searchable, structured repository.</div>
-        <div class="dv-bullets">
-          <div class="dv-bullet" style="animation-delay:.08s"><div class="dv-bullet-dot" style="color:#00c8cc;background:#00c8cc;"></div>Structured articles covering every process area and workflow</div>
-          <div class="dv-bullet" style="animation-delay:.16s"><div class="dv-bullet-dot" style="color:#00c8cc;background:#00c8cc;"></div>Eliminates knowledge silos and redundant problem-solving</div>
-          <div class="dv-bullet" style="animation-delay:.24s"><div class="dv-bullet-dot" style="color:#00c8cc;background:#00c8cc;"></div>Reduces learning curves and accelerates delivery timelines</div>
-          <div class="dv-bullet" style="animation-delay:.32s"><div class="dv-bullet-dot" style="color:#00c8cc;background:#00c8cc;"></div>Built by the team, for the team — always current and relevant</div>
+    <!-- Features -->
+    <div class="dw-ab-feats">
+
+      <div class="dw-ab-feat">
+        <div class="dw-ab-feat-left">
+          <div class="dw-ab-feat-num">01</div>
+          <div class="dw-ab-feat-icon">📚</div>
+        </div>
+        <div class="dw-ab-feat-body">
+          <div class="dw-ab-feat-name">Knowledge Articles <span class="dw-ab-live-chip">LIVE</span></div>
+          <div class="dw-ab-feat-hl">Stop rediscovering things that already happened.</div>
+          <p class="dw-ab-feat-p"><span id="dwAbT3">—</span> articles written by the people who actually do the work — not documentation created for compliance checkboxes. When a configuration question comes up at 11pm, the answer is here. Not buried in someone's DMs from six months ago.</p>
+          <div class="dw-ab-feat-tags"><span>How-Tos</span><span>Deep Dives</span><span>Best Practices</span><span>FAQs</span></div>
         </div>
       </div>
-    </div>
 
-    <!-- Slide 3: Skill Matrix -->
-    <div class="dw-av-slide" data-idx="2">
-      <div class="dv-bg" style="background:radial-gradient(ellipse 55% 45% at 50% 25%,rgba(129,140,248,.07),transparent 70%);"></div>
-      <div class="dv-slide-content">
-        <div class="dv-icon" style="filter:drop-shadow(0 0 20px rgba(129,140,248,.7));">🧠</div>
-        <div class="dv-eyebrow">02 · Feature</div>
-        <div class="dv-title"><em>Skill Matrix</em><br>&amp; Learning Journey</div>
-        <div class="dv-sub">Know where you stand. Plan where to go. A structured framework for measuring skills, identifying growth opportunities, and tracking your journey to expertise.</div>
-        <div class="dv-bullets">
-          <div class="dv-bullet" style="animation-delay:.08s"><div class="dv-bullet-dot" style="color:#818cf8;background:#818cf8;"></div>Self-assessments across all process areas with SME guidance</div>
-          <div class="dv-bullet" style="animation-delay:.16s"><div class="dv-bullet-dot" style="color:#818cf8;background:#818cf8;"></div>Track skill growth with visual progress snapshots over time</div>
-          <div class="dv-bullet" style="animation-delay:.24s"><div class="dv-bullet-dot" style="color:#818cf8;background:#818cf8;"></div>Personalised learning plans tailored to your career goals</div>
-          <div class="dv-bullet" style="animation-delay:.32s"><div class="dv-bullet-dot" style="color:#818cf8;background:#818cf8;"></div>Gives the org visibility to put the right expertise on every project</div>
+      <div class="dw-ab-feat">
+        <div class="dw-ab-feat-left">
+          <div class="dw-ab-feat-num">02</div>
+          <div class="dw-ab-feat-icon">🎓</div>
+        </div>
+        <div class="dw-ab-feat-body">
+          <div class="dw-ab-feat-name">My Learning <span class="dw-ab-live-chip">LIVE</span></div>
+          <div class="dw-ab-feat-hl">Not another mandatory training you'll click through in 20 minutes.</div>
+          <p class="dw-ab-feat-p"><span id="dwAbT1">—</span> courses built around what we actually do — AR, AP, MIS, P2P, O2C, R2R and more. <span id="dwAbT2">—</span> lessons, each tied to how Bluecopa works in the real world. Self-paced, with quizzes, completion certificates, and progress tracking. Go at your speed.</p>
+          <div class="dw-ab-feat-tags"><span>AR</span><span>AP</span><span>MIS</span><span>P2P</span><span>O2C</span><span>R2R</span><span>+ more</span></div>
         </div>
       </div>
-    </div>
 
-    <!-- Slide 4: KPI Dashboard -->
-    <div class="dw-av-slide" data-idx="3">
-      <div class="dv-bg" style="background:radial-gradient(ellipse 55% 45% at 50% 25%,rgba(249,167,79,.07),transparent 70%);"></div>
-      <div class="dv-slide-content">
-        <div class="dv-icon" style="filter:drop-shadow(0 0 20px rgba(249,167,79,.7));">📊</div>
-        <div class="dv-eyebrow">03 · Feature</div>
-        <div class="dv-title"><em>KPI Dashboard</em></div>
-        <div class="dv-sub">Own your performance. Real-time visibility into your delivery metrics — no more waiting for periodic reviews to understand how you're doing.</div>
-        <div class="dv-bullets">
-          <div class="dv-bullet" style="animation-delay:.08s"><div class="dv-bullet-dot" style="color:#f9a74f;background:#f9a74f;"></div>Live delivery performance metrics and key indicators</div>
-          <div class="dv-bullet" style="animation-delay:.16s"><div class="dv-bullet-dot" style="color:#f9a74f;background:#f9a74f;"></div>Proactively monitor and take ownership of your progress</div>
-          <div class="dv-bullet" style="animation-delay:.24s"><div class="dv-bullet-dot" style="color:#f9a74f;background:#f9a74f;"></div>Encourages accountability and continuous self-improvement</div>
-          <div class="dv-bullet" style="animation-delay:.32s"><div class="dv-bullet-dot" style="color:#f9a74f;background:#f9a74f;"></div>Align personal effort with team and organisational goals</div>
+      <div class="dw-ab-feat">
+        <div class="dw-ab-feat-left">
+          <div class="dw-ab-feat-num">03</div>
+          <div class="dw-ab-feat-icon">🧠</div>
+        </div>
+        <div class="dw-ab-feat-body">
+          <div class="dw-ab-feat-name">Skill Matrix <span class="dw-ab-live-chip">LIVE</span></div>
+          <div class="dw-ab-feat-hl">No more guessing who knows what.</div>
+          <p class="dw-ab-feat-p"><span id="dwAbT5">—</span> process areas, <span id="dwAbT4">—</span> people — each assessed honestly across Beginner → Intermediate → Advanced → Expert. The org can finally see where gaps are. Team members know exactly where to grow next. No more awkward "who should handle this?" moments in client calls.</p>
+          <div class="dw-ab-feat-tags"><span>Self-Assessments</span><span>Team Dashboard</span><span>Snapshots</span><span>Growth Tracking</span></div>
         </div>
       </div>
-    </div>
 
-    <!-- Slide 5: Project Stories -->
-    <div class="dw-av-slide" data-idx="4">
-      <div class="dv-bg" style="background:radial-gradient(ellipse 55% 45% at 50% 25%,rgba(52,211,153,.07),transparent 70%);"></div>
-      <div class="dv-slide-content">
-        <div class="dv-icon" style="filter:drop-shadow(0 0 20px rgba(52,211,153,.7));">🏛️</div>
-        <div class="dv-eyebrow">04 · Feature</div>
-        <div class="dv-title">The <em>Delivery Journey</em></div>
-        <div class="dv-sub">Every project tells a story worth preserving. Capture, share, and build on implementation experiences, innovative solutions, and lessons that shape how the team delivers.</div>
-        <div class="dv-bullets">
-          <div class="dv-bullet" style="animation-delay:.08s"><div class="dv-bullet-dot" style="color:#34d399;background:#34d399;"></div>Browse past deliveries, timelines, and business impacts</div>
-          <div class="dv-bullet" style="animation-delay:.16s"><div class="dv-bullet-dot" style="color:#34d399;background:#34d399;"></div>Access proven solution approaches and project artefacts</div>
-          <div class="dv-bullet" style="animation-delay:.24s"><div class="dv-bullet-dot" style="color:#34d399;background:#34d399;"></div>Reduce implementation risk with real-world precedent</div>
-          <div class="dv-bullet" style="animation-delay:.32s"><div class="dv-bullet-dot" style="color:#34d399;background:#34d399;"></div>Celebrate team achievements and recognise contributions</div>
+      <div class="dw-ab-feat">
+        <div class="dw-ab-feat-left">
+          <div class="dw-ab-feat-num">04</div>
+          <div class="dw-ab-feat-icon">🧩</div>
+        </div>
+        <div class="dw-ab-feat-body">
+          <div class="dw-ab-feat-name">Process Puzzle <span class="dw-ab-live-chip">LIVE</span></div>
+          <div class="dw-ab-feat-hl">Yes, it's a game. Also the most competitive section on the platform.</div>
+          <p class="dw-ab-feat-p">12 questions per session across 6 formats — Scenario Analysis, Deep Dives, Rapid Fire, Mixed Bag, Puzzles, and more. Weekly, monthly, quarterly, yearly leaderboards. Ranks from Bronze all the way to Legend. The friendly rivalry you didn't know the team needed until it started.</p>
+          <div class="dw-ab-feat-tags"><span>Weekly Challenges</span><span>Leaderboards</span><span>Ranks</span><span>Badges</span></div>
         </div>
       </div>
-    </div>
 
-    <!-- Slide 6: Process Puzzle -->
-    <div class="dw-av-slide" data-idx="5">
-      <div class="dv-bg" style="background:radial-gradient(ellipse 55% 45% at 50% 25%,rgba(248,113,113,.07),transparent 70%);"></div>
-      <div class="dv-slide-content">
-        <div class="dv-icon" style="filter:drop-shadow(0 0 20px rgba(248,113,113,.7));">🧩</div>
-        <div class="dv-eyebrow">05 · Feature</div>
-        <div class="dv-title"><em>Process Puzzle</em><br>Challenges</div>
-        <div class="dv-sub">Learning becomes powerful when it's engaging. Weekly gamified challenges that inspire healthy competition, recognise expertise, and build a culture of continuous growth.</div>
-        <div class="dv-bullets">
-          <div class="dv-bullet" style="animation-delay:.08s"><div class="dv-bullet-dot" style="color:#f87171;background:#f87171;"></div>Interactive weekly knowledge challenges for the whole team</div>
-          <div class="dv-bullet" style="animation-delay:.16s"><div class="dv-bullet-dot" style="color:#f87171;background:#f87171;"></div>Weekly, monthly, quarterly, and yearly leaderboards</div>
-          <div class="dv-bullet" style="animation-delay:.24s"><div class="dv-bullet-dot" style="color:#f87171;background:#f87171;"></div>Earn recognition through Bronze → Silver → Gold → Legend ranks</div>
-          <div class="dv-bullet" style="animation-delay:.32s"><div class="dv-bullet-dot" style="color:#f87171;background:#f87171;"></div>Builds a vibrant, knowledge-sharing team culture</div>
+      <div class="dw-ab-feat dw-ab-feat-soon">
+        <div class="dw-ab-feat-left">
+          <div class="dw-ab-feat-num">05</div>
+          <div class="dw-ab-feat-icon">📊</div>
+        </div>
+        <div class="dw-ab-feat-body">
+          <div class="dw-ab-feat-name">KPIs <span class="dw-ab-soon-chip">COMING SOON</span></div>
+          <div class="dw-ab-feat-hl">Own your performance numbers — don't wait for someone to tell you.</div>
+          <p class="dw-ab-feat-p">Real-time delivery metrics. Velocity, quality, team health — all visible, all the time. No more quarterly surprises. No more "we'll review this in retro." Just the data, up front.</p>
         </div>
       </div>
-    </div>
 
-    <!-- Slide 7: Why It Matters -->
-    <div class="dw-av-slide" data-idx="6">
-      <div class="dv-bg" style="background:radial-gradient(ellipse 65% 55% at 50% 30%,rgba(232,201,122,.1),transparent 70%);"></div>
-      <div class="dv-slide-content">
-        <div class="dv-eyebrow">Why it matters</div>
-        <div class="dv-title" style="margin-bottom:10px;">More Than a Website —<br>A <em>Foundation for Excellence</em></div>
-        <div class="dv-sub" style="margin-bottom:20px;">Empowering every team member to learn faster, deliver better, and grow continuously — transforming individual expertise into organisational capability.</div>
-        <div class="dv-final-grid">
-          <div class="dv-final-item" style="animation-delay:.04s">🚀 Learn faster</div>
-          <div class="dv-final-item" style="animation-delay:.08s">📦 Deliver better</div>
-          <div class="dv-final-item" style="animation-delay:.12s">⬆️ Grow continuously</div>
-          <div class="dv-final-item" style="animation-delay:.16s">🤝 Collaborate effectively</div>
-          <div class="dv-final-item" style="animation-delay:.20s">🏆 Track performance</div>
-          <div class="dv-final-item" style="animation-delay:.24s">💡 Share knowledge</div>
-          <div class="dv-final-item" style="animation-delay:.28s">⚡ Improve quality</div>
-          <div class="dv-final-item" style="animation-delay:.32s">🌟 Build capability</div>
+      <div class="dw-ab-feat dw-ab-feat-soon">
+        <div class="dw-ab-feat-left">
+          <div class="dw-ab-feat-num">06</div>
+          <div class="dw-ab-feat-icon">🏛️</div>
+        </div>
+        <div class="dw-ab-feat-body">
+          <div class="dw-ab-feat-name">The Delivery Journey <span class="dw-ab-soon-chip">COMING SOON</span></div>
+          <div class="dw-ab-feat-hl">Every project leaves a story worth keeping.</div>
+          <p class="dw-ab-feat-p">A living record of past implementations — what worked, what didn't, and why. The kind of institutional memory that usually walks out the door when someone leaves. It won't here.</p>
         </div>
       </div>
-    </div>
 
-  </div><!-- /dw-av-slides -->
+    </div><!-- /dw-ab-feats -->
 
-  <!-- Bottom controls -->
-  <div class="dw-av-bottom">
-    <div class="dw-av-chapters" id="dwAvChapters"></div>
-    <div class="dw-av-prog-track"><div class="dw-av-prog-fill" id="dwAvProgFill"></div></div>
-    <div class="dw-av-controls">
-      <span class="dw-av-ctrl-label" id="dwAvSlideNum">1 / 7</span>
-      <button class="dw-av-ctrl" onclick="dwAvPrev()" title="Previous (←)">◀</button>
-      <button class="dw-av-ctrl big" id="dwAvPlayBtn" onclick="dwAvTogglePlay()" title="Play / Pause (Space)">⏸</button>
-      <button class="dw-av-ctrl" onclick="dwAvNext()" title="Next (→)">▶</button>
-      <span class="dw-av-ctrl-label" style="text-align:right;">Space · ← →</span>
-    </div>
-  </div>
+    <div class="dw-ab-rule"></div>
+
+    <!-- Footer note -->
+    <section class="dw-ab-footer">
+      <div class="dw-ab-footer-q">One last thing:</div>
+      <p class="dw-ab-footer-p">This isn't a finished product. It evolves as the team grows, adds knowledge, and finds new gaps. The numbers in this page are live — they change as the platform does. If something's missing, it's probably because no one wrote it yet. That someone could be you.</p>
+      <button class="dw-ab-footer-close" onclick="dwCloseAbout()">Got it — let me explore →</button>
+    </section>
+  </div><!-- /dw-ab-scroll -->
 </div>
 
 <!-- ══════════════ LEADERSHIP INSIGHTS OVERLAY ══════════════════════════════ -->
@@ -6628,7 +6609,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=12" defer></script>
-  <script src="/app.js?v=63" defer></script>
+  <script src="/app.js?v=64" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      ISSUE RESOLUTION PORTAL
