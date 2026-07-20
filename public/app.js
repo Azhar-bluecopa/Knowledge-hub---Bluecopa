@@ -3071,20 +3071,23 @@ function dwInitTechEffects() {
   if (status) status.style.display = 'flex';
 
   // ── 3. Typewriter on subtitle (plays once) ─────────────────────────────────
+  // IMPORTANT: type inside .dw-hero-phrase (not .dw-hero-sub) so the gradient
+  // class stays on the text nodes and the teal/green color renders correctly.
   const sub = document.querySelector('.dw-hero-sub');
   if (sub && !sub.dataset.typed) {
     sub.dataset.typed = '1';
-    const fullText = sub.textContent.trim();
-    sub.innerHTML = '';
+    const phrase = sub.querySelector('.dw-hero-phrase') || sub;
+    const fullText = phrase.textContent.trim();
+    phrase.textContent = '';
     const cursor = document.createElement('span');
     cursor.className = 'dw-cursor';
-    sub.appendChild(cursor);
+    phrase.appendChild(cursor);
 
     let i = 0;
     setTimeout(() => {
       const tw = setInterval(() => {
         if (i < fullText.length) {
-          sub.insertBefore(document.createTextNode(fullText[i]), cursor);
+          phrase.insertBefore(document.createTextNode(fullText[i]), cursor);
           i++;
         } else {
           clearInterval(tw);
