@@ -3091,10 +3091,10 @@ function dwInitTechEffects() {
           i++;
         } else {
           clearInterval(tw);
-          setTimeout(() => { if (cursor.parentNode) cursor.remove(); }, 2200);
+          setTimeout(() => { if (cursor.parentNode) cursor.remove(); }, 700);
         }
-      }, 18);
-    }, 600);
+      }, 9);
+    }, 120);
   }
 
   // ── 4. Occasional title glitch ─────────────────────────────────────────────
