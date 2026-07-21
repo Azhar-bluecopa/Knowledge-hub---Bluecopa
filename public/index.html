@@ -45,7 +45,6 @@
   <button class="new-article-btn" id="newArticleBtn" onclick="openModal()">✦ New Article</button>
   <button class="request-article-btn" onclick="openRequestModal()">📩 Request an Article</button>
   <button class="request-article-btn" onclick="ipShowPortal()" style="margin-top:6px;background:rgba(201,162,39,.08);border:1px solid rgba(201,162,39,.25);color:rgba(201,162,39,.9);">⚡ Issue Portal</button>
-  <button class="request-article-btn" onclick="UAT.open()" style="margin-top:6px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);color:rgba(59,130,246,.9);">🧪 UAT Platform</button>
   <div class="sidebar-footer">
     <div class="avatar" id="userAvatar" title="Account" onclick="toggleUserMenu()" style="cursor:pointer;overflow:hidden;">?</div>
     <div style="flex:1;min-width:0">
@@ -4227,6 +4226,12 @@ async function updateFeedbackStatus(id) {
           <span class="mc-drop-badge mc-drop-live">Live</span>
         </div>
         <div class="mc-drop-divider"></div>
+        <div class="mc-drop-item" onclick="UAT.open();mcCloseBrowse()">
+          <div class="mc-drop-icon" style="background:rgba(59,130,246,.1);">🧪</div>
+          <div class="mc-drop-text"><div class="mc-drop-title">UAT Platform</div><div class="mc-drop-sub">Client UAT management & sign-off</div></div>
+          <span class="mc-drop-badge mc-drop-live">Live</span>
+        </div>
+        <div class="mc-drop-divider"></div>
         <!-- Leadership Insights — only shown to approved users -->
         <div class="mc-drop-item" id="mcLiItem" onclick="liOpen();mcCloseBrowse()" style="display:none;">
           <div class="mc-drop-icon" style="background:rgba(201,162,39,.1);">👑</div>
@@ -4525,6 +4530,29 @@ async function updateFeedbackStatus(id) {
           <div class="dw-card-stat"><div class="dw-card-stat-n">🏆</div><div class="dw-card-stat-l">Awards</div></div>
           <div class="dw-card-stat"><div class="dw-card-stat-n">🎉</div><div class="dw-card-stat-l">Moments</div></div>
           <div class="dw-card-stat"><div class="dw-card-stat-n">💡</div><div class="dw-card-stat-l">Ideas</div></div>
+        </div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+      <!-- 08 UAT Platform -->
+      <div class="dw-card" style="--cr:59,130,246;--fdur:4.1s;--fdel:2.5s;" onclick="UAT.open()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-card-badge">● Live</div>
+        <span class="dw-card-icon">🧪</span>
+        <div class="dw-card-num">08</div>
+        <div class="dw-card-name">UAT Platform</div>
+        <div class="dw-card-desc">Enterprise UAT management — test cases, client collaboration, dashboards, sign-off and export.</div>
+        <div class="dw-card-tags"><span class="dw-card-tag">Clients</span><span class="dw-card-tag">Test Cases</span><span class="dw-card-tag">Sign-off</span></div>
+        <div class="dw-card-features">
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Full test case lifecycle with bulk actions</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Client portal with secure unique links</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>CSV export & formal UAT sign-off</div>
+        </div>
+        <div class="dw-card-stat-row">
+          <div class="dw-card-stat"><div class="dw-card-stat-n">📋</div><div class="dw-card-stat-l">Test Cases</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">🔗</div><div class="dw-card-stat-l">Portal</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">✅</div><div class="dw-card-stat-l">Sign-off</div></div>
         </div>
         <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
