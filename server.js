@@ -872,273 +872,386 @@ ${articleContext}
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  UAT PLATFORM  — /api/uat/*
+//  UAT PLATFORM v2  — /api/uat/*  |  /uat/portal/:token
 // ══════════════════════════════════════════════════════════════════════════════
 function uatDB() {
-  if (!db.uat) db.uat = { clients:[], projects:[], testcases:[], issues:[], templates:[], activity:[], nextClientId:1, nextProjectId:1, nextTestId:1, nextIssueId:1, nextTemplateId:1 };
+  if (!db.uat) db.uat = { clients:[], projects:[], testcases:[], issues:[], templates:[], activity:[] };
   return db.uat;
 }
-function uatId(prefix, counter) { return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`; }
+function uatId() { return `${Date.now()}_${Math.random().toString(36).slice(2,6)}`; }
 function uatLog(type, msg, extras={}) {
   const u = uatDB();
-  u.activity.unshift({ id: uatId('act'), type, message:msg, ...extras, createdAt: new Date().toISOString() });
-  if (u.activity.length > 200) u.activity = u.activity.slice(0, 200);
+  u.activity.unshift({ id:uatId(), type, message:msg, ...extras, createdAt: new Date().toISOString() });
+  if (u.activity.length > 500) u.activity = u.activity.slice(0, 500);
 }
+function uatNewTC(base={}) {
+  return { id:uatId(), category:'', subCategory:'', testDescription:'', expectedResult:'', priority:'medium', owner:'',
+    bluecopaStatus:'not_tested', clientStatus:'not_tested', bluecopaComments:'', clientComments:'',
+    attachments:[], tags:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(), ...base };
+}
+const UAT_DEFAULTS = [
+  { category:'R2R', subCategory:'Chart of Accounts', priority:'critical', testDescription:'Create and activate a new GL account with correct account type, group, and currency', expectedResult:'Account created, appears in CoA with correct type, currency, and group assignment; available for posting in correct periods' },
+  { category:'R2R', subCategory:'Opening Balances', priority:'critical', testDescription:'Upload opening balances for all GL accounts and verify trial balance totals', expectedResult:'All accounts show correct opening debit/credit; trial balance total debits = total credits; no posting errors' },
+  { category:'R2R', subCategory:'Journal Entries', priority:'critical', testDescription:'Post a manual journal entry with multiple debit/credit lines across two entities', expectedResult:'Journal posts without error, debit=credit, appears in GL with correct date, period, and user stamp; reversible' },
+  { category:'R2R', subCategory:'Period Close', priority:'high', testDescription:'Execute month-end period close: run depreciation, post accruals, lock period for prior entries', expectedResult:'Depreciation posts correctly to asset and expense accounts; period locks after close; prior-period posting blocked' },
+  { category:'R2R', subCategory:'Bank Reconciliation', priority:'high', testDescription:'Reconcile bank statement with GL cash account for a given month', expectedResult:'Matched items reconciled, unmatched items flagged with reason, reconciliation report exportable, closing balance matches bank statement' },
+  { category:'R2R', subCategory:'Intercompany', priority:'medium', testDescription:'Post an intercompany transaction and verify automatic elimination entries', expectedResult:'IC payable and receivable created in respective entities; elimination journal generated; IC balances net to zero in consolidated view' },
+  { category:'R2R', subCategory:'Financial Statements', priority:'critical', testDescription:'Generate P&L, Balance Sheet, and Cash Flow statements for a closed period', expectedResult:'All three statements balance, figures agree with trial balance, period/entity filters functional, export to PDF and Excel works' },
+  { category:'R2R', subCategory:'Audit Trail', priority:'high', testDescription:'Modify a posted journal and verify the system creates an audit log entry', expectedResult:'Original entry preserved; modification logged with user, timestamp, old value, new value; immutable log exportable' },
+  { category:'P2P', subCategory:'Vendor Master', priority:'high', testDescription:'Create a new vendor with bank details, payment terms, and tax classification', expectedResult:'Vendor saved with all fields; bank details encrypted; payment terms applied to invoices; vendor searchable by name and code' },
+  { category:'P2P', subCategory:'Purchase Orders', priority:'critical', testDescription:'Raise a 3-way match PO (PO → GRN → Invoice) and verify matching rules', expectedResult:'PO created with approval workflow; GRN posts inventory; invoice matched within tolerance; mismatches flagged for review' },
+  { category:'P2P', subCategory:'Invoice Processing', priority:'critical', testDescription:'Process a vendor invoice against a PO and handle a quantity variance', expectedResult:'Invoice matched to PO; quantity variance creates exception; approver notified; variance approved or rejected with comment' },
+  { category:'P2P', subCategory:'Payments', priority:'critical', testDescription:'Run a payment batch for due invoices and generate bank payment file', expectedResult:'Correct invoices selected by due date and vendor; bank file generated in correct format; payment posted and reconciled to bank' },
+  { category:'P2P', subCategory:'Payments', priority:'high', testDescription:'Process a vendor advance payment and apply it against a subsequent invoice', expectedResult:'Advance posted to vendor account; invoice created later; advance applied reducing invoice balance; net payment correct' },
+  { category:'P2P', subCategory:'Expense Claims', priority:'medium', testDescription:'Submit an employee expense claim with receipts and route through approval', expectedResult:'Claim submitted with attachment; routed to approver; approved/rejected with comment; reimbursement payment generated' },
+  { category:'P2P', subCategory:'AP Reporting', priority:'high', testDescription:'Generate AP aging report and reconcile totals with AP control account', expectedResult:'Aging buckets (current/30/60/90+ days) correct, total matches AP ledger, supplier-wise breakdown available, export works' },
+  { category:'P2P', subCategory:'Credit Notes', priority:'medium', testDescription:'Process a vendor credit note and apply it to an open invoice', expectedResult:'Credit note posted; applied against correct invoice; net vendor balance updated; available for future payment batch' },
+  { category:'O2C', subCategory:'Customer Master', priority:'high', testDescription:'Create a new customer with credit limit, payment terms, and tax details', expectedResult:'Customer created with credit limit enforced on orders; tax applied correctly on invoices; searchable and reportable' },
+  { category:'O2C', subCategory:'Sales Orders', priority:'critical', testDescription:'Create a sales order, check inventory availability, and confirm delivery', expectedResult:'Order created; inventory checked and reserved; delivery schedule confirmed; order status tracked through fulfillment' },
+  { category:'O2C', subCategory:'Invoicing', priority:'critical', testDescription:'Generate a customer invoice from a delivered sales order and email to customer', expectedResult:'Invoice generated with correct line items, taxes, and totals; PDF generated; email sent with invoice attached; AR updated' },
+  { category:'O2C', subCategory:'Collections', priority:'high', testDescription:'Record a partial customer payment and apply it to the oldest open invoices', expectedResult:'Payment posted to AR; applied to oldest invoices first (FIFO); remaining balance correct; payment visible in customer statement' },
+  { category:'O2C', subCategory:'Credit Notes', priority:'medium', testDescription:'Raise a customer credit note for a returned item and apply against AR', expectedResult:'Credit note posted; linked to original invoice; applied to AR reducing balance; inventory updated for returned goods' },
+  { category:'O2C', subCategory:'Dunning', priority:'medium', testDescription:'Run the dunning process for overdue invoices and verify reminder letters', expectedResult:'Overdue invoices identified by aging; dunning letters generated with correct amounts and due dates; sent to customer contacts' },
+  { category:'O2C', subCategory:'AR Reporting', priority:'high', testDescription:'Generate AR aging report and reconcile with AR control account', expectedResult:'Aging buckets correct; total matches AR control account in GL; customer-wise and invoice-wise drill-down available' },
+  { category:'Planning', subCategory:'Budget Setup', priority:'high', testDescription:'Create annual budget by cost center and department with version control', expectedResult:'Budget entries created for all periods; version saved; budget vs actual comparison available in reporting; locked after approval' },
+  { category:'Planning', subCategory:'Forecasting', priority:'medium', testDescription:'Generate a rolling 3-month forecast and compare to budget', expectedResult:'Forecast generated using actuals + forward estimates; variance to budget highlighted; scenario comparison available' },
+  { category:'Planning', subCategory:'Consolidation', priority:'high', testDescription:'Run multi-entity consolidation and verify elimination of intercompany balances', expectedResult:'All entities consolidated; IC eliminations applied; minority interest calculated; consolidated financials balance' },
+  { category:'Planning', subCategory:'Allocations', priority:'medium', testDescription:'Configure and run a cost allocation from a shared service center to business units', expectedResult:'Allocation rule configured with correct driver; amounts allocated proportionally; journal created; source account zeroed out' },
+  { category:'Dashboards', subCategory:'Executive Dashboard', priority:'critical', testDescription:'Load the executive dashboard and verify all KPI cards refresh with live data', expectedResult:'All KPIs (revenue, cost, margin, AR, AP) load within 5 seconds; data matches source reports; filters by entity and period work' },
+  { category:'Dashboards', subCategory:'Cash Flow Dashboard', priority:'high', testDescription:'View cash position dashboard across all bank accounts with drill-down', expectedResult:'Total cash position correct; bank-wise breakdown available; cash flow trend chart renders; forecast vs actual toggle works' },
+  { category:'Dashboards', subCategory:'AP Dashboard', priority:'high', testDescription:'View AP dashboard showing due payments, aging, and top vendors', expectedResult:'Due payments for next 7/30 days correct; aging chart matches AP aging report; top 10 vendors by outstanding balance shown' },
+  { category:'Dashboards', subCategory:'AR Dashboard', priority:'high', testDescription:'View AR dashboard showing overdue invoices, DSO, and collection trends', expectedResult:'Overdue amount correct; DSO calculated correctly; collection efficiency trend visible; drill-down to invoice level works' },
+  { category:'Dashboards', subCategory:'Budgets Dashboard', priority:'medium', testDescription:'View budget vs actual dashboard for current month and YTD', expectedResult:'Budget vs actual for all cost centers; favorable/unfavorable variance highlighted; YTD toggle works; entity filter functional' },
+  { category:'Reports', subCategory:'Standard Reports', priority:'critical', testDescription:'Generate trial balance for a closed accounting period', expectedResult:'Debits equal credits, figures match GL, export to Excel and PDF functional, comparative period toggle works' },
+  { category:'Reports', subCategory:'Standard Reports', priority:'high', testDescription:'Generate month-over-month P&L comparison report', expectedResult:'Current vs prior period columns correct, variance column accurate, export to Excel works with all formatting' },
+  { category:'Reports', subCategory:'Standard Reports', priority:'critical', testDescription:'Generate balance sheet as of period-end date', expectedResult:'Assets = Liabilities + Equity, matches GL balances, entity-wise breakdown available, export functional' },
+  { category:'Reports', subCategory:'Custom Reports', priority:'medium', testDescription:'Build a custom report using report builder with GL, entity, and date range filters', expectedResult:'Report generates data matching GL, save-report feature works, export to CSV and Excel functional' },
+  { category:'Reports', subCategory:'Scheduled Reports', priority:'medium', testDescription:'Schedule a monthly trial balance report to email to the finance team', expectedResult:'Schedule configured with correct recipients, frequency, and format; report delivered on schedule; unsubscribe option works' },
+  { category:'Security', subCategory:'Role-Based Access', priority:'critical', testDescription:'Verify that a read-only user cannot post journals or approve payments', expectedResult:'Post and approve buttons hidden or disabled for read-only role; direct API calls return 403; audit log records access attempt' },
+  { category:'Security', subCategory:'Audit Trail', priority:'high', testDescription:'Make a data change and verify full audit log with user, timestamp, and before/after values', expectedResult:'Audit log shows user, action type, timestamp, old value, new value. Log is immutable and exportable to Excel' },
+  { category:'Security', subCategory:'Data Segregation', priority:'high', testDescription:'Verify that Entity A users cannot view or post to Entity B data', expectedResult:'Entity B data not visible in dropdowns or reports for Entity A users; cross-entity API calls return 403' },
+  { category:'Security', subCategory:'Password Policy', priority:'medium', testDescription:'Attempt login with weak password and verify enforcement of password policy', expectedResult:'Weak passwords rejected with specific rule message; lockout after 5 failed attempts; password reset flow works via email' },
+  { category:'Integrations', subCategory:'Bank Feed', priority:'high', testDescription:'Trigger bank feed sync and verify transactions imported and matched', expectedResult:'Bank transactions imported within 2 minutes; auto-matched to GL entries where possible; unmatched flagged for review' },
+  { category:'Integrations', subCategory:'ERP Sync', priority:'high', testDescription:'Sync a vendor invoice from source ERP and verify it appears in AP module', expectedResult:'Invoice synced within configured interval; data fields mapped correctly; duplicate detection prevents double import; error log available' },
+  { category:'Integrations', subCategory:'Export API', priority:'medium', testDescription:'Call the financial data export API and verify response format and data accuracy', expectedResult:'API returns correct JSON schema; data matches reports; authentication required; rate limiting active; pagination works for large datasets' },
+];
 
-// Clients
-app.get('/api/uat/clients', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  res.json({ ok:true, data: u.clients });
-});
+// ── Clients ───────────────────────────────────────────────────────────────────
+app.get('/api/uat/clients', async (req, res) => { await _dbReady; res.json({ ok:true, data: uatDB().clients }); });
+// ── Clients ───────────────────────────────────────────────────────────────────
 app.post('/api/uat/clients', async (req, res) => {
-  await _dbReady; const u = uatDB();
+  await _dbReady; const u=uatDB();
   const { name, shortCode, primaryContact={}, internalLead='', entities=['Default'] } = req.body;
   if (!name) return res.status(400).json({ ok:false, error:'name required' });
-  const token = require('crypto').randomBytes(20).toString('hex');
-  const client = { id: uatId('c'), name, shortCode: shortCode||name.slice(0,4).toUpperCase(), primaryContact, internalLead, entities, status:'active', portalToken:token, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-  u.clients.push(client);
-  uatLog('client_created', `Client "${name}" created`);
+  const token=require('crypto').randomBytes(24).toString('hex');
+  const client={ id:uatId(), name, shortCode:shortCode||name.replace(/\s+/g,'').slice(0,5).toUpperCase(), primaryContact, internalLead, entities, status:'active', portalToken:token, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
+  u.clients.push(client); uatLog('client_created',`Client "${name}" added`);
   await saveDB(db); res.json({ ok:true, data:client });
 });
 app.put('/api/uat/clients/:id', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  const c = u.clients.find(x => x.id === req.params.id);
+  await _dbReady; const u=uatDB(); const c=u.clients.find(x=>x.id===req.params.id);
   if (!c) return res.status(404).json({ ok:false, error:'not found' });
-  Object.assign(c, req.body, { id:c.id, updatedAt: new Date().toISOString() });
+  Object.assign(c, req.body, { id:c.id, portalToken:c.portalToken, updatedAt:new Date().toISOString() });
   await saveDB(db); res.json({ ok:true, data:c });
 });
 app.delete('/api/uat/clients/:id', async (req, res) => {
-  await _dbReady; const u = uatDB(); const id = req.params.id;
-  u.clients = u.clients.filter(x => x.id !== id);
-  u.projects = u.projects.filter(x => x.clientId !== id);
-  u.testcases = u.testcases.filter(x => x.clientId !== id);
-  u.issues = u.issues.filter(x => x.clientId !== id);
+  await _dbReady; const u=uatDB(); const id=req.params.id;
+  u.clients=u.clients.filter(x=>x.id!==id); u.projects=u.projects.filter(x=>x.clientId!==id);
+  u.testcases=u.testcases.filter(x=>x.clientId!==id); u.issues=u.issues.filter(x=>x.clientId!==id);
   await saveDB(db); res.json({ ok:true });
 });
 
-// Projects
+// ── Projects ──────────────────────────────────────────────────────────────────
 app.get('/api/uat/projects', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  let list = u.projects;
-  if (req.query.clientId) list = list.filter(p => p.clientId === req.query.clientId);
+  await _dbReady; let list=uatDB().projects;
+  if (req.query.clientId) list=list.filter(p=>p.clientId===req.query.clientId);
   res.json({ ok:true, data:list });
 });
 app.post('/api/uat/projects', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  const { clientId, name, entity='Default', businessUnit='', goLiveDate='', description='' } = req.body;
-  if (!clientId || !name) return res.status(400).json({ ok:false, error:'clientId and name required' });
-  const p = { id: uatId('p'), clientId, name, entity, businessUnit, goLiveDate, description, phase:'uat', status:'active', uatRound:1, signoff:null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+  await _dbReady; const u=uatDB();
+  const { clientId, name, entity='', businessUnit='', goLiveDate='', description='', seedDefaults=false } = req.body;
+  if (!clientId||!name) return res.status(400).json({ ok:false, error:'clientId and name required' });
+  const p={ id:uatId(), clientId, name, entity, businessUnit, goLiveDate, description, phase:'uat', status:'active', uatRound:1, signoff:null, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
   u.projects.push(p);
-  uatLog('project_created', `Project "${name}" created`, {projectId:p.id, clientId});
+  if (seedDefaults) {
+    const tcs=UAT_DEFAULTS.map((d,i)=>uatNewTC({...d,id:uatId(),projectId:p.id,clientId,seq:i+1}));
+    u.testcases.push(...tcs);
+    uatLog('project_seeded',`"${name}" seeded with ${tcs.length} default test cases`,{projectId:p.id,clientId});
+  } else uatLog('project_created',`Project "${name}" created`,{projectId:p.id,clientId});
   await saveDB(db); res.json({ ok:true, data:p });
 });
 app.put('/api/uat/projects/:id', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  const p = u.projects.find(x => x.id === req.params.id);
+  await _dbReady; const u=uatDB(); const p=u.projects.find(x=>x.id===req.params.id);
   if (!p) return res.status(404).json({ ok:false, error:'not found' });
-  Object.assign(p, req.body, { id:p.id, updatedAt: new Date().toISOString() });
+  Object.assign(p, req.body, { id:p.id, updatedAt:new Date().toISOString() });
+  await saveDB(db); res.json({ ok:true, data:p });
+});
+app.post('/api/uat/projects/:id/seed', async (req, res) => {
+  await _dbReady; const u=uatDB(); const p=u.projects.find(x=>x.id===req.params.id);
+  if (!p) return res.status(404).json({ ok:false, error:'not found' });
+  const start=u.testcases.filter(t=>t.projectId===p.id).length;
+  const tcs=UAT_DEFAULTS.map((d,i)=>uatNewTC({...d,id:uatId(),projectId:p.id,clientId:p.clientId,seq:start+i+1}));
+  u.testcases.push(...tcs);
+  uatLog('project_seeded',`Seeded ${tcs.length} default test cases into "${p.name}"`,{projectId:p.id});
+  await saveDB(db); res.json({ ok:true, data:{ count:tcs.length } });
+});
+app.post('/api/uat/projects/:id/signoff', async (req, res) => {
+  await _dbReady; const u=uatDB(); const p=u.projects.find(x=>x.id===req.params.id);
+  if (!p) return res.status(404).json({ ok:false, error:'not found' });
+  p.signoff={ status:req.body.approve?'approved':'rejected', signedBy:req.body.signedBy||'Client', comment:req.body.comment||'', signedAt:new Date().toISOString() };
+  if (req.body.approve) p.phase='go_live';
+  uatLog('signoff',`UAT ${p.signoff.status} for "${p.name}"`,{projectId:p.id,clientId:p.clientId});
   await saveDB(db); res.json({ ok:true, data:p });
 });
 
-// Test Cases
+// ── Test Cases ────────────────────────────────────────────────────────────────
 app.get('/api/uat/testcases', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  let list = u.testcases;
-  if (req.query.projectId) list = list.filter(t => t.projectId === req.query.projectId);
-  if (req.query.clientId)  list = list.filter(t => t.clientId  === req.query.clientId);
-  if (req.query.status)    list = list.filter(t => t.status    === req.query.status);
-  if (req.query.processArea) list = list.filter(t => t.processArea === req.query.processArea);
-  if (req.query.q) {
-    const q = req.query.q.toLowerCase();
-    list = list.filter(t => (t.testScenario||'').toLowerCase().includes(q) || (t.module||'').toLowerCase().includes(q) || (t.processArea||'').toLowerCase().includes(q));
-  }
+  await _dbReady; let list=uatDB().testcases;
+  if (req.query.projectId) list=list.filter(t=>t.projectId===req.query.projectId);
+  if (req.query.clientId)  list=list.filter(t=>t.clientId===req.query.clientId);
+  if (req.query.category)  list=list.filter(t=>t.category===req.query.category);
+  if (req.query.bStatus)   list=list.filter(t=>t.bluecopaStatus===req.query.bStatus);
+  if (req.query.cStatus)   list=list.filter(t=>t.clientStatus===req.query.cStatus);
+  if (req.query.q) { const ql=req.query.q.toLowerCase(); list=list.filter(t=>(t.testDescription||'').toLowerCase().includes(ql)||(t.subCategory||'').toLowerCase().includes(ql)||(t.category||'').toLowerCase().includes(ql)); }
   res.json({ ok:true, data:list });
 });
 app.post('/api/uat/testcases', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  const { projectId, clientId, processArea='', module='', testScenario='', expectedResult='', priority='medium', assignee='', round=1 } = req.body;
-  if (!projectId) return res.status(400).json({ ok:false, error:'projectId required' });
-  const seq = u.testcases.filter(t => t.projectId === projectId).length + 1;
-  const tc = { id: uatId('t'), projectId, clientId: clientId||'', round, seq, processArea, module, testScenario, steps:'', expectedResult, actualResult:'', status:'not_started', priority, assignee, testedBy:'', executionDate:'', comments:[], attachments:[], issueRef:'', tags:[], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-  u.testcases.push(tc);
-  await saveDB(db); res.json({ ok:true, data:tc });
+  await _dbReady; const u=uatDB();
+  if (!req.body.projectId) return res.status(400).json({ ok:false, error:'projectId required' });
+  const seq=u.testcases.filter(t=>t.projectId===req.body.projectId).length+1;
+  const tc=uatNewTC({...req.body,seq,id:uatId()});
+  u.testcases.push(tc); await saveDB(db); res.json({ ok:true, data:tc });
 });
 app.put('/api/uat/testcases/:id', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  const tc = u.testcases.find(x => x.id === req.params.id);
+  await _dbReady; const u=uatDB(); const tc=u.testcases.find(x=>x.id===req.params.id);
   if (!tc) return res.status(404).json({ ok:false, error:'not found' });
-  const prevStatus = tc.status;
-  Object.assign(tc, req.body, { id:tc.id, comments:tc.comments, updatedAt: new Date().toISOString() });
-  if (prevStatus !== tc.status) uatLog('status_changed', `Test "${tc.testScenario.slice(0,40)}" → ${tc.status}`, {projectId:tc.projectId, clientId:tc.clientId});
+  const { bluecopaStatus, clientStatus, bluecopaComments, clientComments, attachments, ...rest } = req.body;
+  if (bluecopaStatus!==undefined&&tc.bluecopaStatus!==bluecopaStatus){tc.bluecopaStatus=bluecopaStatus;uatLog('b_status',`Bluecopa: ${bluecopaStatus} on TC-${tc.seq}`,{projectId:tc.projectId});}
+  if (clientStatus!==undefined&&tc.clientStatus!==clientStatus){tc.clientStatus=clientStatus;uatLog('c_status',`Client: ${clientStatus} on TC-${tc.seq}`,{projectId:tc.projectId});}
+  if (bluecopaComments!==undefined) tc.bluecopaComments=bluecopaComments;
+  if (clientComments!==undefined)   tc.clientComments=clientComments;
+  if (attachments!==undefined)      tc.attachments=attachments;
+  Object.assign(tc, rest, { id:tc.id, bluecopaStatus:tc.bluecopaStatus, clientStatus:tc.clientStatus, bluecopaComments:tc.bluecopaComments, clientComments:tc.clientComments, attachments:tc.attachments, updatedAt:new Date().toISOString() });
   await saveDB(db); res.json({ ok:true, data:tc });
 });
 app.delete('/api/uat/testcases/:id', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  u.testcases = u.testcases.filter(x => x.id !== req.params.id);
+  await _dbReady; const u=uatDB(); u.testcases=u.testcases.filter(x=>x.id!==req.params.id);
   await saveDB(db); res.json({ ok:true });
 });
 app.post('/api/uat/testcases/bulk', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  const { ids=[], status } = req.body;
-  ids.forEach(id => { const t = u.testcases.find(x => x.id === id); if (t && status) { t.status = status; t.updatedAt = new Date().toISOString(); } });
+  await _dbReady; const u=uatDB(); const { ids=[], bluecopaStatus, clientStatus } = req.body;
+  ids.forEach(id=>{ const t=u.testcases.find(x=>x.id===id); if(!t) return;
+    if (bluecopaStatus) t.bluecopaStatus=bluecopaStatus;
+    if (clientStatus)   t.clientStatus=clientStatus;
+    t.updatedAt=new Date().toISOString();
+  });
   await saveDB(db); res.json({ ok:true });
 });
-app.post('/api/uat/testcases/:id/comments', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  const tc = u.testcases.find(x => x.id === req.params.id);
-  if (!tc) return res.status(404).json({ ok:false, error:'not found' });
-  const c = { id: uatId('cm'), author: req.body.author||'Team', role: req.body.role||'internal', text: req.body.text||'', createdAt: new Date().toISOString() };
-  tc.comments.push(c);
-  uatLog('comment_added', `Comment on "${tc.testScenario.slice(0,30)}"`, {projectId:tc.projectId});
-  await saveDB(db); res.json({ ok:true, data:c });
+app.post('/api/uat/testcases/reorder', async (req, res) => {
+  await _dbReady; const u=uatDB(); const { ids=[] } = req.body;
+  ids.forEach((id,i)=>{ const t=u.testcases.find(x=>x.id===id); if(t) t.seq=i+1; });
+  await saveDB(db); res.json({ ok:true });
 });
 
-// Issues
+// ── Issues ────────────────────────────────────────────────────────────────────
 app.get('/api/uat/issues', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  let list = u.issues;
-  if (req.query.projectId) list = list.filter(i => i.projectId === req.query.projectId);
-  if (req.query.clientId)  list = list.filter(i => i.clientId  === req.query.clientId);
-  if (req.query.status)    list = list.filter(i => i.status    === req.query.status);
+  await _dbReady; let list=uatDB().issues;
+  if (req.query.projectId) list=list.filter(i=>i.projectId===req.query.projectId);
+  if (req.query.clientId)  list=list.filter(i=>i.clientId===req.query.clientId);
+  if (req.query.status)    list=list.filter(i=>i.status===req.query.status);
   res.json({ ok:true, data:list });
 });
 app.post('/api/uat/issues', async (req, res) => {
-  await _dbReady; const u = uatDB();
+  await _dbReady; const u=uatDB();
   const { testCaseId, projectId, clientId, title, description='', severity='medium', assignedTo='' } = req.body;
   if (!title) return res.status(400).json({ ok:false, error:'title required' });
-  const cnt = u.issues.filter(i => i.projectId === projectId).length + 1;
-  const issue = { id: uatId('i'), testCaseId, projectId, clientId, ref:`ISS-${String(cnt).padStart(3,'0')}`, title, description, severity, status:'open', assignedTo, rootCause:'', resolution:'', screenshots:[], comments:[], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+  const cnt=u.issues.filter(i=>i.projectId===projectId).length+1;
+  const issue={ id:uatId(), testCaseId, projectId, clientId, ref:`ISS-${String(cnt).padStart(3,'0')}`, title, description, severity, status:'open', assignedTo, resolution:'', createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
   u.issues.push(issue);
-  if (testCaseId) { const tc = u.testcases.find(x => x.id === testCaseId); if (tc) tc.issueRef = issue.id; }
-  uatLog('issue_created', `Issue "${title}" opened`, {projectId, clientId});
+  if (testCaseId) { const tc=u.testcases.find(x=>x.id===testCaseId); if(tc){tc.bluecopaStatus='blocked';tc.updatedAt=new Date().toISOString();} }
+  uatLog('issue_opened',`Issue "${title}" raised`,{projectId,clientId});
   await saveDB(db); res.json({ ok:true, data:issue });
 });
 app.put('/api/uat/issues/:id', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  const issue = u.issues.find(x => x.id === req.params.id);
+  await _dbReady; const u=uatDB(); const issue=u.issues.find(x=>x.id===req.params.id);
   if (!issue) return res.status(404).json({ ok:false, error:'not found' });
-  Object.assign(issue, req.body, { id:issue.id, updatedAt: new Date().toISOString() });
+  Object.assign(issue, req.body, { id:issue.id, updatedAt:new Date().toISOString() });
   await saveDB(db); res.json({ ok:true, data:issue });
 });
 
-// Dashboard
+// ── Dashboard ─────────────────────────────────────────────────────────────────
 app.get('/api/uat/dashboard', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  const stats = { totalClients: u.clients.length, activeProjects: u.projects.filter(p=>p.status==='active').length, totalTests: u.testcases.length, openIssues: u.issues.filter(i=>['open','in_progress'].includes(i.status)).length, projects:[] };
-  const passed = u.testcases.filter(t=>t.status==='passed').length;
-  stats.passRate = stats.totalTests ? Math.round(passed/stats.totalTests*100) : 0;
-  stats.projects = u.projects.map(p => {
-    const tc = u.testcases.filter(t=>t.projectId===p.id);
-    const pass = tc.filter(t=>t.status==='passed').length;
-    const fail = tc.filter(t=>t.status==='failed').length;
-    const block = tc.filter(t=>t.status==='blocked').length;
-    const healthScore = tc.length ? Math.round(pass/tc.length*100) : 0;
-    const client = u.clients.find(c=>c.id===p.clientId);
-    return { ...p, clientName: client?.name||'', total:tc.length, passed:pass, failed:fail, blocked:block, healthScore, openIssues: u.issues.filter(i=>i.projectId===p.id&&['open','in_progress'].includes(i.status)).length };
-  });
-  stats.activity = u.activity.slice(0, 20);
+  await _dbReady; const u=uatDB();
+  function projectStats(p) {
+    const tc=u.testcases.filter(t=>t.projectId===p.id);
+    const bPassed=tc.filter(t=>t.bluecopaStatus==='pass').length;
+    const cPassed=tc.filter(t=>t.clientStatus==='pass').length;
+    const blocked=tc.filter(t=>t.bluecopaStatus==='blocked'||t.clientStatus==='blocked').length;
+    const byCategory={};
+    tc.forEach(t=>{ if(!byCategory[t.category]) byCategory[t.category]={total:0,bPass:0,cPass:0,fail:0,blocked:0};
+      byCategory[t.category].total++;
+      if(t.bluecopaStatus==='pass') byCategory[t.category].bPass++;
+      if(t.clientStatus==='pass') byCategory[t.category].cPass++;
+      if(t.bluecopaStatus==='fail'||t.clientStatus==='fail') byCategory[t.category].fail++;
+      if(t.bluecopaStatus==='blocked'||t.clientStatus==='blocked') byCategory[t.category].blocked++;
+    });
+    const client=u.clients.find(c=>c.id===p.clientId);
+    const goLiveScore=tc.length?Math.min(100,Math.round(((bPassed*0.6)+(cPassed*0.4))/tc.length*100)):0;
+    return { ...p, clientName:client?.name||'', total:tc.length, bPassed, cPassed, failed:tc.filter(t=>t.bluecopaStatus==='fail'||t.clientStatus==='fail').length, blocked, goLiveScore, byCategory, openIssues:u.issues.filter(i=>i.projectId===p.id&&['open','in_progress'].includes(i.status)).length };
+  }
+  const allTCs=u.testcases;
+  const stats={ totalClients:u.clients.length, activeProjects:u.projects.filter(p=>p.status==='active').length, totalTests:allTCs.length, bPassRate:allTCs.length?Math.round(allTCs.filter(t=>t.bluecopaStatus==='pass').length/allTCs.length*100):0, cPassRate:allTCs.length?Math.round(allTCs.filter(t=>t.clientStatus==='pass').length/allTCs.length*100):0, openIssues:u.issues.filter(i=>['open','in_progress'].includes(i.status)).length, criticalFails:allTCs.filter(t=>t.priority==='critical'&&(t.bluecopaStatus==='fail'||t.clientStatus==='fail')).length, projects:u.projects.map(projectStats), activity:u.activity.slice(0,30) };
   res.json({ ok:true, data:stats });
 });
-app.get('/api/uat/dashboard/:clientId', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  const cid = req.params.clientId;
-  const client = u.clients.find(c=>c.id===cid);
-  if (!client) return res.status(404).json({ ok:false, error:'not found' });
-  const projects = u.projects.filter(p=>p.clientId===cid).map(p => {
-    const tc = u.testcases.filter(t=>t.projectId===p.id);
-    const byStatus = {};
-    ['not_started','in_progress','passed','failed','blocked','retest'].forEach(s => { byStatus[s] = tc.filter(t=>t.status===s).length; });
-    return { ...p, total:tc.length, byStatus, healthScore: tc.length?Math.round(byStatus.passed/tc.length*100):0 };
-  });
-  res.json({ ok:true, data:{ client, projects, openIssues: u.issues.filter(i=>i.clientId===cid&&['open','in_progress'].includes(i.status)).length } });
-});
 
-// Templates
-app.get('/api/uat/templates', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  res.json({ ok:true, data: u.templates });
-});
+// ── Templates ─────────────────────────────────────────────────────────────────
+app.get('/api/uat/templates', async (req, res) => { await _dbReady; res.json({ ok:true, data:uatDB().templates }); });
 app.post('/api/uat/templates', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  const { name, sourceProjectId } = req.body;
-  const tcs = u.testcases.filter(t=>t.projectId===sourceProjectId).map(({id,projectId,clientId,comments,attachments,issueRef,actualResult,status,testedBy,executionDate,...rest})=>rest);
-  const p = u.projects.find(x=>x.id===sourceProjectId);
-  const c = p ? u.clients.find(x=>x.id===p.clientId) : null;
-  const tmpl = { id: uatId('tmpl'), name, sourceProjectId, sourceClientName: c?.name||'', processAreas:[...new Set(tcs.map(t=>t.processArea).filter(Boolean))], testcases:tcs, createdAt: new Date().toISOString() };
-  u.templates.push(tmpl);
-  await saveDB(db); res.json({ ok:true, data:tmpl });
+  await _dbReady; const u=uatDB(); const { name, sourceProjectId } = req.body;
+  const p=u.projects.find(x=>x.id===sourceProjectId); const c=p?u.clients.find(x=>x.id===p.clientId):null;
+  const tcs=u.testcases.filter(t=>t.projectId===sourceProjectId).map(t=>({ category:t.category,subCategory:t.subCategory,testDescription:t.testDescription,expectedResult:t.expectedResult,priority:t.priority,owner:t.owner,tags:t.tags||[] }));
+  const categories=[...new Set(tcs.map(t=>t.category).filter(Boolean))];
+  const tmpl={ id:uatId(), name, sourceProjectId, sourceClientName:c?.name||'', categories, testcases:tcs, count:tcs.length, createdAt:new Date().toISOString() };
+  u.templates.push(tmpl); await saveDB(db); res.json({ ok:true, data:tmpl });
 });
 app.post('/api/uat/templates/:id/clone', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  const tmpl = u.templates.find(x=>x.id===req.params.id);
+  await _dbReady; const u=uatDB(); const tmpl=u.templates.find(x=>x.id===req.params.id);
   if (!tmpl) return res.status(404).json({ ok:false, error:'not found' });
   const { projectId, clientId } = req.body;
-  const cloned = tmpl.testcases.map((t,i) => ({ ...t, id:uatId('t'), projectId, clientId:clientId||'', seq:i+1, status:'not_started', actualResult:'', comments:[], attachments:[], issueRef:'', createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }));
-  u.testcases.push(...cloned);
-  await saveDB(db); res.json({ ok:true, data:{ count:cloned.length } });
+  const start=u.testcases.filter(t=>t.projectId===projectId).length;
+  const cloned=tmpl.testcases.map((t,i)=>uatNewTC({...t,id:uatId(),projectId,clientId:clientId||'',seq:start+i+1}));
+  u.testcases.push(...cloned); await saveDB(db); res.json({ ok:true, data:{ count:cloned.length } });
 });
 
-// Repository search
+// ── Repository ────────────────────────────────────────────────────────────────
 app.get('/api/uat/repository', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  const { q='', processArea='', clientId='' } = req.query;
-  let tcs = u.testcases;
-  if (processArea) tcs = tcs.filter(t=>t.processArea===processArea);
-  if (clientId) tcs = tcs.filter(t=>t.clientId===clientId);
-  if (q) { const ql=q.toLowerCase(); tcs = tcs.filter(t=>(t.testScenario||'').toLowerCase().includes(ql)||(t.expectedResult||'').toLowerCase().includes(ql)||(t.module||'').toLowerCase().includes(ql)); }
-  // Enrich with client/project names
-  const enriched = tcs.slice(0,100).map(t => {
-    const p = u.projects.find(x=>x.id===t.projectId);
-    const c = u.clients.find(x=>x.id===t.clientId);
-    return { ...t, projectName:p?.name||'', clientName:c?.name||'' };
-  });
+  await _dbReady; const u=uatDB(); const { q='', category='', priority='' } = req.query;
+  let tcs=u.testcases.filter(t=>t.bluecopaStatus==='pass'||t.clientStatus==='pass');
+  if (category)  tcs=tcs.filter(t=>t.category===category);
+  if (priority)  tcs=tcs.filter(t=>t.priority===priority);
+  if (q) { const ql=q.toLowerCase(); tcs=tcs.filter(t=>(t.testDescription||'').toLowerCase().includes(ql)||(t.subCategory||'').toLowerCase().includes(ql)||(t.category||'').toLowerCase().includes(ql)); }
+  const enriched=tcs.slice(0,200).map(t=>{ const p=u.projects.find(x=>x.id===t.projectId); const c=u.clients.find(x=>x.id===t.clientId); return {category:t.category,subCategory:t.subCategory,testDescription:t.testDescription,expectedResult:t.expectedResult,priority:t.priority,projectName:p?.name||'',clientName:c?.name||'',bluecopaStatus:t.bluecopaStatus,clientStatus:t.clientStatus}; });
   res.json({ ok:true, data:enriched });
 });
 
-// CSV Export
+// ── Export ────────────────────────────────────────────────────────────────────
 app.get('/api/uat/export/:projectId', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  const tcs = u.testcases.filter(t=>t.projectId===req.params.projectId);
-  const p = u.projects.find(x=>x.id===req.params.projectId);
-  const headers = ['Seq','Process Area','Module','Test Scenario','Expected Result','Actual Result','Status','Priority','Assignee','Tested By','Execution Date'];
-  const rows = tcs.map(t => [t.seq, t.processArea, t.module, t.testScenario, t.expectedResult, t.actualResult, t.status, t.priority, t.assignee, t.testedBy, t.executionDate]);
-  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  await _dbReady; const u=uatDB();
+  const tcs=u.testcases.filter(t=>t.projectId===req.params.projectId).sort((a,b)=>a.seq-b.seq);
+  const p=u.projects.find(x=>x.id===req.params.projectId);
+  const headers=['#','Category','Sub-Category','Test Description','Expected Result','Priority','Owner','Bluecopa Status','Client Status','Bluecopa Comments','Client Comments','Last Updated'];
+  const rows=tcs.map(t=>[t.seq,t.category,t.subCategory,t.testDescription,t.expectedResult,t.priority,t.owner,t.bluecopaStatus,t.clientStatus,t.bluecopaComments,t.clientComments,t.updatedAt]);
+  const csv=[headers,...rows].map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
   res.setHeader('Content-Type','text/csv');
-  res.setHeader('Content-Disposition',`attachment; filename="UAT_${(p?.name||'export').replace(/\s/g,'_')}.csv"`);
+  res.setHeader('Content-Disposition',`attachment; filename="UAT_${(p?.name||'export').replace(/[^a-zA-Z0-9]/g,'_')}.csv"`);
   res.send(csv);
 });
 
-// Client portal
+// ── Client Portal ─────────────────────────────────────────────────────────────
 app.post('/api/uat/portal/generate', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  const { clientId } = req.body;
-  const c = u.clients.find(x=>x.id===clientId);
+  await _dbReady; const u=uatDB(); const c=u.clients.find(x=>x.id===req.body.clientId);
   if (!c) return res.status(404).json({ ok:false, error:'not found' });
-  c.portalToken = require('crypto').randomBytes(20).toString('hex');
+  c.portalToken=require('crypto').randomBytes(24).toString('hex');
   await saveDB(db); res.json({ ok:true, token:c.portalToken });
 });
 app.get('/api/uat/portal/:token', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  const c = u.clients.find(x=>x.portalToken===req.params.token);
-  if (!c) return res.status(404).json({ ok:false, error:'invalid portal link' });
-  const projects = u.projects.filter(p=>p.clientId===c.id).map(p => {
-    const tc = u.testcases.filter(t=>t.projectId===p.id);
-    const byStatus = {};
-    ['not_started','in_progress','passed','failed','blocked','retest'].forEach(s=>{byStatus[s]=tc.filter(t=>t.status===s).length;});
-    return { ...p, testcases:tc, total:tc.length, byStatus };
+  await _dbReady; const u=uatDB(); const c=u.clients.find(x=>x.portalToken===req.params.token);
+  if (!c) return res.status(404).json({ ok:false, error:'invalid link' });
+  const projects=u.projects.filter(p=>p.clientId===c.id).map(p=>{
+    const tc=u.testcases.filter(t=>t.projectId===p.id).sort((a,b)=>a.seq-b.seq);
+    const total=tc.length, cPass=tc.filter(t=>t.clientStatus==='pass').length;
+    const categories=[...new Set(tc.map(t=>t.category))];
+    return {...p,testcases:tc,total,cPassed:cPass,cPassRate:total?Math.round(cPass/total*100):0,categories};
   });
-  res.json({ ok:true, data:{ client:{ name:c.name, shortCode:c.shortCode }, projects } });
+  res.json({ ok:true, data:{ client:{id:c.id,name:c.name,shortCode:c.shortCode}, projects } });
+});
+app.put('/api/uat/portal/:token/tc/:id', async (req, res) => {
+  await _dbReady; const u=uatDB(); const c=u.clients.find(x=>x.portalToken===req.params.token);
+  if (!c) return res.status(403).json({ ok:false, error:'invalid token' });
+  const tc=u.testcases.find(x=>x.id===req.params.id&&x.clientId===c.id);
+  if (!tc) return res.status(404).json({ ok:false, error:'not found' });
+  const { clientStatus, clientComments, attachments } = req.body;
+  if (clientStatus!==undefined){tc.clientStatus=clientStatus;uatLog('c_status',`Client: ${clientStatus} on TC-${tc.seq}`,{projectId:tc.projectId,clientId:c.id});}
+  if (clientComments!==undefined) tc.clientComments=clientComments;
+  if (attachments!==undefined)    tc.attachments=attachments;
+  tc.updatedAt=new Date().toISOString();
+  await saveDB(db); res.json({ ok:true, data:tc });
 });
 
-// Sign-off
-app.post('/api/uat/projects/:id/signoff', async (req, res) => {
-  await _dbReady; const u = uatDB();
-  const p = u.projects.find(x=>x.id===req.params.id);
-  if (!p) return res.status(404).json({ ok:false, error:'not found' });
-  p.signoff = { status: req.body.approve ? 'approved' : 'rejected', signedBy: req.body.signedBy||'Client', comment: req.body.comment||'', signedAt: new Date().toISOString() };
-  if (req.body.approve) p.phase = 'go_live';
-  uatLog('signoff', `UAT ${p.signoff.status} for "${p.name}"`, {projectId:p.id, clientId:p.clientId});
-  await saveDB(db); res.json({ ok:true, data:p });
+// ── Client Portal HTML ────────────────────────────────────────────────────────
+app.get('/uat/portal/:token', async (req, res) => {
+  await _dbReady; const u=uatDB(); const c=u.clients.find(x=>x.portalToken===req.params.token);
+  if (!c) return res.status(404).send('<h2>Invalid or expired portal link</h2>');
+  const token=req.params.token;
+  res.setHeader('Content-Type','text/html');
+  res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UAT Portal — ${c.name}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;background:#f1f2f5;color:#0d1117;font-size:14px}
+.topbar{background:#fff;border-bottom:1px solid #e4e6ea;padding:0 24px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:10}
+.logo{font-size:16px;font-weight:800;color:#0d1117;letter-spacing:-.3px}.logo span{color:#c9a227}
+.client-chip{background:#f4f5f7;border:1px solid #e4e6ea;border-radius:6px;padding:4px 10px;font-size:12px;color:#6b7280;font-weight:600}
+.main{max-width:1200px;margin:0 auto;padding:24px 16px}
+.page-title{font-size:22px;font-weight:800;margin-bottom:4px}.page-sub{color:#6b7280;font-size:13px;margin-bottom:24px}
+.project-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.proj-tab{padding:8px 16px;border:1px solid #e4e6ea;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;background:#fff;transition:all .15s}
+.proj-tab.active{background:#0d1117;color:#fff;border-color:#0d1117}
+.progress-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;gap:24px;flex-wrap:wrap;align-items:center}
+.prog-stat{text-align:center}.prog-stat .val{font-size:24px;font-weight:800}.prog-stat .lbl{font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.prog-bar-wrap{flex:1;min-width:200px}.prog-bar-bg{background:#f1f2f5;border-radius:99px;height:8px;overflow:hidden}
+.prog-bar-fill{height:100%;border-radius:99px;background:#22c55e;transition:width .4s}
+.prog-label{display:flex;justify-content:space-between;font-size:12px;color:#6b7280;margin-bottom:4px}
+.table-wrap{background:#fff;border:1px solid #e4e6ea;border-radius:12px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{background:#f8f9fa;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;border-bottom:1px solid #e4e6ea;text-align:left;white-space:nowrap}
+td{padding:12px 14px;border-bottom:1px solid #f1f2f5;vertical-align:top;font-size:13px}
+tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
+.cat-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;font-family:monospace;background:#f4f5f7;color:#374151}
+.status-cell{position:relative}
+.status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
+.status-pill:hover{filter:brightness(.93)}
+.s-not_tested{background:#f1f2f5;color:#6b7280}.s-in_progress{background:#dbeafe;color:#1d4ed8}.s-pass{background:#dcfce7;color:#15803d}.s-fail{background:#fee2e2;color:#dc2626}.s-blocked{background:#fef3c7;color:#b45309}
+.status-dd{position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:#fff;border:1px solid #e4e6ea;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:4px;min-width:140px;display:none}
+.status-dd.open{display:block}
+.status-dd button{display:flex;align-items:center;gap:8px;width:100%;padding:7px 12px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;border-radius:6px;color:#0d1117;text-align:left}
+.status-dd button:hover{background:#f4f5f7}
+.comment-area{width:100%;border:1px solid #e4e6ea;border-radius:6px;padding:8px;font-size:12px;font-family:inherit;resize:vertical;min-height:60px;color:#0d1117}
+.comment-area:focus{outline:2px solid rgba(201,162,39,.4);border-color:#c9a227}
+.save-btn{margin-top:6px;padding:5px 12px;background:#0d1117;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer}
+.toast{position:fixed;bottom:24px;right:24px;background:#0d1117;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:100;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+</style></head><body>
+<div class="topbar"><div class="logo">Blue<span>copa</span></div><div class="client-chip">${c.name}</div><div style="margin-left:auto;font-size:12px;color:#6b7280">UAT Client Portal</div></div>
+<div class="main" id="app">
+  <div class="page-title">UAT Sign-off Portal</div>
+  <div class="page-sub">Review test cases, update your status, and add comments.</div>
+  <div id="projectTabs" class="project-tabs"></div>
+  <div id="progressCard" class="progress-card"></div>
+  <div class="table-wrap"><table id="tcTable"><thead><tr>
+    <th>#</th><th>Category</th><th>Test Description</th><th>Expected Result</th>
+    <th>Bluecopa Status</th><th>Bluecopa Comments</th><th>Your Status</th><th>Your Comments</th>
+  </tr></thead><tbody id="tcBody"></tbody></table></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const TOKEN='${token}';let data=null,curProject=null;
+const SL={'not_tested':'Not Tested','in_progress':'In Progress','pass':'Pass','fail':'Fail','blocked':'Blocked'};
+const SC={'not_tested':'s-not_tested','in_progress':'s-in_progress','pass':'s-pass','fail':'s-fail','blocked':'s-blocked'};
+function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2400)}
+async function load(){const r=await fetch('/api/uat/portal/'+TOKEN);if(!r.ok)return;data=(await r.json()).data;renderTabs();if(data.projects.length)selectProject(data.projects[0].id);}
+function renderTabs(){document.getElementById('projectTabs').innerHTML=data.projects.map(p=>\`<button class="proj-tab" onclick="selectProject('\${p.id}')" id="ptab_\${p.id}">\${p.name}</button>\`).join('');}
+function selectProject(id){curProject=data.projects.find(p=>p.id===id);document.querySelectorAll('.proj-tab').forEach(b=>b.classList.toggle('active',b.id==='ptab_'+id));renderProgress();renderTable();}
+function renderProgress(){const p=curProject,total=p.testcases.length,pass=p.testcases.filter(t=>t.clientStatus==='pass').length,pct=total?Math.round(pass/total*100):0;
+document.getElementById('progressCard').innerHTML=\`<div class="prog-stat"><div class="val">\${total}</div><div class="lbl">Total</div></div><div class="prog-stat"><div class="val" style="color:#22c55e">\${pass}</div><div class="lbl">Passed</div></div><div class="prog-stat"><div class="val" style="color:#dc2626">\${p.testcases.filter(t=>t.clientStatus==='fail').length}</div><div class="lbl">Failed</div></div><div class="prog-stat"><div class="val" style="color:#b45309">\${p.testcases.filter(t=>t.clientStatus==='blocked').length}</div><div class="lbl">Blocked</div></div><div class="prog-bar-wrap"><div class="prog-label"><span>Your Pass Rate</span><span>\${pct}%</span></div><div class="prog-bar-bg"><div class="prog-bar-fill" style="width:\${pct}%"></div></div></div>\`;}
+function renderTable(){const tcs=curProject.testcases;if(!tcs.length){document.getElementById('tcBody').innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:#6b7280">No test cases found.</td></tr>';return;}
+document.getElementById('tcBody').innerHTML=tcs.map(tc=>\`<tr id="row_\${tc.id}"><td><span style="color:#6b7280;font-size:12px;font-weight:600">\${tc.seq}</span></td><td><span class="cat-badge">\${tc.category}</span><div style="font-size:11px;color:#6b7280;margin-top:3px">\${tc.subCategory||''}</div></td><td style="max-width:250px"><div style="font-weight:600;line-height:1.4">\${tc.testDescription}</div></td><td style="max-width:200px;color:#6b7280;font-size:12px;line-height:1.4">\${tc.expectedResult}</td><td><span class="status-pill \${SC[tc.bluecopaStatus]||'s-not_tested'}">\${SL[tc.bluecopaStatus]||'Not Tested'}</span></td><td style="color:#374151;font-size:12px;line-height:1.5;max-width:200px">\${tc.bluecopaComments||'<span style="color:#d1d5db">—</span>'}</td><td class="status-cell"><button class="status-pill \${SC[tc.clientStatus]||'s-not_tested'}" onclick="toggleDD('\${tc.id}',event)">\${SL[tc.clientStatus]||'Not Tested'} ▾</button><div class="status-dd" id="dd_\${tc.id}">\${Object.entries(SL).map(([k,v])=>\`<button onclick="setStatus('\${tc.id}','\${k}')">\${v}</button>\`).join('')}</div></td><td style="min-width:180px"><textarea class="comment-area" id="cmt_\${tc.id}" placeholder="Add your comments...">\${tc.clientComments||''}</textarea><button class="save-btn" onclick="saveComment('\${tc.id}')">Save</button></td></tr>\`).join('');}
+function toggleDD(id,e){e.stopPropagation();document.querySelectorAll('.status-dd').forEach(d=>{if(d.id!=='dd_'+id)d.classList.remove('open');});document.getElementById('dd_'+id).classList.toggle('open');}
+document.addEventListener('click',()=>document.querySelectorAll('.status-dd').forEach(d=>d.classList.remove('open')));
+async function setStatus(tcId,status){document.getElementById('dd_'+tcId).classList.remove('open');const tc=curProject.testcases.find(t=>t.id===tcId);tc.clientStatus=status;const r=await fetch('/api/uat/portal/'+TOKEN+'/tc/'+tcId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientStatus:status})});if(r.ok){renderProgress();const row=document.getElementById('row_'+tcId);if(row){const pill=row.querySelector('.status-cell .status-pill');pill.className='status-pill '+SC[status];pill.innerHTML=SL[status]+' ▾';}toast('Status updated');}else toast('Failed to save');}
+async function saveComment(tcId){const text=document.getElementById('cmt_'+tcId).value;const tc=curProject.testcases.find(t=>t.id===tcId);tc.clientComments=text;const r=await fetch('/api/uat/portal/'+TOKEN+'/tc/'+tcId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientComments:text})});if(r.ok)toast('Comment saved');else toast('Failed to save');}
+load();
+</script></body></html>`);
 });
 
 // ── File upload ───────────────────────────────────────────────────────────────

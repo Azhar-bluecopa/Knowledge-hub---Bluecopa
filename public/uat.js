@@ -1,34 +1,32 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   UAT PLATFORM — uat.js
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════════════
+   UAT PLATFORM v2  — uat.js
+   ══════════════════════════════════════════════════════════════════════════════ */
 
 const UAT = (() => {
-  /* ── state ──────────────────────────────────────────────────────────── */
-  let state = {
+  /* ── State ─────────────────────────────────────────────────────────────── */
+  const S = {
     view: 'dashboard',
-    clients: [], projects: [], testcases: [], issues: [], templates: [],
+    clients: [], projects: [], testcases: [], issues: [], templates: [], activity: [],
     activeClientId: null,
     activeProjectId: null,
-    activeTestCase: null,
-    selectedTCs: new Set(),
-    filterStatus: '', filterPriority: '', filterProcess: '', filterQ: '',
+    drawerTC: null,
+    selected: new Set(),
+    filterQ: '', filterCategory: '', filterBStatus: '', filterCStatus: '', filterPriority: '',
     dashData: null,
-    repoResults: [],
   };
 
-  /* ── helpers ─────────────────────────────────────────────────────────── */
+  /* ── Helpers ────────────────────────────────────────────────────────────── */
   function el(id) { return document.getElementById(id); }
-  function qs(sel, root) { return (root || document).querySelector(sel); }
-  function qsa(sel, root) { return [...(root || document).querySelectorAll(sel)]; }
-  function apiBase() { return ''; }
+  function qs(s, r) { return (r || document).querySelector(s); }
+  function qsa(s, r) { return [...(r || document).querySelectorAll(s)]; }
 
-  function authHeader() {
+  function authH() {
     const u = JSON.parse(localStorage.getItem('kb_user') || '{}');
     return { 'Content-Type': 'application/json', 'x-user-email': u.email || 'azhar.m@bluecopa.com' };
   }
 
   async function api(method, path, body) {
-    const opts = { method, headers: authHeader() };
+    const opts = { method, headers: authH() };
     if (body !== undefined) opts.body = JSON.stringify(body);
     const r = await fetch(path, opts);
     return r.json();
@@ -36,1025 +34,670 @@ const UAT = (() => {
 
   function toast(msg, type = 'success') {
     let t = el('uatToast');
-    if (!t) {
-      t = document.createElement('div');
-      t.id = 'uatToast'; t.className = 'uat-toast';
-      document.body.appendChild(t);
-    }
+    if (!t) { t = document.createElement('div'); t.id = 'uatToast'; document.body.appendChild(t); }
     t.textContent = msg; t.className = `uat-toast ${type} show`;
-    clearTimeout(t._tid);
-    t._tid = setTimeout(() => t.classList.remove('show'), 3000);
+    clearTimeout(t._tid); t._tid = setTimeout(() => t.classList.remove('show'), 3000);
   }
 
   function relTime(iso) {
     if (!iso) return '';
-    const diff = Date.now() - new Date(iso).getTime();
-    const m = Math.floor(diff / 60000);
-    if (m < 1) return 'just now';
-    if (m < 60) return `${m}m ago`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
+    const d = (Date.now() - new Date(iso)) / 1000;
+    if (d < 60) return 'just now';
+    if (d < 3600) return `${Math.floor(d/60)}m ago`;
+    if (d < 86400) return `${Math.floor(d/3600)}h ago`;
+    return `${Math.floor(d/86400)}d ago`;
   }
 
-  function statusBadge(s) {
-    const map = {
-      not_started:'not-started',in_progress:'in-progress',passed:'passed',
-      failed:'failed',blocked:'blocked',retest:'retest',open:'open',
-      resolved:'resolved',closed:'closed',active:'active',at_risk:'at-risk',
-      on_hold:'on-hold',completed:'completed',go_live:'go-live',uat:'uat-phase'
-    };
-    const labels = {
-      not_started:'Not Started',in_progress:'In Progress',passed:'Passed',
-      failed:'Failed',blocked:'Blocked',retest:'Retest',open:'Open',
-      resolved:'Resolved',closed:'Closed',active:'Active',at_risk:'At Risk',
-      on_hold:'On Hold',completed:'Completed',go_live:'Go Live',uat:'UAT'
-    };
-    return `<span class="uat-badge ${map[s]||s}">${labels[s]||s}</span>`;
-  }
+  const STATUS_LABELS = { not_tested: 'Not Tested', in_progress: 'In Progress', pass: 'Pass', fail: 'Fail', blocked: 'Blocked' };
+  const PRIORITY_LABELS = { critical: 'CRITICAL', high: 'HIGH', medium: 'MED', low: 'LOW' };
+  const CATEGORIES = ['R2R', 'P2P', 'O2C', 'Planning', 'Dashboards', 'Reports', 'Security', 'Integrations'];
 
-  function prioBadge(p) {
-    return `<span class="uat-prio ${p}">${p?p.charAt(0).toUpperCase()+p.slice(1):''}</span>`;
-  }
-
-  function initials(name) {
-    return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-  }
-
-  function healthColor(pct) {
-    if (pct >= 80) return '#22c55e';
-    if (pct >= 50) return '#f59e0b';
-    return '#dc2626';
-  }
-
-  function healthRing(pct) {
-    const r = 20, circ = 2 * Math.PI * r, fill = circ * (pct / 100);
-    const col = healthColor(pct);
-    return `<div class="uat-health-ring">
-      <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="24" cy="24" r="${r}" fill="none" stroke="#e4e6ea" stroke-width="4"/>
-        <circle cx="24" cy="24" r="${r}" fill="none" stroke="${col}" stroke-width="4"
-          stroke-dasharray="${fill} ${circ}" stroke-linecap="round"/>
-      </svg>
-      <span class="uat-health-ring-val" style="color:${col}">${pct}%</span>
+  function statusPill(status, prefix, tcId) {
+    const s = status || 'not_tested';
+    return `<button class="uat-status-pill ${s}" onclick="UAT.toggleStatusDD('${prefix}','${tcId}',event)">
+      ${STATUS_LABELS[s] || s}
+    </button>
+    <div class="uat-status-dropdown" id="sdd_${prefix}_${tcId}">
+      ${Object.entries(STATUS_LABELS).map(([k,v]) =>
+        `<button class="uat-status-opt" onclick="UAT.setStatus('${prefix}','${tcId}','${k}',event)">
+          <span class="uat-status-dot dot-${k}"></span>${v}
+        </button>`).join('')}
     </div>`;
   }
 
-  /* ── navigation ──────────────────────────────────────────────────────── */
-  function showView(v) {
-    state.view = v;
-    qsa('.uat-view').forEach(el => el.classList.remove('active'));
-    const ve = el(`uatView_${v}`);
-    if (ve) ve.classList.add('active');
-    qsa('.uat-nav-item').forEach(n => {
-      n.classList.toggle('active', n.dataset.view === v);
-    });
+  function priorityBadge(p) {
+    const cls = { critical:'pri-critical', high:'pri-high', medium:'pri-medium', low:'pri-low' };
+    return `<span class="uat-priority ${cls[p]||'pri-low'}">${PRIORITY_LABELS[p]||p||''}</span>`;
   }
 
-  /* ── open / close overlay ────────────────────────────────────────────── */
-  function open() {
-    el('uatOverlay').classList.add('uat-open');
-    loadDashboard();
-    showView('dashboard');
-    loadClients();
+  function healthColor(score) {
+    if (score >= 80) return 'health-good';
+    if (score >= 50) return 'health-mid';
+    if (score > 0)   return 'health-bad';
+    return 'health-none';
   }
 
-  function close() {
-    el('uatOverlay').classList.remove('uat-open');
+  function barColor(score) {
+    if (score >= 80) return '#22c55e';
+    if (score >= 50) return '#f97316';
+    return '#dc2626';
   }
 
-  /* ══════════════════════════════════════════════════════════════════════
-     DASHBOARD
-  ══════════════════════════════════════════════════════════════════════ */
+  /* ── Navigation ─────────────────────────────────────────────────────────── */
+  function setView(v) {
+    S.view = v;
+    qsa('.uat-nav-tab').forEach(t => t.classList.toggle('active', t.dataset.view === v));
+    qsa('.uat-view').forEach(d => d.classList.toggle('active', d.id === `uatView_${v}`));
+    el('uatTopbarBreadcrumb').innerHTML = breadcrumb(v);
+    if (v === 'dashboard') loadDashboard();
+    if (v === 'projects')  renderProjects();
+    if (v === 'testcases') { if (!S.activeProjectId) setView('projects'); else loadTestCases(); }
+    if (v === 'issues')    loadIssues();
+    if (v === 'repository') loadRepository();
+  }
+
+  function breadcrumb(v) {
+    const names = { dashboard:'Overview', projects:'Projects', testcases:'Test Cases', issues:'Issues', repository:'Repository' };
+    let html = 'UAT Platform';
+    if (S.activeClientId) {
+      const c = S.clients.find(x => x.id === S.activeClientId);
+      if (c) html += ` / <span>${c.name}</span>`;
+    }
+    if (v === 'testcases' && S.activeProjectId) {
+      const p = S.projects.find(x => x.id === S.activeProjectId);
+      if (p) html += ` / <span>${p.name}</span>`;
+    }
+    return html;
+  }
+
+  /* ── Dashboard ──────────────────────────────────────────────────────────── */
   async function loadDashboard() {
     const r = await api('GET', '/api/uat/dashboard');
     if (!r.ok) return;
-    state.dashData = r.data;
+    S.dashData = r.data;
     renderDashboard(r.data);
   }
 
   function renderDashboard(d) {
-    const kpi = el('uatDashKPI');
-    kpi.innerHTML = `
-      <div class="uat-kpi-card uat-kpi-accent gold">
-        <div class="uat-kpi-label">Total Clients</div>
-        <div class="uat-kpi-value">${d.totalClients}</div>
-        <div class="uat-kpi-sub">Active engagements</div>
-      </div>
-      <div class="uat-kpi-card uat-kpi-accent blue">
-        <div class="uat-kpi-label">Active Projects</div>
-        <div class="uat-kpi-value">${d.activeProjects}</div>
-        <div class="uat-kpi-sub">In UAT phase</div>
-      </div>
-      <div class="uat-kpi-card uat-kpi-accent green">
-        <div class="uat-kpi-label">Total Tests</div>
-        <div class="uat-kpi-value">${d.totalTests}</div>
-        <div class="uat-kpi-sub">Pass rate: ${d.passRate}%</div>
-        <div class="uat-progress-wrap">
-          <div class="uat-progress-bar"><div class="uat-progress-fill${d.passRate<50?' danger':d.passRate<80?' warn':''}" style="width:${d.passRate}%"></div></div>
-        </div>
-      </div>
-      <div class="uat-kpi-card uat-kpi-accent red">
-        <div class="uat-kpi-label">Open Issues</div>
-        <div class="uat-kpi-value">${d.openIssues}</div>
-        <div class="uat-kpi-sub">Needs attention</div>
-      </div>`;
+    const allTCs = d.totalTests;
+    el('uatDash_clients').textContent = d.totalClients;
+    el('uatDash_projects').textContent = d.activeProjects;
+    el('uatDash_tests').textContent = allTCs;
+    el('uatDash_issues').textContent = d.openIssues;
+    el('uatDash_bpass').textContent = `${d.bPassRate}%`;
+    el('uatDash_cpass').textContent = `${d.cPassRate}%`;
+    el('uatDash_critfail').textContent = d.criticalFails;
 
-    const proj = el('uatDashProjects');
+    // Projects table
+    const tbody = el('uatDash_projects_tbody');
     if (!d.projects.length) {
-      proj.innerHTML = `<div class="uat-empty"><div class="uat-empty-title">No projects yet</div><div class="uat-empty-sub">Create a client and project to get started</div></div>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="uat-empty" style="padding:32px">No projects yet</td></tr>`;
     } else {
-      proj.innerHTML = `<div class="uat-table-wrap"><table class="uat-table">
-        <thead><tr>
-          <th>Client</th><th>Project</th><th>Phase</th>
-          <th>Tests</th><th>Passed</th><th>Failed</th><th>Issues</th><th>Health</th><th></th>
-        </tr></thead>
-        <tbody>${d.projects.map(p => `
-          <tr>
-            <td><span class="uat-text-muted">${p.clientName}</span></td>
-            <td class="uat-bold">${esc(p.name)}</td>
-            <td>${statusBadge(p.phase)}</td>
-            <td>${p.total}</td>
-            <td style="color:#16a34a;font-weight:600">${p.passed}</td>
-            <td style="color:${p.failed?'#dc2626':'#6b7280'};font-weight:600">${p.failed}</td>
-            <td style="color:${p.openIssues?'#ea580c':'#6b7280'};font-weight:600">${p.openIssues}</td>
-            <td>${healthRing(p.healthScore)}</td>
-            <td><button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.goProject('${p.id}','${p.clientId}')">View</button></td>
-          </tr>`).join('')}
-        </tbody>
-      </table></div>`;
+      tbody.innerHTML = d.projects.map(p => `
+        <tr onclick="UAT.openProject('${p.id}')" style="cursor:pointer">
+          <td><div class="uat-project-name">${p.name}</div><div class="uat-project-client">${p.clientName}</div></td>
+          <td><span class="uat-priority ${p.phase==='go_live'?'pri-medium':'pri-low'}">${p.phase||'uat'}</span></td>
+          <td>${p.total}</td>
+          <td><span class="uat-status-pill pass" style="pointer-events:none">${p.bPassed}</span></td>
+          <td><span class="uat-status-pill pass" style="pointer-events:none">${p.cPassed}</span></td>
+          <td><span class="uat-status-pill blocked" style="pointer-events:none">${p.openIssues}</span></td>
+          <td>
+            <div class="uat-project-bar-bg" style="min-width:80px">
+              <div class="uat-project-bar-fill" style="width:${p.goLiveScore}%;background:${barColor(p.goLiveScore)}"></div>
+            </div>
+            <div style="font-size:11px;font-weight:700;color:${barColor(p.goLiveScore)};text-align:right;margin-top:2px">${p.goLiveScore}%</div>
+          </td>
+        </tr>`).join('');
     }
 
-    const act = el('uatDashActivity');
-    act.innerHTML = !d.activity.length
-      ? '<div class="uat-text-muted">No recent activity</div>'
-      : `<div class="uat-activity-list">${d.activity.map(a => `
-          <div class="uat-activity-item">
-            <div class="uat-activity-dot"></div>
-            <div class="uat-activity-text">${esc(a.message)}</div>
-            <div class="uat-activity-time">${relTime(a.createdAt)}</div>
-          </div>`).join('')}
-        </div>`;
-  }
-
-  /* ══════════════════════════════════════════════════════════════════════
-     CLIENTS
-  ══════════════════════════════════════════════════════════════════════ */
-  async function loadClients() {
-    const r = await api('GET', '/api/uat/clients');
-    if (!r.ok) return;
-    state.clients = r.data;
-    renderClientList();
-    buildClientDropdown();
-  }
-
-  function renderClientList() {
-    const wrap = el('uatClientGrid');
-    const clients = state.clients;
-    const addCard = `<div class="uat-add-client-card" onclick="UAT.openClientModal()">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-      Add Client
-    </div>`;
-    if (!clients.length) {
-      wrap.innerHTML = addCard;
-      return;
-    }
-    wrap.innerHTML = clients.map(c => {
-      const projs = state.projects.filter(p => p.clientId === c.id);
-      return `<div class="uat-client-card" onclick="UAT.selectClient('${c.id}')">
-        <div class="uat-client-card-top">
-          <div class="uat-client-initials">${initials(c.shortCode || c.name)}</div>
-          <div>
-            <div class="uat-client-name">${esc(c.name)}</div>
-            <div class="uat-client-code">${esc(c.shortCode)}</div>
-          </div>
-          <div style="margin-left:auto">${statusBadge(c.status)}</div>
-        </div>
-        <div class="uat-client-stats">
-          <div class="uat-client-stat"><div class="uat-client-stat-n">${projs.length}</div><div class="uat-client-stat-l">Projects</div></div>
-          <div class="uat-client-stat"><div class="uat-client-stat-n">${state.testcases.filter(t=>t.clientId===c.id).length}</div><div class="uat-client-stat-l">Tests</div></div>
-          <div class="uat-client-stat"><div class="uat-client-stat-n">${state.issues.filter(i=>i.clientId===c.id&&['open','in_progress'].includes(i.status)).length}</div><div class="uat-client-stat-l">Issues</div></div>
-        </div>
-      </div>`;
-    }).join('') + addCard;
-  }
-
-  function buildClientDropdown() {
-    const s = el('uatClientSel');
-    const ps = el('uatPortalClientSel');
-    const opts = state.clients.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
-    if (s) {
-      s.innerHTML = '<option value="">All Clients</option>' + opts;
-      if (state.activeClientId) s.value = state.activeClientId;
-    }
-    if (ps) {
-      ps.innerHTML = '<option value="">Choose client…</option>' + opts;
-    }
-  }
-
-  function selectClient(id) {
-    state.activeClientId = id;
-    state.activeProjectId = null;
-    const s = el('uatClientSel'); if (s) s.value = id;
-    showView('projects');
-    loadProjects(id);
-  }
-
-  function openClientModal(id) {
-    const c = id ? state.clients.find(x => x.id === id) : null;
-    el('uatClientModalTitle').textContent = c ? 'Edit Client' : 'Add New Client';
-    el('uatClientForm').reset();
-    if (c) {
-      el('uatClientFormId').value = c.id;
-      el('uatClientFormName').value = c.name;
-      el('uatClientFormCode').value = c.shortCode || '';
-      el('uatClientFormContact').value = c.primaryContact?.name || '';
-      el('uatClientFormEmail').value = c.primaryContact?.email || '';
-      el('uatClientFormLead').value = c.internalLead || '';
-      el('uatClientFormStatus').value = c.status || 'active';
+    // Activity feed
+    const feed = el('uatDash_activity');
+    if (!d.activity.length) {
+      feed.innerHTML = `<div style="color:#9ca3af;font-size:13px;padding:16px">No recent activity</div>`;
     } else {
-      el('uatClientFormId').value = '';
+      feed.innerHTML = d.activity.slice(0, 15).map(a => `
+        <div class="uat-activity-item">
+          <div class="uat-activity-dot"></div>
+          <div class="uat-activity-msg">${a.message}</div>
+          <div class="uat-activity-time">${relTime(a.createdAt)}</div>
+        </div>`).join('');
     }
-    el('uatClientModal').classList.add('open');
   }
 
-  function closeClientModal() { el('uatClientModal').classList.remove('open'); }
-
-  async function saveClient() {
-    const id = el('uatClientFormId').value;
-    const body = {
-      name: el('uatClientFormName').value.trim(),
-      shortCode: el('uatClientFormCode').value.trim().toUpperCase() || undefined,
-      primaryContact: { name: el('uatClientFormContact').value.trim(), email: el('uatClientFormEmail').value.trim() },
-      internalLead: el('uatClientFormLead').value.trim(),
-      status: el('uatClientFormStatus').value,
-    };
-    if (!body.name) return toast('Client name is required', 'error');
-    const r = id
-      ? await api('PUT', `/api/uat/clients/${id}`, body)
-      : await api('POST', '/api/uat/clients', body);
-    if (!r.ok) return toast(r.error || 'Failed', 'error');
-    toast(id ? 'Client updated' : 'Client created');
-    closeClientModal();
-    loadClients();
+  /* ── Projects ───────────────────────────────────────────────────────────── */
+  async function loadProjects() {
+    const r = await api('GET', '/api/uat/projects');
+    if (r.ok) S.projects = r.data;
+    const rc = await api('GET', '/api/uat/clients');
+    if (rc.ok) S.clients = rc.data;
   }
 
-  /* ══════════════════════════════════════════════════════════════════════
-     PROJECTS
-  ══════════════════════════════════════════════════════════════════════ */
-  async function loadProjects(clientId) {
-    const url = clientId ? `/api/uat/projects?clientId=${clientId}` : '/api/uat/projects';
-    const [pr, tr, ir] = await Promise.all([
-      api('GET', url),
-      api('GET', clientId ? `/api/uat/testcases?clientId=${clientId}` : '/api/uat/testcases'),
-      api('GET', clientId ? `/api/uat/issues?clientId=${clientId}` : '/api/uat/issues'),
-    ]);
-    if (pr.ok) state.projects = clientId ? [...state.projects.filter(p => p.clientId !== clientId), ...pr.data] : pr.data;
-    if (tr.ok) state.testcases = clientId ? [...state.testcases.filter(t => t.clientId !== clientId), ...tr.data] : tr.data;
-    if (ir.ok) state.issues = clientId ? [...state.issues.filter(i => i.clientId !== clientId), ...ir.data] : ir.data;
-    renderProjectList(pr.data || []);
-  }
-
-  function renderProjectList(projects) {
-    const wrap = el('uatProjectList');
-    const client = state.clients.find(c => c.id === state.activeClientId);
-    el('uatProjectsClientName').textContent = client ? client.name : 'All Clients';
-
+  function renderProjects() {
+    const wrap = el('uatProjectGrid');
+    const projects = S.activeClientId ? S.projects.filter(p => p.clientId === S.activeClientId) : S.projects;
     if (!projects.length) {
-      wrap.innerHTML = `<div class="uat-empty">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      wrap.innerHTML = `<div class="uat-empty" style="grid-column:1/-1">
+        <div class="uat-empty-icon">📁</div>
         <div class="uat-empty-title">No projects yet</div>
-        <div class="uat-empty-sub">Create the first project for this client</div>
+        <div class="uat-empty-desc">Create a project and seed it with 44 standard finance UAT test cases</div>
+        <button class="uat-btn uat-btn-primary" onclick="UAT.showNewProjectModal()">+ New Project</button>
       </div>`;
       return;
     }
     wrap.innerHTML = projects.map(p => {
-      const tc = state.testcases.filter(t => t.projectId === p.id);
-      const passed = tc.filter(t => t.status === 'passed').length;
-      const pct = tc.length ? Math.round(passed / tc.length * 100) : 0;
-      const open = state.issues.filter(i => i.projectId === p.id && ['open', 'in_progress'].includes(i.status)).length;
-      return `<div class="uat-project-row" onclick="UAT.goProject('${p.id}','${p.clientId}')">
-        <div class="uat-project-info">
-          <div class="uat-project-name">${esc(p.name)}</div>
-          <div class="uat-project-meta">${p.entity ? esc(p.entity) + ' · ' : ''}${p.businessUnit ? esc(p.businessUnit) + ' · ' : ''}Round ${p.uatRound} · Go-live ${p.goLiveDate || 'TBD'}</div>
-          <div style="margin-top:6px;display:flex;gap:8px;align-items:center">
-            ${statusBadge(p.phase)} ${statusBadge(p.status)}
-            ${open ? `<span class="uat-chip" style="background:#fef2f2;border-color:#fca5a5;color:#dc2626">${open} open issue${open>1?'s':''}</span>` : ''}
+      const client = S.clients.find(c => c.id === p.clientId);
+      const tcs = S.testcases.filter(t => t.projectId === p.id);
+      const bPass = tcs.filter(t => t.bluecopaStatus === 'pass').length;
+      const cPass = tcs.filter(t => t.clientStatus === 'pass').length;
+      const total = tcs.length;
+      const score = total ? Math.min(100, Math.round(((bPass*0.6)+(cPass*0.4))/total*100)) : 0;
+      return `
+        <div class="uat-project-card" onclick="UAT.openProject('${p.id}')">
+          <div class="uat-project-card-header">
+            <div>
+              <div class="uat-project-name">${p.name}</div>
+              <div class="uat-project-client">${client ? client.name : '—'}</div>
+            </div>
+            <div class="uat-project-health ${healthColor(score)}">${score}%</div>
           </div>
-        </div>
-        <div class="uat-project-health">
-          ${healthRing(pct)}
-          <span class="uat-project-health-label">health</span>
-          <span class="uat-text-muted" style="font-size:11px">${tc.length} tests</span>
-        </div>
-      </div>`;
+          <div class="uat-project-bar-bg">
+            <div class="uat-project-bar-fill" style="width:${score}%;background:${barColor(score)}"></div>
+          </div>
+          <div class="uat-project-stats">
+            <div class="uat-project-stat"><span class="dot" style="background:#6b7280"></span>${total} tests</div>
+            <div class="uat-project-stat"><span class="dot" style="background:#22c55e"></span>${bPass} Bluecopa</div>
+            <div class="uat-project-stat"><span class="dot" style="background:#3b82f6"></span>${cPass} Client</div>
+            ${p.goLiveDate ? `<div class="uat-project-stat">Go-live: ${p.goLiveDate}</div>` : ''}
+          </div>
+        </div>`;
     }).join('');
   }
 
-  function openProjectModal(id) {
-    const p = id ? state.projects.find(x => x.id === id) : null;
-    el('uatProjectModalTitle').textContent = p ? 'Edit Project' : 'Add New Project';
-    el('uatProjectForm').reset();
-    el('uatProjectFormClientId').value = state.activeClientId || '';
-    if (p) {
-      el('uatProjectFormId').value = p.id;
-      el('uatProjectFormName').value = p.name;
-      el('uatProjectFormEntity').value = p.entity || '';
-      el('uatProjectFormBU').value = p.businessUnit || '';
-      el('uatProjectFormGoLive').value = p.goLiveDate || '';
-      el('uatProjectFormRound').value = p.uatRound || 1;
-      el('uatProjectFormDesc').value = p.description || '';
-      el('uatProjectFormStatus').value = p.status || 'active';
-      el('uatProjectFormPhase').value = p.phase || 'uat';
-    } else {
-      el('uatProjectFormId').value = '';
-    }
-    el('uatProjectModal').classList.add('open');
+  function openProject(projectId) {
+    S.activeProjectId = projectId;
+    const p = S.projects.find(x => x.id === projectId);
+    if (p) S.activeClientId = p.clientId;
+    setView('testcases');
   }
 
-  function closeProjectModal() { el('uatProjectModal').classList.remove('open'); }
-
-  async function saveProject() {
-    const id = el('uatProjectFormId').value;
-    const body = {
-      clientId: el('uatProjectFormClientId').value,
-      name: el('uatProjectFormName').value.trim(),
-      entity: el('uatProjectFormEntity').value.trim(),
-      businessUnit: el('uatProjectFormBU').value.trim(),
-      goLiveDate: el('uatProjectFormGoLive').value,
-      uatRound: parseInt(el('uatProjectFormRound').value) || 1,
-      description: el('uatProjectFormDesc').value.trim(),
-      status: el('uatProjectFormStatus').value,
-      phase: el('uatProjectFormPhase').value,
-    };
-    if (!body.name) return toast('Project name is required', 'error');
-    const r = id
-      ? await api('PUT', `/api/uat/projects/${id}`, body)
-      : await api('POST', '/api/uat/projects', body);
-    if (!r.ok) return toast(r.error || 'Failed', 'error');
-    toast(id ? 'Project updated' : 'Project created');
-    closeProjectModal();
-    loadProjects(state.activeClientId);
-  }
-
-  /* ══════════════════════════════════════════════════════════════════════
-     TEST CASES
-  ══════════════════════════════════════════════════════════════════════ */
-  function goProject(projectId, clientId) {
-    state.activeProjectId = projectId;
-    state.activeClientId = clientId;
-    state.selectedTCs.clear();
-    state.filterStatus = ''; state.filterPriority = ''; state.filterProcess = ''; state.filterQ = '';
-    showView('testcases');
-    loadTestcases();
-  }
-
-  async function loadTestcases() {
-    const [tr, ir] = await Promise.all([
-      api('GET', `/api/uat/testcases?projectId=${state.activeProjectId}`),
-      api('GET', `/api/uat/issues?projectId=${state.activeProjectId}`),
-    ]);
-    if (tr.ok) state.testcases = tr.data;
-    if (ir.ok) state.issues = ir.data;
-    const p = state.projects.find(x => x.id === state.activeProjectId) || {};
-    const c = state.clients.find(x => x.id === state.activeClientId) || {};
-    el('uatTCProjectName').textContent = `${c.name || ''} · ${p.name || ''}`;
-    renderSignoffBanner(p);
-    renderTCToolbar();
-    renderTestcases();
-  }
-
-  function renderSignoffBanner(p) {
-    const b = el('uatSignoffBanner');
-    if (!p.signoff) { b.classList.add('uat-hidden'); return; }
-    b.classList.remove('uat-hidden');
-    b.className = `uat-signoff-banner ${p.signoff.status}`;
-    const icons = { approved: '✅', rejected: '❌', pending: '⏳' };
-    b.innerHTML = `<div class="uat-signoff-icon">${icons[p.signoff.status]||'📋'}</div>
-      <div class="uat-signoff-text">
-        <div class="uat-signoff-title">UAT ${p.signoff.status === 'approved' ? 'Approved' : 'Rejected'} by ${esc(p.signoff.signedBy)}</div>
-        <div class="uat-signoff-sub">${p.signoff.comment ? esc(p.signoff.comment) + ' · ' : ''}${relTime(p.signoff.signedAt)}</div>
-      </div>`;
-  }
-
-  function renderTCToolbar() {
-    const tcs = state.testcases;
-    const areas = [...new Set(tcs.map(t => t.processArea).filter(Boolean))];
-    const ps = el('uatTCFilterProcess');
-    if (ps) {
-      ps.innerHTML = '<option value="">All Process Areas</option>' +
-        areas.map(a => `<option value="${a}">${a}</option>`).join('');
-      ps.value = state.filterProcess;
-    }
-    const ss = el('uatTCFilterStatus'); if (ss) ss.value = state.filterStatus;
-    const pr = el('uatTCFilterPriority'); if (pr) pr.value = state.filterPriority;
-    const q = el('uatTCSearch'); if (q) q.value = state.filterQ;
+  /* ── Test Cases ─────────────────────────────────────────────────────────── */
+  async function loadTestCases() {
+    if (!S.activeProjectId) return;
+    const r = await api('GET', `/api/uat/testcases?projectId=${S.activeProjectId}`);
+    if (r.ok) S.testcases = r.data;
+    renderTestCaseView();
   }
 
   function filteredTCs() {
-    return state.testcases.filter(t => {
-      if (state.filterStatus && t.status !== state.filterStatus) return false;
-      if (state.filterPriority && t.priority !== state.filterPriority) return false;
-      if (state.filterProcess && t.processArea !== state.filterProcess) return false;
-      if (state.filterQ) {
-        const q = state.filterQ.toLowerCase();
-        if (!(t.testScenario || '').toLowerCase().includes(q) &&
-            !(t.module || '').toLowerCase().includes(q) &&
-            !(t.processArea || '').toLowerCase().includes(q)) return false;
-      }
-      return true;
-    });
+    let list = S.testcases;
+    if (S.activeProjectId) list = list.filter(t => t.projectId === S.activeProjectId);
+    if (S.filterQ) {
+      const q = S.filterQ.toLowerCase();
+      list = list.filter(t => (t.testDescription||'').toLowerCase().includes(q) ||
+        (t.subCategory||'').toLowerCase().includes(q) || (t.category||'').toLowerCase().includes(q));
+    }
+    if (S.filterCategory) list = list.filter(t => t.category === S.filterCategory);
+    if (S.filterBStatus)  list = list.filter(t => t.bluecopaStatus === S.filterBStatus);
+    if (S.filterCStatus)  list = list.filter(t => t.clientStatus === S.filterCStatus);
+    if (S.filterPriority) list = list.filter(t => t.priority === S.filterPriority);
+    return list.sort((a, b) => (a.seq || 0) - (b.seq || 0));
   }
 
-  function renderTestcases() {
+  function renderTestCaseView() {
     const tcs = filteredTCs();
-    const wrap = el('uatTCTableBody');
-    updateBulkBar();
+    renderCategoryBars();
+    renderTCTable(tcs);
+    updateBadges();
+  }
 
+  function renderCategoryBars() {
+    const tcs = S.testcases.filter(t => t.projectId === S.activeProjectId);
+    const cats = {};
+    tcs.forEach(t => {
+      if (!cats[t.category]) cats[t.category] = { total: 0, bPass: 0, cPass: 0 };
+      cats[t.category].total++;
+      if (t.bluecopaStatus === 'pass') cats[t.category].bPass++;
+      if (t.clientStatus === 'pass') cats[t.category].cPass++;
+    });
+    const catKeys = Object.keys(cats).sort();
+    if (!catKeys.length) { el('uatCatBars').style.display = 'none'; return; }
+    el('uatCatBars').style.display = '';
+    el('uatCatBarsInner').innerHTML = catKeys.map(cat => {
+      const c = cats[cat];
+      const bPct = c.total ? Math.round(c.bPass/c.total*100) : 0;
+      const cPct = c.total ? Math.round(c.cPass/c.total*100) : 0;
+      return `
+        <div class="uat-cat-bar-row">
+          <div class="uat-cat-name">${cat}</div>
+          <div class="uat-bar-wrap"><div class="uat-bar-fill uat-bar-b" style="width:${bPct}%"></div></div>
+          <div class="uat-bar-wrap"><div class="uat-bar-fill uat-bar-c" style="width:${cPct}%"></div></div>
+          <div class="uat-cat-pct">${cPct}%</div>
+        </div>`;
+    }).join('') +
+    `<div class="uat-cat-bar-row" style="margin-top:6px">
+      <div></div>
+      <div style="font-size:10px;color:#3b82f6;font-weight:700">■ Bluecopa</div>
+      <div style="font-size:10px;color:#22c55e;font-weight:700">■ Client</div>
+      <div></div>
+    </div>`;
+  }
+
+  function renderTCTable(tcs) {
+    const tbody = el('uatTCBody');
     if (!tcs.length) {
-      wrap.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px">
-        <div class="uat-text-muted">No test cases match current filters</div>
+      const p = S.projects.find(x => x.id === S.activeProjectId);
+      tbody.innerHTML = `<tr><td colspan="9">
+        <div class="uat-empty">
+          <div class="uat-empty-icon">✅</div>
+          <div class="uat-empty-title">No test cases${S.filterQ || S.filterCategory ? ' match your filter' : ''}</div>
+          <div class="uat-empty-desc">Seed ${p ? '"'+p.name+'"' : 'this project'} with 44 standard finance test cases or add them manually</div>
+          ${(!S.filterQ && !S.filterCategory && S.activeProjectId) ? `<button class="uat-btn uat-btn-primary" onclick="UAT.seedDefaults()">Seed 44 Default Test Cases</button>` : ''}
+        </div>
       </td></tr>`;
       return;
     }
-
-    wrap.innerHTML = tcs.map(tc => {
-      const sel = state.selectedTCs.has(tc.id);
-      const hasIssue = state.issues.find(i => i.testCaseId === tc.id && ['open','in_progress'].includes(i.status));
-      return `<tr class="${sel ? 'selected' : ''}">
-        <td><input type="checkbox" class="uat-checkbox" ${sel ? 'checked' : ''} onchange="UAT.toggleTCSelect('${tc.id}',this.checked)"></td>
-        <td class="uat-text-muted" style="font-family:'DM Mono',monospace;font-size:11px">${tc.seq}</td>
-        <td><span class="uat-chip">${esc(tc.processArea||'—')}</span></td>
-        <td class="uat-text-muted">${esc(tc.module||'—')}</td>
-        <td class="uat-tc-scenario">
-          <div class="uat-tc-scenario-text" onclick="UAT.openTCDetail('${tc.id}')">${esc(tc.testScenario||'Untitled')}</div>
-          ${hasIssue ? '<div style="margin-top:3px"><span class="uat-chip" style="background:#fef2f2;border-color:#fca5a5;color:#dc2626;font-size:10px">⚠ Issue open</span></div>' : ''}
+    tbody.innerHTML = tcs.map(tc => `
+      <tr id="tcrow_${tc.id}" onclick="UAT.openDrawer('${tc.id}')" class="${S.selected.has(tc.id) ? 'selected' : ''}">
+        <td onclick="event.stopPropagation()" style="text-align:center">
+          <input type="checkbox" class="uat-checkbox" ${S.selected.has(tc.id)?'checked':''} onchange="UAT.toggleSelect('${tc.id}',this.checked)">
         </td>
-        <td>${statusBadge(tc.status)}</td>
-        <td>${prioBadge(tc.priority)}</td>
-        <td class="uat-text-muted">${esc(tc.assignee||'—')}</td>
+        <td><span style="font-size:11px;color:#9ca3af;font-weight:700">${tc.seq||''}</span></td>
         <td>
-          <div style="display:flex;gap:4px">
-            <button class="uat-btn-icon" title="Edit" onclick="UAT.openTCModal('${tc.id}')">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-            </button>
-            <button class="uat-btn-icon" title="Open detail" onclick="UAT.openTCDetail('${tc.id}')">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </button>
-          </div>
+          <span class="uat-cat-tag">${tc.category||'—'}</span>
+          <div class="uat-subcat">${tc.subCategory||''}</div>
         </td>
-      </tr>`;
-    }).join('');
-  }
-
-  function toggleTCSelect(id, checked) {
-    if (checked) state.selectedTCs.add(id); else state.selectedTCs.delete(id);
+        <td><div class="uat-tc-desc">${tc.testDescription||'—'}</div></td>
+        <td>${priorityBadge(tc.priority)}</td>
+        <td class="uat-status-cell" onclick="event.stopPropagation()">
+          ${statusPill(tc.bluecopaStatus, 'b', tc.id)}
+        </td>
+        <td class="uat-status-cell" onclick="event.stopPropagation()">
+          ${statusPill(tc.clientStatus, 'c', tc.id)}
+        </td>
+        <td style="font-size:11px;color:#6b7280;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tc.bluecopaComments||'—'}</td>
+        <td style="font-size:11px;color:#374151;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tc.clientComments||'—'}</td>
+      </tr>`).join('');
+    // update bulk bar
     updateBulkBar();
-    renderTestcases();
-  }
-
-  function toggleAllTCs(checked) {
-    if (checked) filteredTCs().forEach(t => state.selectedTCs.add(t.id));
-    else state.selectedTCs.clear();
-    updateBulkBar();
-    renderTestcases();
   }
 
   function updateBulkBar() {
     const bar = el('uatBulkBar');
-    if (!bar) return;
-    const cnt = state.selectedTCs.size;
-    if (cnt) {
+    if (S.selected.size > 0) {
       bar.classList.add('visible');
-      el('uatBulkCount').textContent = `${cnt} test${cnt>1?'s':''} selected`;
+      el('uatBulkCount').textContent = `${S.selected.size} selected`;
     } else {
       bar.classList.remove('visible');
     }
   }
 
-  async function bulkUpdate(status) {
-    if (!state.selectedTCs.size) return;
-    const r = await api('POST', '/api/uat/testcases/bulk', { ids: [...state.selectedTCs], status });
-    if (!r.ok) return toast('Failed', 'error');
-    toast(`Updated ${state.selectedTCs.size} tests to ${status}`);
-    state.selectedTCs.clear();
-    loadTestcases();
+  function updateBadges() {
+    const total = filteredTCs().length;
+    const pass = filteredTCs().filter(t => t.bluecopaStatus === 'pass').length;
+    const fail = filteredTCs().filter(t => t.bluecopaStatus === 'fail' || t.clientStatus === 'fail').length;
+    const blocked = filteredTCs().filter(t => t.bluecopaStatus === 'blocked' || t.clientStatus === 'blocked').length;
+    const nb = el('uatNavBadge_testcases');
+    if (nb) nb.textContent = total;
   }
 
-  function openTCModal(id) {
-    const tc = id ? state.testcases.find(x => x.id === id) : null;
-    el('uatTCModalTitle').textContent = tc ? 'Edit Test Case' : 'New Test Case';
-    el('uatTCForm').reset();
-    if (tc) {
-      el('uatTCFormId').value = tc.id;
-      el('uatTCFormProcessArea').value = tc.processArea || '';
-      el('uatTCFormModule').value = tc.module || '';
-      el('uatTCFormScenario').value = tc.testScenario || '';
-      el('uatTCFormSteps').value = tc.steps || '';
-      el('uatTCFormExpected').value = tc.expectedResult || '';
-      el('uatTCFormActual').value = tc.actualResult || '';
-      el('uatTCFormStatus').value = tc.status || 'not_started';
-      el('uatTCFormPriority').value = tc.priority || 'medium';
-      el('uatTCFormAssignee').value = tc.assignee || '';
-      el('uatTCFormTestedBy').value = tc.testedBy || '';
-      el('uatTCFormExecDate').value = tc.executionDate || '';
-    } else {
-      el('uatTCFormId').value = '';
-    }
-    el('uatTCModal').classList.add('open');
+  /* ── Status Dropdown ────────────────────────────────────────────────────── */
+  function toggleStatusDD(prefix, tcId, e) {
+    e.stopPropagation();
+    const ddId = `sdd_${prefix}_${tcId}`;
+    qsa('.uat-status-dropdown').forEach(d => { if (d.id !== ddId) d.classList.remove('open'); });
+    const dd = el(ddId);
+    if (dd) dd.classList.toggle('open');
   }
 
-  function closeTCModal() { el('uatTCModal').classList.remove('open'); }
-
-  async function saveTCModal() {
-    const id = el('uatTCFormId').value;
-    const body = {
-      projectId: state.activeProjectId,
-      clientId: state.activeClientId,
-      processArea: el('uatTCFormProcessArea').value.trim(),
-      module: el('uatTCFormModule').value.trim(),
-      testScenario: el('uatTCFormScenario').value.trim(),
-      steps: el('uatTCFormSteps').value.trim(),
-      expectedResult: el('uatTCFormExpected').value.trim(),
-      actualResult: el('uatTCFormActual').value.trim(),
-      status: el('uatTCFormStatus').value,
-      priority: el('uatTCFormPriority').value,
-      assignee: el('uatTCFormAssignee').value.trim(),
-      testedBy: el('uatTCFormTestedBy').value.trim(),
-      executionDate: el('uatTCFormExecDate').value,
-    };
-    if (!body.testScenario) return toast('Test scenario is required', 'error');
-    const r = id
-      ? await api('PUT', `/api/uat/testcases/${id}`, body)
-      : await api('POST', '/api/uat/testcases', body);
-    if (!r.ok) return toast(r.error || 'Failed', 'error');
-    toast(id ? 'Test case updated' : 'Test case created');
-    closeTCModal();
-    loadTestcases();
-  }
-
-  /* ── Test case detail drawer ─────────────────────────────────────────── */
-  function openTCDetail(id) {
-    const tc = state.testcases.find(x => x.id === id);
+  async function setStatus(prefix, tcId, status, e) {
+    e && e.stopPropagation();
+    const dd = el(`sdd_${prefix}_${tcId}`);
+    if (dd) dd.classList.remove('open');
+    const tc = S.testcases.find(x => x.id === tcId);
     if (!tc) return;
-    state.activeTestCase = tc;
+    const field = prefix === 'b' ? 'bluecopaStatus' : 'clientStatus';
+    tc[field] = status;
+    // Update pill in DOM
+    const cell = el(`tcrow_${tcId}`)?.querySelectorAll('.uat-status-cell')[prefix === 'b' ? 0 : 1];
+    if (cell) cell.innerHTML = statusPill(status, prefix, tcId);
+    // Save
+    const r = await api('PUT', `/api/uat/testcases/${tcId}`, { [field]: status });
+    if (r.ok) {
+      toast(`${prefix === 'b' ? 'Bluecopa' : 'Client'} status → ${STATUS_LABELS[status]}`);
+      renderCategoryBars();
+    } else toast('Failed to save', 'error');
+    // Sync drawer if open
+    if (S.drawerTC?.id === tcId) { S.drawerTC[field] = status; syncDrawerStatus(prefix, status); }
+  }
+
+  /* ── Right Drawer ───────────────────────────────────────────────────────── */
+  function openDrawer(tcId) {
+    const tc = S.testcases.find(x => x.id === tcId);
+    if (!tc) return;
+    S.drawerTC = tc;
     const d = el('uatDrawer');
-    renderTCDetail(tc);
-    el('uatDrawerBackdrop').classList.add('open');
+    const o = el('uatDrawerOverlay');
+    el('uatDrawer_seq').textContent = `TC-${tc.seq}`;
+    el('uatDrawer_title').textContent = tc.testDescription || '—';
+    el('uatDrawer_category').textContent = tc.category || '—';
+    el('uatDrawer_subcat').textContent = tc.subCategory || '—';
+    el('uatDrawer_priority').innerHTML = priorityBadge(tc.priority);
+    el('uatDrawer_owner').textContent = tc.owner || '—';
+    el('uatDrawer_expected').textContent = tc.expectedResult || '—';
+    el('uatDrawer_bStatus').innerHTML = statusPill(tc.bluecopaStatus, 'b', tc.id);
+    el('uatDrawer_cStatus').innerHTML = statusPill(tc.clientStatus, 'c', tc.id);
+    el('uatDrawer_bComments').value = tc.bluecopaComments || '';
+    el('uatDrawer_cComments').value = tc.clientComments || '';
+    el('uatDrawer_updated').textContent = relTime(tc.updatedAt);
     d.classList.add('open');
+    o.classList.add('open');
   }
 
-  function closeTCDetail() {
-    el('uatDrawerBackdrop').classList.remove('open');
+  function closeDrawer() {
     el('uatDrawer').classList.remove('open');
-    state.activeTestCase = null;
+    el('uatDrawerOverlay').classList.remove('open');
+    S.drawerTC = null;
   }
 
-  function renderTCDetail(tc) {
-    el('uatDrawerTitle').textContent = tc.testScenario || 'Test Case';
-    el('uatDrawerSub').innerHTML = `<span class="uat-chip" style="font-family:'DM Mono',monospace">TC-${String(tc.seq).padStart(3,'0')}</span> ${statusBadge(tc.status)} ${prioBadge(tc.priority)}`;
-
-    const statusOpts = ['not_started','in_progress','passed','failed','blocked','retest']
-      .map(s => `<option value="${s}" ${tc.status===s?'selected':''}>${s.replace('_',' ')}</option>`).join('');
-
-    el('uatDrawerContent').innerHTML = `
-      <div class="uat-detail-grid">
-        <div class="uat-detail-item"><div class="uat-detail-label">Process Area</div><div class="uat-detail-value">${esc(tc.processArea)||'—'}</div></div>
-        <div class="uat-detail-item"><div class="uat-detail-label">Module</div><div class="uat-detail-value">${esc(tc.module)||'—'}</div></div>
-        <div class="uat-detail-item"><div class="uat-detail-label">Assignee</div><div class="uat-detail-value">${esc(tc.assignee)||'—'}</div></div>
-        <div class="uat-detail-item"><div class="uat-detail-label">Tested By</div><div class="uat-detail-value">${esc(tc.testedBy)||'—'}</div></div>
-        <div class="uat-detail-item"><div class="uat-detail-label">Execution Date</div><div class="uat-detail-value">${tc.executionDate||'—'}</div></div>
-        <div class="uat-detail-item"><div class="uat-detail-label">Round</div><div class="uat-detail-value">${tc.round||1}</div></div>
-      </div>
-
-      <div style="margin-bottom:14px">
-        <div class="uat-detail-label" style="margin-bottom:6px">Quick status update</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          ${['not_started','in_progress','passed','failed','blocked','retest'].map(s =>
-            `<button class="uat-btn uat-btn-sm uat-btn-${tc.status===s?'primary':'ghost'}" onclick="UAT.quickStatus('${tc.id}','${s}')">${s.replace('_',' ')}</button>`
-          ).join('')}
-        </div>
-      </div>
-
-      <div class="uat-divider"></div>
-
-      <div style="margin-bottom:14px">
-        <div class="uat-detail-label" style="margin-bottom:4px">Test Scenario</div>
-        <div style="font-size:13px;color:#0d1117;line-height:1.6">${esc(tc.testScenario)}</div>
-      </div>
-      ${tc.steps ? `<div style="margin-bottom:14px"><div class="uat-detail-label" style="margin-bottom:4px">Steps</div><div style="font-size:13px;color:#374151;white-space:pre-wrap;line-height:1.6">${esc(tc.steps)}</div></div>` : ''}
-      <div style="margin-bottom:14px">
-        <div class="uat-detail-label" style="margin-bottom:4px">Expected Result</div>
-        <div style="font-size:13px;color:#374151;line-height:1.6">${esc(tc.expectedResult)||'—'}</div>
-      </div>
-      <div style="margin-bottom:14px">
-        <div class="uat-detail-label" style="margin-bottom:4px">Actual Result</div>
-        <textarea class="uat-form-control" id="uatDrawerActual" rows="3" placeholder="Enter actual result after testing...">${esc(tc.actualResult||'')}</textarea>
-      </div>
-
-      <div class="uat-divider"></div>
-
-      <div class="uat-comments">
-        <div class="uat-detail-label" style="margin-bottom:10px">Comments & Collaboration</div>
-        <div class="uat-comments-list" id="uatCommentsContainer">
-          ${(tc.comments || []).map(c => `
-            <div class="uat-comment">
-              <div class="uat-comment-avatar ${c.role==='client'?'client':''}">${initials(c.author)}</div>
-              <div class="uat-comment-bubble">
-                <div class="uat-comment-meta">
-                  <span class="uat-comment-author">${esc(c.author)}</span>
-                  <span class="uat-comment-role ${c.role==='client'?'client':''}">${c.role}</span>
-                  <span class="uat-comment-time">${relTime(c.createdAt)}</span>
-                </div>
-                ${esc(c.text)}
-              </div>
-            </div>`).join('') || '<div class="uat-text-muted">No comments yet</div>'}
-        </div>
-        <div class="uat-comment-input">
-          <textarea id="uatNewComment" placeholder="Add a comment..."></textarea>
-          <button class="uat-btn uat-btn-primary uat-btn-sm" onclick="UAT.addComment()">Send</button>
-        </div>
-      </div>
-
-      <div class="uat-divider"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="uat-btn uat-btn-secondary uat-btn-sm" onclick="UAT.openIssueFromTC('${tc.id}')">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-          Raise Issue
-        </button>
-        <button class="uat-btn uat-btn-secondary uat-btn-sm" onclick="UAT.saveActualResult('${tc.id}')">Save Actual Result</button>
-        <button class="uat-btn uat-btn-danger uat-btn-sm" onclick="UAT.deleteTC('${tc.id}')">Delete</button>
-      </div>`;
-  }
-
-  async function quickStatus(tcId, status) {
-    const r = await api('PUT', `/api/uat/testcases/${tcId}`, { status });
-    if (!r.ok) return toast('Failed', 'error');
-    toast(`Status → ${status}`);
-    const tc = state.testcases.find(x => x.id === tcId);
-    if (tc) tc.status = status;
-    state.activeTestCase = r.data;
-    renderTCDetail(r.data);
-    renderTestcases();
-  }
-
-  async function saveActualResult(tcId) {
-    const actual = el('uatDrawerActual').value.trim();
-    const r = await api('PUT', `/api/uat/testcases/${tcId}`, { actualResult: actual });
-    if (!r.ok) return toast('Failed', 'error');
-    toast('Actual result saved');
-    const tc = state.testcases.find(x => x.id === tcId);
-    if (tc) tc.actualResult = actual;
-  }
-
-  async function addComment() {
-    const tc = state.activeTestCase;
+  function syncDrawerStatus(prefix, status) {
+    const tc = S.drawerTC;
     if (!tc) return;
-    const text = (el('uatNewComment').value || '').trim();
-    if (!text) return;
-    const u = JSON.parse(localStorage.getItem('kb_user') || '{}');
-    const r = await api('POST', `/api/uat/testcases/${tc.id}/comments`, {
-      author: u.name || 'Team', role: 'internal', text,
-    });
-    if (!r.ok) return toast('Failed', 'error');
-    el('uatNewComment').value = '';
-    tc.comments.push(r.data);
-    const container = el('uatCommentsContainer');
-    const div = document.createElement('div');
-    div.className = 'uat-comment';
-    div.innerHTML = `
-      <div class="uat-comment-avatar">${initials(r.data.author)}</div>
-      <div class="uat-comment-bubble">
-        <div class="uat-comment-meta">
-          <span class="uat-comment-author">${esc(r.data.author)}</span>
-          <span class="uat-comment-role">${r.data.role}</span>
-          <span class="uat-comment-time">just now</span>
-        </div>
-        ${esc(r.data.text)}
+    const cell = prefix === 'b' ? el('uatDrawer_bStatus') : el('uatDrawer_cStatus');
+    if (cell) cell.innerHTML = statusPill(status, prefix, tc.id);
+  }
+
+  async function saveDrawerComments() {
+    const tc = S.drawerTC;
+    if (!tc) return;
+    const bComments = el('uatDrawer_bComments').value;
+    const cComments = el('uatDrawer_cComments').value;
+    const r = await api('PUT', `/api/uat/testcases/${tc.id}`, { bluecopaComments: bComments, clientComments: cComments });
+    if (r.ok) {
+      tc.bluecopaComments = bComments; tc.clientComments = cComments;
+      toast('Comments saved');
+      renderTCTable(filteredTCs());
+    } else toast('Failed to save', 'error');
+  }
+
+  /* ── Seed Defaults ──────────────────────────────────────────────────────── */
+  async function seedDefaults() {
+    if (!S.activeProjectId) return;
+    const p = S.projects.find(x => x.id === S.activeProjectId);
+    if (!confirm(`Seed "${p?.name}" with 44 standard finance UAT test cases?`)) return;
+    const r = await api('POST', `/api/uat/projects/${S.activeProjectId}/seed`);
+    if (r.ok) { toast(`${r.data.count} test cases added`); await loadTestCases(); }
+    else toast('Failed to seed', 'error');
+  }
+
+  /* ── Selection / Bulk ───────────────────────────────────────────────────── */
+  function toggleSelect(tcId, checked) {
+    if (checked) S.selected.add(tcId); else S.selected.delete(tcId);
+    const row = el(`tcrow_${tcId}`);
+    if (row) row.classList.toggle('selected', checked);
+    updateBulkBar();
+  }
+
+  function selectAll(checked) {
+    filteredTCs().forEach(tc => { if (checked) S.selected.add(tc.id); else S.selected.delete(tc.id); });
+    qsa('.uat-checkbox').forEach(cb => { cb.checked = checked; });
+    qsa('.uat-table tbody tr').forEach(r => r.classList.toggle('selected', checked));
+    updateBulkBar();
+  }
+
+  async function bulkSetStatus(field, status) {
+    const ids = [...S.selected];
+    if (!ids.length) return;
+    const r = await api('POST', '/api/uat/testcases/bulk', { ids, [field]: status });
+    if (r.ok) {
+      ids.forEach(id => { const t = S.testcases.find(x => x.id === id); if (t) t[field] = status; });
+      S.selected.clear();
+      renderTestCaseView();
+      toast(`${ids.length} tests updated`);
+    } else toast('Failed', 'error');
+  }
+
+  function clearSelection() { S.selected.clear(); updateBulkBar(); renderTCTable(filteredTCs()); }
+
+  /* ── Filter & Search ────────────────────────────────────────────────────── */
+  function applyFilters() {
+    S.filterQ        = el('uatFilterQ')?.value.trim() || '';
+    S.filterCategory = el('uatFilterCategory')?.value || '';
+    S.filterBStatus  = el('uatFilterBStatus')?.value || '';
+    S.filterCStatus  = el('uatFilterCStatus')?.value || '';
+    S.filterPriority = el('uatFilterPriority')?.value || '';
+    renderTestCaseView();
+  }
+
+  /* ── Export ─────────────────────────────────────────────────────────────── */
+  function exportCSV() {
+    if (!S.activeProjectId) return;
+    window.open(`/api/uat/export/${S.activeProjectId}`, '_blank');
+  }
+
+  /* ── New Project Modal ──────────────────────────────────────────────────── */
+  function showNewProjectModal() {
+    const backdrop = el('uatModalNewProject');
+    if (!backdrop) return;
+    // Populate client dropdown
+    const sel = qs('#uatModalNewProject [name=clientId]');
+    if (sel) sel.innerHTML = `<option value="">Select client…</option>` +
+      S.clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    backdrop.classList.add('open');
+  }
+
+  function hideNewProjectModal() {
+    el('uatModalNewProject')?.classList.remove('open');
+  }
+
+  async function submitNewProject() {
+    const form = el('uatFormNewProject');
+    if (!form) return;
+    const data = Object.fromEntries(new FormData(form));
+    if (!data.clientId || !data.name) return toast('Client and name required', 'error');
+    data.seedDefaults = form.querySelector('[name=seedDefaults]')?.checked;
+    const r = await api('POST', '/api/uat/projects', data);
+    if (r.ok) {
+      S.projects.push(r.data);
+      hideNewProjectModal();
+      toast(data.seedDefaults ? 'Project created & seeded with 44 test cases' : 'Project created');
+      if (data.seedDefaults) { openProject(r.data.id); } else { renderProjects(); }
+    } else toast(r.error || 'Failed', 'error');
+  }
+
+  /* ── New Client Modal ───────────────────────────────────────────────────── */
+  function showNewClientModal() {
+    el('uatModalNewClient')?.classList.add('open');
+  }
+  function hideNewClientModal() {
+    el('uatModalNewClient')?.classList.remove('open');
+  }
+  async function submitNewClient() {
+    const form = el('uatFormNewClient');
+    if (!form) return;
+    const data = Object.fromEntries(new FormData(form));
+    if (!data.name) return toast('Client name required', 'error');
+    data.primaryContact = { name: data.contactName || '', email: data.contactEmail || '' };
+    const r = await api('POST', '/api/uat/clients', data);
+    if (r.ok) {
+      S.clients.push(r.data);
+      hideNewClientModal();
+      toast('Client added');
+      renderClientList();
+    } else toast(r.error || 'Failed', 'error');
+  }
+
+  /* ── Client List ─────────────────────────────────────────────────────────── */
+  function renderClientList() {
+    const wrap = el('uatClientGrid');
+    if (!wrap) return;
+    if (!S.clients.length) {
+      wrap.innerHTML = `<div class="uat-empty" style="grid-column:1/-1">
+        <div class="uat-empty-icon">🏢</div>
+        <div class="uat-empty-title">No clients yet</div>
+        <div class="uat-empty-desc">Add your first client to start UAT management</div>
+        <button class="uat-btn uat-btn-primary" onclick="UAT.showNewClientModal()">+ Add Client</button>
       </div>`;
-    if (container.querySelector('.uat-text-muted')) container.innerHTML = '';
-    container.appendChild(div);
-  }
-
-  async function deleteTC(id) {
-    if (!confirm('Delete this test case?')) return;
-    const r = await api('DELETE', `/api/uat/testcases/${id}`);
-    if (!r.ok) return toast('Failed', 'error');
-    toast('Test case deleted');
-    closeTCDetail();
-    loadTestcases();
-  }
-
-  /* ══════════════════════════════════════════════════════════════════════
-     ISSUES
-  ══════════════════════════════════════════════════════════════════════ */
-  function openIssueFromTC(tcId) {
-    const tc = state.testcases.find(x => x.id === tcId);
-    if (tc) {
-      el('uatIssueFormTCRef').value = tcId;
-      el('uatIssueFormTitle').value = `Issue with: ${tc.testScenario.slice(0, 60)}`;
+      return;
     }
-    closeTCDetail();
-    showView('issues');
-    loadIssues();
-    el('uatIssueModal').classList.add('open');
+    wrap.innerHTML = S.clients.map(c => {
+      const projs = S.projects.filter(p => p.clientId === c.id);
+      const tcs = S.testcases.filter(t => t.clientId === c.id);
+      const baseUrl = window.location.origin;
+      return `
+        <div class="uat-client-card">
+          <div class="uat-client-avatar">${c.shortCode || c.name.slice(0,3).toUpperCase()}</div>
+          <div class="uat-client-name">${c.name}</div>
+          <div class="uat-client-meta">${projs.length} project${projs.length!==1?'s':''} · ${tcs.length} test cases</div>
+          ${c.primaryContact?.email ? `<div class="uat-client-meta" style="margin-top:4px">📧 ${c.primaryContact.email}</div>` : ''}
+          ${c.portalToken ? `<div class="uat-portal-url" style="margin-top:8px" title="Click to copy" onclick="UAT.copyPortalLink('${c.portalToken}')">${baseUrl}/uat/portal/${c.portalToken}</div>` : ''}
+          <div class="uat-client-actions">
+            <button class="uat-btn uat-btn-secondary uat-btn-sm" onclick="UAT.filterByClient('${c.id}')">View Projects</button>
+            <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.regenPortal('${c.id}')">🔗 Regen Link</button>
+          </div>
+        </div>`;
+    }).join('');
   }
 
+  function copyPortalLink(token) {
+    const url = `${window.location.origin}/uat/portal/${token}`;
+    navigator.clipboard.writeText(url).then(() => toast('Portal link copied!')).catch(() => toast('Copy failed', 'error'));
+  }
+
+  async function regenPortal(clientId) {
+    const r = await api('POST', '/api/uat/portal/generate', { clientId });
+    if (r.ok) {
+      const c = S.clients.find(x => x.id === clientId);
+      if (c) c.portalToken = r.token;
+      toast('New portal link generated');
+      renderClientList();
+    } else toast('Failed', 'error');
+  }
+
+  function filterByClient(clientId) {
+    S.activeClientId = clientId;
+    setView('projects');
+  }
+
+  /* ── Issues ──────────────────────────────────────────────────────────────── */
   async function loadIssues() {
-    const url = state.activeProjectId
-      ? `/api/uat/issues?projectId=${state.activeProjectId}`
-      : '/api/uat/issues';
-    const r = await api('GET', url);
-    if (!r.ok) return;
-    state.issues = r.data;
+    const params = S.activeProjectId ? `?projectId=${S.activeProjectId}` : '';
+    const r = await api('GET', `/api/uat/issues${params}`);
+    if (r.ok) S.issues = r.data;
     renderIssues();
   }
 
   function renderIssues() {
-    const issues = state.issues;
-    const wrap = el('uatIssuesBody');
-    if (!issues.length) {
-      wrap.innerHTML = `<div class="uat-empty">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="48" height="48"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <div class="uat-empty-title">No issues found</div>
-        <div class="uat-empty-sub">All test cases are clean</div>
-      </div>`;
+    const tbody = el('uatIssuesTbody');
+    if (!tbody) return;
+    if (!S.issues.length) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="uat-empty" style="padding:32px">No issues logged</div></td></tr>`;
       return;
     }
-    wrap.innerHTML = `<div class="uat-table-wrap"><table class="uat-table">
-      <thead><tr>
-        <th>Ref</th><th>Title</th><th>Severity</th><th>Status</th><th>Assigned To</th><th>Created</th><th></th>
-      </tr></thead>
-      <tbody>${issues.map(i => `
-        <tr>
-          <td style="font-family:'DM Mono',monospace;font-size:11px;color:#6b7280">${esc(i.ref||'')}</td>
-          <td style="font-weight:600;color:#0d1117;max-width:280px">${esc(i.title)}</td>
-          <td>${prioBadge(i.severity)}</td>
-          <td>${statusBadge(i.status)}</td>
-          <td class="uat-text-muted">${esc(i.assignedTo||'—')}</td>
-          <td class="uat-text-muted">${relTime(i.createdAt)}</td>
-          <td>
-            <select class="uat-filter-select" style="font-size:11px;padding:3px 6px" onchange="UAT.updateIssueStatus('${i.id}',this.value)">
-              ${['open','in_progress','resolved','closed','wont_fix'].map(s => `<option value="${s}" ${i.status===s?'selected':''}>${s.replace('_',' ')}</option>`).join('')}
-            </select>
-          </td>
-        </tr>`).join('')}
-      </tbody>
-    </table></div>`;
+    const SEV = { critical: 'pri-critical', high: 'pri-high', medium: 'pri-medium', low: 'pri-low' };
+    tbody.innerHTML = S.issues.map(i => `
+      <tr>
+        <td><span style="font-size:11px;font-family:monospace;font-weight:700;color:#6b7280">${i.ref}</span></td>
+        <td>${i.title}</td>
+        <td><span class="uat-priority ${SEV[i.severity]||'pri-low'}">${i.severity||'med'}</span></td>
+        <td><span class="uat-status-pill ${i.status==='open'?'fail':i.status==='resolved'?'pass':'in_progress'}" style="pointer-events:none">${i.status}</span></td>
+        <td>${i.assignedTo || '—'}</td>
+        <td>${relTime(i.createdAt)}</td>
+      </tr>`).join('');
   }
 
-  function openIssueModal() {
-    el('uatIssueForm').reset();
-    el('uatIssueFormTCRef').value = '';
-    el('uatIssueModal').classList.add('open');
-  }
-  function closeIssueModal() { el('uatIssueModal').classList.remove('open'); }
-
-  async function saveIssue() {
-    const body = {
-      testCaseId: el('uatIssueFormTCRef').value || undefined,
-      projectId: state.activeProjectId,
-      clientId: state.activeClientId,
-      title: el('uatIssueFormTitle').value.trim(),
-      description: el('uatIssueFormDesc').value.trim(),
-      severity: el('uatIssueFormSeverity').value,
-      assignedTo: el('uatIssueFormAssignee').value.trim(),
-    };
-    if (!body.title) return toast('Title is required', 'error');
-    const r = await api('POST', '/api/uat/issues', body);
-    if (!r.ok) return toast(r.error || 'Failed', 'error');
-    toast('Issue raised');
-    closeIssueModal();
-    loadIssues();
+  /* ── Repository ──────────────────────────────────────────────────────────── */
+  async function loadRepository() {
+    const r = await api('GET', '/api/uat/repository');
+    if (r.ok) renderRepository(r.data);
   }
 
-  async function updateIssueStatus(id, status) {
-    const r = await api('PUT', `/api/uat/issues/${id}`, { status });
-    if (!r.ok) return toast('Failed', 'error');
-    const iss = state.issues.find(i => i.id === id);
-    if (iss) iss.status = status;
-    toast(`Issue ${status}`);
-  }
-
-  /* ══════════════════════════════════════════════════════════════════════
-     SIGN-OFF
-  ══════════════════════════════════════════════════════════════════════ */
-  function openSignoffModal() {
-    el('uatSignoffModal').classList.add('open');
-  }
-  function closeSignoffModal() { el('uatSignoffModal').classList.remove('open'); }
-
-  async function submitSignoff(approve) {
-    const r = await api('POST', `/api/uat/projects/${state.activeProjectId}/signoff`, {
-      approve, signedBy: el('uatSignoffBy').value.trim() || 'Client',
-      comment: el('uatSignoffComment').value.trim(),
-    });
-    if (!r.ok) return toast('Failed', 'error');
-    toast(`UAT ${approve ? 'approved' : 'rejected'}`);
-    closeSignoffModal();
-    const p = state.projects.find(x => x.id === state.activeProjectId);
-    if (p) Object.assign(p, r.data);
-    renderSignoffBanner(r.data);
-    loadDashboard();
-  }
-
-  /* ══════════════════════════════════════════════════════════════════════
-     EXPORT
-  ══════════════════════════════════════════════════════════════════════ */
-  function exportCSV() {
-    if (!state.activeProjectId) return toast('Select a project first', 'error');
-    window.open(`/api/uat/export/${state.activeProjectId}`, '_blank');
-  }
-
-  /* ══════════════════════════════════════════════════════════════════════
-     CLIENT PORTAL
-  ══════════════════════════════════════════════════════════════════════ */
-  async function generatePortalLink() {
-    const sel = el('uatPortalClientSel');
-    const clientId = (sel && sel.value) || state.activeClientId;
-    if (!clientId) return toast('Select a client first', 'error');
-    const r = await api('POST', '/api/uat/portal/generate', { clientId });
-    if (!r.ok) return toast('Failed', 'error');
-    const link = `${location.origin}/portal/${r.token}`;
-    el('uatPortalLinkInput').value = link;
-    el('uatPortalLinkWrap').classList.remove('uat-hidden');
-    toast('Portal link generated');
-  }
-
-  function copyPortalLink() {
-    const v = el('uatPortalLinkInput').value;
-    navigator.clipboard.writeText(v).then(() => toast('Copied to clipboard'));
-  }
-
-  /* ══════════════════════════════════════════════════════════════════════
-     REPOSITORY
-  ══════════════════════════════════════════════════════════════════════ */
-  async function searchRepo() {
-    const q = el('uatRepoSearch').value.trim();
-    const pa = el('uatRepoFilterPA').value;
-    const url = `/api/uat/repository?q=${encodeURIComponent(q)}&processArea=${encodeURIComponent(pa)}`;
-    const r = await api('GET', url);
-    if (!r.ok) return;
-    state.repoResults = r.data;
-    renderRepoResults();
-  }
-
-  function renderRepoResults() {
-    const wrap = el('uatRepoResults');
-    const tcs = state.repoResults;
+  function renderRepository(tcs) {
+    const tbody = el('uatRepoTbody');
+    if (!tbody) return;
     if (!tcs.length) {
-      wrap.innerHTML = '<div class="uat-text-muted" style="padding:20px 0">No results found</div>';
+      tbody.innerHTML = `<tr><td colspan="6"><div class="uat-empty" style="padding:32px">No proven test cases yet. Pass some UAT items to build the repository.</div></td></tr>`;
       return;
     }
-    wrap.innerHTML = tcs.map(t => `
-      <div class="uat-repo-item">
-        <div class="uat-repo-scenario">${esc(t.testScenario)}</div>
-        <div class="uat-repo-meta">
-          <span>${esc(t.processArea||'—')}</span>
-          <span>${esc(t.module||'—')}</span>
-          <span>Client: ${esc(t.clientName||'—')}</span>
-          <span>Project: ${esc(t.projectName||'—')}</span>
-          ${prioBadge(t.priority)}
-        </div>
-        ${t.expectedResult ? `<div style="font-size:12px;color:#374151;margin-top:6px">${esc(t.expectedResult.slice(0,100))}${t.expectedResult.length>100?'…':''}</div>` : ''}
-      </div>`).join('');
+    tbody.innerHTML = tcs.map(t => `
+      <tr>
+        <td><span class="uat-cat-tag">${t.category}</span></td>
+        <td>${t.subCategory || '—'}</td>
+        <td>${t.testDescription}</td>
+        <td>${t.expectedResult ? t.expectedResult.slice(0,100)+'…' : '—'}</td>
+        <td>${priorityBadge(t.priority)}</td>
+        <td>${t.clientName || '—'}</td>
+      </tr>`).join('');
   }
 
-  /* ══════════════════════════════════════════════════════════════════════
-     TEMPLATES
-  ══════════════════════════════════════════════════════════════════════ */
-  async function loadTemplates() {
-    const r = await api('GET', '/api/uat/templates');
-    if (!r.ok) return;
-    renderTemplates(r.data);
-  }
+  /* ── Global dropdown close ──────────────────────────────────────────────── */
+  document.addEventListener('click', () => {
+    qsa('.uat-status-dropdown').forEach(d => d.classList.remove('open'));
+  });
 
-  function renderTemplates(templates) {
-    const wrap = el('uatTemplatesBody');
-    if (!templates.length) {
-      wrap.innerHTML = `<div class="uat-empty">
-        <div class="uat-empty-title">No templates yet</div>
-        <div class="uat-empty-sub">Save a completed UAT project as a template to reuse it</div>
-      </div>`;
-      return;
+  /* ── Open / Close ───────────────────────────────────────────────────────── */
+  function open() {
+    const overlay = el('uatOverlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    // Initialize on first open
+    if (!open._initialized) {
+      open._initialized = true;
+      init();
+    } else {
+      setView(S.view);
     }
-    wrap.innerHTML = templates.map(t => `
-      <div class="uat-repo-item">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div class="uat-repo-scenario">${esc(t.name)}</div>
-          <button class="uat-btn uat-btn-secondary uat-btn-sm" onclick="UAT.openCloneModal('${t.id}','${esc(t.name)}')">Clone to Project</button>
-        </div>
-        <div class="uat-repo-meta">
-          <span>From: ${esc(t.sourceClientName||'—')}</span>
-          <span>${t.testcases.length} test cases</span>
-          ${t.processAreas.map(a => `<span class="uat-chip">${a}</span>`).join('')}
-        </div>
-      </div>`).join('');
   }
 
-  async function saveAsTemplate() {
-    if (!state.activeProjectId) return toast('Open a project first', 'error');
-    const name = prompt('Template name:');
-    if (!name) return;
-    const r = await api('POST', '/api/uat/templates', { name, sourceProjectId: state.activeProjectId });
-    if (!r.ok) return toast('Failed', 'error');
-    toast('Template saved');
+  function close() {
+    const overlay = el('uatOverlay');
+    if (overlay) overlay.style.display = 'none';
   }
 
-  function openCloneModal(templateId, name) {
-    el('uatCloneTemplateId').value = templateId;
-    el('uatCloneTemplateName').textContent = name;
-    el('uatCloneProjectId').innerHTML = '<option value="">Select project...</option>' +
-      state.projects.map(p => {
-        const c = state.clients.find(x => x.id === p.clientId);
-        return `<option value="${p.id}" data-client="${p.clientId}">${c ? c.name + ' · ' : ''}${p.name}</option>`;
-      }).join('');
-    el('uatCloneModal').classList.add('open');
-  }
-  function closeCloneModal() { el('uatCloneModal').classList.remove('open'); }
-
-  async function cloneTemplate() {
-    const templateId = el('uatCloneTemplateId').value;
-    const sel = el('uatCloneProjectId');
-    const projectId = sel.value;
-    const clientId = sel.options[sel.selectedIndex]?.dataset.client;
-    if (!projectId) return toast('Select a project', 'error');
-    const r = await api('POST', `/api/uat/templates/${templateId}/clone`, { projectId, clientId });
-    if (!r.ok) return toast('Failed', 'error');
-    toast(`Cloned ${r.data.count} test cases`);
-    closeCloneModal();
+  /* ── Init ────────────────────────────────────────────────────────────────── */
+  async function init() {
+    const [cr, pr, tr] = await Promise.all([
+      api('GET', '/api/uat/clients'),
+      api('GET', '/api/uat/projects'),
+      api('GET', '/api/uat/testcases'),
+    ]);
+    if (cr.ok) S.clients = cr.data;
+    if (pr.ok) S.projects = pr.data;
+    if (tr.ok) S.testcases = tr.data;
+    // Update project badge
+    const nb = el('uatNavBadge_projects');
+    if (nb) nb.textContent = S.projects.length;
+    renderClientList();
+    setView('dashboard');
   }
 
-  /* ── XSS escape ──────────────────────────────────────────────────────── */
-  function esc(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  /* ── Filter wiring ───────────────────────────────────────────────────── */
-  function bindFilters() {
-    const search = el('uatTCSearch');
-    if (search) {
-      let tid; search.addEventListener('input', () => {
-        clearTimeout(tid); tid = setTimeout(() => { state.filterQ = search.value; renderTestcases(); }, 250);
-      });
-    }
-    const ss = el('uatTCFilterStatus');
-    if (ss) ss.addEventListener('change', () => { state.filterStatus = ss.value; renderTestcases(); });
-    const sp = el('uatTCFilterPriority');
-    if (sp) sp.addEventListener('change', () => { state.filterPriority = sp.value; renderTestcases(); });
-    const spr = el('uatTCFilterProcess');
-    if (spr) spr.addEventListener('change', () => { state.filterProcess = spr.value; renderTestcases(); });
-
-    const clientSel = el('uatClientSel');
-    if (clientSel) clientSel.addEventListener('change', e => {
-      const v = e.target.value;
-      state.activeClientId = v || null;
-      if (state.view === 'projects') loadProjects(v || null);
-      if (state.view === 'testcases') {
-        state.activeProjectId = null;
-        loadTestcases();
-      }
-    });
-
-    // Repo search
-    const rs = el('uatRepoSearch');
-    if (rs) rs.addEventListener('keydown', e => { if (e.key === 'Enter') searchRepo(); });
-  }
-
-  /* ── Init ────────────────────────────────────────────────────────────── */
-  function init() {
-    bindFilters();
-    // Nav clicks
-    qsa('.uat-nav-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const v = item.dataset.view;
-        if (!v) return;
-        showView(v);
-        if (v === 'dashboard') loadDashboard();
-        if (v === 'clients') { loadClients(); }
-        if (v === 'projects') loadProjects(state.activeClientId);
-        if (v === 'testcases') loadTestcases();
-        if (v === 'issues') loadIssues();
-        if (v === 'templates') loadTemplates();
-        if (v === 'repository') { searchRepo(); }
-        if (v === 'portal') { }
-      });
-    });
-  }
-
+  /* ── Public API ──────────────────────────────────────────────────────────── */
   return {
-    open, close, init, showView, goProject,
-    selectClient, openClientModal, closeClientModal, saveClient,
-    openProjectModal, closeProjectModal, saveProject,
-    openTCModal, closeTCModal, saveTCModal,
-    openTCDetail, closeTCDetail, quickStatus, saveActualResult, addComment, deleteTC, toggleTCSelect, toggleAllTCs,
-    bulkUpdate,
-    openIssueModal, closeIssueModal, saveIssue, updateIssueStatus, openIssueFromTC,
-    openSignoffModal, closeSignoffModal, submitSignoff,
-    exportCSV, generatePortalLink, copyPortalLink,
-    searchRepo, saveAsTemplate, openCloneModal, closeCloneModal, cloneTemplate,
-    loadTemplates,
+    open,
+    close,
+    init,
+    setView,
+    openProject,
+    openDrawer,
+    closeDrawer,
+    saveDrawerComments,
+    toggleStatusDD,
+    setStatus,
+    toggleSelect,
+    selectAll,
+    clearSelection,
+    bulkSetStatus,
+    applyFilters,
+    exportCSV,
+    seedDefaults,
+    showNewProjectModal,
+    hideNewProjectModal,
+    submitNewProject,
+    showNewClientModal,
+    hideNewClientModal,
+    submitNewClient,
+    filterByClient,
+    copyPortalLink,
+    regenPortal,
+    loadRepository,
   };
 })();
-
-document.addEventListener('DOMContentLoaded', () => UAT.init());
