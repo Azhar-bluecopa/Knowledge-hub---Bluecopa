@@ -252,6 +252,9 @@ app.use(async (req, res, next) => {
   next();
 });
 
+// Module-level promise used by UAT routes — pre-warms the DB on cold start
+const _dbReady = getDbInitPromise();
+
 function isAdmin(req) {
   const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
   if (!email) return false;
