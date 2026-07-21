@@ -829,6 +829,216 @@ ${roadmap.map(t => `Topic: ${t.topic}\n${t.articles.map(a => `  • "${a.title}"
   }
 });
 
+// ══════════════════════════════════════════════════════════════════════════════
+//  UAT PLATFORM  — /api/uat/*
+// ══════════════════════════════════════════════════════════════════════════════
+function uatDB() {
+  if (!db.uat) db.uat = { clients:[], projects:[], testcases:[], issues:[], templates:[], activity:[], nextClientId:1, nextProjectId:1, nextTestId:1, nextIssueId:1, nextTemplateId:1 };
+  return db.uat;
+}
+function uatId() { return `${Date.now()}_${Math.random().toString(36).slice(2,6)}`; }
+function uatLog(type, msg, extras={}) {
+  const u = uatDB();
+  u.activity.unshift({ id:uatId(), type, message:msg, ...extras, createdAt: new Date().toISOString() });
+  if (u.activity.length > 200) u.activity = u.activity.slice(0, 200);
+}
+
+app.get('/api/uat/clients', async (req, res) => { await _dbReady; res.json({ ok:true, data: uatDB().clients }); });
+app.post('/api/uat/clients', async (req, res) => {
+  await _dbReady; const u = uatDB();
+  const { name, shortCode, primaryContact={}, internalLead='', entities=['Default'] } = req.body;
+  if (!name) return res.status(400).json({ ok:false, error:'name required' });
+  const crypto = require('crypto');
+  const token = crypto.randomBytes(20).toString('hex');
+  const client = { id:uatId(), name, shortCode:shortCode||name.slice(0,4).toUpperCase(), primaryContact, internalLead, entities, status:'active', portalToken:token, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
+  u.clients.push(client); uatLog('client_created',`Client "${name}" created`);
+  await saveDB(db); res.json({ ok:true, data:client });
+});
+app.put('/api/uat/clients/:id', async (req, res) => {
+  await _dbReady; const u = uatDB(); const c = u.clients.find(x=>x.id===req.params.id);
+  if (!c) return res.status(404).json({ ok:false, error:'not found' });
+  Object.assign(c, req.body, { id:c.id, updatedAt:new Date().toISOString() });
+  await saveDB(db); res.json({ ok:true, data:c });
+});
+app.delete('/api/uat/clients/:id', async (req, res) => {
+  await _dbReady; const u = uatDB(); const id = req.params.id;
+  u.clients=u.clients.filter(x=>x.id!==id); u.projects=u.projects.filter(x=>x.clientId!==id);
+  u.testcases=u.testcases.filter(x=>x.clientId!==id); u.issues=u.issues.filter(x=>x.clientId!==id);
+  await saveDB(db); res.json({ ok:true });
+});
+
+app.get('/api/uat/projects', async (req, res) => {
+  await _dbReady; let list = uatDB().projects;
+  if (req.query.clientId) list=list.filter(p=>p.clientId===req.query.clientId);
+  res.json({ ok:true, data:list });
+});
+app.post('/api/uat/projects', async (req, res) => {
+  await _dbReady; const u = uatDB();
+  const { clientId, name, entity='Default', businessUnit='', goLiveDate='', description='' } = req.body;
+  if (!clientId||!name) return res.status(400).json({ ok:false, error:'clientId and name required' });
+  const p = { id:uatId(), clientId, name, entity, businessUnit, goLiveDate, description, phase:'uat', status:'active', uatRound:1, signoff:null, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
+  u.projects.push(p); uatLog('project_created',`Project "${name}" created`,{projectId:p.id,clientId});
+  await saveDB(db); res.json({ ok:true, data:p });
+});
+app.put('/api/uat/projects/:id', async (req, res) => {
+  await _dbReady; const u = uatDB(); const p = u.projects.find(x=>x.id===req.params.id);
+  if (!p) return res.status(404).json({ ok:false, error:'not found' });
+  Object.assign(p, req.body, { id:p.id, updatedAt:new Date().toISOString() });
+  await saveDB(db); res.json({ ok:true, data:p });
+});
+
+app.get('/api/uat/testcases', async (req, res) => {
+  await _dbReady; let list = uatDB().testcases;
+  if (req.query.projectId) list=list.filter(t=>t.projectId===req.query.projectId);
+  if (req.query.clientId)  list=list.filter(t=>t.clientId===req.query.clientId);
+  if (req.query.status)    list=list.filter(t=>t.status===req.query.status);
+  if (req.query.q) { const q=req.query.q.toLowerCase(); list=list.filter(t=>(t.testScenario||'').toLowerCase().includes(q)||(t.module||'').toLowerCase().includes(q)); }
+  res.json({ ok:true, data:list });
+});
+app.post('/api/uat/testcases', async (req, res) => {
+  await _dbReady; const u = uatDB();
+  const { projectId, clientId, processArea='', module='', testScenario='', expectedResult='', priority='medium', assignee='', round=1 } = req.body;
+  if (!projectId) return res.status(400).json({ ok:false, error:'projectId required' });
+  const seq = u.testcases.filter(t=>t.projectId===projectId).length + 1;
+  const tc = { id:uatId(), projectId, clientId:clientId||'', round, seq, processArea, module, testScenario, steps:'', expectedResult, actualResult:'', status:'not_started', priority, assignee, testedBy:'', executionDate:'', comments:[], attachments:[], issueRef:'', tags:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
+  u.testcases.push(tc); await saveDB(db); res.json({ ok:true, data:tc });
+});
+app.put('/api/uat/testcases/:id', async (req, res) => {
+  await _dbReady; const u = uatDB(); const tc = u.testcases.find(x=>x.id===req.params.id);
+  if (!tc) return res.status(404).json({ ok:false, error:'not found' });
+  const prev=tc.status; Object.assign(tc, req.body, { id:tc.id, comments:tc.comments, updatedAt:new Date().toISOString() });
+  if (prev!==tc.status) uatLog('status_changed',`Test → ${tc.status}`,{projectId:tc.projectId});
+  await saveDB(db); res.json({ ok:true, data:tc });
+});
+app.delete('/api/uat/testcases/:id', async (req, res) => {
+  await _dbReady; const u = uatDB(); u.testcases=u.testcases.filter(x=>x.id!==req.params.id);
+  await saveDB(db); res.json({ ok:true });
+});
+app.post('/api/uat/testcases/bulk', async (req, res) => {
+  await _dbReady; const u = uatDB(); const { ids=[], status } = req.body;
+  ids.forEach(id=>{ const t=u.testcases.find(x=>x.id===id); if(t&&status){t.status=status;t.updatedAt=new Date().toISOString();} });
+  await saveDB(db); res.json({ ok:true });
+});
+app.post('/api/uat/testcases/:id/comments', async (req, res) => {
+  await _dbReady; const u = uatDB(); const tc = u.testcases.find(x=>x.id===req.params.id);
+  if (!tc) return res.status(404).json({ ok:false, error:'not found' });
+  const c = { id:uatId(), author:req.body.author||'Team', role:req.body.role||'internal', text:req.body.text||'', createdAt:new Date().toISOString() };
+  tc.comments.push(c); uatLog('comment_added',`Comment on test`,{projectId:tc.projectId});
+  await saveDB(db); res.json({ ok:true, data:c });
+});
+
+app.get('/api/uat/issues', async (req, res) => {
+  await _dbReady; let list = uatDB().issues;
+  if (req.query.projectId) list=list.filter(i=>i.projectId===req.query.projectId);
+  if (req.query.clientId)  list=list.filter(i=>i.clientId===req.query.clientId);
+  if (req.query.status)    list=list.filter(i=>i.status===req.query.status);
+  res.json({ ok:true, data:list });
+});
+app.post('/api/uat/issues', async (req, res) => {
+  await _dbReady; const u = uatDB();
+  const { testCaseId, projectId, clientId, title, description='', severity='medium', assignedTo='' } = req.body;
+  if (!title) return res.status(400).json({ ok:false, error:'title required' });
+  const cnt = u.issues.filter(i=>i.projectId===projectId).length + 1;
+  const issue = { id:uatId(), testCaseId, projectId, clientId, ref:`ISS-${String(cnt).padStart(3,'0')}`, title, description, severity, status:'open', assignedTo, rootCause:'', resolution:'', screenshots:[], comments:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
+  u.issues.push(issue);
+  if (testCaseId) { const tc=u.testcases.find(x=>x.id===testCaseId); if(tc) tc.issueRef=issue.id; }
+  uatLog('issue_created',`Issue "${title}" opened`,{projectId,clientId});
+  await saveDB(db); res.json({ ok:true, data:issue });
+});
+app.put('/api/uat/issues/:id', async (req, res) => {
+  await _dbReady; const u = uatDB(); const issue = u.issues.find(x=>x.id===req.params.id);
+  if (!issue) return res.status(404).json({ ok:false, error:'not found' });
+  Object.assign(issue, req.body, { id:issue.id, updatedAt:new Date().toISOString() });
+  await saveDB(db); res.json({ ok:true, data:issue });
+});
+
+app.get('/api/uat/dashboard', async (req, res) => {
+  await _dbReady; const u = uatDB();
+  const passed = u.testcases.filter(t=>t.status==='passed').length;
+  const stats = { totalClients:u.clients.length, activeProjects:u.projects.filter(p=>p.status==='active').length, totalTests:u.testcases.length, openIssues:u.issues.filter(i=>['open','in_progress'].includes(i.status)).length, passRate:u.testcases.length?Math.round(passed/u.testcases.length*100):0, projects:[], activity:u.activity.slice(0,20) };
+  stats.projects = u.projects.map(p => {
+    const tc=u.testcases.filter(t=>t.projectId===p.id); const pass=tc.filter(t=>t.status==='passed').length;
+    const client=u.clients.find(c=>c.id===p.clientId);
+    return { ...p, clientName:client?.name||'', total:tc.length, passed:pass, failed:tc.filter(t=>t.status==='failed').length, blocked:tc.filter(t=>t.status==='blocked').length, healthScore:tc.length?Math.round(pass/tc.length*100):0, openIssues:u.issues.filter(i=>i.projectId===p.id&&['open','in_progress'].includes(i.status)).length };
+  });
+  res.json({ ok:true, data:stats });
+});
+app.get('/api/uat/dashboard/:clientId', async (req, res) => {
+  await _dbReady; const u = uatDB(); const cid=req.params.clientId;
+  const client=u.clients.find(c=>c.id===cid);
+  if (!client) return res.status(404).json({ ok:false, error:'not found' });
+  const projects=u.projects.filter(p=>p.clientId===cid).map(p=>{
+    const tc=u.testcases.filter(t=>t.projectId===p.id);
+    const byStatus={}; ['not_started','in_progress','passed','failed','blocked','retest'].forEach(s=>{byStatus[s]=tc.filter(t=>t.status===s).length;});
+    return {...p,total:tc.length,byStatus,healthScore:tc.length?Math.round(byStatus.passed/tc.length*100):0};
+  });
+  res.json({ ok:true, data:{ client, projects, openIssues:u.issues.filter(i=>i.clientId===cid&&['open','in_progress'].includes(i.status)).length } });
+});
+
+app.get('/api/uat/templates', async (req, res) => { await _dbReady; res.json({ ok:true, data:uatDB().templates }); });
+app.post('/api/uat/templates', async (req, res) => {
+  await _dbReady; const u = uatDB(); const { name, sourceProjectId } = req.body;
+  const tcs=u.testcases.filter(t=>t.projectId===sourceProjectId).map(({id,projectId,clientId,comments,attachments,issueRef,actualResult,status,testedBy,executionDate,...rest})=>rest);
+  const p=u.projects.find(x=>x.id===sourceProjectId); const c=p?u.clients.find(x=>x.id===p.clientId):null;
+  const tmpl={ id:uatId(), name, sourceProjectId, sourceClientName:c?.name||'', processAreas:[...new Set(tcs.map(t=>t.processArea).filter(Boolean))], testcases:tcs, createdAt:new Date().toISOString() };
+  u.templates.push(tmpl); await saveDB(db); res.json({ ok:true, data:tmpl });
+});
+app.post('/api/uat/templates/:id/clone', async (req, res) => {
+  await _dbReady; const u = uatDB(); const tmpl=u.templates.find(x=>x.id===req.params.id);
+  if (!tmpl) return res.status(404).json({ ok:false, error:'not found' });
+  const { projectId, clientId } = req.body;
+  const cloned=tmpl.testcases.map((t,i)=>({...t,id:uatId(),projectId,clientId:clientId||'',seq:i+1,status:'not_started',actualResult:'',comments:[],attachments:[],issueRef:'',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}));
+  u.testcases.push(...cloned); await saveDB(db); res.json({ ok:true, data:{ count:cloned.length } });
+});
+
+app.get('/api/uat/repository', async (req, res) => {
+  await _dbReady; const u = uatDB(); const { q='', processArea='', clientId='' } = req.query;
+  let tcs=u.testcases;
+  if (processArea) tcs=tcs.filter(t=>t.processArea===processArea);
+  if (clientId) tcs=tcs.filter(t=>t.clientId===clientId);
+  if (q) { const ql=q.toLowerCase(); tcs=tcs.filter(t=>(t.testScenario||'').toLowerCase().includes(ql)||(t.module||'').toLowerCase().includes(ql)); }
+  const enriched=tcs.slice(0,100).map(t=>{ const p=u.projects.find(x=>x.id===t.projectId); const c=u.clients.find(x=>x.id===t.clientId); return {...t,projectName:p?.name||'',clientName:c?.name||''}; });
+  res.json({ ok:true, data:enriched });
+});
+
+app.get('/api/uat/export/:projectId', async (req, res) => {
+  await _dbReady; const u = uatDB();
+  const tcs=u.testcases.filter(t=>t.projectId===req.params.projectId);
+  const p=u.projects.find(x=>x.id===req.params.projectId);
+  const headers=['Seq','Process Area','Module','Test Scenario','Expected Result','Actual Result','Status','Priority','Assignee','Tested By','Execution Date'];
+  const rows=tcs.map(t=>[t.seq,t.processArea,t.module,t.testScenario,t.expectedResult,t.actualResult,t.status,t.priority,t.assignee,t.testedBy,t.executionDate]);
+  const csv=[headers,...rows].map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  res.setHeader('Content-Type','text/csv');
+  res.setHeader('Content-Disposition',`attachment; filename="UAT_${(p?.name||'export').replace(/\s/g,'_')}.csv"`);
+  res.send(csv);
+});
+
+app.post('/api/uat/portal/generate', async (req, res) => {
+  await _dbReady; const u = uatDB(); const c=u.clients.find(x=>x.id===req.body.clientId);
+  if (!c) return res.status(404).json({ ok:false, error:'not found' });
+  c.portalToken=require('crypto').randomBytes(20).toString('hex');
+  await saveDB(db); res.json({ ok:true, token:c.portalToken });
+});
+app.get('/api/uat/portal/:token', async (req, res) => {
+  await _dbReady; const u = uatDB(); const c=u.clients.find(x=>x.portalToken===req.params.token);
+  if (!c) return res.status(404).json({ ok:false, error:'invalid portal link' });
+  const projects=u.projects.filter(p=>p.clientId===c.id).map(p=>{
+    const tc=u.testcases.filter(t=>t.projectId===p.id);
+    const byStatus={}; ['not_started','in_progress','passed','failed','blocked','retest'].forEach(s=>{byStatus[s]=tc.filter(t=>t.status===s).length;});
+    return {...p,testcases:tc,total:tc.length,byStatus};
+  });
+  res.json({ ok:true, data:{ client:{name:c.name,shortCode:c.shortCode}, projects } });
+});
+
+app.post('/api/uat/projects/:id/signoff', async (req, res) => {
+  await _dbReady; const u = uatDB(); const p=u.projects.find(x=>x.id===req.params.id);
+  if (!p) return res.status(404).json({ ok:false, error:'not found' });
+  p.signoff={ status:req.body.approve?'approved':'rejected', signedBy:req.body.signedBy||'Client', comment:req.body.comment||'', signedAt:new Date().toISOString() };
+  if (req.body.approve) p.phase='go_live';
+  uatLog('signoff',`UAT ${p.signoff.status} for "${p.name}"`,{projectId:p.id,clientId:p.clientId});
+  await saveDB(db); res.json({ ok:true, data:p });
+});
+
 // ── Upload (disabled on Vercel) ───────────────────────────────────────────────
 app.post('/api/upload', (req, res) => {
   res.status(503).json({ error: 'File uploads are not supported on the Vercel deployment.' });

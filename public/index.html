@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
   <link rel="stylesheet" href="/style.css?v=80">
+  <link rel="stylesheet" href="/uat.css?v=1">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -44,6 +45,7 @@
   <button class="new-article-btn" id="newArticleBtn" onclick="openModal()">✦ New Article</button>
   <button class="request-article-btn" onclick="openRequestModal()">📩 Request an Article</button>
   <button class="request-article-btn" onclick="ipShowPortal()" style="margin-top:6px;background:rgba(201,162,39,.08);border:1px solid rgba(201,162,39,.25);color:rgba(201,162,39,.9);">⚡ Issue Portal</button>
+  <button class="request-article-btn" onclick="UAT.open()" style="margin-top:6px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);color:rgba(59,130,246,.9);">🧪 UAT Platform</button>
   <div class="sidebar-footer">
     <div class="avatar" id="userAvatar" title="Account" onclick="toggleUserMenu()" style="cursor:pointer;overflow:hidden;">?</div>
     <div style="flex:1;min-width:0">
@@ -6617,6 +6619,644 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
+  <script src="/uat.js?v=1" defer></script>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     UAT PLATFORM OVERLAY
+═══════════════════════════════════════════════════════════════════════════ -->
+<div id="uatOverlay">
+
+  <!-- Top bar -->
+  <div class="uat-topbar">
+    <button class="uat-topbar-back" onclick="UAT.close()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      Back to Portal
+    </button>
+    <div class="uat-topbar-divider"></div>
+    <div class="uat-topbar-logo">
+      <div class="uat-topbar-logo-icon">UAT</div>
+      UAT Platform
+    </div>
+    <div class="uat-topbar-spacer"></div>
+    <div class="uat-topbar-actions">
+      <button class="uat-btn uat-btn-secondary uat-btn-sm" onclick="UAT.exportCSV()">⬇ Export CSV</button>
+      <div class="uat-topbar-user" id="uatTopbarUser">?</div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="uat-body">
+
+    <!-- Sidebar -->
+    <nav class="uat-sidebar">
+      <div class="uat-sidebar-section">
+        <div class="uat-sidebar-label">Navigation</div>
+        <div class="uat-nav-item active" data-view="dashboard">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+          Dashboard
+        </div>
+        <div class="uat-nav-item" data-view="clients">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+          Clients
+        </div>
+        <div class="uat-nav-item" data-view="projects">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          Projects
+        </div>
+        <div class="uat-nav-item" data-view="testcases">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2m-6 9l2 2 4-4"/></svg>
+          Test Cases
+        </div>
+        <div class="uat-nav-item" data-view="issues">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          Issues
+        </div>
+      </div>
+      <div class="uat-sidebar-divider"></div>
+      <div class="uat-sidebar-section">
+        <div class="uat-sidebar-label">Tools</div>
+        <div class="uat-nav-item" data-view="repository">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          Repository
+        </div>
+        <div class="uat-nav-item" data-view="templates">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          Templates
+        </div>
+        <div class="uat-nav-item" data-view="portal">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+          Client Portal
+        </div>
+      </div>
+      <div class="uat-sidebar-divider"></div>
+      <div class="uat-sidebar-section">
+        <div class="uat-sidebar-label">Filter by Client</div>
+        <select class="uat-client-select" id="uatClientSel">
+          <option value="">All Clients</option>
+        </select>
+      </div>
+    </nav>
+
+    <!-- Main -->
+    <main class="uat-main">
+
+      <!-- ── DASHBOARD ──────────────────────────────────────────────── -->
+      <div id="uatView_dashboard" class="uat-view active">
+        <div class="uat-page-header">
+          <div>
+            <h2 class="uat-page-title">UAT Dashboard</h2>
+            <p class="uat-page-sub">Leadership overview across all clients and projects</p>
+          </div>
+          <div class="uat-page-actions">
+            <button class="uat-btn uat-btn-secondary" onclick="UAT.showView('clients');UAT.loadClients()">+ Add Client</button>
+          </div>
+        </div>
+        <div id="uatDashKPI" class="uat-kpi-grid"></div>
+        <div class="uat-dash-grid">
+          <div class="uat-card" style="grid-column:1/-1">
+            <div class="uat-card-header">
+              <div class="uat-card-title">All Projects</div>
+            </div>
+            <div id="uatDashProjects"></div>
+          </div>
+        </div>
+        <div class="uat-card">
+          <div class="uat-card-header">
+            <div class="uat-card-title">Recent Activity</div>
+          </div>
+          <div class="uat-card-body" id="uatDashActivity"></div>
+        </div>
+      </div>
+
+      <!-- ── CLIENTS ────────────────────────────────────────────────── -->
+      <div id="uatView_clients" class="uat-view">
+        <div class="uat-page-header">
+          <div>
+            <h2 class="uat-page-title">Clients</h2>
+            <p class="uat-page-sub">Manage client accounts and their UAT projects</p>
+          </div>
+          <div class="uat-page-actions">
+            <button class="uat-btn uat-btn-primary" onclick="UAT.openClientModal()">+ Add Client</button>
+          </div>
+        </div>
+        <div id="uatClientGrid" class="uat-client-grid"></div>
+      </div>
+
+      <!-- ── PROJECTS ───────────────────────────────────────────────── -->
+      <div id="uatView_projects" class="uat-view">
+        <div class="uat-page-header">
+          <div>
+            <h2 class="uat-page-title">Projects — <span id="uatProjectsClientName">All Clients</span></h2>
+            <p class="uat-page-sub">UAT project lifecycle management</p>
+          </div>
+          <div class="uat-page-actions">
+            <button class="uat-btn uat-btn-primary" onclick="UAT.openProjectModal()">+ New Project</button>
+          </div>
+        </div>
+        <div id="uatProjectList" class="uat-project-list"></div>
+      </div>
+
+      <!-- ── TEST CASES ─────────────────────────────────────────────── -->
+      <div id="uatView_testcases" class="uat-view">
+        <div id="uatSignoffBanner" class="uat-signoff-banner uat-hidden"></div>
+        <div class="uat-page-header">
+          <div>
+            <h2 class="uat-page-title">Test Cases</h2>
+            <p class="uat-page-sub" id="uatTCProjectName">Select a project to load test cases</p>
+          </div>
+          <div class="uat-page-actions">
+            <button class="uat-btn uat-btn-secondary" onclick="UAT.openSignoffModal()">✅ Request Sign-off</button>
+            <button class="uat-btn uat-btn-secondary" onclick="UAT.saveAsTemplate()">💾 Save as Template</button>
+            <button class="uat-btn uat-btn-primary" onclick="UAT.openTCModal()">+ Add Test Case</button>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="uat-toolbar">
+          <div class="uat-search">
+            <span class="uat-search-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></span>
+            <input id="uatTCSearch" type="text" placeholder="Search test cases…">
+          </div>
+          <select class="uat-filter-select" id="uatTCFilterStatus">
+            <option value="">All Status</option>
+            <option value="not_started">Not Started</option>
+            <option value="in_progress">In Progress</option>
+            <option value="passed">Passed</option>
+            <option value="failed">Failed</option>
+            <option value="blocked">Blocked</option>
+            <option value="retest">Retest</option>
+          </select>
+          <select class="uat-filter-select" id="uatTCFilterPriority">
+            <option value="">All Priority</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <select class="uat-filter-select" id="uatTCFilterProcess">
+            <option value="">All Process Areas</option>
+          </select>
+        </div>
+
+        <!-- Bulk action bar -->
+        <div class="uat-bulk-bar" id="uatBulkBar">
+          <div class="uat-bulk-count" id="uatBulkCount">0 selected</div>
+          <div class="uat-bulk-actions">
+            <button class="uat-bulk-btn" onclick="UAT.bulkUpdate('passed')">✓ Mark Passed</button>
+            <button class="uat-bulk-btn" onclick="UAT.bulkUpdate('failed')">✗ Mark Failed</button>
+            <button class="uat-bulk-btn" onclick="UAT.bulkUpdate('blocked')">⊘ Mark Blocked</button>
+            <button class="uat-bulk-btn" onclick="UAT.bulkUpdate('not_started')">↺ Reset</button>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="uat-card">
+          <div class="uat-table-wrap">
+            <table class="uat-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" class="uat-checkbox" onchange="UAT.toggleAllTCs(this.checked)"></th>
+                  <th>#</th>
+                  <th>Process Area</th>
+                  <th>Module</th>
+                  <th>Test Scenario</th>
+                  <th>Status</th>
+                  <th>Priority</th>
+                  <th>Assignee</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="uatTCTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ISSUES ─────────────────────────────────────────────────── -->
+      <div id="uatView_issues" class="uat-view">
+        <div class="uat-page-header">
+          <div>
+            <h2 class="uat-page-title">Issues</h2>
+            <p class="uat-page-sub">Track and resolve UAT defects and blockers</p>
+          </div>
+          <div class="uat-page-actions">
+            <button class="uat-btn uat-btn-primary" onclick="UAT.openIssueModal()">+ Raise Issue</button>
+          </div>
+        </div>
+        <div class="uat-card" id="uatIssuesBody"></div>
+      </div>
+
+      <!-- ── REPOSITORY ─────────────────────────────────────────────── -->
+      <div id="uatView_repository" class="uat-view">
+        <div class="uat-page-header">
+          <div>
+            <h2 class="uat-page-title">Knowledge Repository</h2>
+            <p class="uat-page-sub">Search past UAT test cases across all clients and projects</p>
+          </div>
+        </div>
+        <div class="uat-card">
+          <div class="uat-card-body">
+            <div style="display:flex;gap:8px;align-items:center">
+              <div class="uat-search" style="flex:1;max-width:100%">
+                <span class="uat-search-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></span>
+                <input id="uatRepoSearch" type="text" placeholder="Search scenarios, modules, expected results…" style="max-width:100%">
+              </div>
+              <select class="uat-filter-select" id="uatRepoFilterPA">
+                <option value="">All Process Areas</option>
+                <option>AR</option><option>AP</option><option>O2C</option>
+                <option>P2P</option><option>R2R</option><option>MIS</option>
+              </select>
+              <button class="uat-btn uat-btn-primary" onclick="UAT.searchRepo()">Search</button>
+            </div>
+            <div id="uatRepoResults" class="uat-repo-results"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TEMPLATES ─────────────────────────────────────────────── -->
+      <div id="uatView_templates" class="uat-view">
+        <div class="uat-page-header">
+          <div>
+            <h2 class="uat-page-title">UAT Templates</h2>
+            <p class="uat-page-sub">Reusable test suites from completed UAT engagements</p>
+          </div>
+          <div class="uat-page-actions">
+            <button class="uat-btn uat-btn-secondary" onclick="UAT.saveAsTemplate()">+ Save Current Project as Template</button>
+          </div>
+        </div>
+        <div class="uat-card">
+          <div class="uat-card-body" id="uatTemplatesBody"></div>
+        </div>
+      </div>
+
+      <!-- ── CLIENT PORTAL ─────────────────────────────────────────── -->
+      <div id="uatView_portal" class="uat-view">
+        <div class="uat-page-header">
+          <div>
+            <h2 class="uat-page-title">Client Portal</h2>
+            <p class="uat-page-sub">Generate secure, isolated portal links for clients to view their UAT progress</p>
+          </div>
+        </div>
+        <div class="uat-card" style="max-width:600px">
+          <div class="uat-card-header"><div class="uat-card-title">Generate Portal Link</div></div>
+          <div class="uat-card-body">
+            <p style="font-size:13px;color:#6b7280;margin:0 0 16px">Select a client from the sidebar, then generate a unique portal link. The client can access their UAT status without logging in.</p>
+            <div style="margin-bottom:12px">
+              <div class="uat-form-label" style="margin-bottom:6px">Selected Client</div>
+              <select class="uat-form-control" id="uatPortalClientSel">
+                <option value="">Choose client…</option>
+              </select>
+            </div>
+            <button class="uat-btn uat-btn-primary" onclick="UAT.generatePortalLink()">Generate Secure Link</button>
+            <div id="uatPortalLinkWrap" class="uat-hidden" style="margin-top:16px">
+              <div class="uat-form-label" style="margin-bottom:6px">Portal Link</div>
+              <div style="display:flex;gap:8px">
+                <input id="uatPortalLinkInput" class="uat-form-control" readonly style="flex:1;font-family:'DM Mono',monospace;font-size:12px">
+                <button class="uat-btn uat-btn-secondary" onclick="UAT.copyPortalLink()">Copy</button>
+              </div>
+              <div class="uat-text-muted" style="margin-top:6px">Share this link with the client. They can view UAT progress without an account.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div><!-- /uat-body -->
+</div><!-- /uatOverlay -->
+
+<!-- Toast notification -->
+<div id="uatToast" class="uat-toast"></div>
+
+<!-- ── MODALS ── -->
+
+<!-- Client modal -->
+<div id="uatClientModal" class="uat-modal-backdrop">
+  <div class="uat-modal">
+    <div class="uat-modal-header">
+      <div class="uat-modal-title" id="uatClientModalTitle">Add New Client</div>
+      <button class="uat-modal-close" onclick="UAT.closeClientModal()">✕</button>
+    </div>
+    <div class="uat-modal-body">
+      <form id="uatClientForm" onsubmit="return false">
+        <input type="hidden" id="uatClientFormId">
+        <div class="uat-form-row cols-2">
+          <div class="uat-form-group">
+            <label class="uat-form-label required">Client Name</label>
+            <input class="uat-form-control" id="uatClientFormName" placeholder="e.g. Accenture India">
+          </div>
+          <div class="uat-form-group">
+            <label class="uat-form-label">Short Code</label>
+            <input class="uat-form-control" id="uatClientFormCode" placeholder="e.g. ACC" maxlength="6">
+          </div>
+        </div>
+        <div class="uat-form-row cols-2">
+          <div class="uat-form-group">
+            <label class="uat-form-label">Primary Contact Name</label>
+            <input class="uat-form-control" id="uatClientFormContact" placeholder="John Smith">
+          </div>
+          <div class="uat-form-group">
+            <label class="uat-form-label">Contact Email</label>
+            <input class="uat-form-control" id="uatClientFormEmail" type="email" placeholder="john@client.com">
+          </div>
+        </div>
+        <div class="uat-form-row cols-2">
+          <div class="uat-form-group">
+            <label class="uat-form-label">Internal Lead (Bluecopa)</label>
+            <input class="uat-form-control" id="uatClientFormLead" placeholder="e.g. Azhar">
+          </div>
+          <div class="uat-form-group">
+            <label class="uat-form-label">Status</label>
+            <select class="uat-form-control" id="uatClientFormStatus">
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+              <option value="at_risk">At Risk</option>
+              <option value="on_hold">On Hold</option>
+            </select>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="uat-modal-footer">
+      <button class="uat-btn uat-btn-ghost" onclick="UAT.closeClientModal()">Cancel</button>
+      <button class="uat-btn uat-btn-primary" onclick="UAT.saveClient()">Save Client</button>
+    </div>
+  </div>
+</div>
+
+<!-- Project modal -->
+<div id="uatProjectModal" class="uat-modal-backdrop">
+  <div class="uat-modal">
+    <div class="uat-modal-header">
+      <div class="uat-modal-title" id="uatProjectModalTitle">Add New Project</div>
+      <button class="uat-modal-close" onclick="UAT.closeProjectModal()">✕</button>
+    </div>
+    <div class="uat-modal-body">
+      <form id="uatProjectForm" onsubmit="return false">
+        <input type="hidden" id="uatProjectFormId">
+        <input type="hidden" id="uatProjectFormClientId">
+        <div class="uat-form-row">
+          <div class="uat-form-group">
+            <label class="uat-form-label required">Project Name</label>
+            <input class="uat-form-control" id="uatProjectFormName" placeholder="e.g. Q3 ERP Go-Live UAT">
+          </div>
+        </div>
+        <div class="uat-form-row cols-2">
+          <div class="uat-form-group">
+            <label class="uat-form-label">Entity</label>
+            <input class="uat-form-control" id="uatProjectFormEntity" placeholder="e.g. India Entity">
+          </div>
+          <div class="uat-form-group">
+            <label class="uat-form-label">Business Unit</label>
+            <input class="uat-form-control" id="uatProjectFormBU" placeholder="e.g. Finance">
+          </div>
+        </div>
+        <div class="uat-form-row cols-2">
+          <div class="uat-form-group">
+            <label class="uat-form-label">Go-Live Date</label>
+            <input class="uat-form-control" id="uatProjectFormGoLive" type="date">
+          </div>
+          <div class="uat-form-group">
+            <label class="uat-form-label">UAT Round</label>
+            <input class="uat-form-control" id="uatProjectFormRound" type="number" value="1" min="1">
+          </div>
+        </div>
+        <div class="uat-form-row cols-2">
+          <div class="uat-form-group">
+            <label class="uat-form-label">Phase</label>
+            <select class="uat-form-control" id="uatProjectFormPhase">
+              <option value="setup">Setup</option>
+              <option value="uat" selected>UAT</option>
+              <option value="go_live">Go Live</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+          <div class="uat-form-group">
+            <label class="uat-form-label">Status</label>
+            <select class="uat-form-control" id="uatProjectFormStatus">
+              <option value="active" selected>Active</option>
+              <option value="at_risk">At Risk</option>
+              <option value="on_hold">On Hold</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+        </div>
+        <div class="uat-form-row">
+          <div class="uat-form-group">
+            <label class="uat-form-label">Description</label>
+            <textarea class="uat-form-control" id="uatProjectFormDesc" placeholder="Brief description of the UAT scope…" rows="2"></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="uat-modal-footer">
+      <button class="uat-btn uat-btn-ghost" onclick="UAT.closeProjectModal()">Cancel</button>
+      <button class="uat-btn uat-btn-primary" onclick="UAT.saveProject()">Save Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- Test Case modal -->
+<div id="uatTCModal" class="uat-modal-backdrop">
+  <div class="uat-modal uat-modal-lg">
+    <div class="uat-modal-header">
+      <div class="uat-modal-title" id="uatTCModalTitle">New Test Case</div>
+      <button class="uat-modal-close" onclick="UAT.closeTCModal()">✕</button>
+    </div>
+    <div class="uat-modal-body">
+      <form id="uatTCForm" onsubmit="return false">
+        <input type="hidden" id="uatTCFormId">
+        <div class="uat-form-row cols-2">
+          <div class="uat-form-group">
+            <label class="uat-form-label">Process Area</label>
+            <input class="uat-form-control" id="uatTCFormProcessArea" list="uatProcessAreaList" placeholder="e.g. AR, AP, O2C">
+            <datalist id="uatProcessAreaList">
+              <option>AR</option><option>AP</option><option>O2C</option>
+              <option>P2P</option><option>R2R</option><option>MIS</option>
+              <option>ERP</option><option>Payroll</option><option>GL</option>
+            </datalist>
+          </div>
+          <div class="uat-form-group">
+            <label class="uat-form-label">Module</label>
+            <input class="uat-form-control" id="uatTCFormModule" placeholder="e.g. Invoice Processing">
+          </div>
+        </div>
+        <div class="uat-form-row">
+          <div class="uat-form-group">
+            <label class="uat-form-label required">Test Scenario</label>
+            <textarea class="uat-form-control" id="uatTCFormScenario" rows="2" placeholder="Describe what is being tested…"></textarea>
+          </div>
+        </div>
+        <div class="uat-form-row">
+          <div class="uat-form-group">
+            <label class="uat-form-label">Steps to Reproduce</label>
+            <textarea class="uat-form-control" id="uatTCFormSteps" rows="3" placeholder="1. Navigate to…&#10;2. Click…&#10;3. Enter…"></textarea>
+          </div>
+        </div>
+        <div class="uat-form-row cols-2">
+          <div class="uat-form-group">
+            <label class="uat-form-label">Expected Result</label>
+            <textarea class="uat-form-control" id="uatTCFormExpected" rows="2" placeholder="What should happen…"></textarea>
+          </div>
+          <div class="uat-form-group">
+            <label class="uat-form-label">Actual Result</label>
+            <textarea class="uat-form-control" id="uatTCFormActual" rows="2" placeholder="What actually happened…"></textarea>
+          </div>
+        </div>
+        <div class="uat-form-row cols-3">
+          <div class="uat-form-group">
+            <label class="uat-form-label">Status</label>
+            <select class="uat-form-control" id="uatTCFormStatus">
+              <option value="not_started" selected>Not Started</option>
+              <option value="in_progress">In Progress</option>
+              <option value="passed">Passed</option>
+              <option value="failed">Failed</option>
+              <option value="blocked">Blocked</option>
+              <option value="retest">Retest</option>
+            </select>
+          </div>
+          <div class="uat-form-group">
+            <label class="uat-form-label">Priority</label>
+            <select class="uat-form-control" id="uatTCFormPriority">
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium" selected>Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <div class="uat-form-group">
+            <label class="uat-form-label">Assignee</label>
+            <input class="uat-form-control" id="uatTCFormAssignee" placeholder="Name or email">
+          </div>
+        </div>
+        <div class="uat-form-row cols-2">
+          <div class="uat-form-group">
+            <label class="uat-form-label">Tested By</label>
+            <input class="uat-form-control" id="uatTCFormTestedBy" placeholder="Tester name">
+          </div>
+          <div class="uat-form-group">
+            <label class="uat-form-label">Execution Date</label>
+            <input class="uat-form-control" id="uatTCFormExecDate" type="date">
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="uat-modal-footer">
+      <button class="uat-btn uat-btn-ghost" onclick="UAT.closeTCModal()">Cancel</button>
+      <button class="uat-btn uat-btn-primary" onclick="UAT.saveTCModal()">Save Test Case</button>
+    </div>
+  </div>
+</div>
+
+<!-- Issue modal -->
+<div id="uatIssueModal" class="uat-modal-backdrop">
+  <div class="uat-modal">
+    <div class="uat-modal-header">
+      <div class="uat-modal-title">Raise Issue</div>
+      <button class="uat-modal-close" onclick="UAT.closeIssueModal()">✕</button>
+    </div>
+    <div class="uat-modal-body">
+      <form id="uatIssueForm" onsubmit="return false">
+        <input type="hidden" id="uatIssueFormTCRef">
+        <div class="uat-form-row">
+          <div class="uat-form-group">
+            <label class="uat-form-label required">Issue Title</label>
+            <input class="uat-form-control" id="uatIssueFormTitle" placeholder="Brief description of the issue">
+          </div>
+        </div>
+        <div class="uat-form-row">
+          <div class="uat-form-group">
+            <label class="uat-form-label">Description</label>
+            <textarea class="uat-form-control" id="uatIssueFormDesc" rows="4" placeholder="Detailed description, steps to reproduce, impact…"></textarea>
+          </div>
+        </div>
+        <div class="uat-form-row cols-2">
+          <div class="uat-form-group">
+            <label class="uat-form-label">Severity</label>
+            <select class="uat-form-control" id="uatIssueFormSeverity">
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium" selected>Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <div class="uat-form-group">
+            <label class="uat-form-label">Assign To</label>
+            <input class="uat-form-control" id="uatIssueFormAssignee" placeholder="Team member name">
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="uat-modal-footer">
+      <button class="uat-btn uat-btn-ghost" onclick="UAT.closeIssueModal()">Cancel</button>
+      <button class="uat-btn uat-btn-primary" onclick="UAT.saveIssue()">Raise Issue</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sign-off modal -->
+<div id="uatSignoffModal" class="uat-modal-backdrop">
+  <div class="uat-modal">
+    <div class="uat-modal-header">
+      <div class="uat-modal-title">UAT Sign-off</div>
+      <button class="uat-modal-close" onclick="UAT.closeSignoffModal()">✕</button>
+    </div>
+    <div class="uat-modal-body">
+      <p style="font-size:13px;color:#6b7280;margin:0 0 16px">Request formal client sign-off on the completed UAT. This action is logged and timestamped.</p>
+      <div class="uat-form-row">
+        <div class="uat-form-group">
+          <label class="uat-form-label">Signed By (Client Representative)</label>
+          <input class="uat-form-control" id="uatSignoffBy" placeholder="Name of client approver">
+        </div>
+      </div>
+      <div class="uat-form-row">
+        <div class="uat-form-group">
+          <label class="uat-form-label">Comments / Conditions</label>
+          <textarea class="uat-form-control" id="uatSignoffComment" rows="3" placeholder="Any remarks or open items noted at sign-off…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="uat-modal-footer">
+      <button class="uat-btn uat-btn-ghost" onclick="UAT.closeSignoffModal()">Cancel</button>
+      <button class="uat-btn uat-btn-danger" onclick="UAT.submitSignoff(false)">❌ Reject UAT</button>
+      <button class="uat-btn uat-btn-primary" onclick="UAT.submitSignoff(true)">✅ Approve UAT</button>
+    </div>
+  </div>
+</div>
+
+<!-- Clone template modal -->
+<div id="uatCloneModal" class="uat-modal-backdrop">
+  <div class="uat-modal">
+    <div class="uat-modal-header">
+      <div class="uat-modal-title">Clone Template</div>
+      <button class="uat-modal-close" onclick="UAT.closeCloneModal()">✕</button>
+    </div>
+    <div class="uat-modal-body">
+      <input type="hidden" id="uatCloneTemplateId">
+      <p style="font-size:13px;color:#6b7280;margin:0 0 16px">Cloning: <strong id="uatCloneTemplateName"></strong></p>
+      <div class="uat-form-group">
+        <label class="uat-form-label required">Target Project</label>
+        <select class="uat-form-control" id="uatCloneProjectId"></select>
+      </div>
+    </div>
+    <div class="uat-modal-footer">
+      <button class="uat-btn uat-btn-ghost" onclick="UAT.closeCloneModal()">Cancel</button>
+      <button class="uat-btn uat-btn-primary" onclick="UAT.cloneTemplate()">Clone Test Cases</button>
+    </div>
+  </div>
+</div>
+
+<!-- Test case detail drawer -->
+<div id="uatDrawerBackdrop" class="uat-drawer-backdrop" onclick="UAT.closeTCDetail()"></div>
+<div id="uatDrawer" class="uat-drawer">
+  <div class="uat-drawer-header">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:15px;font-weight:700;color:#0d1117;margin-bottom:4px" id="uatDrawerTitle">Test Case</div>
+      <div id="uatDrawerSub" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"></div>
+    </div>
+    <button class="uat-modal-close" style="margin-left:12px;flex-shrink:0" onclick="UAT.closeTCDetail()">✕</button>
+  </div>
+  <div class="uat-drawer-body" id="uatDrawerContent"></div>
+</div>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      ISSUE RESOLUTION PORTAL
