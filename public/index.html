@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
   <link rel="stylesheet" href="/style.css?v=80">
-  <link rel="stylesheet" href="/uat.css?v=13">
+  <link rel="stylesheet" href="/uat.css?v=14">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=11" defer></script>
+  <script src="/uat.js?v=12" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -6948,7 +6948,34 @@ async function updateFeedbackStatus(id) {
         </div>
         <button class="uat-btn uat-btn-primary uat-drawer-save" onclick="UAT.saveDrawerComments()" style="margin-top:12px">Save Comments</button>
       </div>
+
+      <!-- Procedure -->
+      <div>
+        <div class="uat-drawer-section-title">Test Procedure</div>
+        <textarea class="uat-dual-textarea" id="uatDrawer_procedure" rows="6"
+          placeholder="Step 1: Navigate to…&#10;Step 2: Click on…&#10;Step 3: Verify that the result matches the expected output"
+          style="width:100%;resize:vertical;min-height:120px;font-size:13px"></textarea>
+
+        <div class="uat-proc-drop" id="uatProcDrop"
+          onclick="document.getElementById('uatProcFileInput').click()"
+          ondragover="event.preventDefault();this.classList.add('drag-over')"
+          ondragleave="this.classList.remove('drag-over')"
+          ondrop="event.preventDefault();this.classList.remove('drag-over');UAT.handleProcFiles(event.dataTransfer.files)">
+          <input type="file" id="uatProcFileInput" accept="image/*" multiple style="display:none"
+            onchange="UAT.handleProcFiles(this.files)">
+          <div style="font-size:20px;margin-bottom:4px">📋</div>
+          <div>Paste a screenshot <kbd>Ctrl+V</kbd>, drag &amp; drop, or <span class="uat-proc-upload-link">click to upload</span></div>
+        </div>
+        <div id="uatProcImages" class="uat-proc-images"></div>
+
+        <button class="uat-btn uat-btn-primary uat-drawer-save" onclick="UAT.saveProcedure()" style="margin-top:12px">Save Procedure</button>
+      </div>
     </div>
+  </div>
+
+  <!-- Image lightbox -->
+  <div id="uatImgLightbox" style="display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.85);align-items:center;justify-content:center;cursor:zoom-out" onclick="this.style.display='none'">
+    <img id="uatImgLightboxImg" style="max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.4)">
   </div>
 
   <!-- ── Modal: New Project ─────────────────────────────────────────────── -->

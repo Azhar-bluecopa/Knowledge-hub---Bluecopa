@@ -10,6 +10,7 @@ const UAT = (() => {
     activeClientId: null,
     activeProjectId: null,
     drawerTC: null,
+    drawerTcId: null,
     selected: new Set(),
     filterQ: '', filterCategory: '', filterBStatus: '', filterCStatus: '', filterPriority: '', filterEntity: '',
     dashData: null,
@@ -469,6 +470,7 @@ const UAT = (() => {
     const tc = S.testcases.find(x => x.id === tcId);
     if (!tc) return;
     S.drawerTC = tc;
+    S.drawerTcId = tcId;
     const d = el('uatDrawer');
     const o = el('uatDrawerOverlay');
     el('uatDrawer_seq').textContent = `TC-${tc.seq}`;
@@ -483,12 +485,17 @@ const UAT = (() => {
     el('uatDrawer_bComments').value = tc.bluecopaComments || '';
     el('uatDrawer_cComments').value = tc.clientComments || '';
     el('uatDrawer_updated').textContent = relTime(tc.updatedAt);
+    el('uatDrawer_procedure').value = tc.procedure || '';
+    renderProcImages(tc.procedureImages || []);
     d.classList.add('open');
     o.classList.add('open');
+    d.addEventListener('paste', handleDrawerPaste);
   }
 
   function closeDrawer() {
-    el('uatDrawer').classList.remove('open');
+    const d = el('uatDrawer');
+    d.removeEventListener('paste', handleDrawerPaste);
+    d.classList.remove('open');
     el('uatDrawerOverlay').classList.remove('open');
     S.drawerTC = null;
   }
@@ -511,6 +518,69 @@ const UAT = (() => {
       toast('Comments saved');
       renderTCTable(filteredTCs());
     } else toast('Failed to save', 'error');
+  }
+
+  /* ── Procedure & Screenshots ─────────────────────────────────────────────── */
+  function renderProcImages(images) {
+    const wrap = el('uatProcImages');
+    if (!wrap) return;
+    wrap.innerHTML = images.map((img, i) => `
+      <div class="uat-proc-img-wrap" onclick="UAT.openProcImage(${i})">
+        <img src="${img.data}" alt="Screenshot ${i + 1}">
+        <button class="uat-proc-img-del" onclick="event.stopPropagation();UAT.removeProcImage(${i})" title="Remove">×</button>
+      </div>`).join('');
+  }
+
+  function openProcImage(index) {
+    const tc = S.testcases.find(x => x.id === S.drawerTcId);
+    if (!tc?.procedureImages?.[index]) return;
+    const lb = el('uatImgLightbox');
+    el('uatImgLightboxImg').src = tc.procedureImages[index].data;
+    lb.style.display = 'flex';
+  }
+
+  function removeProcImage(index) {
+    const tc = S.testcases.find(x => x.id === S.drawerTcId);
+    if (!tc) return;
+    tc.procedureImages = (tc.procedureImages || []).filter((_, i) => i !== index);
+    renderProcImages(tc.procedureImages);
+  }
+
+  async function handleProcFiles(files) {
+    const tc = S.testcases.find(x => x.id === S.drawerTcId);
+    if (!tc) return;
+    tc.procedureImages = tc.procedureImages || [];
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith('image/')) continue;
+      const data = await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.readAsDataURL(file);
+      });
+      tc.procedureImages.push({ data, name: file.name || `screenshot-${Date.now()}.png` });
+    }
+    renderProcImages(tc.procedureImages);
+    toast('Screenshot added — click Save Procedure to persist');
+  }
+
+  function handleDrawerPaste(e) {
+    const items = Array.from(e.clipboardData?.items || []);
+    const imageItems = items.filter(i => i.type.startsWith('image/'));
+    if (!imageItems.length) return;
+    e.preventDefault();
+    handleProcFiles(imageItems.map(i => i.getAsFile()));
+  }
+
+  async function saveProcedure() {
+    const tc = S.testcases.find(x => x.id === S.drawerTcId);
+    if (!tc) return;
+    tc.procedure = el('uatDrawer_procedure').value;
+    const r = await api('PUT', `/api/uat/testcases/${tc.id}`, {
+      procedure: tc.procedure,
+      procedureImages: tc.procedureImages || [],
+    });
+    if (r.ok) toast('Procedure saved');
+    else toast('Failed to save procedure', 'error');
   }
 
   /* ── Add / Delete Test Cases ────────────────────────────────────────────── */
@@ -897,5 +967,9 @@ const UAT = (() => {
     hideAddTestModal,
     submitNewTest,
     deleteTest,
+    openProcImage,
+    removeProcImage,
+    handleProcFiles,
+    saveProcedure,
   };
 })();

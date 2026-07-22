@@ -105,6 +105,41 @@
 .uat-table tbody tr:hover .uat-del-btn { opacity: 1; }
 .uat-del-btn:hover { background: #fef2f2; color: #dc2626; }
 
+/* ── Procedure section ───────────────────────────────────────────────────── */
+.uat-proc-drop {
+  border: 2px dashed #e4e6ea; border-radius: 8px; padding: 20px 16px;
+  text-align: center; cursor: pointer; margin: 8px 0 4px;
+  color: #9ca3af; font-size: 12px; line-height: 1.5; transition: border-color .15s, color .15s;
+}
+.uat-proc-drop:hover, .uat-proc-drop.drag-over {
+  border-color: #c9a227; color: #c9a227;
+}
+.uat-proc-upload-link { color: #c9a227; font-weight: 600; text-decoration: underline; }
+kbd {
+  display: inline-block; padding: 1px 5px; border-radius: 4px;
+  background: #f4f5f7; border: 1px solid #d1d5db; font-size: 11px;
+  font-family: 'DM Mono', monospace; color: #374151; line-height: 1.4;
+}
+.uat-proc-images {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;
+}
+.uat-proc-img-wrap {
+  position: relative; width: 100px; height: 72px; border-radius: 8px; overflow: hidden;
+  border: 1px solid #e4e6ea; cursor: zoom-in;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  transition: box-shadow .15s;
+}
+.uat-proc-img-wrap:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+.uat-proc-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.uat-proc-img-del {
+  position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,.65); color: #fff;
+  border: none; border-radius: 4px; width: 18px; height: 18px; font-size: 11px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity .15s; line-height: 1; padding: 0;
+}
+.uat-proc-img-wrap:hover .uat-proc-img-del { opacity: 1; }
+.uat-proc-img-del:hover { background: rgba(220,38,38,.85); }
+
 /* ── Entity column (consolidated view) ───────────────────────────────────── */
 .uat-entity-chip {
   display: inline-block; padding: 3px 10px; border-radius: 99px;
