@@ -111,10 +111,7 @@
 #uatView_progress .uat-bar-wrap { height: 14px; }
 #uatView_progress .uat-cat-pct { font-size: 14px; font-weight: 800; color: #374151; }
 
-.uat-cat-legend {
-  display: flex; justify-content: center; gap: 40px; margin-top: 20px;
-  font-size: 14px; font-weight: 700;
-}
+.uat-cat-legend { margin-top: 20px; }
 
 /* ── Toolbar (filter row above table) ────────────────────────────────────── */
 .uat-toolbar {
