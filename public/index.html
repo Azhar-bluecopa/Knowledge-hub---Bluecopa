@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
   <link rel="stylesheet" href="/style.css?v=80">
-  <link rel="stylesheet" href="/uat.css?v=14">
+  <link rel="stylesheet" href="/uat.css?v=15">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=12" defer></script>
+  <script src="/uat.js?v=13" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -6886,12 +6886,12 @@ async function updateFeedbackStatus(id) {
   </div><!-- /uat-body -->
 
   <!-- ── Right Drawer ───────────────────────────────────────────────────── -->
-  <div class="uat-drawer-overlay" id="uatDrawerOverlay" onclick="UAT.closeDrawer()"></div>
-  <div class="uat-drawer" id="uatDrawer">
+  <div class="uat-drawer-overlay" id="uatTCDrawerOverlay" onclick="UAT.closeDrawer()"></div>
+  <div class="uat-drawer" id="uatTCDrawer">
     <div class="uat-drawer-header">
       <div class="uat-drawer-meta">
-        <div class="uat-drawer-seq" id="uatDrawer_seq">TC-0</div>
-        <div class="uat-drawer-title" id="uatDrawer_title">—</div>
+        <div class="uat-drawer-seq" id="uatTCDrawer_seq">TC-0</div>
+        <div class="uat-drawer-title" id="uatTCDrawer_title">—</div>
       </div>
       <button class="uat-drawer-close" onclick="UAT.closeDrawer()">×</button>
     </div>
@@ -6900,18 +6900,18 @@ async function updateFeedbackStatus(id) {
       <div>
         <div class="uat-drawer-section-title">Details</div>
         <div class="uat-drawer-meta-grid">
-          <div class="uat-drawer-meta-item"><div class="uat-drawer-meta-label">Category</div><div class="uat-drawer-meta-value" id="uatDrawer_category">—</div></div>
-          <div class="uat-drawer-meta-item"><div class="uat-drawer-meta-label">Sub-Category</div><div class="uat-drawer-meta-value" id="uatDrawer_subcat">—</div></div>
-          <div class="uat-drawer-meta-item"><div class="uat-drawer-meta-label">Priority</div><div id="uatDrawer_priority"></div></div>
-          <div class="uat-drawer-meta-item"><div class="uat-drawer-meta-label">Owner</div><div class="uat-drawer-meta-value" id="uatDrawer_owner">—</div></div>
-          <div class="uat-drawer-meta-item" style="grid-column:1/-1"><div class="uat-drawer-meta-label">Last Updated</div><div class="uat-drawer-meta-value" id="uatDrawer_updated">—</div></div>
+          <div class="uat-drawer-meta-item"><div class="uat-drawer-meta-label">Category</div><div class="uat-drawer-meta-value" id="uatTCDrawer_category">—</div></div>
+          <div class="uat-drawer-meta-item"><div class="uat-drawer-meta-label">Sub-Category</div><div class="uat-drawer-meta-value" id="uatTCDrawer_subcat">—</div></div>
+          <div class="uat-drawer-meta-item"><div class="uat-drawer-meta-label">Priority</div><div id="uatTCDrawer_priority"></div></div>
+          <div class="uat-drawer-meta-item"><div class="uat-drawer-meta-label">Owner</div><div class="uat-drawer-meta-value" id="uatTCDrawer_owner">—</div></div>
+          <div class="uat-drawer-meta-item" style="grid-column:1/-1"><div class="uat-drawer-meta-label">Last Updated</div><div class="uat-drawer-meta-value" id="uatTCDrawer_updated">—</div></div>
         </div>
       </div>
 
       <!-- Expected Result -->
       <div>
         <div class="uat-drawer-section-title">Expected Result</div>
-        <div class="uat-expected-box" id="uatDrawer_expected">—</div>
+        <div class="uat-expected-box" id="uatTCDrawer_expected">—</div>
       </div>
 
       <!-- Dual Status -->
@@ -6922,13 +6922,13 @@ async function updateFeedbackStatus(id) {
             <div class="uat-dual-col-header">
               <span class="uat-dual-col-label b">Bluecopa Status</span>
             </div>
-            <div id="uatDrawer_bStatus"></div>
+            <div id="uatTCDrawer_bStatus"></div>
           </div>
           <div class="uat-dual-col">
             <div class="uat-dual-col-header">
               <span class="uat-dual-col-label c">Client Status</span>
             </div>
-            <div id="uatDrawer_cStatus"></div>
+            <div id="uatTCDrawer_cStatus"></div>
           </div>
         </div>
       </div>
@@ -6939,11 +6939,11 @@ async function updateFeedbackStatus(id) {
         <div class="uat-dual-cols">
           <div class="uat-dual-col">
             <div class="uat-dual-col-header"><span class="uat-dual-col-label b">Bluecopa Notes</span></div>
-            <textarea class="uat-dual-textarea" id="uatDrawer_bComments" placeholder="Internal notes, findings…"></textarea>
+            <textarea class="uat-dual-textarea" id="uatTCDrawer_bComments" placeholder="Internal notes, findings…"></textarea>
           </div>
           <div class="uat-dual-col">
             <div class="uat-dual-col-header"><span class="uat-dual-col-label c">Client Comments</span></div>
-            <textarea class="uat-dual-textarea" id="uatDrawer_cComments" placeholder="Client feedback…"></textarea>
+            <textarea class="uat-dual-textarea" id="uatTCDrawer_cComments" placeholder="Client feedback…"></textarea>
           </div>
         </div>
         <button class="uat-btn uat-btn-primary uat-drawer-save" onclick="UAT.saveDrawerComments()" style="margin-top:12px">Save Comments</button>
@@ -6952,7 +6952,7 @@ async function updateFeedbackStatus(id) {
       <!-- Procedure -->
       <div>
         <div class="uat-drawer-section-title">Test Procedure</div>
-        <textarea class="uat-dual-textarea" id="uatDrawer_procedure" rows="6"
+        <textarea class="uat-dual-textarea" id="uatTCDrawer_procedure" rows="6"
           placeholder="Step 1: Navigate to…&#10;Step 2: Click on…&#10;Step 3: Verify that the result matches the expected output"
           style="width:100%;resize:vertical;min-height:120px;font-size:13px"></textarea>
 

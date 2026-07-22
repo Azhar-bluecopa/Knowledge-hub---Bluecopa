@@ -471,21 +471,21 @@ const UAT = (() => {
     if (!tc) return;
     S.drawerTC = tc;
     S.drawerTcId = tcId;
-    const d = el('uatDrawer');
-    const o = el('uatDrawerOverlay');
-    el('uatDrawer_seq').textContent = `TC-${tc.seq}`;
-    el('uatDrawer_title').textContent = tc.testDescription || '—';
-    el('uatDrawer_category').textContent = tc.category || '—';
-    el('uatDrawer_subcat').textContent = tc.subCategory || '—';
-    el('uatDrawer_priority').innerHTML = priorityBadge(tc.priority);
-    el('uatDrawer_owner').textContent = tc.owner || '—';
-    el('uatDrawer_expected').textContent = tc.expectedResult || '—';
-    el('uatDrawer_bStatus').innerHTML = statusPill(tc.bluecopaStatus, 'b', tc.id);
-    el('uatDrawer_cStatus').innerHTML = statusPill(tc.clientStatus, 'c', tc.id);
-    el('uatDrawer_bComments').value = tc.bluecopaComments || '';
-    el('uatDrawer_cComments').value = tc.clientComments || '';
-    el('uatDrawer_updated').textContent = relTime(tc.updatedAt);
-    el('uatDrawer_procedure').value = tc.procedure || '';
+    const d = el('uatTCDrawer');
+    const o = el('uatTCDrawerOverlay');
+    el('uatTCDrawer_seq').textContent = `TC-${tc.seq}`;
+    el('uatTCDrawer_title').textContent = tc.testDescription || '—';
+    el('uatTCDrawer_category').textContent = tc.category || '—';
+    el('uatTCDrawer_subcat').textContent = tc.subCategory || '—';
+    el('uatTCDrawer_priority').innerHTML = priorityBadge(tc.priority);
+    el('uatTCDrawer_owner').textContent = tc.owner || '—';
+    el('uatTCDrawer_expected').textContent = tc.expectedResult || '—';
+    el('uatTCDrawer_bStatus').innerHTML = statusPill(tc.bluecopaStatus, 'b', tc.id);
+    el('uatTCDrawer_cStatus').innerHTML = statusPill(tc.clientStatus, 'c', tc.id);
+    el('uatTCDrawer_bComments').value = tc.bluecopaComments || '';
+    el('uatTCDrawer_cComments').value = tc.clientComments || '';
+    el('uatTCDrawer_updated').textContent = relTime(tc.updatedAt);
+    el('uatTCDrawer_procedure').value = tc.procedure || '';
     renderProcImages(tc.procedureImages || []);
     d.classList.add('open');
     o.classList.add('open');
@@ -493,25 +493,25 @@ const UAT = (() => {
   }
 
   function closeDrawer() {
-    const d = el('uatDrawer');
+    const d = el('uatTCDrawer');
     d.removeEventListener('paste', handleDrawerPaste);
     d.classList.remove('open');
-    el('uatDrawerOverlay').classList.remove('open');
+    el('uatTCDrawerOverlay').classList.remove('open');
     S.drawerTC = null;
   }
 
   function syncDrawerStatus(prefix, status) {
     const tc = S.drawerTC;
     if (!tc) return;
-    const cell = prefix === 'b' ? el('uatDrawer_bStatus') : el('uatDrawer_cStatus');
+    const cell = prefix === 'b' ? el('uatTCDrawer_bStatus') : el('uatTCDrawer_cStatus');
     if (cell) cell.innerHTML = statusPill(status, prefix, tc.id);
   }
 
   async function saveDrawerComments() {
     const tc = S.drawerTC;
     if (!tc) return;
-    const bComments = el('uatDrawer_bComments').value;
-    const cComments = el('uatDrawer_cComments').value;
+    const bComments = el('uatTCDrawer_bComments').value;
+    const cComments = el('uatTCDrawer_cComments').value;
     const r = await api('PUT', `/api/uat/testcases/${tc.id}`, { bluecopaComments: bComments, clientComments: cComments });
     if (r.ok) {
       tc.bluecopaComments = bComments; tc.clientComments = cComments;
@@ -574,7 +574,7 @@ const UAT = (() => {
   async function saveProcedure() {
     const tc = S.testcases.find(x => x.id === S.drawerTcId);
     if (!tc) return;
-    tc.procedure = el('uatDrawer_procedure').value;
+    tc.procedure = el('uatTCDrawer_procedure').value;
     const r = await api('PUT', `/api/uat/testcases/${tc.id}`, {
       procedure: tc.procedure,
       procedureImages: tc.procedureImages || [],
