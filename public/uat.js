@@ -485,17 +485,15 @@ const UAT = (() => {
     el('uatTCDrawer_bComments').value = tc.bluecopaComments || '';
     el('uatTCDrawer_cComments').value = tc.clientComments || '';
     el('uatTCDrawer_updated').textContent = relTime(tc.updatedAt);
-    el('uatTCDrawer_procedure').value = tc.procedure || '';
-    renderProcImages(tc.procedureImages || []);
+    setProcContent('uatTCDrawer_procedure', tc.procedure || '');
     d.classList.add('open');
     o.classList.add('open');
-    d.addEventListener('paste', handleDrawerPaste);
+    el('uatTCDrawer_procedure').addEventListener('paste', drawerEditorPaste);
   }
 
   function closeDrawer() {
-    const d = el('uatTCDrawer');
-    d.removeEventListener('paste', handleDrawerPaste);
-    d.classList.remove('open');
+    el('uatTCDrawer_procedure').removeEventListener('paste', drawerEditorPaste);
+    el('uatTCDrawer').classList.remove('open');
     el('uatTCDrawerOverlay').classList.remove('open');
     S.drawerTC = null;
   }
@@ -521,66 +519,122 @@ const UAT = (() => {
   }
 
   /* ── Procedure & Screenshots ─────────────────────────────────────────────── */
-  function renderProcImages(images) {
-    const wrap = el('uatProcImages');
-    if (!wrap) return;
-    wrap.innerHTML = images.map((img, i) => `
-      <div class="uat-proc-img-wrap" onclick="UAT.openProcImage(${i})">
-        <img src="${img.data}" alt="Screenshot ${i + 1}">
-        <button class="uat-proc-img-del" onclick="event.stopPropagation();UAT.removeProcImage(${i})" title="Remove">×</button>
-      </div>`).join('');
+  function fileToBase64(file) {
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    });
   }
 
-  function openProcImage(index) {
-    const tc = S.testcases.find(x => x.id === S.drawerTcId);
-    if (!tc?.procedureImages?.[index]) return;
-    const lb = el('uatImgLightbox');
-    el('uatImgLightboxImg').src = tc.procedureImages[index].data;
-    lb.style.display = 'flex';
+  function insertImageAtCursor(editorId, dataUrl) {
+    const editor = el(editorId);
+    if (!editor) return;
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.onclick = openImgLightbox;
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0 && editor.contains(selection.anchorNode)) {
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      range.insertNode(img);
+      range.setStartAfter(img);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } else {
+      editor.appendChild(img);
+    }
+    editor.appendChild(document.createElement('br'));
   }
 
-  function removeProcImage(index) {
-    const tc = S.testcases.find(x => x.id === S.drawerTcId);
-    if (!tc) return;
-    tc.procedureImages = (tc.procedureImages || []).filter((_, i) => i !== index);
-    renderProcImages(tc.procedureImages);
+  function openImgLightbox() {
+    el('uatImgLightboxImg').src = this.src;
+    el('uatImgLightbox').style.display = 'flex';
   }
 
-  async function handleProcFiles(files) {
-    const tc = S.testcases.find(x => x.id === S.drawerTcId);
-    if (!tc) return;
-    tc.procedureImages = tc.procedureImages || [];
+  function setProcContent(editorId, content) {
+    const editor = el(editorId);
+    if (!editor) return;
+    if (!content) { editor.innerHTML = ''; return; }
+    // Legacy plain-text → convert newlines; HTML content → set directly
+    if (!content.includes('<') ) {
+      editor.innerHTML = content.split('\n').map(l => `<div>${l || '<br>'}</div>`).join('');
+    } else {
+      editor.innerHTML = content;
+    }
+    editor.querySelectorAll('img').forEach(img => { img.onclick = openImgLightbox; });
+  }
+
+  async function procEditorPaste(e, editorId) {
+    const items = Array.from(e.clipboardData?.items || []);
+    const imgs = items.filter(i => i.type.startsWith('image/'));
+    if (!imgs.length) {
+      // Plain text only — strip formatting
+      e.preventDefault();
+      const text = e.clipboardData.getData('text/plain');
+      document.execCommand('insertText', false, text);
+      return;
+    }
+    e.preventDefault();
+    for (const item of imgs) {
+      const data = await fileToBase64(item.getAsFile());
+      insertImageAtCursor(editorId, data);
+    }
+  }
+
+  function drawerEditorPaste(e) { procEditorPaste(e, 'uatTCDrawer_procedure'); }
+  function fsEditorPaste(e)     { procEditorPaste(e, 'uatProcFsEditor'); }
+
+  async function handleProcDrop(files, editorId) {
+    const editor = el(editorId);
+    if (!editor) return;
     for (const file of Array.from(files)) {
       if (!file.type.startsWith('image/')) continue;
-      const data = await new Promise(resolve => {
-        const reader = new FileReader();
-        reader.onload = e => resolve(e.target.result);
-        reader.readAsDataURL(file);
-      });
-      tc.procedureImages.push({ data, name: file.name || `screenshot-${Date.now()}.png` });
+      const data = await fileToBase64(file);
+      editor.focus();
+      insertImageAtCursor(editorId, data);
     }
-    renderProcImages(tc.procedureImages);
-    toast('Screenshot added — click Save Procedure to persist');
-  }
-
-  function handleDrawerPaste(e) {
-    const items = Array.from(e.clipboardData?.items || []);
-    const imageItems = items.filter(i => i.type.startsWith('image/'));
-    if (!imageItems.length) return;
-    e.preventDefault();
-    handleProcFiles(imageItems.map(i => i.getAsFile()));
   }
 
   async function saveProcedure() {
     const tc = S.testcases.find(x => x.id === S.drawerTcId);
     if (!tc) return;
-    tc.procedure = el('uatTCDrawer_procedure').value;
-    const r = await api('PUT', `/api/uat/testcases/${tc.id}`, {
-      procedure: tc.procedure,
-      procedureImages: tc.procedureImages || [],
-    });
+    tc.procedure = el('uatTCDrawer_procedure').innerHTML;
+    const r = await api('PUT', `/api/uat/testcases/${tc.id}`, { procedure: tc.procedure });
     if (r.ok) toast('Procedure saved');
     else toast('Failed to save procedure', 'error');
+  }
+
+  function openProcFullscreen() {
+    const tc = S.testcases.find(x => x.id === S.drawerTcId);
+    if (!tc) return;
+    setProcContent('uatProcFsEditor', el('uatTCDrawer_procedure').innerHTML);
+    el('uatProcFsSeq').textContent = `TC-${tc.seq}`;
+    el('uatProcFsTitle').textContent = tc.testDescription || 'Test Procedure';
+    el('uatProcFsEditor').addEventListener('paste', fsEditorPaste);
+    el('uatProcFullscreen').classList.add('open');
+    el('uatProcFsEditor').focus();
+  }
+
+  function closeProcFullscreen() {
+    // Sync content back to drawer editor without saving to DB
+    el('uatTCDrawer_procedure').innerHTML = el('uatProcFsEditor').innerHTML;
+    el('uatTCDrawer_procedure').querySelectorAll('img').forEach(img => { img.onclick = openImgLightbox; });
+    el('uatProcFsEditor').removeEventListener('paste', fsEditorPaste);
+    el('uatProcFullscreen').classList.remove('open');
+  }
+
+  async function saveProcedureFS() {
+    const tc = S.testcases.find(x => x.id === S.drawerTcId);
+    if (!tc) return;
+    const content = el('uatProcFsEditor').innerHTML;
+    tc.procedure = content;
+    el('uatTCDrawer_procedure').innerHTML = content;
+    el('uatTCDrawer_procedure').querySelectorAll('img').forEach(img => { img.onclick = openImgLightbox; });
+    const r = await api('PUT', `/api/uat/testcases/${tc.id}`, { procedure: content });
+    if (r.ok) toast('Procedure saved');
+    else toast('Failed to save', 'error');
   }
 
   /* ── Add / Delete Test Cases ────────────────────────────────────────────── */
@@ -967,9 +1021,10 @@ const UAT = (() => {
     hideAddTestModal,
     submitNewTest,
     deleteTest,
-    openProcImage,
-    removeProcImage,
-    handleProcFiles,
+    handleProcDrop,
     saveProcedure,
+    openProcFullscreen,
+    closeProcFullscreen,
+    saveProcedureFS,
   };
 })();

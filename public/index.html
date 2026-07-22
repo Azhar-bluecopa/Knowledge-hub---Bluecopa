@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
   <link rel="stylesheet" href="/style.css?v=80">
-  <link rel="stylesheet" href="/uat.css?v=15">
+  <link rel="stylesheet" href="/uat.css?v=16">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=13" defer></script>
+  <script src="/uat.js?v=14" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -6951,23 +6951,21 @@ async function updateFeedbackStatus(id) {
 
       <!-- Procedure -->
       <div>
-        <div class="uat-drawer-section-title">Test Procedure</div>
-        <textarea class="uat-dual-textarea" id="uatTCDrawer_procedure" rows="6"
-          placeholder="Step 1: Navigate to…&#10;Step 2: Click on…&#10;Step 3: Verify that the result matches the expected output"
-          style="width:100%;resize:vertical;min-height:120px;font-size:13px"></textarea>
-
-        <div class="uat-proc-drop" id="uatProcDrop"
-          onclick="document.getElementById('uatProcFileInput').click()"
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="uat-drawer-section-title" style="margin-bottom:0">Test Procedure</div>
+          <button class="uat-proc-maximize-btn" onclick="UAT.openProcFullscreen()" title="Open fullscreen editor">⛶ Fullscreen</button>
+        </div>
+        <div class="uat-proc-editor" id="uatTCDrawer_procedure" contenteditable="true"
+          data-placeholder="Step 1: Navigate to…&#10;Step 2: Click on…&#10;Step 3: Verify result&#10;&#10;Ctrl+V to paste a screenshot inline at the cursor"></div>
+        <div class="uat-proc-drop"
           ondragover="event.preventDefault();this.classList.add('drag-over')"
           ondragleave="this.classList.remove('drag-over')"
-          ondrop="event.preventDefault();this.classList.remove('drag-over');UAT.handleProcFiles(event.dataTransfer.files)">
+          ondrop="event.preventDefault();this.classList.remove('drag-over');UAT.handleProcDrop(event.dataTransfer.files,'uatTCDrawer_procedure')"
+          onclick="document.getElementById('uatProcFileInput').click()">
           <input type="file" id="uatProcFileInput" accept="image/*" multiple style="display:none"
-            onchange="UAT.handleProcFiles(this.files)">
-          <div style="font-size:20px;margin-bottom:4px">📋</div>
-          <div>Paste a screenshot <kbd>Ctrl+V</kbd>, drag &amp; drop, or <span class="uat-proc-upload-link">click to upload</span></div>
+            onchange="UAT.handleProcDrop(this.files,'uatTCDrawer_procedure')">
+          <div>📷 Drop image or <span class="uat-proc-upload-link">click to upload</span> — images appear inline with your text</div>
         </div>
-        <div id="uatProcImages" class="uat-proc-images"></div>
-
         <button class="uat-btn uat-btn-primary uat-drawer-save" onclick="UAT.saveProcedure()" style="margin-top:12px">Save Procedure</button>
       </div>
     </div>
@@ -6976,6 +6974,35 @@ async function updateFeedbackStatus(id) {
   <!-- Image lightbox -->
   <div id="uatImgLightbox" style="display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.85);align-items:center;justify-content:center;cursor:zoom-out" onclick="this.style.display='none'">
     <img id="uatImgLightboxImg" style="max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.4)">
+  </div>
+
+  <!-- Procedure fullscreen editor -->
+  <div id="uatProcFullscreen" class="uat-proc-fullscreen">
+    <div class="uat-proc-fs-header">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#9ca3af;font-family:'DM Mono',monospace;letter-spacing:.5px;margin-bottom:2px" id="uatProcFsSeq">TC-1</div>
+        <div style="font-size:14px;font-weight:700;color:#0d1117;max-width:600px;line-height:1.4" id="uatProcFsTitle">Test Procedure</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+        <div style="font-size:12px;color:#9ca3af">Ctrl+V to paste screenshots inline</div>
+        <button class="uat-btn uat-btn-primary" onclick="UAT.saveProcedureFS()">Save Procedure</button>
+        <button class="uat-btn uat-btn-ghost" onclick="UAT.closeProcFullscreen()">✕ Close</button>
+      </div>
+    </div>
+    <div class="uat-proc-fs-body">
+      <div class="uat-proc-fs-editor" id="uatProcFsEditor" contenteditable="true"
+        data-placeholder="Step 1: Navigate to…&#10;Step 2: Click on…&#10;Step 3: Verify that the result matches the expected output&#10;&#10;Paste screenshots with Ctrl+V — they appear inline at the cursor position"
+        ondragover="event.preventDefault()"
+        ondrop="event.preventDefault();UAT.handleProcDrop(event.dataTransfer.files,'uatProcFsEditor')"></div>
+    </div>
+    <div class="uat-proc-fs-footer">
+      <div>
+        <input type="file" id="uatProcFSFile" accept="image/*" multiple style="display:none"
+          onchange="UAT.handleProcDrop(this.files,'uatProcFsEditor')">
+        <button class="uat-btn uat-btn-ghost" onclick="document.getElementById('uatProcFSFile').click()">📷 Upload Image</button>
+      </div>
+      <div style="font-size:12px;color:#9ca3af">Changes sync back to the drawer when you close</div>
+    </div>
   </div>
 
   <!-- ── Modal: New Project ─────────────────────────────────────────────── -->
