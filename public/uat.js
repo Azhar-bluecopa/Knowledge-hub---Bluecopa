@@ -253,20 +253,34 @@ const UAT = (() => {
 
   function renderTestCaseView() {
     const tcs = filteredTCs();
-    populateEntityDropdown();
+    renderEntityTabs();
     if (S.view === 'progress') renderCategoryBars();
     renderTCTable(tcs);
     updateBadges();
   }
 
-  function populateEntityDropdown() {
-    const sel = el('uatFilterEntity');
-    if (!sel) return;
+  function renderEntityTabs() {
+    const row = el('uatEntityTabRow');
+    if (!row) return;
     const p = S.projects.find(x => x.id === S.activeProjectId);
     const entities = p?.entities || [];
-    sel.innerHTML = `<option value="">All Entities</option>` +
-      entities.map(e => `<option value="${e}">${e}</option>`).join('');
-    sel.value = S.filterEntity || '';
+    if (!entities.length) { row.style.display = 'none'; return; }
+    row.style.display = 'flex';
+    row.innerHTML =
+      `<button class="uat-entity-tab ${!S.filterEntity ? 'active' : ''}" onclick="UAT.selectEntity('')">All Entities</button>` +
+      entities.map(e =>
+        `<button class="uat-entity-tab ${S.filterEntity === e ? 'active' : ''}" onclick="UAT.selectEntity('${e.replace(/'/g,"\\'")}')">
+          ${e}
+        </button>`).join('') +
+      `<button class="uat-entity-tab-add" onclick="UAT.showManageEntitiesModal()">+ Entity</button>`;
+  }
+
+  function selectEntity(entity) {
+    S.filterEntity = entity;
+    renderEntityTabs();
+    renderTCTable(filteredTCs());
+    updateBadges();
+    if (S.view === 'progress') renderCategoryBars();
   }
 
   function renderCategoryBars() {
@@ -496,7 +510,6 @@ const UAT = (() => {
     S.filterBStatus  = el('uatFilterBStatus')?.value || '';
     S.filterCStatus  = el('uatFilterCStatus')?.value || '';
     S.filterPriority = el('uatFilterPriority')?.value || '';
-    S.filterEntity   = el('uatFilterEntity')?.value || '';
     renderTestCaseView();
   }
 
@@ -711,7 +724,7 @@ const UAT = (() => {
   }
   function hideManageEntitiesModal() {
     el('uatModalEntities')?.classList.remove('open');
-    populateEntityDropdown();
+    renderEntityTabs();
   }
   function renderEntityList() {
     const p = S.projects.find(x => x.id === S.activeProjectId);
@@ -738,8 +751,11 @@ const UAT = (() => {
     if (p.entities.includes(name)) return toast('Entity already exists', 'error');
     p.entities.push(name);
     const r = await api('PUT', `/api/uat/projects/${S.activeProjectId}`, { entities: p.entities });
-    if (r.ok) { input.value = ''; renderEntityList(); toast(`"${name}" added`); }
-    else toast('Failed to save', 'error');
+    if (r.ok) {
+      input.value = '';
+      renderEntityList();
+      toast(`"${name}" added — select it in the tab row to test at entity level`);
+    } else toast('Failed to save', 'error');
   }
   async function removeEntity(index) {
     const p = S.projects.find(x => x.id === S.activeProjectId);
@@ -787,5 +803,6 @@ const UAT = (() => {
     hideManageEntitiesModal,
     addEntity,
     removeEntity,
+    selectEntity,
   };
 })();

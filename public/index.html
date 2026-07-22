@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
   <link rel="stylesheet" href="/style.css?v=80">
-  <link rel="stylesheet" href="/uat.css?v=8">
+  <link rel="stylesheet" href="/uat.css?v=9">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=7" defer></script>
+  <script src="/uat.js?v=8" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -6769,16 +6769,14 @@ async function updateFeedbackStatus(id) {
 
     <!-- ── TEST CASES ─────────────────────────────────────────────────── -->
     <div id="uatView_testcases" class="uat-view">
+      <!-- Entity tabs row — hidden when no entities exist -->
+      <div id="uatEntityTabRow" class="uat-entity-tab-row" style="display:none"></div>
       <!-- Toolbar -->
       <div class="uat-toolbar">
         <div class="uat-search">
           <span class="uat-search-icon">🔍</span>
           <input id="uatFilterQ" type="text" placeholder="Search tests…" oninput="UAT.applyFilters()">
         </div>
-        <select class="uat-filter-select" id="uatFilterEntity" onchange="UAT.applyFilters()">
-          <option value="">All Entities</option>
-        </select>
-        <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.showManageEntitiesModal()" title="Add or remove entities for this project" style="white-space:nowrap">⚙ Entities</button>
         <select class="uat-filter-select" id="uatFilterCategory" onchange="UAT.applyFilters()">
           <option value="">All Categories</option>
           <option>R2R</option><option>P2P</option><option>O2C</option><option>Planning</option>
