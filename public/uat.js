@@ -92,12 +92,13 @@ const UAT = (() => {
     if (v === 'dashboard') loadDashboard();
     if (v === 'projects')  renderProjects();
     if (v === 'testcases') { if (!S.activeProjectId) setView('projects'); else loadTestCases(); }
+    if (v === 'progress')  { if (!S.activeProjectId) setView('projects'); else loadTestCases(); }
     if (v === 'issues')    loadIssues();
     if (v === 'repository') loadRepository();
   }
 
   function breadcrumb(v) {
-    const names = { dashboard:'Overview', projects:'Projects', testcases:'Test Cases', issues:'Issues', repository:'Repository' };
+    const names = { dashboard:'Overview', projects:'Projects', testcases:'Test Cases', progress:'Category Progress', issues:'Issues', repository:'Repository' };
     let html = 'UAT Platform';
     if (S.activeClientId) {
       const c = S.clients.find(x => x.id === S.activeClientId);
@@ -245,7 +246,7 @@ const UAT = (() => {
 
   function renderTestCaseView() {
     const tcs = filteredTCs();
-    renderCategoryBars();
+    if (S.view === 'progress') renderCategoryBars();
     renderTCTable(tcs);
     updateBadges();
   }
@@ -260,7 +261,13 @@ const UAT = (() => {
       if (t.clientStatus === 'pass') cats[t.category].cPass++;
     });
     const catKeys = Object.keys(cats).sort();
-    if (!catKeys.length) { el('uatCatBars').style.display = 'none'; return; }
+    const emptyEl = el('uatCatBarsEmpty');
+    if (!catKeys.length) {
+      el('uatCatBars').style.display = 'none';
+      if (emptyEl) emptyEl.style.display = '';
+      return;
+    }
+    if (emptyEl) emptyEl.style.display = 'none';
     el('uatCatBars').style.display = '';
     el('uatCatBarsInner').innerHTML = catKeys.map(cat => {
       const c = cats[cat];

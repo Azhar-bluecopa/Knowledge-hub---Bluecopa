@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
   <link rel="stylesheet" href="/style.css?v=80">
-  <link rel="stylesheet" href="/uat.css?v=2">
+  <link rel="stylesheet" href="/uat.css?v=3">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=2" defer></script>
+  <script src="/uat.js?v=3" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -6677,6 +6677,9 @@ async function updateFeedbackStatus(id) {
     </button>
     <button class="uat-nav-tab" data-view="testcases" onclick="UAT.setView('testcases')">
       Test Cases <span class="uat-nav-badge" id="uatNavBadge_testcases">0</span>
+    </button>
+    <button class="uat-nav-tab" data-view="progress" onclick="UAT.setView('progress')">
+      Category Progress
     </button>
     <button class="uat-nav-tab" data-view="issues" onclick="UAT.setView('issues')">
       Issues
@@ -6751,14 +6754,21 @@ async function updateFeedbackStatus(id) {
       <div id="uatProjectGrid" class="uat-project-grid"></div>
     </div>
 
-    <!-- ── TEST CASES ─────────────────────────────────────────────────── -->
-    <div id="uatView_testcases" class="uat-view">
-      <!-- Category progress bars -->
-      <div class="uat-category-bars" id="uatCatBars" style="display:none">
+    <!-- ── CATEGORY PROGRESS ─────────────────────────────────────────── -->
+    <div id="uatView_progress" class="uat-view">
+      <div class="uat-category-bars" id="uatCatBars" style="display:none;min-height:calc(100vh - 120px)">
         <div class="uat-category-bars-title">Category Progress</div>
         <div id="uatCatBarsInner"></div>
       </div>
+      <div id="uatCatBarsEmpty" style="display:none;padding:48px;text-align:center">
+        <div class="uat-empty-icon">📊</div>
+        <div class="uat-empty-title">No test cases yet</div>
+        <div class="uat-empty-desc">Select a project and seed test cases to see category progress</div>
+      </div>
+    </div>
 
+    <!-- ── TEST CASES ─────────────────────────────────────────────────── -->
+    <div id="uatView_testcases" class="uat-view">
       <!-- Toolbar -->
       <div class="uat-toolbar">
         <div class="uat-search">
