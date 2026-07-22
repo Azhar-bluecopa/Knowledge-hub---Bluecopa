@@ -323,9 +323,16 @@ const UAT = (() => {
 
   function renderTCTable(tcs) {
     const tbody = el('uatTCBody');
+    const table = tbody?.closest('.uat-table');
+    const p = S.projects.find(x => x.id === S.activeProjectId);
+    const entities = p?.entities || [];
+    const isConsolidated = !S.filterEntity && entities.length > 0;
+
+    // Toggle consolidated class on table for Entity column visibility
+    if (table) table.classList.toggle('consolidated', isConsolidated);
+
     if (!tcs.length) {
-      const p = S.projects.find(x => x.id === S.activeProjectId);
-      tbody.innerHTML = `<tr><td colspan="9">
+      tbody.innerHTML = `<tr><td colspan="${isConsolidated ? 10 : 9}">
         <div class="uat-empty">
           <div class="uat-empty-icon">✅</div>
           <div class="uat-empty-title">No test cases${S.filterQ || S.filterCategory ? ' match your filter' : ''}</div>
@@ -335,28 +342,56 @@ const UAT = (() => {
       </td></tr>`;
       return;
     }
-    tbody.innerHTML = tcs.map(tc => `
-      <tr id="tcrow_${tc.id}" onclick="UAT.openDrawer('${tc.id}')" class="${S.selected.has(tc.id) ? 'selected' : ''}">
-        <td onclick="event.stopPropagation()" style="text-align:center">
-          <input type="checkbox" class="uat-checkbox" ${S.selected.has(tc.id)?'checked':''} onchange="UAT.toggleSelect('${tc.id}',this.checked)">
-        </td>
-        <td><span style="font-size:11px;color:#9ca3af;font-weight:700">${tc.seq||''}</span></td>
-        <td>
-          <span class="uat-cat-tag">${tc.category||'—'}</span>
-          <div class="uat-subcat">${tc.subCategory||''}</div>
-        </td>
-        <td><div class="uat-tc-desc">${tc.testDescription||'—'}</div></td>
-        <td>${priorityBadge(tc.priority)}</td>
-        <td class="uat-status-cell" onclick="event.stopPropagation()">
-          ${statusPill(getEntityStatus(tc,'b'), 'b', tc.id)}
-        </td>
-        <td class="uat-status-cell" onclick="event.stopPropagation()">
-          ${statusPill(getEntityStatus(tc,'c'), 'c', tc.id)}
-        </td>
-        <td style="font-size:11px;color:#6b7280;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tc.bluecopaComments||'—'}</td>
-        <td style="font-size:11px;color:#374151;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tc.clientComments||'—'}</td>
-      </tr>`).join('');
-    // update bulk bar
+
+    if (isConsolidated) {
+      // Consolidated view: one row per entity × test case
+      tbody.innerHTML = tcs.flatMap(tc =>
+        entities.map(entity => {
+          const es = (tc.entityStatuses || {})[entity] || {};
+          const bStatus = es.bluecopaStatus || 'not_tested';
+          const cStatus = es.clientStatus   || 'not_tested';
+          return `
+            <tr title="Click to switch to ${entity} view" onclick="UAT.selectEntity('${entity.replace(/'/g,"\\'")}');" style="cursor:pointer">
+              <td></td>
+              <td><span style="font-size:11px;color:#9ca3af;font-weight:700">${tc.seq||''}</span></td>
+              <td>
+                <span class="uat-cat-tag">${tc.category||'—'}</span>
+                <div class="uat-subcat">${tc.subCategory||''}</div>
+              </td>
+              <td class="uat-entity-col"><span class="uat-entity-chip">${entity}</span></td>
+              <td><div class="uat-tc-desc">${tc.testDescription||'—'}</div></td>
+              <td>${priorityBadge(tc.priority)}</td>
+              <td><span class="uat-status-pill ${bStatus}" style="pointer-events:none">${STATUS_LABELS[bStatus]||bStatus}</span></td>
+              <td><span class="uat-status-pill ${cStatus}" style="pointer-events:none">${STATUS_LABELS[cStatus]||cStatus}</span></td>
+              <td style="font-size:11px;color:#6b7280">${es.bluecopaComments||'—'}</td>
+              <td style="font-size:11px;color:#374151">${es.clientComments||'—'}</td>
+            </tr>`;
+        })
+      ).join('');
+    } else {
+      tbody.innerHTML = tcs.map(tc => `
+        <tr id="tcrow_${tc.id}" onclick="UAT.openDrawer('${tc.id}')" class="${S.selected.has(tc.id) ? 'selected' : ''}">
+          <td onclick="event.stopPropagation()" style="text-align:center">
+            <input type="checkbox" class="uat-checkbox" ${S.selected.has(tc.id)?'checked':''} onchange="UAT.toggleSelect('${tc.id}',this.checked)">
+          </td>
+          <td><span style="font-size:11px;color:#9ca3af;font-weight:700">${tc.seq||''}</span></td>
+          <td>
+            <span class="uat-cat-tag">${tc.category||'—'}</span>
+            <div class="uat-subcat">${tc.subCategory||''}</div>
+          </td>
+          <td class="uat-entity-col"></td>
+          <td><div class="uat-tc-desc">${tc.testDescription||'—'}</div></td>
+          <td>${priorityBadge(tc.priority)}</td>
+          <td class="uat-status-cell" onclick="event.stopPropagation()">
+            ${statusPill(getEntityStatus(tc,'b'), 'b', tc.id)}
+          </td>
+          <td class="uat-status-cell" onclick="event.stopPropagation()">
+            ${statusPill(getEntityStatus(tc,'c'), 'c', tc.id)}
+          </td>
+          <td style="font-size:11px;color:#6b7280;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tc.bluecopaComments||'—'}</td>
+          <td style="font-size:11px;color:#374151;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tc.clientComments||'—'}</td>
+        </tr>`).join('');
+    }
     updateBulkBar();
   }
 
