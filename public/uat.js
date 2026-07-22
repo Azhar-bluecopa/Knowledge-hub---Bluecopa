@@ -340,7 +340,8 @@ const UAT = (() => {
         <th>Bluecopa Status</th>
         <th>Client Status</th>
         <th>Bluecopa Notes</th>
-        <th>Client Notes</th>`;
+        <th>Client Notes</th>
+        ${isConsolidated ? '' : '<th></th>'}`;
     }
 
     if (!tcs.length) {
@@ -400,6 +401,9 @@ const UAT = (() => {
           </td>
           <td style="font-size:11px;color:#6b7280;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tc.bluecopaComments||'—'}</td>
           <td style="font-size:11px;color:#374151;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tc.clientComments||'—'}</td>
+          <td onclick="event.stopPropagation()" style="text-align:center;padding:0 8px">
+            <button class="uat-del-btn" title="Delete test case" onclick="event.stopPropagation();UAT.deleteTest('${tc.id}')">&#128465;</button>
+          </td>
         </tr>`).join('');
     }
     updateBulkBar();
@@ -507,6 +511,46 @@ const UAT = (() => {
       toast('Comments saved');
       renderTCTable(filteredTCs());
     } else toast('Failed to save', 'error');
+  }
+
+  /* ── Add / Delete Test Cases ────────────────────────────────────────────── */
+  function showAddTestModal() {
+    if (!S.activeProjectId) return toast('Open a project first');
+    el('uatFormAddTest')?.reset();
+    el('uatModalAddTest')?.classList.add('open');
+  }
+
+  function hideAddTestModal() {
+    el('uatModalAddTest')?.classList.remove('open');
+  }
+
+  async function submitNewTest() {
+    const form = el('uatFormAddTest');
+    const fd = new FormData(form);
+    const data = Object.fromEntries(fd.entries());
+    const r = await api('POST', '/api/uat/testcases', {
+      projectId: S.activeProjectId,
+      category: data.category,
+      subCategory: data.subCategory || '',
+      testDescription: data.testDescription.trim(),
+      expectedResult: data.expectedResult || '',
+      priority: data.priority || 'medium',
+      owner: data.owner || '',
+    });
+    if (!r.ok) return toast(r.error || 'Failed to add test', 'error');
+    hideAddTestModal();
+    await loadTestCases();
+    toast('Test case added');
+  }
+
+  async function deleteTest(tcId) {
+    if (!confirm('Delete this test case? This cannot be undone.')) return;
+    const r = await api('DELETE', `/api/uat/testcases/${tcId}`);
+    if (!r.ok) return toast(r.error || 'Failed to delete', 'error');
+    S.testcases = S.testcases.filter(x => x.id !== tcId);
+    S.selected.delete(tcId);
+    renderTestCaseView();
+    toast('Test case deleted');
   }
 
   /* ── Seed Defaults ──────────────────────────────────────────────────────── */
@@ -849,5 +893,9 @@ const UAT = (() => {
     addEntity,
     removeEntity,
     selectEntity,
+    showAddTestModal,
+    hideAddTestModal,
+    submitNewTest,
+    deleteTest,
   };
 })();

@@ -96,6 +96,15 @@
 .uat-bar-c { background: #22c55e; }
 .uat-cat-pct { font-size: 11px; font-weight: 700; color: #6b7280; text-align: right; }
 
+/* ── Delete button ───────────────────────────────────────────────────────── */
+.uat-del-btn {
+  background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 6px;
+  font-size: 14px; color: #d1d5db; opacity: 0; transition: opacity .15s, background .15s, color .15s;
+  line-height: 1;
+}
+.uat-table tbody tr:hover .uat-del-btn { opacity: 1; }
+.uat-del-btn:hover { background: #fef2f2; color: #dc2626; }
+
 /* ── Entity column (consolidated view) ───────────────────────────────────── */
 .uat-entity-chip {
   display: inline-block; padding: 3px 10px; border-radius: 99px;
