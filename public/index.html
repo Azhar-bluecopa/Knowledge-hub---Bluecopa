@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
   <link rel="stylesheet" href="/style.css?v=80">
-  <link rel="stylesheet" href="/uat.css?v=10">
+  <link rel="stylesheet" href="/uat.css?v=11">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=9" defer></script>
+  <script src="/uat.js?v=10" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -6824,11 +6824,10 @@ async function updateFeedbackStatus(id) {
         <div class="uat-table-scroll">
           <table class="uat-table">
             <thead>
-              <tr>
+              <tr id="uatTCHeadRow">
                 <th><input type="checkbox" class="uat-checkbox" onchange="UAT.selectAll(this.checked)"></th>
                 <th>#</th>
                 <th>Category</th>
-                <th class="uat-entity-col">Entity</th>
                 <th>Test Description</th>
                 <th>Priority</th>
                 <th>Bluecopa Status</th>

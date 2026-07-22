@@ -96,8 +96,6 @@
 .uat-cat-pct { font-size: 11px; font-weight: 700; color: #6b7280; text-align: right; }
 
 /* ── Entity column (consolidated view) ───────────────────────────────────── */
-.uat-entity-col { display: none; }
-.uat-table.consolidated .uat-entity-col { display: table-cell; }
 .uat-entity-chip {
   display: inline-block; padding: 3px 10px; border-radius: 99px;
   background: #f4f5f7; border: 1px solid #e4e6ea;

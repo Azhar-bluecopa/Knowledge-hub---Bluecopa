@@ -323,13 +323,25 @@ const UAT = (() => {
 
   function renderTCTable(tcs) {
     const tbody = el('uatTCBody');
-    const table = tbody?.closest('.uat-table');
+    const headRow = el('uatTCHeadRow');
     const p = S.projects.find(x => x.id === S.activeProjectId);
     const entities = p?.entities || [];
     const isConsolidated = !S.filterEntity && entities.length > 0;
 
-    // Toggle consolidated class on table for Entity column visibility
-    if (table) table.classList.toggle('consolidated', isConsolidated);
+    // Update header columns to match row structure
+    if (headRow) {
+      headRow.innerHTML = `
+        <th><input type="checkbox" class="uat-checkbox" onchange="UAT.selectAll(this.checked)"></th>
+        <th>#</th>
+        <th>Category</th>
+        ${isConsolidated ? '<th>Entity</th>' : ''}
+        <th>Test Description</th>
+        <th>Priority</th>
+        <th>Bluecopa Status</th>
+        <th>Client Status</th>
+        <th>Bluecopa Notes</th>
+        <th>Client Notes</th>`;
+    }
 
     if (!tcs.length) {
       tbody.innerHTML = `<tr><td colspan="${isConsolidated ? 10 : 9}">
@@ -344,7 +356,6 @@ const UAT = (() => {
     }
 
     if (isConsolidated) {
-      // Consolidated view: one row per entity × test case
       tbody.innerHTML = tcs.flatMap(tc =>
         entities.map(entity => {
           const es = (tc.entityStatuses || {})[entity] || {};
@@ -358,7 +369,7 @@ const UAT = (() => {
                 <span class="uat-cat-tag">${tc.category||'—'}</span>
                 <div class="uat-subcat">${tc.subCategory||''}</div>
               </td>
-              <td class="uat-entity-col"><span class="uat-entity-chip">${entity}</span></td>
+              <td><span class="uat-entity-chip">${entity}</span></td>
               <td><div class="uat-tc-desc">${tc.testDescription||'—'}</div></td>
               <td>${priorityBadge(tc.priority)}</td>
               <td><span class="uat-status-pill ${bStatus}" style="pointer-events:none">${STATUS_LABELS[bStatus]||bStatus}</span></td>
@@ -379,7 +390,6 @@ const UAT = (() => {
             <span class="uat-cat-tag">${tc.category||'—'}</span>
             <div class="uat-subcat">${tc.subCategory||''}</div>
           </td>
-          <td class="uat-entity-col"></td>
           <td><div class="uat-tc-desc">${tc.testDescription||'—'}</div></td>
           <td>${priorityBadge(tc.priority)}</td>
           <td class="uat-status-cell" onclick="event.stopPropagation()">
