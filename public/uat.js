@@ -281,11 +281,9 @@ const UAT = (() => {
           <div class="uat-cat-pct">${cPct}%</div>
         </div>`;
     }).join('') +
-    `<div class="uat-cat-bar-row" style="margin-top:6px">
-      <div></div>
-      <div style="font-size:10px;color:#3b82f6;font-weight:700">■ Bluecopa</div>
-      <div style="font-size:10px;color:#22c55e;font-weight:700">■ Client</div>
-      <div></div>
+    `<div class="uat-cat-legend">
+      <span style="color:#3b82f6;font-weight:700">■ Bluecopa</span>
+      <span style="color:#22c55e;font-weight:700">■ Client</span>
     </div>`;
   }
 
