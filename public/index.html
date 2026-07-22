@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
   <link rel="stylesheet" href="/style.css?v=80">
-  <link rel="stylesheet" href="/uat.css?v=7">
+  <link rel="stylesheet" href="/uat.css?v=8">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=6" defer></script>
+  <script src="/uat.js?v=7" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -6775,6 +6775,10 @@ async function updateFeedbackStatus(id) {
           <span class="uat-search-icon">🔍</span>
           <input id="uatFilterQ" type="text" placeholder="Search tests…" oninput="UAT.applyFilters()">
         </div>
+        <select class="uat-filter-select" id="uatFilterEntity" onchange="UAT.applyFilters()">
+          <option value="">All Entities</option>
+        </select>
+        <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.showManageEntitiesModal()" title="Add or remove entities for this project" style="white-space:nowrap">⚙ Entities</button>
         <select class="uat-filter-select" id="uatFilterCategory" onchange="UAT.applyFilters()">
           <option value="">All Categories</option>
           <option>R2R</option><option>P2P</option><option>O2C</option><option>Planning</option>
@@ -6975,6 +6979,11 @@ async function updateFeedbackStatus(id) {
               <input class="uat-form-input" name="businessUnit" placeholder="Finance / Shared Services">
             </div>
           </div>
+          <div class="uat-form-group">
+            <label class="uat-form-label">Entities <span style="color:#9ca3af;font-weight:400">(optional)</span></label>
+            <input class="uat-form-input" name="entities" placeholder="e.g. HQ, India, Singapore">
+            <div style="font-size:11px;color:#9ca3af;margin-top:4px">Comma-separated. Each entity tracks its own test status.</div>
+          </div>
           <div class="uat-form-check">
             <input type="checkbox" id="uatSeedCb" name="seedDefaults" checked>
             <label for="uatSeedCb">Seed with 44 standard finance test cases (R2R, P2P, O2C, Planning, Dashboards, Reports, Security, Integrations)</label>
@@ -6985,6 +6994,30 @@ async function updateFeedbackStatus(id) {
           <button type="submit" class="uat-btn uat-btn-primary">Create Project</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ── Modal: Manage Entities ───────────────────────────────────────── -->
+  <div class="uat-modal-backdrop" id="uatModalEntities" onclick="if(event.target===this)UAT.hideManageEntitiesModal()">
+    <div class="uat-modal" style="max-width:440px">
+      <div class="uat-modal-header">
+        <div class="uat-modal-title">Manage Entities</div>
+        <button class="uat-drawer-close" onclick="UAT.hideManageEntitiesModal()">×</button>
+      </div>
+      <div class="uat-modal-body">
+        <div style="font-size:12px;color:#6b7280;margin-bottom:12px">Each entity tracks its own Bluecopa and Client test status independently.</div>
+        <div id="uatEntityList"></div>
+        <div class="uat-form-group" style="margin-top:16px">
+          <label class="uat-form-label">Add Entity</label>
+          <div style="display:flex;gap:8px">
+            <input class="uat-form-input" id="uatEntityInput" placeholder="e.g. India, HQ, Singapore" onkeydown="if(event.key==='Enter'){event.preventDefault();UAT.addEntity()}">
+            <button class="uat-btn uat-btn-primary" onclick="UAT.addEntity()" style="white-space:nowrap">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="uat-modal-footer">
+        <button class="uat-btn uat-btn-primary" onclick="UAT.hideManageEntitiesModal()">Done</button>
+      </div>
     </div>
   </div>
 

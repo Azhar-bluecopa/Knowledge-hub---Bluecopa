@@ -11,7 +11,7 @@ const UAT = (() => {
     activeProjectId: null,
     drawerTC: null,
     selected: new Set(),
-    filterQ: '', filterCategory: '', filterBStatus: '', filterCStatus: '', filterPriority: '',
+    filterQ: '', filterCategory: '', filterBStatus: '', filterCStatus: '', filterPriority: '', filterEntity: '',
     dashData: null,
   };
 
@@ -63,6 +63,12 @@ const UAT = (() => {
           <span class="uat-status-dot dot-${k}"></span>${v}
         </button>`).join('')}
     </div>`;
+  }
+
+  function getEntityStatus(tc, prefix) {
+    if (!S.filterEntity) return prefix === 'b' ? tc.bluecopaStatus : tc.clientStatus;
+    const es = (tc.entityStatuses || {})[S.filterEntity] || {};
+    return prefix === 'b' ? (es.bluecopaStatus || 'not_tested') : (es.clientStatus || 'not_tested');
   }
 
   function priorityBadge(p) {
@@ -216,6 +222,7 @@ const UAT = (() => {
 
   function openProject(projectId) {
     S.activeProjectId = projectId;
+    S.filterEntity = '';
     const p = S.projects.find(x => x.id === projectId);
     if (p) S.activeClientId = p.clientId;
     setView('testcases');
@@ -246,9 +253,20 @@ const UAT = (() => {
 
   function renderTestCaseView() {
     const tcs = filteredTCs();
+    populateEntityDropdown();
     if (S.view === 'progress') renderCategoryBars();
     renderTCTable(tcs);
     updateBadges();
+  }
+
+  function populateEntityDropdown() {
+    const sel = el('uatFilterEntity');
+    if (!sel) return;
+    const p = S.projects.find(x => x.id === S.activeProjectId);
+    const entities = p?.entities || [];
+    sel.innerHTML = `<option value="">All Entities</option>` +
+      entities.map(e => `<option value="${e}">${e}</option>`).join('');
+    sel.value = S.filterEntity || '';
   }
 
   function renderCategoryBars() {
@@ -257,8 +275,8 @@ const UAT = (() => {
     tcs.forEach(t => {
       if (!cats[t.category]) cats[t.category] = { total: 0, bPass: 0, cPass: 0 };
       cats[t.category].total++;
-      if (t.bluecopaStatus === 'pass') cats[t.category].bPass++;
-      if (t.clientStatus === 'pass') cats[t.category].cPass++;
+      if (getEntityStatus(t,'b') === 'pass') cats[t.category].bPass++;
+      if (getEntityStatus(t,'c') === 'pass') cats[t.category].cPass++;
     });
     const catKeys = Object.keys(cats).sort();
     const emptyEl = el('uatCatBarsEmpty');
@@ -316,10 +334,10 @@ const UAT = (() => {
         <td><div class="uat-tc-desc">${tc.testDescription||'—'}</div></td>
         <td>${priorityBadge(tc.priority)}</td>
         <td class="uat-status-cell" onclick="event.stopPropagation()">
-          ${statusPill(tc.bluecopaStatus, 'b', tc.id)}
+          ${statusPill(getEntityStatus(tc,'b'), 'b', tc.id)}
         </td>
         <td class="uat-status-cell" onclick="event.stopPropagation()">
-          ${statusPill(tc.clientStatus, 'c', tc.id)}
+          ${statusPill(getEntityStatus(tc,'c'), 'c', tc.id)}
         </td>
         <td style="font-size:11px;color:#6b7280;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tc.bluecopaComments||'—'}</td>
         <td style="font-size:11px;color:#374151;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tc.clientComments||'—'}</td>
@@ -363,18 +381,24 @@ const UAT = (() => {
     const tc = S.testcases.find(x => x.id === tcId);
     if (!tc) return;
     const field = prefix === 'b' ? 'bluecopaStatus' : 'clientStatus';
-    tc[field] = status;
-    // Update pill in DOM
+    let body;
+    if (S.filterEntity) {
+      if (!tc.entityStatuses) tc.entityStatuses = {};
+      if (!tc.entityStatuses[S.filterEntity]) tc.entityStatuses[S.filterEntity] = {};
+      tc.entityStatuses[S.filterEntity][field] = status;
+      body = { entityStatuses: tc.entityStatuses };
+    } else {
+      tc[field] = status;
+      body = { [field]: status };
+    }
     const cell = el(`tcrow_${tcId}`)?.querySelectorAll('.uat-status-cell')[prefix === 'b' ? 0 : 1];
-    if (cell) cell.innerHTML = statusPill(status, prefix, tcId);
-    // Save
-    const r = await api('PUT', `/api/uat/testcases/${tcId}`, { [field]: status });
+    if (cell) cell.innerHTML = statusPill(getEntityStatus(tc, prefix), prefix, tcId);
+    const r = await api('PUT', `/api/uat/testcases/${tcId}`, body);
     if (r.ok) {
-      toast(`${prefix === 'b' ? 'Bluecopa' : 'Client'} status → ${STATUS_LABELS[status]}`);
+      toast(`${S.filterEntity ? '['+S.filterEntity+'] ' : ''}${prefix === 'b' ? 'Bluecopa' : 'Client'} → ${STATUS_LABELS[status]}`);
       renderCategoryBars();
     } else toast('Failed to save', 'error');
-    // Sync drawer if open
-    if (S.drawerTC?.id === tcId) { S.drawerTC[field] = status; syncDrawerStatus(prefix, status); }
+    if (S.drawerTC?.id === tcId) syncDrawerStatus(prefix, getEntityStatus(tc, prefix));
   }
 
   /* ── Right Drawer ───────────────────────────────────────────────────────── */
@@ -472,6 +496,7 @@ const UAT = (() => {
     S.filterBStatus  = el('uatFilterBStatus')?.value || '';
     S.filterCStatus  = el('uatFilterCStatus')?.value || '';
     S.filterPriority = el('uatFilterPriority')?.value || '';
+    S.filterEntity   = el('uatFilterEntity')?.value || '';
     renderTestCaseView();
   }
 
@@ -502,6 +527,7 @@ const UAT = (() => {
     const data = Object.fromEntries(new FormData(form));
     if (!data.clientId || !data.name) return toast('Client and name required', 'error');
     data.seedDefaults = form.querySelector('[name=seedDefaults]')?.checked;
+    data.entities = (data.entities || '').split(',').map(e => e.trim()).filter(Boolean);
     const r = await api('POST', '/api/uat/projects', data);
     if (r.ok) {
       S.projects.push(r.data);
@@ -677,6 +703,57 @@ const UAT = (() => {
     setView('dashboard');
   }
 
+  /* ── Entity Management ──────────────────────────────────────────────────── */
+  function showManageEntitiesModal() {
+    if (!S.activeProjectId) return toast('Select a project first', 'error');
+    renderEntityList();
+    el('uatModalEntities')?.classList.add('open');
+  }
+  function hideManageEntitiesModal() {
+    el('uatModalEntities')?.classList.remove('open');
+    populateEntityDropdown();
+  }
+  function renderEntityList() {
+    const p = S.projects.find(x => x.id === S.activeProjectId);
+    const entities = p?.entities || [];
+    const wrap = el('uatEntityList');
+    if (!wrap) return;
+    if (!entities.length) {
+      wrap.innerHTML = `<div style="color:#6b7280;font-size:13px;padding:8px 0">No entities yet. Add one below.</div>`;
+      return;
+    }
+    wrap.innerHTML = entities.map((e, i) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f2f5">
+        <span style="font-size:13px;font-weight:600;color:#0d1117">${e}</span>
+        <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.removeEntity(${i})" style="color:#dc2626;font-size:12px">Remove</button>
+      </div>`).join('');
+  }
+  async function addEntity() {
+    const input = el('uatEntityInput');
+    const name = input?.value.trim();
+    if (!name) return;
+    const p = S.projects.find(x => x.id === S.activeProjectId);
+    if (!p) return;
+    if (!p.entities) p.entities = [];
+    if (p.entities.includes(name)) return toast('Entity already exists', 'error');
+    p.entities.push(name);
+    const r = await api('PUT', `/api/uat/projects/${S.activeProjectId}`, { entities: p.entities });
+    if (r.ok) { input.value = ''; renderEntityList(); toast(`"${name}" added`); }
+    else toast('Failed to save', 'error');
+  }
+  async function removeEntity(index) {
+    const p = S.projects.find(x => x.id === S.activeProjectId);
+    if (!p?.entities) return;
+    const name = p.entities[index];
+    p.entities.splice(index, 1);
+    const r = await api('PUT', `/api/uat/projects/${S.activeProjectId}`, { entities: p.entities });
+    if (r.ok) {
+      if (S.filterEntity === name) S.filterEntity = '';
+      renderEntityList();
+      toast(`"${name}" removed`);
+    } else toast('Failed to save', 'error');
+  }
+
   /* ── Public API ──────────────────────────────────────────────────────────── */
   return {
     open,
@@ -706,5 +783,9 @@ const UAT = (() => {
     copyPortalLink,
     regenPortal,
     loadRepository,
+    showManageEntitiesModal,
+    hideManageEntitiesModal,
+    addEntity,
+    removeEntity,
   };
 })();
