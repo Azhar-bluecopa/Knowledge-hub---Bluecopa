@@ -1420,6 +1420,7 @@ app.get('/api/portal/:token', async (req, res) => {
       testDescription:tc.testDescription||tc.testScenario||'',
       expectedResult:tc.expectedResult||'',
       priority:tc.priority||'medium', clientStatus, clientComments,
+      bluecopaStatus:tc.bluecopaStatus||'not_tested',
       procedure:tc.procedure||null };
   });
   res.json({ ok:true, data:{
@@ -1449,6 +1450,7 @@ app.put('/api/portal/:token/tc/:id', async (req, res) => {
   const tc=u.testcases.find(x=>x.id===req.params.id&&x.projectId===p.id);
   if (!tc) return res.status(404).json({ ok:false, error:'not found' });
   const { clientStatus, clientComments, entity }=req.body;
+  const prevStatus = entity ? (tc.entityStatuses?.[entity]?.clientStatus||'not_tested') : (tc.clientStatus||'not_tested');
   if (entity) {
     if (!tc.entityStatuses) tc.entityStatuses={};
     if (!tc.entityStatuses[entity]) tc.entityStatuses[entity]={};
@@ -1457,6 +1459,24 @@ app.put('/api/portal/:token/tc/:id', async (req, res) => {
   } else {
     if (clientStatus!==undefined) tc.clientStatus=clientStatus;
     if (clientComments!==undefined) tc.clientComments=clientComments;
+  }
+  // Auto-create UAT issue when client marks fail with a comment (first time only)
+  const newStatus = clientStatus !== undefined ? clientStatus : prevStatus;
+  const newComment = clientComments !== undefined ? clientComments : (entity ? (tc.entityStatuses?.[entity]?.clientComments||'') : (tc.clientComments||''));
+  if (newStatus === 'fail' && newComment && prevStatus !== 'fail') {
+    if (!u.issues) u.issues = [];
+    const alreadyExists = u.issues.find(i=>i.testCaseId===tc.id&&i.source==='client_portal'&&i.status==='open');
+    if (!alreadyExists) {
+      const cnt = u.issues.filter(i=>i.projectId===p.id).length + 1;
+      const sevMap = { critical:'Critical', high:'High', medium:'Medium', low:'Low' };
+      u.issues.push({ id:uatId(), testCaseId:tc.id, projectId:p.id, clientId:p.clientId,
+        ref:`ISS-${String(cnt).padStart(3,'0')}`, source:'client_portal',
+        title:`TC-${tc.seq} Fail: ${(tc.testDescription||tc.testScenario||'').slice(0,60)}`,
+        description:newComment, severity:sevMap[tc.priority||'medium']||'Medium',
+        status:'open', assignedTo:'', resolution:'',
+        createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() });
+      uatLog('issue_opened', `Client flagged TC-${tc.seq} as failed`, {projectId:p.id, clientId:p.clientId});
+    }
   }
   tc.updatedAt=new Date().toISOString();
   await saveDB(db); res.json({ ok:true });

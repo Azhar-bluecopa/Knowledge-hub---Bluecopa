@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=19" defer></script>
+  <script src="/uat.js?v=20" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -6809,6 +6809,7 @@ async function updateFeedbackStatus(id) {
           <button class="uat-btn uat-btn-primary uat-btn-sm" onclick="UAT.showAddTestModal()">+ Add Test</button>
           <button class="uat-btn uat-btn-secondary uat-btn-sm" onclick="UAT.exportCSV()">⬇ Export CSV</button>
           <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.sharePortal()" style="border-color:#c9a227;color:#c9a227">🔗 Share Portal</button>
+          <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.openSignoffModal()" style="border-color:#22c55e;color:#15803d">✅ Sign Off</button>
         </div>
       </div>
 
@@ -7477,11 +7478,11 @@ async function updateFeedbackStatus(id) {
       <button class="uat-modal-close" onclick="UAT.closeSignoffModal()">✕</button>
     </div>
     <div class="uat-modal-body">
-      <p style="font-size:13px;color:#6b7280;margin:0 0 16px">Request formal client sign-off on the completed UAT. This action is logged and timestamped.</p>
+      <p style="font-size:13px;color:#6b7280;margin:0 0 16px">Record Bluecopa's internal UAT sign-off. This action is logged and timestamped.</p>
       <div class="uat-form-row">
         <div class="uat-form-group">
-          <label class="uat-form-label">Signed By (Client Representative)</label>
-          <input class="uat-form-control" id="uatSignoffBy" placeholder="Name of client approver">
+          <label class="uat-form-label">Signed By (Bluecopa Team Member)</label>
+          <input class="uat-form-control" id="uatSignoffBy" placeholder="Your name">
         </div>
       </div>
       <div class="uat-form-row">

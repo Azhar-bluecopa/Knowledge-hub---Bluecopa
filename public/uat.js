@@ -1092,6 +1092,36 @@ const UAT = (() => {
     toast('New portal link generated');
   }
 
+  /* ── Admin Sign-off ─────────────────────────────────────────────────────── */
+  function openSignoffModal() {
+    if (!S.activeProjectId) return toast('Select a project first', 'error');
+    el('uatSignoffBy').value = '';
+    el('uatSignoffComment').value = '';
+    const modal = el('uatSignoffModal');
+    if (modal) modal.classList.add('open');
+  }
+
+  function closeSignoffModal() {
+    const modal = el('uatSignoffModal');
+    if (modal) modal.classList.remove('open');
+  }
+
+  async function submitSignoff(approve) {
+    const signedBy = (el('uatSignoffBy')?.value || '').trim();
+    const comment = (el('uatSignoffComment')?.value || '').trim();
+    if (!signedBy) { toast('Please enter the name', 'error'); el('uatSignoffBy')?.focus(); return; }
+    const r = await api('POST', `/api/uat/projects/${S.activeProjectId}/signoff`, { approve, signedBy, comment });
+    if (r.ok) {
+      const p = S.projects.find(x => x.id === S.activeProjectId);
+      if (p) Object.assign(p, r.data);
+      closeSignoffModal();
+      toast(approve ? 'UAT Approved ✓' : 'UAT Rejected', approve ? 'success' : 'error');
+      openProject(S.activeProjectId);
+    } else {
+      toast('Failed to submit sign-off', 'error');
+    }
+  }
+
   /* ── Public API ──────────────────────────────────────────────────────────── */
   return {
     open,
@@ -1141,5 +1171,8 @@ const UAT = (() => {
     closeSharePortal,
     copyLink,
     regenerateProjectPortal,
+    openSignoffModal,
+    closeSignoffModal,
+    submitSignoff,
   };
 })();

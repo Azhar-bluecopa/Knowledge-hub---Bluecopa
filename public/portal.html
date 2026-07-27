@@ -146,13 +146,28 @@ tr:hover td{background:#fafafa}
 .p-s-dd button{display:flex;align-items:center;gap:8px;width:100%;padding:7px 12px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;border-radius:6px;color:#0d1117;text-align:left;font-family:inherit}
 .p-s-dd button:hover{background:#f4f5f7}
 
-/* Notes */
-.p-notes-wrap{min-width:180px}
-.p-notes-ta{width:100%;border:1px solid #e4e6ea;border-radius:8px;padding:8px 10px;font-size:12px;font-family:inherit;resize:vertical;min-height:52px;color:#0d1117;transition:border-color .15s;line-height:1.5}
-.p-notes-ta:focus{outline:none;border-color:#c9a227;box-shadow:0 0 0 3px rgba(201,162,39,.1)}
-.p-save-btn{margin-top:5px;padding:4px 12px;background:#0d1117;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
-.p-save-btn:hover{background:#374151}
-.p-save-btn.saved{background:#15803d}
+/* Notes — collapsed by default */
+.p-note-add{background:none;border:1px dashed #e4e6ea;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;color:#9ca3af;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.p-note-add:hover{border-color:#c9a227;color:#c9a227;background:#fffbeb}
+.p-note-preview{font-size:12px;color:#374151;cursor:pointer;padding:5px 10px;border-radius:6px;border:1px solid #e4e6ea;background:#fafafa;max-width:180px;display:flex;align-items:center;gap:6px;justify-content:space-between;transition:all .15s;min-width:100px}
+.p-note-preview:hover{border-color:#c9a227;background:#fffbeb}
+.p-note-preview-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.p-note-edit-icon{font-size:11px;color:#9ca3af;flex-shrink:0}
+.p-note-expand-wrap{min-width:180px}
+.p-note-ta{width:100%;border:1px solid #e4e6ea;border-radius:8px;padding:8px 10px;font-size:12px;font-family:inherit;resize:vertical;min-height:60px;color:#0d1117;transition:border-color .15s,box-shadow .15s;line-height:1.5;display:block}
+.p-note-ta:focus{outline:none;border-color:#c9a227;box-shadow:0 0 0 3px rgba(201,162,39,.1)}
+.p-note-ta.req{border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.08)}
+.p-note-ta.req:focus{border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.12)}
+.p-note-hint{font-size:10px;color:#9ca3af;font-weight:600;margin-top:4px}
+.p-note-req-msg{font-size:10px;color:#dc2626;font-weight:700;margin-top:4px;display:none}
+.p-note-req-msg.show{display:block}
+/* Bluecopa status (read-only) */
+.p-bs{display:inline-block;padding:3px 8px;border-radius:99px;font-size:10px;font-weight:700;white-space:nowrap}
+.p-bs-not_tested{background:#f1f2f5;color:#6b7280}
+.p-bs-in_progress{background:#dbeafe;color:#1d4ed8}
+.p-bs-pass{background:#dcfce7;color:#15803d}
+.p-bs-fail{background:#fee2e2;color:#dc2626}
+.p-bs-blocked{background:#fef3c7;color:#b45309}
 
 .p-proc-btn{background:none;border:1px solid #e4e6ea;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;color:#6b7280;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
 .p-proc-btn:hover{border-color:#c9a227;color:#c9a227}
@@ -315,6 +330,8 @@ const TOKEN = (location.pathname.match(/\/portal\/([^/?#]+)/) || [])[1] || '';
 let ENTITY = new URLSearchParams(location.search).get('entity') || '';
 let D = null;
 const SL = { not_tested:'Not Tested', in_progress:'In Progress', pass:'Pass', fail:'Fail', blocked:'Blocked' };
+const BSL = { not_tested:'Not Tested', in_progress:'In Review', pass:'Verified', fail:'Issue Found', blocked:'Blocked' };
+const pendingFail = {};
 
 function toast(msg, dur) {
   const el = document.getElementById('pToast');
@@ -374,7 +391,7 @@ function renderTesting() {
   document.getElementById('pTopClient').textContent = D.client.name;
   document.getElementById('pTableHead').innerHTML =
     '<th style="width:44px">#</th><th>Category</th><th>Test Description</th>' +
-    '<th>Expected Result</th><th>' + label + ' Status</th><th>' + label + ' Notes</th><th></th>';
+    '<th>Expected Result</th><th>Bluecopa Status</th><th>' + label + ' Status</th><th>' + label + ' Notes</th><th></th>';
   renderEntityTabs();
   renderProgress();
   renderTable();
@@ -412,24 +429,34 @@ function pStat(val, lbl, color) {
 function renderTable() {
   const tcs = D.testcases;
   if (!tcs.length) {
-    document.getElementById('pTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:48px;color:#9ca3af;font-size:13px">No test cases found.</td></tr>';
+    document.getElementById('pTableBody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:48px;color:#9ca3af;font-size:13px">No test cases found.</td></tr>';
     return;
   }
   document.getElementById('pTableBody').innerHTML = tcs.map(tc => {
     const s = tc.clientStatus || 'not_tested';
+    const bs = tc.bluecopaStatus || 'not_tested';
+    const hasComment = tc.clientComments && tc.clientComments.trim();
+    const previewText = hasComment ? esc(tc.clientComments.slice(0,40)) + (tc.clientComments.length > 40 ? '…' : '') : '';
     return '<tr id="pRow_' + tc.id + '">' +
       '<td><span class="p-seq">' + tc.seq + '</span></td>' +
       '<td><span class="p-cat">' + esc(tc.category) + '</span>' + (tc.subCategory ? '<div class="p-subcat">' + esc(tc.subCategory) + '</div>' : '') + '</td>' +
       '<td><div class="p-desc">' + esc(tc.testDescription) + '</div></td>' +
       '<td><div class="p-expected">' + esc(tc.expectedResult || '—') + '</div></td>' +
+      '<td><span class="p-bs p-bs-' + bs + '" title="Bluecopa internal status">' + (BSL[bs] || bs) + '</span></td>' +
       '<td><div class="p-s-wrap"><button class="p-s-pill p-s-' + s + '" id="pPill_' + tc.id + '" onclick="toggleDD(\'' + tc.id + '\',event)">' + SL[s] + ' ▾</button>' +
         '<div class="p-s-dd" id="pDD_' + tc.id + '">' +
           Object.entries(SL).map(([k,v]) => '<button onclick="setStatus(\'' + tc.id + '\',\'' + k + '\')">' + v + '</button>').join('') +
         '</div></div></td>' +
-      '<td><div class="p-notes-wrap">' +
-        '<textarea class="p-notes-ta" id="pCmt_' + tc.id + '" placeholder="Add notes…">' + esc(tc.clientComments || '') + '</textarea>' +
-        '<button class="p-save-btn" id="pSaveBtn_' + tc.id + '" onclick="saveNote(\'' + tc.id + '\')">Save</button>' +
-      '</div></td>' +
+      '<td>' +
+        (hasComment
+          ? '<div class="p-note-preview" id="pNotePrev_' + tc.id + '" onclick="expandNote(\'' + tc.id + '\')"><span class="p-note-preview-text">' + previewText + '</span><span class="p-note-edit-icon">✎</span></div>'
+          : '<button class="p-note-add" id="pNoteAdd_' + tc.id + '" onclick="expandNote(\'' + tc.id + '\')">+ Add note</button>') +
+        '<div class="p-note-expand-wrap" id="pNoteWrap_' + tc.id + '" style="display:none">' +
+          '<textarea class="p-note-ta" id="pCmt_' + tc.id + '" onblur="autoSave(\'' + tc.id + '\')" placeholder="Add notes…">' + esc(tc.clientComments || '') + '</textarea>' +
+          '<div class="p-note-hint">Saves when you click away</div>' +
+          '<div class="p-note-req-msg" id="pNoteReq_' + tc.id + '">Comment required for failed tests</div>' +
+        '</div>' +
+      '</td>' +
       '<td>' + (tc.procedure ? '<button class="p-proc-btn" onclick="openProc(\'' + tc.id + '\')">View Steps</button>' : '<span style="color:#d1d5db;font-size:12px">—</span>') + '</td>' +
     '</tr>';
   }).join('');
@@ -507,36 +534,129 @@ function toggleDD(id, e) {
 }
 document.addEventListener('click', () => document.querySelectorAll('.p-s-dd').forEach(d => d.classList.remove('open')));
 
+function expandNote(tcId, required) {
+  const wrap = document.getElementById('pNoteWrap_'+tcId);
+  const ta = document.getElementById('pCmt_'+tcId);
+  const add = document.getElementById('pNoteAdd_'+tcId);
+  const prev = document.getElementById('pNotePrev_'+tcId);
+  if (!wrap || !ta) return;
+  if (add) add.style.display = 'none';
+  if (prev) prev.style.display = 'none';
+  wrap.style.display = 'block';
+  if (required) {
+    ta.classList.add('req');
+    ta.placeholder = 'Please describe why this test failed (required)…';
+    const req = document.getElementById('pNoteReq_'+tcId);
+    if (req) req.classList.add('show');
+  }
+  ta.focus();
+}
+
+function collapseNote(tcId) {
+  const wrap = document.getElementById('pNoteWrap_'+tcId);
+  const ta = document.getElementById('pCmt_'+tcId);
+  if (!wrap) return;
+  wrap.style.display = 'none';
+  if (ta) { ta.classList.remove('req'); ta.placeholder = 'Add notes…'; }
+  const req = document.getElementById('pNoteReq_'+tcId);
+  if (req) req.classList.remove('show');
+  // Refresh collapsed trigger
+  const tc = D.testcases.find(t => t.id === tcId);
+  const comment = tc?.clientComments?.trim() || '';
+  const add = document.getElementById('pNoteAdd_'+tcId);
+  const prev = document.getElementById('pNotePrev_'+tcId);
+  if (comment) {
+    if (prev) {
+      prev.innerHTML = '<span class="p-note-preview-text">' + esc(comment.slice(0,40)) + (comment.length>40?'…':'') + '</span><span class="p-note-edit-icon">✎</span>';
+      prev.style.display = '';
+    } else {
+      // First time having a comment — replace add button with preview div
+      const cell = wrap.parentElement;
+      const newPrev = document.createElement('div');
+      newPrev.className = 'p-note-preview'; newPrev.id = 'pNotePrev_'+tcId;
+      newPrev.innerHTML = '<span class="p-note-preview-text">' + esc(comment.slice(0,40)) + (comment.length>40?'…':'') + '</span><span class="p-note-edit-icon">✎</span>';
+      newPrev.onclick = () => expandNote(tcId);
+      cell.insertBefore(newPrev, wrap);
+      if (add) add.style.display = 'none';
+    }
+  } else {
+    if (add) add.style.display = '';
+    if (prev) prev.style.display = 'none';
+  }
+}
+
 async function setStatus(tcId, status) {
   document.getElementById('pDD_'+tcId)?.classList.remove('open');
   const tc = D.testcases.find(t => t.id === tcId);
   if (!tc) return;
-  const body = { clientStatus: status };
-  if (ENTITY) body.entity = ENTITY;
-  const r = await fetch('/api/portal/' + TOKEN + '/tc/' + tcId, {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
-  });
-  if (r.ok) {
-    tc.clientStatus = status;
+  if (status === 'fail') {
+    // Update pill display immediately so user sees the selection
     const pill = document.getElementById('pPill_'+tcId);
-    if (pill) { pill.className = 'p-s-pill p-s-'+status; pill.innerHTML = SL[status] + ' ▾'; }
-    renderProgress();
-    toast('Status updated');
-  } else toast('Failed to save');
+    if (pill) { pill.className = 'p-s-pill p-s-fail'; pill.innerHTML = 'Fail ▾'; }
+    const existingComment = (tc.clientComments || '').trim();
+    if (existingComment) {
+      // Has a comment already — save status directly
+      await saveTcField(tcId, { clientStatus: 'fail' });
+    } else {
+      // Require comment before committing fail status
+      pendingFail[tcId] = true;
+      expandNote(tcId, true);
+    }
+    return;
+  }
+  delete pendingFail[tcId];
+  await saveTcField(tcId, { clientStatus: status });
+  tc.clientStatus = status;
+  const pill = document.getElementById('pPill_'+tcId);
+  if (pill) { pill.className = 'p-s-pill p-s-'+status; pill.innerHTML = SL[status] + ' ▾'; }
+  renderProgress();
+  toast('Status updated');
 }
 
-async function saveNote(tcId) {
-  const text = document.getElementById('pCmt_'+tcId)?.value || '';
-  const tc = D.testcases.find(t => t.id === tcId);
-  const body = { clientComments: text };
+async function saveTcField(tcId, fields) {
+  const body = { ...fields };
   if (ENTITY) body.entity = ENTITY;
   const r = await fetch('/api/portal/' + TOKEN + '/tc/' + tcId, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
   });
-  if (r.ok) {
-    if (tc) tc.clientComments = text;
-    const btn = document.getElementById('pSaveBtn_'+tcId);
-    if (btn) { btn.textContent = '✓ Saved'; btn.classList.add('saved'); setTimeout(() => { btn.textContent = 'Save'; btn.classList.remove('saved'); }, 1800); }
+  return r.ok;
+}
+
+async function autoSave(tcId) {
+  const ta = document.getElementById('pCmt_'+tcId);
+  if (!ta) return;
+  const text = ta.value.trim();
+  const tc = D.testcases.find(t => t.id === tcId);
+  if (!tc) return;
+
+  if (pendingFail[tcId]) {
+    if (!text) {
+      ta.classList.add('req');
+      const req = document.getElementById('pNoteReq_'+tcId);
+      if (req) req.classList.add('show');
+      toast('Please describe why this test failed');
+      setTimeout(() => ta.focus(), 80);
+      return;
+    }
+    // Save fail + comment together in one request
+    const ok = await saveTcField(tcId, { clientStatus: 'fail', clientComments: text });
+    if (ok) {
+      tc.clientStatus = 'fail'; tc.clientComments = text;
+      delete pendingFail[tcId];
+      collapseNote(tcId);
+      renderProgress();
+      toast('Saved — issue reported to Bluecopa');
+    } else toast('Failed to save');
+    return;
+  }
+
+  // Regular comment — only save if changed
+  if (text === (tc.clientComments || '').trim()) { collapseNote(tcId); return; }
+  const ok = await saveTcField(tcId, { clientComments: text });
+  if (ok) {
+    tc.clientComments = text;
+    collapseNote(tcId);
+    toast('Note saved');
   } else toast('Failed to save');
 }
 
