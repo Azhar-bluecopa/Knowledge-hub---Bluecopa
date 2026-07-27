@@ -104,6 +104,14 @@
 }
 .uat-table tbody tr:hover .uat-del-btn { opacity: 1; }
 .uat-del-btn:hover { background: #fef2f2; color: #dc2626; }
+.uat-client-th { white-space: nowrap; }
+.uat-label-edit-btn {
+  background: none; border: none; cursor: pointer; font-size: 11px;
+  color: #9ca3af; padding: 0 2px; opacity: 0; transition: opacity .15s;
+  vertical-align: middle; margin-left: 4px;
+}
+.uat-client-th:hover .uat-label-edit-btn { opacity: 1; }
+.uat-label-edit-btn:hover { color: #c9a227; }
 
 /* ── Procedure section ───────────────────────────────────────────────────── */
 /* Inline contenteditable procedure editor */

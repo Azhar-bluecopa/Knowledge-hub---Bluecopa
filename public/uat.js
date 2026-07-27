@@ -9,6 +9,7 @@ const UAT = (() => {
     clients: [], projects: [], testcases: [], issues: [], templates: [], activity: [],
     activeClientId: null,
     activeProjectId: null,
+    clientLabel: 'Client',
     drawerTC: null,
     drawerTcId: null,
     selected: new Set(),
@@ -225,8 +226,12 @@ const UAT = (() => {
     S.activeProjectId = projectId;
     S.filterEntity = '';
     const p = S.projects.find(x => x.id === projectId);
-    if (p) S.activeClientId = p.clientId;
+    if (p) {
+      S.activeClientId = p.clientId;
+      S.clientLabel = p.clientLabel || 'Client';
+    }
     setView('testcases');
+    refreshClientLabels();
   }
 
   /* ── Test Cases ─────────────────────────────────────────────────────────── */
@@ -339,9 +344,12 @@ const UAT = (() => {
         <th>Test Description</th>
         <th>Priority</th>
         <th>Bluecopa Status</th>
-        <th>Client Status</th>
+        <th class="uat-client-th">
+          ${S.clientLabel} Status
+          <button class="uat-label-edit-btn" onclick="event.stopPropagation();UAT.editClientLabel()" title="Rename client label">✎</button>
+        </th>
         <th>Bluecopa Notes</th>
-        <th>Client Notes</th>
+        <th>${S.clientLabel} Notes</th>
         ${isConsolidated ? '' : '<th></th>'}`;
     }
 
@@ -515,6 +523,35 @@ const UAT = (() => {
       tc.bluecopaComments = bComments; tc.clientComments = cComments;
       toast('Comments saved');
       renderTCTable(filteredTCs());
+    } else toast('Failed to save', 'error');
+  }
+
+  /* ── Client Label ────────────────────────────────────────────────────────── */
+  function refreshClientLabels() {
+    const label = S.clientLabel || 'Client';
+    const opt = el('uatFilterCStatusOpt');
+    if (opt) opt.textContent = `${label} Status`;
+    const bulkBtn = el('uatBulkClientPassBtn');
+    if (bulkBtn) bulkBtn.textContent = `✓ ${label} Pass`;
+    const drawerCStatus = el('uatDrawerCStatusLabel');
+    if (drawerCStatus) drawerCStatus.textContent = `${label} Status`;
+    const drawerCComments = el('uatDrawerCCommentsLabel');
+    if (drawerCComments) drawerCComments.textContent = `${label} Comments`;
+  }
+
+  async function editClientLabel() {
+    const current = S.clientLabel || 'Client';
+    const newLabel = prompt(`Enter client name (currently "${current}"):`, current);
+    if (!newLabel || newLabel.trim() === current) return;
+    const label = newLabel.trim();
+    const r = await api('PUT', `/api/uat/projects/${S.activeProjectId}`, { clientLabel: label });
+    if (r.ok) {
+      S.clientLabel = label;
+      const p = S.projects.find(x => x.id === S.activeProjectId);
+      if (p) p.clientLabel = label;
+      refreshClientLabels();
+      renderTCTable(filteredTCs());
+      toast(`Client label renamed to "${label}"`);
     } else toast('Failed to save', 'error');
   }
 
@@ -1024,5 +1061,6 @@ const UAT = (() => {
     openProcFullscreen,
     closeProcFullscreen,
     saveProcedureFS,
+    editClientLabel,
   };
 })();

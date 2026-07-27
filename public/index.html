@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
   <link rel="stylesheet" href="/style.css?v=80">
-  <link rel="stylesheet" href="/uat.css?v=16">
+  <link rel="stylesheet" href="/uat.css?v=17">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=15" defer></script>
+  <script src="/uat.js?v=16" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -6791,7 +6791,7 @@ async function updateFeedbackStatus(id) {
           <option value="blocked">Blocked</option>
         </select>
         <select class="uat-filter-select" id="uatFilterCStatus" onchange="UAT.applyFilters()">
-          <option value="">Client Status</option>
+          <option value="" id="uatFilterCStatusOpt">Client Status</option>
           <option value="not_tested">Not Tested</option>
           <option value="in_progress">In Progress</option>
           <option value="pass">Pass</option>
@@ -6815,7 +6815,7 @@ async function updateFeedbackStatus(id) {
       <div class="uat-bulk-bar" id="uatBulkBar">
         <span class="uat-bulk-count" id="uatBulkCount">0 selected</span>
         <button class="uat-btn uat-btn-sm uat-btn-secondary" onclick="UAT.bulkSetStatus('bluecopaStatus','pass')">✓ Bluecopa Pass</button>
-        <button class="uat-btn uat-btn-sm uat-btn-secondary" onclick="UAT.bulkSetStatus('clientStatus','pass')">✓ Client Pass</button>
+        <button class="uat-btn uat-btn-sm uat-btn-secondary" id="uatBulkClientPassBtn" onclick="UAT.bulkSetStatus('clientStatus','pass')">✓ Client Pass</button>
         <button class="uat-btn uat-btn-sm uat-btn-danger" onclick="UAT.bulkSetStatus('bluecopaStatus','fail')">✗ Mark Fail</button>
         <button class="uat-btn uat-btn-sm uat-btn-ghost" onclick="UAT.clearSelection()">✕ Clear</button>
       </div>
@@ -6926,7 +6926,7 @@ async function updateFeedbackStatus(id) {
           </div>
           <div class="uat-dual-col">
             <div class="uat-dual-col-header">
-              <span class="uat-dual-col-label c">Client Status</span>
+              <span class="uat-dual-col-label c" id="uatDrawerCStatusLabel">Client Status</span>
             </div>
             <div id="uatTCDrawer_cStatus"></div>
           </div>
@@ -6942,7 +6942,7 @@ async function updateFeedbackStatus(id) {
             <textarea class="uat-dual-textarea" id="uatTCDrawer_bComments" placeholder="Internal notes, findings…"></textarea>
           </div>
           <div class="uat-dual-col">
-            <div class="uat-dual-col-header"><span class="uat-dual-col-label c">Client Comments</span></div>
+            <div class="uat-dual-col-header"><span class="uat-dual-col-label c" id="uatDrawerCCommentsLabel">Client Comments</span></div>
             <textarea class="uat-dual-textarea" id="uatTCDrawer_cComments" placeholder="Client feedback…"></textarea>
           </div>
         </div>
