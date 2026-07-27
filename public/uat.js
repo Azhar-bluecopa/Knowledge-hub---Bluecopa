@@ -557,6 +557,7 @@ const UAT = (() => {
     }
     const cell = el(`tcrow_${tcId}`)?.querySelectorAll('.uat-status-cell')[prefix === 'b' ? 0 : 1];
     if (cell) cell.innerHTML = statusPill(getEntityStatus(tc, prefix), prefix, tcId);
+    updateSummaryBar();
     const r = await api('PUT', `/api/uat/testcases/${tcId}`, body);
     if (r.ok) {
       toast(`${S.filterEntity ? '['+S.filterEntity+'] ' : ''}${prefix === 'b' ? 'Bluecopa' : 'Client'} → ${STATUS_LABELS[status]}`);
