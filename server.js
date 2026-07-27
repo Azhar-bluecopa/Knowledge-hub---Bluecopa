@@ -1329,7 +1329,7 @@ app.get('/api/portal/:token', async (req, res) => {
       goLiveDate: p.goLiveDate, clientLabel: p.clientLabel || 'Client' },
     client: client ? { id: client.id, name: client.name } : { id: '', name: 'Client' },
     entity: entity || null, entities: p.entities || [], testcases: tcs,
-    signoff: (entity ? (p.entitySignoffs || {})[entity] : p.portalSignoff) || null,
+    signoff: ((p.entitySignoffs || {})[entity || '']) || null,
   }});
 });
 
@@ -1340,8 +1340,8 @@ app.put('/api/portal/:token/signoff', async (req, res) => {
   const { name, role, date, entity } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ ok: false, error: 'name required' });
   const signoff = { name: name.trim(), role: (role || '').trim(), date: date || new Date().toISOString().slice(0, 10), signedAt: new Date().toISOString() };
-  if (entity) { if (!p.entitySignoffs) p.entitySignoffs = {}; p.entitySignoffs[entity] = signoff; }
-  else p.portalSignoff = signoff;
+  if (!p.entitySignoffs) p.entitySignoffs = {};
+  p.entitySignoffs[entity || ''] = signoff;
   p.updatedAt = new Date().toISOString();
   await saveDB(db); res.json({ ok: true, signoff });
 });
