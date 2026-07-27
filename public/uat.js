@@ -477,6 +477,37 @@ const UAT = (() => {
         </tr>`).join('');
     }
     updateBulkBar();
+    updateSummaryBar();
+  }
+
+  function updateSummaryBar() {
+    const bar = el('uatTcSummaryBar');
+    if (!bar) return;
+    const tcs = filteredTCs();
+    if (!tcs.length) { bar.style.display = 'none'; return; }
+    bar.style.display = '';
+
+    let pass = 0, fail = 0, blocked = 0, pending = 0;
+    tcs.forEach(tc => {
+      const st = getEntityStatus(tc, 'b');
+      if (st === 'pass') pass++;
+      else if (st === 'fail') fail++;
+      else if (st === 'blocked') blocked++;
+      else pending++;
+    });
+    const total = tcs.length;
+    const pct = total ? Math.round(pass / total * 100) : 0;
+    const barColor = pct >= 70 ? '#22c55e' : pct >= 40 ? '#f59e0b' : '#dc2626';
+
+    el('uatSumTotal').textContent = total;
+    el('uatSumPass').textContent = pass;
+    el('uatSumFail').textContent = fail;
+    el('uatSumBlocked').textContent = blocked;
+    el('uatSumPending').textContent = pending;
+    el('uatSumPct').textContent = pct + '%';
+    el('uatSumPct').style.color = barColor;
+    el('uatSumBar').style.width = pct + '%';
+    el('uatSumBar').style.background = barColor;
   }
 
   function updateBulkBar() {

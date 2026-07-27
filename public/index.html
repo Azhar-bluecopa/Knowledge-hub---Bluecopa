@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=23" defer></script>
+  <script src="/uat.js?v=24" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -6759,6 +6759,43 @@ async function updateFeedbackStatus(id) {
     <div id="uatView_testcases" class="uat-view">
       <!-- Entity tabs row — hidden when no entities exist -->
       <div id="uatEntityTabRow" class="uat-entity-tab-row" style="display:none"></div>
+
+      <!-- TC Summary Bar -->
+      <div id="uatTcSummaryBar" style="display:none;padding:12px 16px 0">
+        <div style="display:flex;align-items:center;gap:28px;padding:14px 20px;background:#fff;border:1px solid #e4e6ea;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.05)">
+          <div style="text-align:center;min-width:36px">
+            <div id="uatSumTotal" style="font-size:22px;font-weight:800;color:#0d1117;line-height:1">—</div>
+            <div style="font-size:10px;color:#8a92a0;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-top:2px">Total</div>
+          </div>
+          <div style="width:1px;height:32px;background:#e4e6ea"></div>
+          <div style="text-align:center;min-width:36px">
+            <div id="uatSumPass" style="font-size:22px;font-weight:800;color:#22c55e;line-height:1">—</div>
+            <div style="font-size:10px;color:#8a92a0;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-top:2px">Pass</div>
+          </div>
+          <div style="text-align:center;min-width:36px">
+            <div id="uatSumFail" style="font-size:22px;font-weight:800;color:#dc2626;line-height:1">—</div>
+            <div style="font-size:10px;color:#8a92a0;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-top:2px">Fail</div>
+          </div>
+          <div style="text-align:center;min-width:36px">
+            <div id="uatSumBlocked" style="font-size:22px;font-weight:800;color:#f59e0b;line-height:1">—</div>
+            <div style="font-size:10px;color:#8a92a0;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-top:2px">Blocked</div>
+          </div>
+          <div style="text-align:center;min-width:36px">
+            <div id="uatSumPending" style="font-size:22px;font-weight:800;color:#6b7280;line-height:1">—</div>
+            <div style="font-size:10px;color:#8a92a0;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-top:2px">Pending</div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-size:13px;font-weight:600;color:#0d1117">Overall Progress</span>
+              <span id="uatSumPct" style="font-size:13px;font-weight:700;color:#22c55e">0%</span>
+            </div>
+            <div style="background:#f1f2f5;border-radius:99px;height:10px;overflow:hidden">
+              <div id="uatSumBar" style="height:100%;background:#22c55e;border-radius:99px;transition:width .4s ease;width:0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Toolbar -->
       <div class="uat-toolbar">
         <div class="uat-search">
