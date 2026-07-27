@@ -275,12 +275,9 @@ const UAT = (() => {
     row.innerHTML =
       `<button class="uat-entity-tab ${!S.filterEntity ? 'active' : ''}" onclick="UAT.selectEntity('')">All Entities</button>` +
       entities.map(e =>
-        `<span class="uat-entity-tab-wrap">
-          <button class="uat-entity-tab ${S.filterEntity === e ? 'active' : ''}" onclick="UAT.selectEntity('${e.replace(/'/g,"\\'")}')">
-            ${e}
-          </button>
-          <button class="uat-entity-tab-edit" onclick="event.stopPropagation();UAT.renameEntity('${e.replace(/'/g,"\\'")}')">✎</button>
-        </span>`).join('') +
+        `<button class="uat-entity-tab ${S.filterEntity === e ? 'active' : ''}" onclick="UAT.selectEntity('${e.replace(/'/g,"\\'")}')">
+          ${e}
+        </button>`).join('') +
       `<button class="uat-entity-tab-add" onclick="UAT.showManageEntitiesModal()">+ Entity</button>`;
   }
 
@@ -551,6 +548,8 @@ const UAT = (() => {
       if (p) p.clientLabel = label;
       refreshClientLabels();
       renderTCTable(filteredTCs());
+      const lbl = el('uatClientLabelDisplay');
+      if (lbl) lbl.textContent = label;
       toast(`Client label renamed to "${label}"`);
     } else toast('Failed to save', 'error');
   }
@@ -567,6 +566,7 @@ const UAT = (() => {
       const reload = await api('GET', `/api/uat/testcases?projectId=${S.activeProjectId}`);
       if (reload.ok) S.testcases = reload.data;
       renderEntityTabs();
+      renderEntityList();
       renderTCTable(filteredTCs());
       toast(`Entity renamed to "${name}"`);
     } else toast('Failed to rename entity', 'error');
@@ -985,6 +985,8 @@ const UAT = (() => {
   function showManageEntitiesModal() {
     if (!S.activeProjectId) return toast('Select a project first', 'error');
     renderEntityList();
+    const lbl = el('uatClientLabelDisplay');
+    if (lbl) lbl.textContent = S.clientLabel || 'Client';
     el('uatModalEntities')?.classList.add('open');
   }
   function hideManageEntitiesModal() {
@@ -1003,7 +1005,10 @@ const UAT = (() => {
     wrap.innerHTML = entities.map((e, i) => `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f2f5">
         <span style="font-size:13px;font-weight:600;color:#0d1117">${e}</span>
-        <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.removeEntity(${i})" style="color:#dc2626;font-size:12px">Remove</button>
+        <div style="display:flex;gap:6px">
+          <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.renameEntity('${e.replace(/'/g,"\\'")}')">✎ Rename</button>
+          <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.removeEntity(${i})" style="color:#dc2626">✕ Delete</button>
+        </div>
       </div>`).join('');
   }
   async function addEntity() {
