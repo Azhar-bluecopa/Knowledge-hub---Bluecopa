@@ -1410,17 +1410,24 @@ app.get('/api/portal/:token', async (req, res) => {
   const testcases=u.testcases.filter(t=>t.projectId===p.id).sort((a,b)=>a.seq-b.seq);
   const tcs=testcases.map(tc=>{
     let clientStatus,clientComments;
+    let bluecopaStatus,bluecopaComments;
     if (entity&&tc.entityStatuses) {
       const es=tc.entityStatuses[entity]||{};
       clientStatus=es.clientStatus||'not_tested'; clientComments=es.clientComments||'';
-    } else { clientStatus=tc.clientStatus||'not_tested'; clientComments=tc.clientComments||''; }
+      bluecopaStatus=es.bluecopaStatus||tc.bluecopaStatus||'not_tested';
+      bluecopaComments=es.bluecopaComments||tc.bluecopaComments||'';
+    } else {
+      clientStatus=tc.clientStatus||'not_tested'; clientComments=tc.clientComments||'';
+      bluecopaStatus=tc.bluecopaStatus||'not_tested';
+      bluecopaComments=tc.bluecopaComments||'';
+    }
     return { id:tc.id, seq:tc.seq,
       category:tc.category||tc.processArea||'',
       subCategory:tc.subCategory||tc.module||'',
       testDescription:tc.testDescription||tc.testScenario||'',
       expectedResult:tc.expectedResult||'',
       priority:tc.priority||'medium', clientStatus, clientComments,
-      bluecopaStatus:tc.bluecopaStatus||'not_tested',
+      bluecopaStatus, bluecopaComments,
       procedure:tc.procedure||null };
   });
   res.json({ ok:true, data:{
