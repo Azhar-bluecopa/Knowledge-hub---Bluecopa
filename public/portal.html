@@ -61,7 +61,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f1f2f5;color:#0d1117
 .p-badge-dot{width:6px;height:6px;border-radius:50%;background:#c9a227;animation:pulse 1.8s ease infinite}
 
 .p-welcome{font-size:12px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:8px}
-.p-client-name{font-size:40px;font-weight:800;color:#fff;line-height:1.15;margin-bottom:8px;letter-spacing:-.5px}
+.p-client-name{font-size:44px;font-weight:800;line-height:1.15;margin-bottom:8px;letter-spacing:-.5px;background:linear-gradient(120deg,#c9a227 0%,#f0d060 40%,#fffbe6 52%,#f0d060 64%,#c9a227 100%);background-size:300% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:fadeUp .6s cubic-bezier(.4,0,.2,1) .35s both,shimmer 4s linear 1.5s infinite}
 .p-project-name{font-size:14px;color:#6b7280;font-weight:500;margin-bottom:4px}
 .p-project-meta{font-size:12px;color:#374151;margin-bottom:0}
 .p-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);margin:28px 0}
@@ -267,7 +267,7 @@ tr:hover td{background:#fafafa}
 
       <div class="p-badge anim-fade-up d1"><span class="p-badge-dot"></span>Bluecopa UAT Portal</div>
       <div class="p-welcome anim-fade-up d2">User Acceptance Testing</div>
-      <div class="p-client-name anim-fade-up d3" id="pHeroClient">—</div>
+      <div class="p-client-name" id="pHeroClient">—</div>
       <div class="p-divider anim-fade-in d4"></div>
       <div class="anim-fade-up d5">
         <button class="p-btn-start" onclick="startTesting()">Begin Testing →</button>
