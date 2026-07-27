@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
   <link rel="stylesheet" href="/style.css?v=80">
-  <link rel="stylesheet" href="/uat.css?v=18">
+  <link rel="stylesheet" href="/uat.css?v=19">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=16" defer></script>
+  <script src="/uat.js?v=17" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -6790,14 +6790,17 @@ async function updateFeedbackStatus(id) {
           <option value="fail">Fail</option>
           <option value="blocked">Blocked</option>
         </select>
-        <select class="uat-filter-select" id="uatFilterCStatus" onchange="UAT.applyFilters()">
+        <span class="uat-filter-with-edit">
+          <select class="uat-filter-select" id="uatFilterCStatus" onchange="UAT.applyFilters()">
           <option value="" id="uatFilterCStatusOpt">Client Status</option>
           <option value="not_tested">Not Tested</option>
           <option value="in_progress">In Progress</option>
           <option value="pass">Pass</option>
           <option value="fail">Fail</option>
           <option value="blocked">Blocked</option>
-        </select>
+          </select>
+          <button class="uat-rename-label-btn" onclick="UAT.editClientLabel()" title="Rename client label">✎</button>
+        </span>
         <select class="uat-filter-select" id="uatFilterPriority" onchange="UAT.applyFilters()">
           <option value="">All Priority</option>
           <option value="critical">Critical</option>

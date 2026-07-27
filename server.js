@@ -1047,6 +1047,24 @@ app.post('/api/uat/testcases/bulk', async (req, res) => {
   });
   await saveDB(db); res.json({ ok:true });
 });
+app.post('/api/uat/projects/:id/rename-entity', async (req, res) => {
+  await _dbReady; const u=uatDB(); const p=u.projects.find(x=>x.id===req.params.id);
+  if (!p) return res.status(404).json({ ok:false, error:'not found' });
+  const { oldName, newName } = req.body;
+  if (!oldName||!newName||oldName===newName) return res.status(400).json({ ok:false, error:'invalid names' });
+  const idx = (p.entities||[]).indexOf(oldName);
+  if (idx === -1) return res.status(404).json({ ok:false, error:'entity not found' });
+  p.entities[idx] = newName;
+  u.testcases.filter(t=>t.projectId===p.id).forEach(tc=>{
+    if (tc.entityStatuses&&tc.entityStatuses[oldName]) {
+      tc.entityStatuses[newName] = tc.entityStatuses[oldName];
+      delete tc.entityStatuses[oldName];
+      tc.updatedAt = new Date().toISOString();
+    }
+  });
+  p.updatedAt = new Date().toISOString();
+  await saveDB(db); res.json({ ok:true, data:p });
+});
 app.post('/api/uat/testcases/reorder', async (req, res) => {
   await _dbReady; const u=uatDB(); const { ids=[] } = req.body;
   ids.forEach((id,i)=>{ const t=u.testcases.find(x=>x.id===id); if(t) t.seq=i+1; });

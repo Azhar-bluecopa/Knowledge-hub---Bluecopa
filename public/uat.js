@@ -275,9 +275,12 @@ const UAT = (() => {
     row.innerHTML =
       `<button class="uat-entity-tab ${!S.filterEntity ? 'active' : ''}" onclick="UAT.selectEntity('')">All Entities</button>` +
       entities.map(e =>
-        `<button class="uat-entity-tab ${S.filterEntity === e ? 'active' : ''}" onclick="UAT.selectEntity('${e.replace(/'/g,"\\'")}')">
-          ${e}
-        </button>`).join('') +
+        `<span class="uat-entity-tab-wrap">
+          <button class="uat-entity-tab ${S.filterEntity === e ? 'active' : ''}" onclick="UAT.selectEntity('${e.replace(/'/g,"\\'")}')">
+            ${e}
+          </button>
+          <button class="uat-entity-tab-edit" onclick="event.stopPropagation();UAT.renameEntity('${e.replace(/'/g,"\\'")}')">✎</button>
+        </span>`).join('') +
       `<button class="uat-entity-tab-add" onclick="UAT.showManageEntitiesModal()">+ Entity</button>`;
   }
 
@@ -344,10 +347,7 @@ const UAT = (() => {
         <th>Test Description</th>
         <th>Priority</th>
         <th>Bluecopa Status</th>
-        <th class="uat-client-th">
-          ${S.clientLabel} Status
-          <button class="uat-label-edit-btn" onclick="event.stopPropagation();UAT.editClientLabel()" title="Rename client label">✎</button>
-        </th>
+        <th>${S.clientLabel} Status</th>
         <th>Bluecopa Notes</th>
         <th>${S.clientLabel} Notes</th>
         ${isConsolidated ? '' : '<th></th>'}`;
@@ -553,6 +553,23 @@ const UAT = (() => {
       renderTCTable(filteredTCs());
       toast(`Client label renamed to "${label}"`);
     } else toast('Failed to save', 'error');
+  }
+
+  async function renameEntity(oldName) {
+    const newName = prompt(`Rename entity "${oldName}" to:`, oldName);
+    if (!newName || newName.trim() === oldName) return;
+    const name = newName.trim();
+    const r = await api('POST', `/api/uat/projects/${S.activeProjectId}/rename-entity`, { oldName, newName: name });
+    if (r.ok) {
+      const p = S.projects.find(x => x.id === S.activeProjectId);
+      if (p) p.entities = r.data.entities;
+      if (S.filterEntity === oldName) S.filterEntity = name;
+      const reload = await api('GET', `/api/uat/testcases?projectId=${S.activeProjectId}`);
+      if (reload.ok) S.testcases = reload.data;
+      renderEntityTabs();
+      renderTCTable(filteredTCs());
+      toast(`Entity renamed to "${name}"`);
+    } else toast('Failed to rename entity', 'error');
   }
 
   /* ── Procedure & Screenshots ─────────────────────────────────────────────── */
@@ -1062,5 +1079,6 @@ const UAT = (() => {
     closeProcFullscreen,
     saveProcedureFS,
     editClientLabel,
+    renameEntity,
   };
 })();
