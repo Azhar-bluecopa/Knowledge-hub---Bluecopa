@@ -1427,7 +1427,19 @@ app.get('/api/portal/:token', async (req, res) => {
       goLiveDate:p.goLiveDate, clientLabel:p.clientLabel||'Client' },
     client:client?{ id:client.id, name:client.name }:{ id:'', name:'Client' },
     entity:entity||null, entities:p.entities||[], testcases:tcs,
+    signoff:p.portalSignoff||null,
   }});
+});
+
+app.put('/api/portal/:token/signoff', async (req, res) => {
+  await _dbReady; const u=uatDB();
+  const p=u.projects.find(x=>x.portalToken===req.params.token);
+  if (!p) return res.status(403).json({ ok:false, error:'invalid token' });
+  const { name, role, date }=req.body;
+  if (!name||!name.trim()) return res.status(400).json({ ok:false, error:'name required' });
+  p.portalSignoff={ name:name.trim(), role:(role||'').trim(), date:date||new Date().toISOString().slice(0,10), signedAt:new Date().toISOString() };
+  p.updatedAt=new Date().toISOString();
+  await saveDB(db); res.json({ ok:true, signoff:p.portalSignoff });
 });
 
 app.put('/api/portal/:token/tc/:id', async (req, res) => {

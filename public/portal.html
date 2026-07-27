@@ -10,50 +10,95 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',system-ui,sans-serif;background:#f1f2f5;color:#0d1117;-webkit-font-smoothing:antialiased}
 
-/* ── Loading ── */
-.p-loading{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f1f2f5;flex-direction:column;gap:16px}
-.p-spin{width:36px;height:36px;border:3px solid #e4e6ea;border-top-color:#c9a227;border-radius:50%;animation:spin .7s linear infinite}
+/* ── Animations ── */
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes badgePop{0%{transform:scale(0.7);opacity:0}70%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+
+.anim-fade-up{animation:fadeUp .6s cubic-bezier(.4,0,.2,1) both}
+.anim-fade-in{animation:fadeIn .5s ease both}
+.anim-scale-in{animation:scaleIn .5s cubic-bezier(.4,0,.2,1) both}
+.d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.35s}.d4{animation-delay:.5s}.d5{animation-delay:.65s}.d6{animation-delay:.8s}
+
+/* ── Loading ── */
+.p-loading{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0d1117;flex-direction:column;gap:16px}
+.p-spin{width:40px;height:40px;border:3px solid rgba(201,162,39,.2);border-top-color:#c9a227;border-radius:50%;animation:spin .7s linear infinite}
+.p-loading-text{font-size:13px;color:#4b5563;font-weight:600;animation:pulse 1.5s ease infinite}
 
 /* ── Landing ── */
 .p-landing{min-height:100vh;display:flex;flex-direction:column}
-.p-header{padding:0 32px;background:#fff;border-bottom:1px solid #e4e6ea;height:56px;display:flex;align-items:center;justify-content:space-between}
-.p-logo{font-size:17px;font-weight:800;color:#0d1117;letter-spacing:-.3px}
+.p-header{padding:0 40px;background:rgba(13,17,23,.95);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.06);height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.p-header-logo{display:flex;align-items:center;gap:10px}
+.p-header-logo img{width:28px;height:28px;border-radius:6px}
+.p-logo{font-size:17px;font-weight:800;color:#fff;letter-spacing:-.3px}
 .p-logo span{color:#c9a227}
-.p-header-tag{font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:.8px;text-transform:uppercase}
+.p-header-tag{font-size:10px;font-weight:700;color:#4b5563;letter-spacing:1px;text-transform:uppercase}
+
+/* Hero */
 .p-hero{flex:1;background:#0d1117;display:flex;align-items:center;justify-content:center;padding:64px 24px;position:relative;overflow:hidden}
-.p-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(201,162,39,.08) 0%,transparent 70%);pointer-events:none}
-.p-hero-card{max-width:560px;width:100%;text-align:center;position:relative}
-.p-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(201,162,39,.12);border:1px solid rgba(201,162,39,.25);border-radius:99px;padding:5px 14px;font-size:11px;font-weight:700;color:#c9a227;letter-spacing:.6px;text-transform:uppercase;margin-bottom:28px}
-.p-badge-dot{width:6px;height:6px;border-radius:50%;background:#c9a227;display:inline-block}
-.p-welcome{font-size:12px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px}
-.p-client-name{font-size:38px;font-weight:800;color:#fff;line-height:1.15;margin-bottom:10px}
-.p-project-name{font-size:14px;color:#6b7280;font-weight:500;margin-bottom:6px}
-.p-project-meta{font-size:12px;color:#4b5563;margin-bottom:0}
-.p-divider{height:1px;background:rgba(255,255,255,.08);margin:28px 0}
-.p-hero-stats{display:flex;justify-content:center;gap:48px;margin-bottom:36px}
-.p-stat-val{font-size:28px;font-weight:800;color:#fff;line-height:1}
+/* Ambient glow layers */
+.p-hero::before{content:'';position:absolute;top:-20%;left:50%;transform:translateX(-50%);width:800px;height:500px;background:radial-gradient(ellipse,rgba(201,162,39,.07) 0%,transparent 70%);pointer-events:none}
+.p-hero::after{content:'';position:absolute;bottom:-10%;right:-5%;width:500px;height:400px;background:radial-gradient(ellipse,rgba(59,130,246,.05) 0%,transparent 70%);pointer-events:none}
+/* Subtle grid lines */
+.p-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:64px 64px;pointer-events:none}
+
+.p-hero-card{max-width:580px;width:100%;text-align:center;position:relative;z-index:1}
+
+/* Big logo in hero */
+.p-hero-logo-wrap{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:32px}
+.p-hero-icon{width:64px;height:64px;border-radius:16px;box-shadow:0 0 0 1px rgba(255,255,255,.08),0 8px 32px rgba(0,0,0,.4);animation:float 4s ease-in-out infinite}
+.p-hero-brand{text-align:left}
+.p-hero-brand-name{font-size:28px;font-weight:800;color:#fff;letter-spacing:-.5px;line-height:1}
+.p-hero-brand-name span{color:#c9a227}
+.p-hero-brand-sub{font-size:11px;font-weight:600;color:#4b5563;text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+.p-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.22);border-radius:99px;padding:6px 16px;font-size:11px;font-weight:700;color:#c9a227;letter-spacing:.6px;text-transform:uppercase;margin-bottom:24px;animation:badgePop .5s cubic-bezier(.4,0,.2,1) .1s both}
+.p-badge-dot{width:6px;height:6px;border-radius:50%;background:#c9a227;animation:pulse 1.8s ease infinite}
+
+.p-welcome{font-size:12px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:8px}
+.p-client-name{font-size:40px;font-weight:800;color:#fff;line-height:1.15;margin-bottom:8px;letter-spacing:-.5px}
+.p-project-name{font-size:14px;color:#6b7280;font-weight:500;margin-bottom:4px}
+.p-project-meta{font-size:12px;color:#374151;margin-bottom:0}
+.p-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);margin:28px 0}
+
+.p-hero-stats{display:flex;justify-content:center;gap:40px;margin-bottom:36px}
+.p-stat-val{font-size:32px;font-weight:800;color:#fff;line-height:1}
 .p-stat-lbl{font-size:10px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-top:5px}
-.p-btn-start{display:inline-flex;align-items:center;gap:10px;background:#c9a227;color:#0d1117;border:none;border-radius:8px;padding:14px 32px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit;letter-spacing:.2px}
-.p-btn-start:hover{background:#d4ae35;transform:translateY(-2px);box-shadow:0 8px 24px rgba(201,162,39,.35)}
-.p-hero-footer{margin-top:20px;font-size:12px;color:#374151}
+
+.p-btn-start{display:inline-flex;align-items:center;gap:10px;background:#c9a227;color:#0d1117;border:none;border-radius:8px;padding:14px 36px;font-size:14px;font-weight:800;cursor:pointer;transition:all .2s;font-family:inherit;letter-spacing:.2px;position:relative;overflow:hidden}
+.p-btn-start::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15) 0%,transparent 50%)}
+.p-btn-start:hover{background:#d4ae35;transform:translateY(-2px);box-shadow:0 8px 28px rgba(201,162,39,.4)}
+.p-hero-footer{margin-top:16px;font-size:12px;color:#374151;line-height:1.6}
 
 /* ── Testing page ── */
 .p-testing{display:none;flex-direction:column;min-height:100vh}
 .p-testing.active{display:flex}
-.p-topbar{background:#fff;border-bottom:1px solid #e4e6ea;padding:0 24px;height:52px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20}
-.p-topbar-sep{width:1px;height:18px;background:#e4e6ea}
-.p-topbar-project{font-size:13px;font-weight:600;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
-.p-topbar-client{font-size:11px;color:#9ca3af;background:#f4f5f7;border:1px solid #e4e6ea;border-radius:6px;padding:3px 10px;font-weight:700;white-space:nowrap}
+
+.p-topbar{background:#fff;border-bottom:1px solid #e4e6ea;padding:0 24px;height:56px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.p-topbar-logo{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.p-topbar-logo img{width:26px;height:26px;border-radius:6px}
+.p-topbar-sep{width:1px;height:20px;background:#e4e6ea;flex-shrink:0}
+.p-topbar-project{font-size:13px;font-weight:700;color:#0d1117;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.p-topbar-client{font-size:12px;color:#374151;background:#f4f5f7;border:1px solid #e4e6ea;border-radius:6px;padding:4px 12px;font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.p-topbar-client::before{content:'';width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;flex-shrink:0}
 .p-topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
-.p-prog-chip{font-size:11px;color:#22c55e;font-weight:700;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:3px 10px}
+.p-prog-chip{font-size:11px;color:#15803d;font-weight:700;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:4px 10px}
 
 .p-content{flex:1;max-width:1320px;margin:0 auto;width:100%;padding:24px 24px 64px}
 
+.p-section-head{margin-bottom:20px}
+.p-section-title{font-size:20px;font-weight:800;color:#0d1117}
+.p-section-sub{font-size:13px;color:#6b7280;margin-top:4px}
+
 /* Progress card */
-.p-progress-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:20px 24px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:24px;align-items:center}
+.p-progress-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:20px 24px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:24px;align-items:center;box-shadow:0 1px 3px rgba(0,0,0,.04)}
 .p-pstat{text-align:center;min-width:52px}
-.p-pstat-val{font-size:20px;font-weight:800;color:#0d1117;line-height:1}
+.p-pstat-val{font-size:22px;font-weight:800;color:#0d1117;line-height:1}
 .p-pstat-lbl{font-size:9px;color:#9ca3af;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
 .p-bar-wrap{flex:1;min-width:200px}
 .p-bar-label{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:#6b7280;margin-bottom:6px}
@@ -67,7 +112,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f1f2f5;color:#0d1117
 .p-tab:hover:not(.active){border-color:#c9a227;color:#c9a227}
 
 /* Table */
-.p-table-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;overflow:hidden}
+.p-table-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)}
 .p-table-scroll{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
 th{background:#f8f9fa;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;border-bottom:1px solid #e4e6ea;text-align:left;white-space:nowrap}
@@ -81,7 +126,6 @@ tr:hover td{background:#fafafa}
 .p-expected{font-size:12px;color:#6b7280;line-height:1.5;max-width:220px}
 .p-seq{font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:#9ca3af}
 
-/* Priority */
 .p-pri{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700}
 .p-pri-critical{background:#fee2e2;color:#dc2626}
 .p-pri-high{background:#fff7ed;color:#ea580c}
@@ -103,16 +147,44 @@ tr:hover td{background:#fafafa}
 .p-s-dd button:hover{background:#f4f5f7}
 
 /* Notes */
-.p-notes-wrap{min-width:200px}
-.p-notes-ta{width:100%;border:1px solid #e4e6ea;border-radius:8px;padding:8px 10px;font-size:12px;font-family:inherit;resize:vertical;min-height:56px;color:#0d1117;transition:border-color .15s;line-height:1.5}
+.p-notes-wrap{min-width:180px}
+.p-notes-ta{width:100%;border:1px solid #e4e6ea;border-radius:8px;padding:8px 10px;font-size:12px;font-family:inherit;resize:vertical;min-height:52px;color:#0d1117;transition:border-color .15s;line-height:1.5}
 .p-notes-ta:focus{outline:none;border-color:#c9a227;box-shadow:0 0 0 3px rgba(201,162,39,.1)}
-.p-save-btn{margin-top:6px;padding:4px 14px;background:#0d1117;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+.p-save-btn{margin-top:5px;padding:4px 12px;background:#0d1117;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
 .p-save-btn:hover{background:#374151}
 .p-save-btn.saved{background:#15803d}
 
-/* Procedure button */
 .p-proc-btn{background:none;border:1px solid #e4e6ea;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;color:#6b7280;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
 .p-proc-btn:hover{border-color:#c9a227;color:#c9a227}
+
+/* ── Sign-off Section ── */
+.p-signoff-wrap{margin-top:24px}
+.p-signoff-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.p-signoff-header{background:linear-gradient(135deg,#0d1117 0%,#1a1d27 100%);padding:24px 32px;display:flex;align-items:center;gap:16px}
+.p-signoff-icon{width:44px;height:44px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.25);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.p-signoff-title{font-size:16px;font-weight:800;color:#fff}
+.p-signoff-subtitle{font-size:12px;color:#6b7280;margin-top:3px;line-height:1.5}
+.p-signoff-body{padding:28px 32px}
+.p-signoff-form{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px}
+@media(max-width:640px){.p-signoff-form{grid-template-columns:1fr}}
+.p-sf-label{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block}
+.p-sf-input{width:100%;border:1px solid #e4e6ea;border-radius:8px;padding:10px 14px;font-size:13px;font-family:inherit;color:#0d1117;transition:border-color .15s;background:#fff}
+.p-sf-input:focus{outline:none;border-color:#c9a227;box-shadow:0 0 0 3px rgba(201,162,39,.1)}
+.p-sf-input::placeholder{color:#9ca3af}
+.p-signoff-note{font-size:12px;color:#9ca3af;margin-bottom:20px;line-height:1.6;display:flex;align-items:flex-start;gap:8px}
+.p-signoff-note-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.p-signoff-btn{display:inline-flex;align-items:center;gap:10px;background:#0d1117;color:#fff;border:none;border-radius:8px;padding:13px 32px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+.p-signoff-btn:hover{background:#374151;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.p-signoff-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* Signed state */
+.p-signed-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:32px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.p-signed-icon{font-size:40px;margin-bottom:12px}
+.p-signed-title{font-size:16px;font-weight:800;color:#15803d;margin-bottom:4px}
+.p-signed-name{font-size:22px;font-weight:800;color:#0d1117;margin-bottom:4px}
+.p-signed-role{font-size:13px;color:#6b7280;margin-bottom:8px}
+.p-signed-date{font-size:12px;color:#9ca3af;font-weight:600}
+.p-signed-badge{display:inline-flex;align-items:center;gap:6px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:99px;padding:6px 16px;font-size:11px;font-weight:700;color:#15803d;margin-top:16px}
 
 /* Procedure modal */
 .p-proc-modal{position:fixed;inset:0;z-index:100;background:#fff;display:none;flex-direction:column}
@@ -132,11 +204,8 @@ tr:hover td{background:#fafafa}
 .p-toast{position:fixed;bottom:24px;right:24px;background:#0d1117;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;z-index:200;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.2)}
 .p-toast.show{opacity:1;transform:translateY(0)}
 
-/* Error page */
+/* Error */
 .p-error{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:32px;background:#f1f2f5}
-.p-error-icon{font-size:52px;margin-bottom:20px}
-.p-error-title{font-size:22px;font-weight:800;color:#0d1117;margin-bottom:8px}
-.p-error-msg{font-size:14px;color:#6b7280;line-height:1.6;max-width:380px}
 </style>
 </head>
 <body>
@@ -144,33 +213,48 @@ tr:hover td{background:#fafafa}
 <!-- Loading -->
 <div id="pLoading" class="p-loading">
   <div class="p-spin"></div>
-  <div style="font-size:13px;color:#9ca3af;font-weight:600">Loading your portal…</div>
+  <div class="p-loading-text">Loading your portal…</div>
 </div>
 
 <!-- Error -->
 <div id="pError" class="p-error" style="display:none">
-  <div class="p-error-icon">🔒</div>
-  <div class="p-error-title">Invalid Portal Link</div>
-  <div class="p-error-msg">This link is invalid or has expired. Please contact your Bluecopa project manager for an updated link.</div>
+  <div style="font-size:52px;margin-bottom:20px">🔒</div>
+  <div style="font-size:22px;font-weight:800;color:#0d1117;margin-bottom:8px">Invalid Portal Link</div>
+  <div style="font-size:14px;color:#6b7280;line-height:1.6;max-width:380px">This link is invalid or has expired. Please contact your Bluecopa project manager for an updated link.</div>
 </div>
 
 <!-- Landing Page -->
 <div id="pLanding" class="p-landing" style="display:none">
   <div class="p-header">
-    <div class="p-logo">Blue<span>copa</span></div>
-    <div class="p-header-tag">Implementation Portal</div>
+    <div class="p-header-logo anim-fade-in">
+      <img src="/bluecopa-icon.png" alt="Bluecopa">
+      <div class="p-logo">Blue<span>copa</span></div>
+    </div>
+    <div class="p-header-tag anim-fade-in d1">Implementation Portal</div>
   </div>
   <div class="p-hero">
+    <div class="p-hero-grid"></div>
     <div class="p-hero-card">
-      <div class="p-badge"><span class="p-badge-dot"></span>Bluecopa UAT Portal</div>
-      <div class="p-welcome">Welcome to your</div>
-      <div class="p-client-name" id="pHeroClient">—</div>
-      <div class="p-project-name" id="pHeroProject"></div>
-      <div class="p-project-meta" id="pHeroMeta"></div>
-      <div class="p-divider"></div>
-      <div class="p-hero-stats" id="pHeroStats"></div>
-      <button class="p-btn-start" onclick="startTesting()">Begin Testing →</button>
-      <div class="p-hero-footer">Review test cases, mark your status, and add notes to track your progress.</div>
+      <!-- Big logo -->
+      <div class="p-hero-logo-wrap anim-scale-in">
+        <img src="/bluecopa-icon.png" alt="Bluecopa" class="p-hero-icon">
+        <div class="p-hero-brand">
+          <div class="p-hero-brand-name">Blue<span>copa</span></div>
+          <div class="p-hero-brand-sub">Implementation Portal</div>
+        </div>
+      </div>
+
+      <div class="p-badge anim-fade-up d1"><span class="p-badge-dot"></span>Bluecopa UAT Portal</div>
+      <div class="p-welcome anim-fade-up d2">Welcome to your</div>
+      <div class="p-client-name anim-fade-up d3" id="pHeroClient">—</div>
+      <div class="p-project-name anim-fade-up d4" id="pHeroProject"></div>
+      <div class="p-project-meta anim-fade-up d4" id="pHeroMeta"></div>
+      <div class="p-divider anim-fade-in d4"></div>
+      <div class="p-hero-stats anim-fade-up d5" id="pHeroStats"></div>
+      <div class="anim-fade-up d6">
+        <button class="p-btn-start" onclick="startTesting()">Begin Testing →</button>
+      </div>
+      <div class="p-hero-footer anim-fade-in d6">Review test cases, mark your status, and add notes to track your progress.</div>
     </div>
   </div>
 </div>
@@ -178,7 +262,10 @@ tr:hover td{background:#fafafa}
 <!-- Testing Page -->
 <div id="pTesting" class="p-testing">
   <div class="p-topbar">
-    <div class="p-logo">Blue<span>copa</span></div>
+    <div class="p-topbar-logo">
+      <img src="/bluecopa-icon.png" alt="Bluecopa">
+      <div class="p-logo" style="color:#0d1117">Blue<span>copa</span></div>
+    </div>
     <div class="p-topbar-sep"></div>
     <div class="p-topbar-project" id="pTopProject"></div>
     <div class="p-topbar-client" id="pTopClient"></div>
@@ -187,9 +274,9 @@ tr:hover td{background:#fafafa}
     </div>
   </div>
   <div class="p-content">
-    <div style="margin-bottom:20px">
-      <div style="font-size:20px;font-weight:800;color:#0d1117">UAT Sign-off</div>
-      <div style="font-size:13px;color:#6b7280;margin-top:4px">Review each test case, update your status, and add notes.</div>
+    <div class="p-section-head">
+      <div class="p-section-title">UAT Sign-off</div>
+      <div class="p-section-sub">Review each test case, update your status, and add notes.</div>
     </div>
     <div class="p-progress-card" id="pProgressCard"></div>
     <div class="p-tabs" id="pEntityTabs" style="display:none"></div>
@@ -201,6 +288,9 @@ tr:hover td{background:#fafafa}
         </table>
       </div>
     </div>
+
+    <!-- Sign-off Section -->
+    <div class="p-signoff-wrap" id="pSignoffWrap"></div>
   </div>
 </div>
 
@@ -264,12 +354,12 @@ function renderLanding() {
   const pass = D.testcases.filter(t => t.clientStatus === 'pass').length;
   const pct = total ? Math.round(pass / total * 100) : 0;
   document.getElementById('pHeroStats').innerHTML =
-    stat(total, 'Test Cases') + stat(pass, 'Passed', '#22c55e') + stat(pct + '%', 'Complete', '#c9a227');
+    hStat(total, 'Test Cases') + hStat(pass, 'Passed', '#22c55e') + hStat(pct + '%', 'Complete', '#c9a227');
 }
 
-function stat(val, lbl, color) {
-  return '<div style="text-align:center"><div style="font-size:28px;font-weight:800;color:' + (color||'#fff') + ';line-height:1">' + val + '</div>' +
-    '<div style="font-size:10px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:.6px;margin-top:5px">' + lbl + '</div></div>';
+function hStat(val, lbl, color) {
+  return '<div style="text-align:center"><div style="font-size:32px;font-weight:800;color:' + (color||'#fff') + ';line-height:1">' + val + '</div>' +
+    '<div style="font-size:10px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:.6px;margin-top:6px">' + lbl + '</div></div>';
 }
 
 function startTesting() {
@@ -288,6 +378,7 @@ function renderTesting() {
   renderEntityTabs();
   renderProgress();
   renderTable();
+  renderSignoff();
 }
 
 function renderEntityTabs() {
@@ -318,11 +409,6 @@ function pStat(val, lbl, color) {
     '<div class="p-pstat-lbl">' + lbl + '</div></div>';
 }
 
-function priorityBadge(p) {
-  const k = (p||'low').toLowerCase(); const m = {critical:'p-pri-critical',high:'p-pri-high',medium:'p-pri-medium',med:'p-pri-med',low:'p-pri-low'};
-  return '<span class="p-pri ' + (m[k]||'p-pri-low') + '">' + (p||'Low') + '</span>';
-}
-
 function renderTable() {
   const tcs = D.testcases;
   if (!tcs.length) {
@@ -333,7 +419,7 @@ function renderTable() {
     const s = tc.clientStatus || 'not_tested';
     return '<tr id="pRow_' + tc.id + '">' +
       '<td><span class="p-seq">' + tc.seq + '</span></td>' +
-      '<td><span class="p-cat">' + tc.category + '</span>' + (tc.subCategory ? '<div class="p-subcat">' + tc.subCategory + '</div>' : '') + '</td>' +
+      '<td><span class="p-cat">' + esc(tc.category) + '</span>' + (tc.subCategory ? '<div class="p-subcat">' + esc(tc.subCategory) + '</div>' : '') + '</td>' +
       '<td><div class="p-desc">' + esc(tc.testDescription) + '</div></td>' +
       '<td><div class="p-expected">' + esc(tc.expectedResult || '—') + '</div></td>' +
       '<td><div class="p-s-wrap"><button class="p-s-pill p-s-' + s + '" id="pPill_' + tc.id + '" onclick="toggleDD(\'' + tc.id + '\',event)">' + SL[s] + ' ▾</button>' +
@@ -342,10 +428,74 @@ function renderTable() {
         '</div></div></td>' +
       '<td><div class="p-notes-wrap">' +
         '<textarea class="p-notes-ta" id="pCmt_' + tc.id + '" placeholder="Add notes…">' + esc(tc.clientComments || '') + '</textarea>' +
-        '<button class="p-save-btn" id="pSaveBtn_' + tc.id + '" onclick="saveNote(\'' + tc.id + '\')">Save</button></div></td>' +
+        '<button class="p-save-btn" id="pSaveBtn_' + tc.id + '" onclick="saveNote(\'' + tc.id + '\')">Save</button>' +
+      '</div></td>' +
       '<td>' + (tc.procedure ? '<button class="p-proc-btn" onclick="openProc(\'' + tc.id + '\')">View Steps</button>' : '<span style="color:#d1d5db;font-size:12px">—</span>') + '</td>' +
     '</tr>';
   }).join('');
+}
+
+function renderSignoff() {
+  const wrap = document.getElementById('pSignoffWrap');
+  if (!wrap) return;
+  if (D.signoff) {
+    // Already signed — show confirmation
+    const d = D.signoff;
+    const dateStr = d.date ? new Date(d.date + 'T00:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' }) : d.date;
+    wrap.innerHTML =
+      '<div class="p-signed-card">' +
+        '<div class="p-signed-icon">✅</div>' +
+        '<div class="p-signed-title">UAT Signed Off</div>' +
+        '<div class="p-signed-name">' + esc(d.name) + '</div>' +
+        (d.role ? '<div class="p-signed-role">' + esc(d.role) + '</div>' : '') +
+        '<div class="p-signed-date">Signed on ' + esc(dateStr) + '</div>' +
+        '<div class="p-signed-badge">✓ Formally accepted by ' + esc(D.client.name) + '</div>' +
+      '</div>';
+  } else {
+    // Show sign-off form
+    const today = new Date().toISOString().slice(0, 10);
+    wrap.innerHTML =
+      '<div class="p-signoff-card">' +
+        '<div class="p-signoff-header">' +
+          '<div class="p-signoff-icon">✍️</div>' +
+          '<div>' +
+            '<div class="p-signoff-title">UAT Sign-off Certificate</div>' +
+            '<div class="p-signoff-subtitle">Complete this section when you are ready to formally accept the UAT.</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="p-signoff-body">' +
+          '<div class="p-signoff-form">' +
+            '<div><label class="p-sf-label" for="sfName">Full Name *</label><input class="p-sf-input" id="sfName" placeholder="e.g. Priya Sharma" required></div>' +
+            '<div><label class="p-sf-label" for="sfRole">Designation / Role</label><input class="p-sf-input" id="sfRole" placeholder="e.g. Finance Manager"></div>' +
+            '<div><label class="p-sf-label" for="sfDate">Sign-off Date *</label><input class="p-sf-input" id="sfDate" type="date" value="' + today + '" required></div>' +
+          '</div>' +
+          '<div class="p-signoff-note"><span class="p-signoff-note-icon">ℹ️</span><span>By submitting, you confirm that the test cases marked as <strong>Pass</strong> meet your acceptance criteria and you are formally accepting this UAT round on behalf of ' + esc(D.client.name) + '.</span></div>' +
+          '<button class="p-signoff-btn" id="sfSubmitBtn" onclick="submitSignoff()">Submit UAT Sign-off →</button>' +
+        '</div>' +
+      '</div>';
+  }
+}
+
+async function submitSignoff() {
+  const name = document.getElementById('sfName')?.value?.trim();
+  const role = document.getElementById('sfRole')?.value?.trim();
+  const date = document.getElementById('sfDate')?.value;
+  if (!name) { toast('Please enter your name'); document.getElementById('sfName')?.focus(); return; }
+  const btn = document.getElementById('sfSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+  const r = await fetch('/api/portal/' + TOKEN + '/signoff', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, role, date })
+  });
+  if (r.ok) {
+    const j = await r.json();
+    D.signoff = j.signoff;
+    renderSignoff();
+    toast('Sign-off submitted successfully!');
+  } else {
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit UAT Sign-off →'; }
+    toast('Failed to submit. Please try again.');
+  }
 }
 
 function esc(s) { return (s == null ? '' : String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
