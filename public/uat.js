@@ -1040,6 +1040,58 @@ const UAT = (() => {
     } else toast('Failed to save', 'error');
   }
 
+  /* ── Share Portal ───────────────────────────────────────────────────────── */
+  async function sharePortal() {
+    if (!S.activeProjectId) return toast('Select a project first', 'error');
+    const r = await api('POST', `/api/uat/projects/${S.activeProjectId}/generate-portal`);
+    if (!r.ok) return toast('Failed to generate link', 'error');
+    const token = r.token;
+    const p = S.projects.find(x => x.id === S.activeProjectId);
+    if (p) p.portalToken = token;
+    const base = window.location.origin;
+    el('uatShareAllLink').value = `${base}/portal/${token}`;
+    const entities = p?.entities || [];
+    const entityWrap = el('uatShareEntityLinks');
+    if (entityWrap) {
+      if (entities.length) {
+        entityWrap.style.display = '';
+        entityWrap.innerHTML = entities.map(e => `
+          <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+            <span style="font-size:12px;font-weight:700;color:#374151;min-width:72px;flex-shrink:0">${e}</span>
+            <input class="uat-form-input" readonly value="${base}/portal/${token}?entity=${encodeURIComponent(e)}" style="font-size:12px" onclick="this.select()">
+            <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.copyLink(this.previousElementSibling.value)">Copy</button>
+          </div>`).join('');
+      } else {
+        entityWrap.style.display = 'none';
+      }
+    }
+    el('uatModalSharePortal')?.classList.add('open');
+  }
+
+  function closeSharePortal() { el('uatModalSharePortal')?.classList.remove('open'); }
+
+  function copyLink(url) {
+    navigator.clipboard.writeText(url)
+      .then(() => toast('Link copied!'))
+      .catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = url; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+        toast('Link copied!');
+      });
+  }
+
+  async function regenerateProjectPortal() {
+    if (!confirm('This will invalidate the existing portal link. Anyone with the old link will lose access. Continue?')) return;
+    const r = await api('POST', `/api/uat/projects/${S.activeProjectId}/regenerate-portal`);
+    if (!r.ok) return toast('Failed', 'error');
+    const p = S.projects.find(x => x.id === S.activeProjectId);
+    if (p) p.portalToken = r.token;
+    closeSharePortal();
+    sharePortal();
+    toast('New portal link generated');
+  }
+
   /* ── Public API ──────────────────────────────────────────────────────────── */
   return {
     open,
@@ -1085,5 +1137,9 @@ const UAT = (() => {
     saveProcedureFS,
     editClientLabel,
     renameEntity,
+    sharePortal,
+    closeSharePortal,
+    copyLink,
+    regenerateProjectPortal,
   };
 })();

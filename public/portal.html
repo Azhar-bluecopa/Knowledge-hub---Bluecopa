@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UAT Portal — Bluecopa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;background:#f1f2f5;color:#0d1117;-webkit-font-smoothing:antialiased}
+
+/* ── Loading ── */
+.p-loading{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f1f2f5;flex-direction:column;gap:16px}
+.p-spin{width:36px;height:36px;border:3px solid #e4e6ea;border-top-color:#c9a227;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Landing ── */
+.p-landing{min-height:100vh;display:flex;flex-direction:column}
+.p-header{padding:0 32px;background:#fff;border-bottom:1px solid #e4e6ea;height:56px;display:flex;align-items:center;justify-content:space-between}
+.p-logo{font-size:17px;font-weight:800;color:#0d1117;letter-spacing:-.3px}
+.p-logo span{color:#c9a227}
+.p-header-tag{font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:.8px;text-transform:uppercase}
+.p-hero{flex:1;background:#0d1117;display:flex;align-items:center;justify-content:center;padding:64px 24px;position:relative;overflow:hidden}
+.p-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(201,162,39,.08) 0%,transparent 70%);pointer-events:none}
+.p-hero-card{max-width:560px;width:100%;text-align:center;position:relative}
+.p-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(201,162,39,.12);border:1px solid rgba(201,162,39,.25);border-radius:99px;padding:5px 14px;font-size:11px;font-weight:700;color:#c9a227;letter-spacing:.6px;text-transform:uppercase;margin-bottom:28px}
+.p-badge-dot{width:6px;height:6px;border-radius:50%;background:#c9a227;display:inline-block}
+.p-welcome{font-size:12px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px}
+.p-client-name{font-size:38px;font-weight:800;color:#fff;line-height:1.15;margin-bottom:10px}
+.p-project-name{font-size:14px;color:#6b7280;font-weight:500;margin-bottom:6px}
+.p-project-meta{font-size:12px;color:#4b5563;margin-bottom:0}
+.p-divider{height:1px;background:rgba(255,255,255,.08);margin:28px 0}
+.p-hero-stats{display:flex;justify-content:center;gap:48px;margin-bottom:36px}
+.p-stat-val{font-size:28px;font-weight:800;color:#fff;line-height:1}
+.p-stat-lbl{font-size:10px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-top:5px}
+.p-btn-start{display:inline-flex;align-items:center;gap:10px;background:#c9a227;color:#0d1117;border:none;border-radius:8px;padding:14px 32px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit;letter-spacing:.2px}
+.p-btn-start:hover{background:#d4ae35;transform:translateY(-2px);box-shadow:0 8px 24px rgba(201,162,39,.35)}
+.p-hero-footer{margin-top:20px;font-size:12px;color:#374151}
+
+/* ── Testing page ── */
+.p-testing{display:none;flex-direction:column;min-height:100vh}
+.p-testing.active{display:flex}
+.p-topbar{background:#fff;border-bottom:1px solid #e4e6ea;padding:0 24px;height:52px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20}
+.p-topbar-sep{width:1px;height:18px;background:#e4e6ea}
+.p-topbar-project{font-size:13px;font-weight:600;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
+.p-topbar-client{font-size:11px;color:#9ca3af;background:#f4f5f7;border:1px solid #e4e6ea;border-radius:6px;padding:3px 10px;font-weight:700;white-space:nowrap}
+.p-topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.p-prog-chip{font-size:11px;color:#22c55e;font-weight:700;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:3px 10px}
+
+.p-content{flex:1;max-width:1320px;margin:0 auto;width:100%;padding:24px 24px 64px}
+
+/* Progress card */
+.p-progress-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:20px 24px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:24px;align-items:center}
+.p-pstat{text-align:center;min-width:52px}
+.p-pstat-val{font-size:20px;font-weight:800;color:#0d1117;line-height:1}
+.p-pstat-lbl{font-size:9px;color:#9ca3af;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+.p-bar-wrap{flex:1;min-width:200px}
+.p-bar-label{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:#6b7280;margin-bottom:6px}
+.p-bar-bg{background:#f1f2f5;border-radius:99px;height:8px;overflow:hidden}
+.p-bar-fill{height:100%;border-radius:99px;background:#22c55e;transition:width .6s cubic-bezier(.4,0,.2,1)}
+
+/* Entity tabs */
+.p-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.p-tab{padding:7px 16px;border:1px solid #e4e6ea;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;background:#fff;color:#374151;transition:all .15s;font-family:inherit}
+.p-tab.active{background:#0d1117;color:#fff;border-color:#0d1117}
+.p-tab:hover:not(.active){border-color:#c9a227;color:#c9a227}
+
+/* Table */
+.p-table-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;overflow:hidden}
+.p-table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{background:#f8f9fa;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;border-bottom:1px solid #e4e6ea;text-align:left;white-space:nowrap}
+td{padding:12px 14px;border-bottom:1px solid #f1f2f5;vertical-align:top;font-size:13px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+
+.p-cat{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;font-family:'DM Mono',monospace;background:#f4f5f7;color:#374151;white-space:nowrap}
+.p-subcat{font-size:11px;color:#9ca3af;margin-top:3px}
+.p-desc{font-weight:600;line-height:1.5;max-width:300px;color:#0d1117}
+.p-expected{font-size:12px;color:#6b7280;line-height:1.5;max-width:220px}
+.p-seq{font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:#9ca3af}
+
+/* Priority */
+.p-pri{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700}
+.p-pri-critical{background:#fee2e2;color:#dc2626}
+.p-pri-high{background:#fff7ed;color:#ea580c}
+.p-pri-medium,.p-pri-med{background:#fefce8;color:#ca8a04}
+.p-pri-low{background:#f0fdf4;color:#15803d}
+
+/* Status dropdown */
+.p-s-wrap{position:relative;display:inline-block}
+.p-s-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:99px;font-size:11px;font-weight:700;border:none;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:inherit}
+.p-s-pill:hover{filter:brightness(.92);transform:translateY(-1px)}
+.p-s-not_tested{background:#f1f2f5;color:#6b7280}
+.p-s-in_progress{background:#dbeafe;color:#1d4ed8}
+.p-s-pass{background:#dcfce7;color:#15803d}
+.p-s-fail{background:#fee2e2;color:#dc2626}
+.p-s-blocked{background:#fef3c7;color:#b45309}
+.p-s-dd{position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:#fff;border:1px solid #e4e6ea;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.06);padding:4px;min-width:148px;display:none}
+.p-s-dd.open{display:block}
+.p-s-dd button{display:flex;align-items:center;gap:8px;width:100%;padding:7px 12px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;border-radius:6px;color:#0d1117;text-align:left;font-family:inherit}
+.p-s-dd button:hover{background:#f4f5f7}
+
+/* Notes */
+.p-notes-wrap{min-width:200px}
+.p-notes-ta{width:100%;border:1px solid #e4e6ea;border-radius:8px;padding:8px 10px;font-size:12px;font-family:inherit;resize:vertical;min-height:56px;color:#0d1117;transition:border-color .15s;line-height:1.5}
+.p-notes-ta:focus{outline:none;border-color:#c9a227;box-shadow:0 0 0 3px rgba(201,162,39,.1)}
+.p-save-btn{margin-top:6px;padding:4px 14px;background:#0d1117;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+.p-save-btn:hover{background:#374151}
+.p-save-btn.saved{background:#15803d}
+
+/* Procedure button */
+.p-proc-btn{background:none;border:1px solid #e4e6ea;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;color:#6b7280;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.p-proc-btn:hover{border-color:#c9a227;color:#c9a227}
+
+/* Procedure modal */
+.p-proc-modal{position:fixed;inset:0;z-index:100;background:#fff;display:none;flex-direction:column}
+.p-proc-modal.open{display:flex}
+.p-proc-header{padding:16px 32px;border-bottom:1px solid #e4e6ea;display:flex;align-items:center;justify-content:space-between;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.p-proc-body{flex:1;overflow-y:auto;padding:40px 32px;background:#f8f9fa}
+.p-proc-content{max-width:800px;margin:0 auto;background:#fff;border-radius:12px;padding:32px 40px;font-size:14px;line-height:1.8;color:#0d1117;box-shadow:0 1px 6px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);border:1px solid #e4e6ea}
+.p-proc-content img{max-width:100%;border-radius:8px;margin:16px 0;display:block;border:1px solid #e4e6ea}
+.p-proc-content h1,.p-proc-content h2,.p-proc-content h3{margin:20px 0 8px;font-weight:700}
+.p-proc-content ul,.p-proc-content ol{padding-left:20px;margin:8px 0}
+.p-proc-content li{margin:4px 0}
+.p-proc-content p{margin:8px 0}
+.p-close-btn{background:none;border:1px solid #e4e6ea;border-radius:8px;padding:6px 16px;font-size:13px;font-weight:700;color:#374151;cursor:pointer;font-family:inherit;transition:all .15s}
+.p-close-btn:hover{border-color:#0d1117;color:#0d1117}
+
+/* Toast */
+.p-toast{position:fixed;bottom:24px;right:24px;background:#0d1117;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;z-index:200;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.p-toast.show{opacity:1;transform:translateY(0)}
+
+/* Error page */
+.p-error{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:32px;background:#f1f2f5}
+.p-error-icon{font-size:52px;margin-bottom:20px}
+.p-error-title{font-size:22px;font-weight:800;color:#0d1117;margin-bottom:8px}
+.p-error-msg{font-size:14px;color:#6b7280;line-height:1.6;max-width:380px}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="pLoading" class="p-loading">
+  <div class="p-spin"></div>
+  <div style="font-size:13px;color:#9ca3af;font-weight:600">Loading your portal…</div>
+</div>
+
+<!-- Error -->
+<div id="pError" class="p-error" style="display:none">
+  <div class="p-error-icon">🔒</div>
+  <div class="p-error-title">Invalid Portal Link</div>
+  <div class="p-error-msg">This link is invalid or has expired. Please contact your Bluecopa project manager for an updated link.</div>
+</div>
+
+<!-- Landing Page -->
+<div id="pLanding" class="p-landing" style="display:none">
+  <div class="p-header">
+    <div class="p-logo">Blue<span>copa</span></div>
+    <div class="p-header-tag">Implementation Portal</div>
+  </div>
+  <div class="p-hero">
+    <div class="p-hero-card">
+      <div class="p-badge"><span class="p-badge-dot"></span>Bluecopa UAT Portal</div>
+      <div class="p-welcome">Welcome to your</div>
+      <div class="p-client-name" id="pHeroClient">—</div>
+      <div class="p-project-name" id="pHeroProject"></div>
+      <div class="p-project-meta" id="pHeroMeta"></div>
+      <div class="p-divider"></div>
+      <div class="p-hero-stats" id="pHeroStats"></div>
+      <button class="p-btn-start" onclick="startTesting()">Begin Testing →</button>
+      <div class="p-hero-footer">Review test cases, mark your status, and add notes to track your progress.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Testing Page -->
+<div id="pTesting" class="p-testing">
+  <div class="p-topbar">
+    <div class="p-logo">Blue<span>copa</span></div>
+    <div class="p-topbar-sep"></div>
+    <div class="p-topbar-project" id="pTopProject"></div>
+    <div class="p-topbar-client" id="pTopClient"></div>
+    <div class="p-topbar-right">
+      <div class="p-prog-chip" id="pTopProg"></div>
+    </div>
+  </div>
+  <div class="p-content">
+    <div style="margin-bottom:20px">
+      <div style="font-size:20px;font-weight:800;color:#0d1117">UAT Sign-off</div>
+      <div style="font-size:13px;color:#6b7280;margin-top:4px">Review each test case, update your status, and add notes.</div>
+    </div>
+    <div class="p-progress-card" id="pProgressCard"></div>
+    <div class="p-tabs" id="pEntityTabs" style="display:none"></div>
+    <div class="p-table-card">
+      <div class="p-table-scroll">
+        <table>
+          <thead><tr id="pTableHead"></tr></thead>
+          <tbody id="pTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Procedure Viewer -->
+<div id="pProcModal" class="p-proc-modal">
+  <div class="p-proc-header">
+    <div>
+      <div style="font-size:10px;font-weight:700;color:#9ca3af;font-family:'DM Mono',monospace;letter-spacing:.5px;margin-bottom:2px" id="pProcSeq"></div>
+      <div style="font-size:14px;font-weight:700;color:#0d1117" id="pProcTitle"></div>
+    </div>
+    <button class="p-close-btn" onclick="closeProc()">✕ Close</button>
+  </div>
+  <div class="p-proc-body">
+    <div class="p-proc-content" id="pProcContent"></div>
+  </div>
+</div>
+
+<div class="p-toast" id="pToast"></div>
+
+<script>
+const TOKEN = (location.pathname.match(/\/portal\/([^/?#]+)/) || [])[1] || '';
+let ENTITY = new URLSearchParams(location.search).get('entity') || '';
+let D = null;
+const SL = { not_tested:'Not Tested', in_progress:'In Progress', pass:'Pass', fail:'Fail', blocked:'Blocked' };
+
+function toast(msg, dur) {
+  const el = document.getElementById('pToast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur || 2400);
+}
+
+async function load() {
+  if (!TOKEN) { showError(); return; }
+  try {
+    const url = '/api/portal/' + TOKEN + (ENTITY ? '?entity=' + encodeURIComponent(ENTITY) : '');
+    const r = await fetch(url);
+    if (!r.ok) throw new Error();
+    const j = await r.json();
+    if (!j.ok) throw new Error();
+    D = j.data;
+    document.getElementById('pLoading').style.display = 'none';
+    renderLanding();
+    document.getElementById('pLanding').style.display = 'flex';
+  } catch(e) { showError(); }
+}
+
+function showError() {
+  document.getElementById('pLoading').style.display = 'none';
+  document.getElementById('pError').style.display = 'flex';
+}
+
+function renderLanding() {
+  document.title = 'UAT Portal — ' + D.client.name;
+  document.getElementById('pHeroClient').textContent = D.client.name;
+  document.getElementById('pHeroProject').textContent = D.project.name;
+  const meta = [];
+  if (D.project.phase) meta.push(D.project.phase);
+  if (D.project.goLiveDate) meta.push('Go-live: ' + D.project.goLiveDate);
+  document.getElementById('pHeroMeta').textContent = meta.join(' · ');
+  const total = D.testcases.length;
+  const pass = D.testcases.filter(t => t.clientStatus === 'pass').length;
+  const pct = total ? Math.round(pass / total * 100) : 0;
+  document.getElementById('pHeroStats').innerHTML =
+    stat(total, 'Test Cases') + stat(pass, 'Passed', '#22c55e') + stat(pct + '%', 'Complete', '#c9a227');
+}
+
+function stat(val, lbl, color) {
+  return '<div style="text-align:center"><div style="font-size:28px;font-weight:800;color:' + (color||'#fff') + ';line-height:1">' + val + '</div>' +
+    '<div style="font-size:10px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:.6px;margin-top:5px">' + lbl + '</div></div>';
+}
+
+function startTesting() {
+  document.getElementById('pLanding').style.display = 'none';
+  document.getElementById('pTesting').classList.add('active');
+  renderTesting();
+}
+
+function renderTesting() {
+  const label = D.project.clientLabel || 'Client';
+  document.getElementById('pTopProject').textContent = D.project.name;
+  document.getElementById('pTopClient').textContent = D.client.name;
+  document.getElementById('pTableHead').innerHTML =
+    '<th style="width:44px">#</th><th>Category</th><th>Test Description</th>' +
+    '<th>Expected Result</th><th>' + label + ' Status</th><th>' + label + ' Notes</th><th></th>';
+  renderEntityTabs();
+  renderProgress();
+  renderTable();
+}
+
+function renderEntityTabs() {
+  const entities = D.entities || [];
+  if (entities.length < 2) { document.getElementById('pEntityTabs').style.display = 'none'; return; }
+  const tabs = document.getElementById('pEntityTabs');
+  tabs.style.display = 'flex';
+  tabs.innerHTML = '<button class="p-tab' + (!ENTITY ? ' active' : '') + '" onclick="switchEntity(\'\')">All</button>' +
+    entities.map(e => '<button class="p-tab' + (ENTITY === e ? ' active' : '') + '" onclick="switchEntity(\'' + e.replace(/'/g,"\\'") + '\')">' + e + '</button>').join('');
+}
+
+function renderProgress() {
+  const tcs = D.testcases;
+  const total = tcs.length, pass = tcs.filter(t => t.clientStatus === 'pass').length,
+    fail = tcs.filter(t => t.clientStatus === 'fail').length,
+    blocked = tcs.filter(t => t.clientStatus === 'blocked').length,
+    pct = total ? Math.round(pass / total * 100) : 0;
+  document.getElementById('pTopProg').textContent = pass + '/' + total + ' Passed';
+  document.getElementById('pProgressCard').innerHTML =
+    pStat(total,'Total') + pStat(pass,'Pass','#22c55e') + pStat(fail,'Fail','#dc2626') +
+    pStat(blocked,'Blocked','#b45309') + pStat(total-pass-fail-blocked,'Pending','#6b7280') +
+    '<div class="p-bar-wrap"><div class="p-bar-label"><span>Overall Progress</span><span>' + pct + '%</span></div>' +
+    '<div class="p-bar-bg"><div class="p-bar-fill" style="width:' + pct + '%"></div></div></div>';
+}
+
+function pStat(val, lbl, color) {
+  return '<div class="p-pstat"><div class="p-pstat-val" style="color:' + (color||'#0d1117') + '">' + val + '</div>' +
+    '<div class="p-pstat-lbl">' + lbl + '</div></div>';
+}
+
+function priorityBadge(p) {
+  const k = (p||'low').toLowerCase(); const m = {critical:'p-pri-critical',high:'p-pri-high',medium:'p-pri-medium',med:'p-pri-med',low:'p-pri-low'};
+  return '<span class="p-pri ' + (m[k]||'p-pri-low') + '">' + (p||'Low') + '</span>';
+}
+
+function renderTable() {
+  const tcs = D.testcases;
+  if (!tcs.length) {
+    document.getElementById('pTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:48px;color:#9ca3af;font-size:13px">No test cases found.</td></tr>';
+    return;
+  }
+  document.getElementById('pTableBody').innerHTML = tcs.map(tc => {
+    const s = tc.clientStatus || 'not_tested';
+    return '<tr id="pRow_' + tc.id + '">' +
+      '<td><span class="p-seq">' + tc.seq + '</span></td>' +
+      '<td><span class="p-cat">' + tc.category + '</span>' + (tc.subCategory ? '<div class="p-subcat">' + tc.subCategory + '</div>' : '') + '</td>' +
+      '<td><div class="p-desc">' + esc(tc.testDescription) + '</div></td>' +
+      '<td><div class="p-expected">' + esc(tc.expectedResult || '—') + '</div></td>' +
+      '<td><div class="p-s-wrap"><button class="p-s-pill p-s-' + s + '" id="pPill_' + tc.id + '" onclick="toggleDD(\'' + tc.id + '\',event)">' + SL[s] + ' ▾</button>' +
+        '<div class="p-s-dd" id="pDD_' + tc.id + '">' +
+          Object.entries(SL).map(([k,v]) => '<button onclick="setStatus(\'' + tc.id + '\',\'' + k + '\')">' + v + '</button>').join('') +
+        '</div></div></td>' +
+      '<td><div class="p-notes-wrap">' +
+        '<textarea class="p-notes-ta" id="pCmt_' + tc.id + '" placeholder="Add notes…">' + esc(tc.clientComments || '') + '</textarea>' +
+        '<button class="p-save-btn" id="pSaveBtn_' + tc.id + '" onclick="saveNote(\'' + tc.id + '\')">Save</button></div></td>' +
+      '<td>' + (tc.procedure ? '<button class="p-proc-btn" onclick="openProc(\'' + tc.id + '\')">View Steps</button>' : '<span style="color:#d1d5db;font-size:12px">—</span>') + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function esc(s) { return (s == null ? '' : String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function toggleDD(id, e) {
+  e.stopPropagation();
+  document.querySelectorAll('.p-s-dd').forEach(d => { if (d.id !== 'pDD_'+id) d.classList.remove('open'); });
+  document.getElementById('pDD_'+id).classList.toggle('open');
+}
+document.addEventListener('click', () => document.querySelectorAll('.p-s-dd').forEach(d => d.classList.remove('open')));
+
+async function setStatus(tcId, status) {
+  document.getElementById('pDD_'+tcId)?.classList.remove('open');
+  const tc = D.testcases.find(t => t.id === tcId);
+  if (!tc) return;
+  const body = { clientStatus: status };
+  if (ENTITY) body.entity = ENTITY;
+  const r = await fetch('/api/portal/' + TOKEN + '/tc/' + tcId, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  });
+  if (r.ok) {
+    tc.clientStatus = status;
+    const pill = document.getElementById('pPill_'+tcId);
+    if (pill) { pill.className = 'p-s-pill p-s-'+status; pill.innerHTML = SL[status] + ' ▾'; }
+    renderProgress();
+    toast('Status updated');
+  } else toast('Failed to save');
+}
+
+async function saveNote(tcId) {
+  const text = document.getElementById('pCmt_'+tcId)?.value || '';
+  const tc = D.testcases.find(t => t.id === tcId);
+  const body = { clientComments: text };
+  if (ENTITY) body.entity = ENTITY;
+  const r = await fetch('/api/portal/' + TOKEN + '/tc/' + tcId, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  });
+  if (r.ok) {
+    if (tc) tc.clientComments = text;
+    const btn = document.getElementById('pSaveBtn_'+tcId);
+    if (btn) { btn.textContent = '✓ Saved'; btn.classList.add('saved'); setTimeout(() => { btn.textContent = 'Save'; btn.classList.remove('saved'); }, 1800); }
+  } else toast('Failed to save');
+}
+
+async function switchEntity(entity) {
+  ENTITY = entity;
+  try {
+    const url = '/api/portal/' + TOKEN + (entity ? '?entity=' + encodeURIComponent(entity) : '');
+    const r = await fetch(url); const j = await r.json();
+    if (j.ok) { D = j.data; renderTesting(); }
+  } catch(e) {}
+}
+
+function openProc(tcId) {
+  const tc = D.testcases.find(t => t.id === tcId);
+  if (!tc?.procedure) return;
+  document.getElementById('pProcSeq').textContent = 'TC-' + tc.seq;
+  document.getElementById('pProcTitle').textContent = tc.testDescription;
+  document.getElementById('pProcContent').innerHTML = tc.procedure;
+  document.getElementById('pProcModal').classList.add('open');
+}
+
+function closeProc() { document.getElementById('pProcModal').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProc(); });
+
+load();
+</script>
+</body>
+</html>

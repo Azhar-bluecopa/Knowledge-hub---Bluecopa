@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=18" defer></script>
+  <script src="/uat.js?v=19" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -6808,6 +6808,7 @@ async function updateFeedbackStatus(id) {
         <div style="margin-left:auto;display:flex;gap:8px">
           <button class="uat-btn uat-btn-primary uat-btn-sm" onclick="UAT.showAddTestModal()">+ Add Test</button>
           <button class="uat-btn uat-btn-secondary uat-btn-sm" onclick="UAT.exportCSV()">⬇ Export CSV</button>
+          <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.sharePortal()" style="border-color:#c9a227;color:#c9a227">🔗 Share Portal</button>
         </div>
       </div>
 
@@ -7164,6 +7165,36 @@ async function updateFeedbackStatus(id) {
           <button type="submit" class="uat-btn uat-btn-primary">Add Client</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ── Modal: Share Portal ──────────────────────────────────────────────── -->
+  <div class="uat-modal-backdrop" id="uatModalSharePortal" onclick="if(event.target===this)UAT.closeSharePortal()">
+    <div class="uat-modal" style="max-width:520px">
+      <div class="uat-modal-header">
+        <div class="uat-modal-title">🔗 Share Client Portal</div>
+        <button class="uat-drawer-close" onclick="UAT.closeSharePortal()">×</button>
+      </div>
+      <div class="uat-modal-body">
+        <p style="font-size:13px;color:#6b7280;margin-bottom:16px;line-height:1.6">
+          Share this link with your client. They will see only their test cases — no internal Bluecopa data.
+        </p>
+        <div class="uat-form-group">
+          <label class="uat-form-label">Full Project Portal</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="uat-form-input" id="uatShareAllLink" readonly onclick="this.select()" style="font-size:12px">
+            <button class="uat-btn uat-btn-secondary uat-btn-sm" onclick="UAT.copyLink(document.getElementById('uatShareAllLink').value)" style="white-space:nowrap">Copy</button>
+          </div>
+        </div>
+        <div id="uatShareEntityLinks" style="margin-top:16px;display:none">
+          <label class="uat-form-label" style="margin-bottom:8px;display:block">Entity-specific Links</label>
+          <div style="font-size:11px;color:#9ca3af;margin-bottom:8px">Each entity gets their own filtered view showing only their test cases' statuses.</div>
+        </div>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid #f1f2f5">
+          <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.regenerateProjectPortal()" style="color:#dc2626;border-color:#dc2626">↺ Regenerate Link</button>
+          <span style="font-size:11px;color:#9ca3af;margin-left:8px">Old link will stop working.</span>
+        </div>
+      </div>
     </div>
   </div>
 

@@ -1272,6 +1272,85 @@ load();
 </script></body></html>`);
 });
 
+// ── Project-level Client Portal ──────────────────────────────────────────────
+app.post('/api/uat/projects/:id/generate-portal', async (req, res) => {
+  await _dbReady; const u = uatDB(); const p = u.projects.find(x => x.id === req.params.id);
+  if (!p) return res.status(404).json({ ok: false, error: 'not found' });
+  if (!p.portalToken) {
+    p.portalToken = require('crypto').randomBytes(24).toString('hex');
+    p.updatedAt = new Date().toISOString();
+    await saveDB(db);
+  }
+  res.json({ ok: true, token: p.portalToken });
+});
+
+app.post('/api/uat/projects/:id/regenerate-portal', async (req, res) => {
+  await _dbReady; const u = uatDB(); const p = u.projects.find(x => x.id === req.params.id);
+  if (!p) return res.status(404).json({ ok: false, error: 'not found' });
+  p.portalToken = require('crypto').randomBytes(24).toString('hex');
+  p.updatedAt = new Date().toISOString();
+  await saveDB(db);
+  res.json({ ok: true, token: p.portalToken });
+});
+
+app.get('/api/portal/:token', async (req, res) => {
+  await _dbReady; const u = uatDB();
+  const p = u.projects.find(x => x.portalToken === req.params.token);
+  if (!p) return res.status(404).json({ ok: false, error: 'invalid link' });
+  const client = u.clients.find(x => x.id === p.clientId);
+  const entity = req.query.entity || '';
+  const testcases = u.testcases.filter(t => t.projectId === p.id).sort((a, b) => a.seq - b.seq);
+  const tcs = testcases.map(tc => {
+    let clientStatus, clientComments;
+    if (entity && tc.entityStatuses) {
+      const es = tc.entityStatuses[entity] || {};
+      clientStatus = es.clientStatus || 'not_tested';
+      clientComments = es.clientComments || '';
+    } else {
+      clientStatus = tc.clientStatus || 'not_tested';
+      clientComments = tc.clientComments || '';
+    }
+    return { id: tc.id, seq: tc.seq,
+      category: tc.category || tc.processArea || '',
+      subCategory: tc.subCategory || tc.module || '',
+      testDescription: tc.testDescription || tc.testScenario || '',
+      expectedResult: tc.expectedResult || '',
+      priority: tc.priority || 'medium', clientStatus, clientComments,
+      procedure: tc.procedure || null };
+  });
+  res.json({ ok: true, data: {
+    project: { id: p.id, name: p.name, description: p.description || '', phase: p.phase,
+      goLiveDate: p.goLiveDate, clientLabel: p.clientLabel || 'Client' },
+    client: client ? { id: client.id, name: client.name } : { id: '', name: 'Client' },
+    entity: entity || null, entities: p.entities || [], testcases: tcs,
+  }});
+});
+
+app.put('/api/portal/:token/tc/:id', async (req, res) => {
+  await _dbReady; const u = uatDB();
+  const p = u.projects.find(x => x.portalToken === req.params.token);
+  if (!p) return res.status(403).json({ ok: false, error: 'invalid token' });
+  const tc = u.testcases.find(x => x.id === req.params.id && x.projectId === p.id);
+  if (!tc) return res.status(404).json({ ok: false, error: 'not found' });
+  const { clientStatus, clientComments, entity } = req.body;
+  if (entity) {
+    if (!tc.entityStatuses) tc.entityStatuses = {};
+    if (!tc.entityStatuses[entity]) tc.entityStatuses[entity] = {};
+    if (clientStatus !== undefined) tc.entityStatuses[entity].clientStatus = clientStatus;
+    if (clientComments !== undefined) tc.entityStatuses[entity].clientComments = clientComments;
+  } else {
+    if (clientStatus !== undefined) tc.clientStatus = clientStatus;
+    if (clientComments !== undefined) tc.clientComments = clientComments;
+  }
+  tc.updatedAt = new Date().toISOString();
+  await saveDB(db);
+  res.json({ ok: true });
+});
+
+app.get('/portal/:token', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'portal.html'));
+});
+
 // ── File upload ───────────────────────────────────────────────────────────────
 app.post('/api/upload', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
