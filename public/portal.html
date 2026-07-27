@@ -153,12 +153,18 @@ tr:hover td{background:#fafafa}
 .p-note-preview:hover{border-color:#c9a227;background:#fffbeb}
 .p-note-preview-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
 .p-note-edit-icon{font-size:11px;color:#9ca3af;flex-shrink:0}
-.p-note-expand-wrap{min-width:180px}
-.p-note-ta{width:100%;border:1px solid #e4e6ea;border-radius:8px;padding:8px 10px;font-size:12px;font-family:inherit;resize:vertical;min-height:60px;color:#0d1117;transition:border-color .15s,box-shadow .15s;line-height:1.5;display:block}
-.p-note-ta:focus{outline:none;border-color:#c9a227;box-shadow:0 0 0 3px rgba(201,162,39,.1)}
-.p-note-ta.req{border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.08)}
-.p-note-ta.req:focus{border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.12)}
-.p-note-hint{font-size:10px;color:#9ca3af;font-weight:600;margin-top:4px}
+.p-note-expand-wrap{min-width:220px}
+.p-note-rich{width:100%;border:1px solid #e4e6ea;border-radius:8px;padding:8px 10px;font-size:12px;font-family:inherit;min-height:64px;color:#0d1117;transition:border-color .15s,box-shadow .15s;line-height:1.5;display:block;outline:none;word-break:break-word;white-space:pre-wrap}
+.p-note-rich:focus{border-color:#c9a227;box-shadow:0 0 0 3px rgba(201,162,39,.1)}
+.p-note-rich.req{border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.08)}
+.p-note-rich.req:focus{border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.12)}
+.p-note-rich:empty:before{content:attr(data-placeholder);color:#9ca3af;pointer-events:none}
+.p-note-rich img{max-width:100%;border-radius:6px;margin:6px 0;display:block;border:1px solid #e4e6ea;cursor:default}
+.p-note-actions{display:flex;align-items:center;justify-content:space-between;margin-top:6px;gap:8px}
+.p-note-hint{font-size:10px;color:#9ca3af;font-weight:600}
+.p-note-save-btn{padding:4px 14px;background:#0d1117;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.p-note-save-btn:hover{background:#374151}
+.p-note-save-btn.saved{background:#15803d}
 .p-note-req-msg{font-size:10px;color:#dc2626;font-weight:700;margin-top:4px;display:none}
 .p-note-req-msg.show{display:block}
 /* Bluecopa status (read-only) */
@@ -452,14 +458,25 @@ function renderTable() {
           ? '<div class="p-note-preview" id="pNotePrev_' + tc.id + '" onclick="expandNote(\'' + tc.id + '\')"><span class="p-note-preview-text">' + previewText + '</span><span class="p-note-edit-icon">✎</span></div>'
           : '<button class="p-note-add" id="pNoteAdd_' + tc.id + '" onclick="expandNote(\'' + tc.id + '\')">+ Add note</button>') +
         '<div class="p-note-expand-wrap" id="pNoteWrap_' + tc.id + '" style="display:none">' +
-          '<textarea class="p-note-ta" id="pCmt_' + tc.id + '" onblur="autoSave(\'' + tc.id + '\')" placeholder="Add notes…">' + esc(tc.clientComments || '') + '</textarea>' +
-          '<div class="p-note-hint">Saves when you click away</div>' +
+          '<div class="p-note-rich" id="pCmt_' + tc.id + '" contenteditable="true" ' +
+            'onblur="autoSave(\'' + tc.id + '\')" ' +
+            'onpaste="handleNotePaste(event,\'' + tc.id + '\')" ' +
+            'data-placeholder="Add notes, paste screenshots…"></div>' +
+          '<div class="p-note-actions">' +
+            '<span class="p-note-hint">Paste screenshots supported · auto-saves on click away</span>' +
+            '<button class="p-note-save-btn" id="pSaveBtn_' + tc.id + '" onmousedown="event.preventDefault()" onclick="manualSave(\'' + tc.id + '\')">Save</button>' +
+          '</div>' +
           '<div class="p-note-req-msg" id="pNoteReq_' + tc.id + '">Comment required for failed tests</div>' +
         '</div>' +
       '</td>' +
       '<td>' + (tc.procedure ? '<button class="p-proc-btn" onclick="openProc(\'' + tc.id + '\')">View Steps</button>' : '<span style="color:#d1d5db;font-size:12px">—</span>') + '</td>' +
     '</tr>';
   }).join('');
+  // Populate contenteditable divs with existing HTML content (can't safely inline)
+  D.testcases.forEach(tc => {
+    const el = document.getElementById('pCmt_' + tc.id);
+    if (el && tc.clientComments) el.innerHTML = tc.clientComments;
+  });
 }
 
 function renderSignoff() {
@@ -534,51 +551,63 @@ function toggleDD(id, e) {
 }
 document.addEventListener('click', () => document.querySelectorAll('.p-s-dd').forEach(d => d.classList.remove('open')));
 
+function stripHtml(html) {
+  const d = document.createElement('div'); d.innerHTML = html;
+  return (d.textContent || d.innerText || '').trim();
+}
+
 function expandNote(tcId, required) {
   const wrap = document.getElementById('pNoteWrap_'+tcId);
-  const ta = document.getElementById('pCmt_'+tcId);
+  const rich = document.getElementById('pCmt_'+tcId);
   const add = document.getElementById('pNoteAdd_'+tcId);
   const prev = document.getElementById('pNotePrev_'+tcId);
-  if (!wrap || !ta) return;
+  if (!wrap || !rich) return;
   if (add) add.style.display = 'none';
   if (prev) prev.style.display = 'none';
   wrap.style.display = 'block';
   if (required) {
-    ta.classList.add('req');
-    ta.placeholder = 'Please describe why this test failed (required)…';
+    rich.classList.add('req');
+    rich.dataset.placeholder = 'Please describe why this test failed (required)…';
     const req = document.getElementById('pNoteReq_'+tcId);
     if (req) req.classList.add('show');
   }
-  ta.focus();
+  // Place cursor at end
+  rich.focus();
+  const range = document.createRange(); const sel = window.getSelection();
+  range.selectNodeContents(rich); range.collapse(false);
+  sel.removeAllRanges(); sel.addRange(range);
 }
 
 function collapseNote(tcId) {
   const wrap = document.getElementById('pNoteWrap_'+tcId);
-  const ta = document.getElementById('pCmt_'+tcId);
+  const rich = document.getElementById('pCmt_'+tcId);
   if (!wrap) return;
   wrap.style.display = 'none';
-  if (ta) { ta.classList.remove('req'); ta.placeholder = 'Add notes…'; }
+  if (rich) { rich.classList.remove('req'); rich.dataset.placeholder = 'Add notes, paste screenshots…'; }
   const req = document.getElementById('pNoteReq_'+tcId);
   if (req) req.classList.remove('show');
+  const btn = document.getElementById('pSaveBtn_'+tcId);
+  if (btn) { btn.textContent = 'Save'; btn.classList.remove('saved'); }
   // Refresh collapsed trigger
   const tc = D.testcases.find(t => t.id === tcId);
-  const comment = tc?.clientComments?.trim() || '';
+  const rawHtml = tc?.clientComments || '';
+  const plainText = stripHtml(rawHtml);
   const add = document.getElementById('pNoteAdd_'+tcId);
   const prev = document.getElementById('pNotePrev_'+tcId);
-  if (comment) {
+  if (plainText) {
+    const snippet = esc(plainText.slice(0,40)) + (plainText.length>40?'…':'');
     if (prev) {
-      prev.innerHTML = '<span class="p-note-preview-text">' + esc(comment.slice(0,40)) + (comment.length>40?'…':'') + '</span><span class="p-note-edit-icon">✎</span>';
+      prev.innerHTML = '<span class="p-note-preview-text">' + snippet + '</span><span class="p-note-edit-icon">✎</span>';
       prev.style.display = '';
     } else {
-      // First time having a comment — replace add button with preview div
       const cell = wrap.parentElement;
       const newPrev = document.createElement('div');
       newPrev.className = 'p-note-preview'; newPrev.id = 'pNotePrev_'+tcId;
-      newPrev.innerHTML = '<span class="p-note-preview-text">' + esc(comment.slice(0,40)) + (comment.length>40?'…':'') + '</span><span class="p-note-edit-icon">✎</span>';
+      newPrev.innerHTML = '<span class="p-note-preview-text">' + snippet + '</span><span class="p-note-edit-icon">✎</span>';
       newPrev.onclick = () => expandNote(tcId);
       cell.insertBefore(newPrev, wrap);
-      if (add) add.style.display = 'none';
     }
+    if (add) add.style.display = 'none';
   } else {
     if (add) add.style.display = '';
     if (prev) prev.style.display = 'none';
@@ -622,43 +651,83 @@ async function saveTcField(tcId, fields) {
   return r.ok;
 }
 
-async function autoSave(tcId) {
-  const ta = document.getElementById('pCmt_'+tcId);
-  if (!ta) return;
-  const text = ta.value.trim();
+function handleNotePaste(e, tcId) {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault();
+      const reader = new FileReader();
+      reader.onload = evt => {
+        const img = document.createElement('img');
+        img.src = evt.target.result;
+        img.style.cssText = 'max-width:100%;border-radius:6px;margin:6px 0;display:block;border:1px solid #e4e6ea';
+        const rich = document.getElementById('pCmt_'+tcId);
+        if (!rich) return;
+        rich.focus();
+        const sel = window.getSelection();
+        if (sel.rangeCount) {
+          const range = sel.getRangeAt(0);
+          range.deleteContents();
+          range.insertNode(img);
+          range.setStartAfter(img); range.collapse(true);
+          sel.removeAllRanges(); sel.addRange(range);
+        } else {
+          rich.appendChild(img);
+        }
+      };
+      reader.readAsDataURL(item.getAsFile());
+      return;
+    }
+  }
+}
+
+async function _doSave(tcId, collapse) {
+  const rich = document.getElementById('pCmt_'+tcId);
+  if (!rich) return;
+  const html = rich.innerHTML.trim();
+  const text = stripHtml(html);
   const tc = D.testcases.find(t => t.id === tcId);
   if (!tc) return;
 
   if (pendingFail[tcId]) {
     if (!text) {
-      ta.classList.add('req');
+      rich.classList.add('req');
       const req = document.getElementById('pNoteReq_'+tcId);
       if (req) req.classList.add('show');
       toast('Please describe why this test failed');
-      setTimeout(() => ta.focus(), 80);
+      setTimeout(() => rich.focus(), 80);
       return;
     }
-    // Save fail + comment together in one request
-    const ok = await saveTcField(tcId, { clientStatus: 'fail', clientComments: text });
+    const ok = await saveTcField(tcId, { clientStatus: 'fail', clientComments: html });
     if (ok) {
-      tc.clientStatus = 'fail'; tc.clientComments = text;
+      tc.clientStatus = 'fail'; tc.clientComments = html;
       delete pendingFail[tcId];
-      collapseNote(tcId);
+      if (collapse) collapseNote(tcId); else flashSaved(tcId);
       renderProgress();
       toast('Saved — issue reported to Bluecopa');
     } else toast('Failed to save');
     return;
   }
 
-  // Regular comment — only save if changed
-  if (text === (tc.clientComments || '').trim()) { collapseNote(tcId); return; }
-  const ok = await saveTcField(tcId, { clientComments: text });
+  if (html === (tc.clientComments || '')) { if (collapse) collapseNote(tcId); return; }
+  const ok = await saveTcField(tcId, { clientComments: html });
   if (ok) {
-    tc.clientComments = text;
-    collapseNote(tcId);
-    toast('Note saved');
+    tc.clientComments = html;
+    if (collapse) collapseNote(tcId); else flashSaved(tcId);
+    if (!collapse) toast('Note saved');
   } else toast('Failed to save');
 }
+
+function flashSaved(tcId) {
+  const btn = document.getElementById('pSaveBtn_'+tcId);
+  if (!btn) return;
+  btn.textContent = '✓ Saved'; btn.classList.add('saved');
+  setTimeout(() => { btn.textContent = 'Save'; btn.classList.remove('saved'); }, 2000);
+}
+
+async function autoSave(tcId) { await _doSave(tcId, true); }
+async function manualSave(tcId) { await _doSave(tcId, false); }
 
 async function switchEntity(entity) {
   ENTITY = entity;
