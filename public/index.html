@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=20" defer></script>
+  <script src="/uat.js?v=21" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -7471,31 +7471,68 @@ async function updateFeedbackStatus(id) {
 </div>
 
 <!-- Sign-off modal -->
-<div id="uatSignoffModal" class="uat-modal-backdrop">
-  <div class="uat-modal">
-    <div class="uat-modal-header">
-      <div class="uat-modal-title">UAT Sign-off</div>
-      <button class="uat-modal-close" onclick="UAT.closeSignoffModal()">✕</button>
+<div id="uatSignoffModal" class="uat-modal-backdrop" onclick="if(event.target===this)UAT.closeSignoffModal()">
+  <div class="uat-modal" style="max-width:560px;overflow:hidden">
+    <div style="background:linear-gradient(135deg,#0d1117 0%,#1a1d27 100%);padding:22px 24px;display:flex;align-items:center;gap:14px">
+      <div style="width:42px;height:42px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.3);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">✍️</div>
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:800;color:#fff">UAT Sign-off</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:2px">Record Bluecopa's internal sign-off. Logged and timestamped.</div>
+      </div>
+      <button class="uat-modal-close" onclick="UAT.closeSignoffModal()" style="color:#6b7280">✕</button>
     </div>
-    <div class="uat-modal-body">
-      <p style="font-size:13px;color:#6b7280;margin:0 0 16px">Record Bluecopa's internal UAT sign-off. This action is logged and timestamped.</p>
-      <div class="uat-form-row">
-        <div class="uat-form-group">
-          <label class="uat-form-label">Signed By (Bluecopa Team Member)</label>
+    <div class="uat-modal-body" style="padding:20px 24px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px">
+        <div class="uat-form-group" style="margin:0">
+          <label class="uat-form-label">Full Name *</label>
           <input class="uat-form-control" id="uatSignoffBy" placeholder="Your name">
         </div>
-      </div>
-      <div class="uat-form-row">
-        <div class="uat-form-group">
-          <label class="uat-form-label">Comments / Conditions</label>
-          <textarea class="uat-form-control" id="uatSignoffComment" rows="3" placeholder="Any remarks or open items noted at sign-off…"></textarea>
+        <div class="uat-form-group" style="margin:0">
+          <label class="uat-form-label">Designation / Role</label>
+          <input class="uat-form-control" id="uatSignoffRole" placeholder="e.g. Project Manager">
         </div>
+        <div class="uat-form-group" style="margin:0">
+          <label class="uat-form-label">Date *</label>
+          <input class="uat-form-control" id="uatSignoffDate" type="date">
+        </div>
+      </div>
+      <div class="uat-form-group" style="margin:0">
+        <label class="uat-form-label">Remarks / Conditions</label>
+        <textarea class="uat-form-control" id="uatSignoffComment" rows="3" placeholder="Any open items or conditions noted at sign-off…"></textarea>
       </div>
     </div>
     <div class="uat-modal-footer">
       <button class="uat-btn uat-btn-ghost" onclick="UAT.closeSignoffModal()">Cancel</button>
       <button class="uat-btn uat-btn-danger" onclick="UAT.submitSignoff(false)">❌ Reject UAT</button>
       <button class="uat-btn uat-btn-primary" onclick="UAT.submitSignoff(true)">✅ Approve UAT</button>
+    </div>
+  </div>
+</div>
+
+<!-- Client note detail modal -->
+<div id="uatClientNoteModal" class="uat-modal-backdrop" onclick="if(event.target===this)UAT.closeClientNoteModal()">
+  <div class="uat-modal" style="max-width:600px">
+    <div class="uat-modal-header">
+      <div class="uat-modal-title" id="uatClientNoteTitle">Client Note</div>
+      <button class="uat-modal-close" onclick="UAT.closeClientNoteModal()">✕</button>
+    </div>
+    <div class="uat-modal-body" id="uatClientNoteBody" style="max-height:520px;overflow-y:auto"></div>
+    <div class="uat-modal-footer">
+      <button class="uat-btn uat-btn-ghost" onclick="UAT.closeClientNoteModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Issue detail modal -->
+<div id="uatIssueDetailModal" class="uat-modal-backdrop" onclick="if(event.target===this)UAT.closeIssueDetail()">
+  <div class="uat-modal" style="max-width:620px" id="uatIssueDetailRef">
+    <div class="uat-modal-header">
+      <div class="uat-modal-title">Issue Details</div>
+      <button class="uat-modal-close" onclick="UAT.closeIssueDetail()">✕</button>
+    </div>
+    <div class="uat-modal-body" id="uatIssueDetailBody" style="max-height:520px;overflow-y:auto"></div>
+    <div class="uat-modal-footer">
+      <button class="uat-btn uat-btn-ghost" onclick="UAT.closeIssueDetail()">Close</button>
     </div>
   </div>
 </div>

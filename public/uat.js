@@ -73,6 +73,35 @@ const UAT = (() => {
     return prefix === 'b' ? (es.bluecopaStatus || 'not_tested') : (es.clientStatus || 'not_tested');
   }
 
+  function getEntityClientComments(tc) {
+    if (!S.filterEntity) return tc.clientComments || '';
+    return ((tc.entityStatuses || {})[S.filterEntity] || {}).clientComments || '';
+  }
+
+  function stripHtmlText(html) {
+    return html.replace(/<[^>]*>/g, '').trim();
+  }
+
+  function clientNoteCell(tc) {
+    const raw = getEntityClientComments(tc);
+    if (!raw) return `<td style="font-size:11px;color:#d1d5db;text-align:center">—</td>`;
+    const plain = stripHtmlText(raw);
+    const hasImg = raw.includes('<img');
+    const preview = plain.slice(0, 38) + (plain.length > 38 ? '…' : '');
+    const imgIcon = hasImg ? '<span style="color:#c9a227;font-size:10px;margin-left:3px" title="Contains screenshot">🖼</span>' : '';
+    return `<td onclick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;gap:6px;max-width:180px">
+        <span style="font-size:11px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${escHtml(preview)}${imgIcon}</span>
+        <button class="uat-btn uat-btn-ghost" style="padding:2px 8px;font-size:10px;white-space:nowrap;flex-shrink:0"
+          onclick="event.stopPropagation();UAT.openClientNoteModal('${tc.id}')">View</button>
+      </div>
+    </td>`;
+  }
+
+  function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
   function priorityBadge(p) {
     const cls = { critical:'pri-critical', high:'pri-high', medium:'pri-medium', low:'pri-low' };
     return `<span class="uat-priority ${cls[p]||'pri-low'}">${PRIORITY_LABELS[p]||p||''}</span>`;
@@ -406,7 +435,7 @@ const UAT = (() => {
             ${statusPill(getEntityStatus(tc,'c'), 'c', tc.id)}
           </td>
           <td style="font-size:11px;color:#6b7280;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tc.bluecopaComments||'—'}</td>
-          <td style="font-size:11px;color:#374151;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tc.clientComments||'—'}</td>
+          ${clientNoteCell(tc)}
           <td onclick="event.stopPropagation()" style="text-align:center;padding:0 8px">
             <button class="uat-del-btn" title="Delete test case" onclick="event.stopPropagation();UAT.deleteTest('${tc.id}')">&#128465;</button>
           </td>
@@ -902,12 +931,15 @@ const UAT = (() => {
     }
     const SEV = { critical: 'pri-critical', high: 'pri-high', medium: 'pri-medium', low: 'pri-low' };
     tbody.innerHTML = S.issues.map(i => `
-      <tr>
+      <tr style="cursor:pointer" onclick="UAT.openIssueDetail('${i.id}')" title="Click to view details">
         <td><span style="font-size:11px;font-family:monospace;font-weight:700;color:#6b7280">${i.ref}</span></td>
-        <td>${i.title}</td>
-        <td><span class="uat-priority ${SEV[i.severity]||'pri-low'}">${i.severity||'med'}</span></td>
+        <td>
+          <div style="font-weight:600;font-size:13px;color:#0d1117">${escHtml(i.title)}</div>
+          ${i.source==='client_portal'?'<span style="font-size:10px;font-weight:700;color:#c9a227;background:rgba(201,162,39,.1);border-radius:4px;padding:1px 6px">Client Portal</span>':''}
+        </td>
+        <td><span class="uat-priority ${SEV[(i.severity||'').toLowerCase()]||'pri-low'}">${i.severity||'Med'}</span></td>
         <td><span class="uat-status-pill ${i.status==='open'?'fail':i.status==='resolved'?'pass':'in_progress'}" style="pointer-events:none">${i.status}</span></td>
-        <td>${i.assignedTo || '—'}</td>
+        <td>${escHtml(i.assignedTo || '—')}</td>
         <td>${relTime(i.createdAt)}</td>
       </tr>`).join('');
   }
@@ -1092,24 +1124,83 @@ const UAT = (() => {
     toast('New portal link generated');
   }
 
+  /* ── Client Note detail modal ───────────────────────────────────────────── */
+  function openClientNoteModal(tcId) {
+    const tc = S.testcases.find(x => x.id === tcId);
+    if (!tc) return;
+    const raw = getEntityClientComments(tc);
+    const titleEl = el('uatClientNoteTitle');
+    const bodyEl = el('uatClientNoteBody');
+    if (titleEl) titleEl.textContent = `TC-${tc.seq} — Client Note`;
+    if (bodyEl) {
+      if (!raw) {
+        bodyEl.innerHTML = '<p style="color:#9ca3af;font-size:13px">No note recorded.</p>';
+      } else {
+        // Render HTML content (includes pasted images)
+        bodyEl.innerHTML = `<div style="font-size:13px;line-height:1.7;color:#0d1117;word-break:break-word">${raw}</div>`;
+      }
+    }
+    el('uatClientNoteModal')?.classList.add('open');
+  }
+
+  function closeClientNoteModal() { el('uatClientNoteModal')?.classList.remove('open'); }
+
+  /* ── Issue detail modal ──────────────────────────────────────────────────── */
+  function openIssueDetail(id) {
+    const i = S.issues.find(x => x.id === id);
+    if (!i) return;
+    const SEV_CLS = { critical:'pri-critical', high:'pri-high', medium:'pri-medium', low:'pri-low' };
+    const STATUS_CLS = { open:'fail', resolved:'pass', in_progress:'in_progress', closed:'pass' };
+    const tc = S.testcases.find(x => x.id === i.testCaseId);
+    const bodyEl = el('uatIssueDetailBody');
+    if (bodyEl) bodyEl.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+        <span style="font-size:12px;font-family:monospace;font-weight:700;color:#6b7280;background:#f4f5f7;border-radius:6px;padding:3px 10px">${escHtml(i.ref)}</span>
+        <span class="uat-priority ${SEV_CLS[(i.severity||'').toLowerCase()]||'pri-low'}">${escHtml(i.severity||'Med')}</span>
+        <span class="uat-status-pill ${STATUS_CLS[i.status]||'in_progress'}" style="pointer-events:none">${escHtml(i.status)}</span>
+        ${i.source==='client_portal'?'<span style="font-size:11px;font-weight:700;color:#c9a227;background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.2);border-radius:6px;padding:3px 10px">Client Portal</span>':''}
+      </div>
+      <div style="font-size:16px;font-weight:800;color:#0d1117;margin-bottom:16px;line-height:1.4">${escHtml(i.title)}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;background:#f8f9fa;border-radius:8px;padding:14px">
+        <div><div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Test Case</div>
+          <div style="font-size:12px;font-weight:600;color:#374151">${tc ? `TC-${tc.seq}: ${tc.testDescription?.slice(0,50)||''}…` : i.testCaseId||'—'}</div></div>
+        <div><div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Assigned To</div>
+          <div style="font-size:12px;font-weight:600;color:#374151">${escHtml(i.assignedTo||'—')}</div></div>
+        <div><div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Raised</div>
+          <div style="font-size:12px;font-weight:600;color:#374151">${i.createdAt ? new Date(i.createdAt).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div></div>
+      </div>
+      ${i.description ? `
+        <div style="margin-bottom:8px">
+          <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Description / Client Notes</div>
+          <div style="font-size:13px;line-height:1.7;color:#0d1117;border:1px solid #e4e6ea;border-radius:8px;padding:14px;word-break:break-word">${i.description}</div>
+        </div>` : ''}
+      ${i.resolution ? `
+        <div style="margin-top:16px">
+          <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Resolution</div>
+          <div style="font-size:13px;line-height:1.6;color:#0d1117;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px">${escHtml(i.resolution)}</div>
+        </div>` : ''}`;
+    el('uatIssueDetailRef')?.setAttribute('data', id);
+    el('uatIssueDetailModal')?.classList.add('open');
+  }
+
+  function closeIssueDetail() { el('uatIssueDetailModal')?.classList.remove('open'); }
+
   /* ── Admin Sign-off ─────────────────────────────────────────────────────── */
   function openSignoffModal() {
     if (!S.activeProjectId) return toast('Select a project first', 'error');
     el('uatSignoffBy').value = '';
+    if (el('uatSignoffRole')) el('uatSignoffRole').value = '';
+    if (el('uatSignoffDate')) el('uatSignoffDate').value = new Date().toISOString().slice(0,10);
     el('uatSignoffComment').value = '';
-    const modal = el('uatSignoffModal');
-    if (modal) modal.classList.add('open');
+    el('uatSignoffModal')?.classList.add('open');
   }
 
-  function closeSignoffModal() {
-    const modal = el('uatSignoffModal');
-    if (modal) modal.classList.remove('open');
-  }
+  function closeSignoffModal() { el('uatSignoffModal')?.classList.remove('open'); }
 
   async function submitSignoff(approve) {
     const signedBy = (el('uatSignoffBy')?.value || '').trim();
     const comment = (el('uatSignoffComment')?.value || '').trim();
-    if (!signedBy) { toast('Please enter the name', 'error'); el('uatSignoffBy')?.focus(); return; }
+    if (!signedBy) { toast('Please enter your name', 'error'); el('uatSignoffBy')?.focus(); return; }
     const r = await api('POST', `/api/uat/projects/${S.activeProjectId}/signoff`, { approve, signedBy, comment });
     if (r.ok) {
       const p = S.projects.find(x => x.id === S.activeProjectId);
@@ -1174,5 +1265,9 @@ const UAT = (() => {
     openSignoffModal,
     closeSignoffModal,
     submitSignoff,
+    openClientNoteModal,
+    closeClientNoteModal,
+    openIssueDetail,
+    closeIssueDetail,
   };
 })();
