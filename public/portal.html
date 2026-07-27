@@ -529,7 +529,7 @@ async function submitSignoff() {
   if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
   const r = await fetch('/api/portal/' + TOKEN + '/signoff', {
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, role, date })
+    body: JSON.stringify({ name, role, date, entity: ENTITY || undefined })
   });
   if (r.ok) {
     const j = await r.json();
