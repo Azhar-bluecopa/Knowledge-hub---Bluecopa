@@ -373,11 +373,19 @@ function renderLanding() {
   if (D.project.phase) meta.push(D.project.phase);
   if (D.project.goLiveDate) meta.push('Go-live: ' + D.project.goLiveDate);
   document.getElementById('pHeroMeta').textContent = meta.join(' · ');
-  const total = D.testcases.length;
-  const pass = D.testcases.filter(t => t.clientStatus === 'pass').length;
-  const pct = total ? Math.round(pass / total * 100) : 0;
+  const tcTotal = D.testcases.length;
+  let pass, aggTotal, pct;
+  if (D.entityAggregate) {
+    // Multi-entity: progress = pairs passed / total pairs
+    aggTotal = D.entityAggregate.total;
+    pass = D.entityAggregate.pass;
+    pct = aggTotal ? Math.round(pass / aggTotal * 100) : 0;
+  } else {
+    pass = D.testcases.filter(t => t.clientStatus === 'pass').length;
+    pct = tcTotal ? Math.round(pass / tcTotal * 100) : 0;
+  }
   document.getElementById('pHeroStats').innerHTML =
-    hStat(total, 'Test Cases') + hStat(pass, 'Passed', '#22c55e') + hStat(pct + '%', 'Complete', '#c9a227');
+    hStat(tcTotal, 'Test Cases') + hStat(pass, 'Passed', '#22c55e') + hStat(pct + '%', 'Complete', '#c9a227');
 }
 
 function hStat(val, lbl, color) {
@@ -414,15 +422,23 @@ function renderEntityTabs() {
 }
 
 function renderProgress() {
-  const tcs = D.testcases;
-  const total = tcs.length, pass = tcs.filter(t => t.clientStatus === 'pass').length,
-    fail = tcs.filter(t => t.clientStatus === 'fail').length,
-    blocked = tcs.filter(t => t.clientStatus === 'blocked').length,
-    pct = total ? Math.round(pass / total * 100) : 0;
+  let total, pass, fail, blocked, pending;
+  if (!ENTITY && D.entityAggregate) {
+    // All tab with multiple entities: count entity×TC pairs
+    ({ total, pass, fail, blocked, pending } = D.entityAggregate);
+  } else {
+    const tcs = D.testcases;
+    total = tcs.length;
+    pass = tcs.filter(t => t.clientStatus === 'pass').length;
+    fail = tcs.filter(t => t.clientStatus === 'fail').length;
+    blocked = tcs.filter(t => t.clientStatus === 'blocked').length;
+    pending = total - pass - fail - blocked;
+  }
+  const pct = total ? Math.round(pass / total * 100) : 0;
   document.getElementById('pTopProg').textContent = pass + '/' + total + ' Passed';
   document.getElementById('pProgressCard').innerHTML =
     pStat(total,'Total') + pStat(pass,'Pass','#22c55e') + pStat(fail,'Fail','#dc2626') +
-    pStat(blocked,'Blocked','#b45309') + pStat(total-pass-fail-blocked,'Pending','#6b7280') +
+    pStat(blocked,'Blocked','#b45309') + pStat(pending,'Pending','#6b7280') +
     '<div class="p-bar-wrap"><div class="p-bar-label"><span>Overall Progress</span><span>' + pct + '%</span></div>' +
     '<div class="p-bar-bg"><div class="p-bar-fill" style="width:' + pct + '%"></div></div></div>';
 }

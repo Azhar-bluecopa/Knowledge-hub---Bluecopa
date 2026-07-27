@@ -1445,11 +1445,29 @@ app.get('/api/portal/:token', async (req, res) => {
       bluecopaStatus, bluecopaComments,
       procedure:tc.procedure||null };
   });
+  // Compute per-entity-TC pair aggregate for All tab (client perspective)
+  let entityAggregate=null;
+  if (!entity&&entityList.length>0) {
+    let total=0,pass=0,fail=0,blocked=0,inProg=0;
+    testcases.forEach(tc=>{
+      const es=tc.entityStatuses||{};
+      entityList.forEach(e=>{
+        total++;
+        const st=(es[e]?.clientStatus)||'not_tested';
+        if(st==='pass')pass++;
+        else if(st==='fail')fail++;
+        else if(st==='blocked')blocked++;
+        else if(st==='in_progress')inProg++;
+      });
+    });
+    entityAggregate={total,pass,fail,blocked,inProgress:inProg,pending:total-pass-fail-blocked-inProg};
+  }
   res.json({ ok:true, data:{
     project:{ id:p.id, name:p.name, description:p.description||'', phase:p.phase,
       goLiveDate:p.goLiveDate, clientLabel:p.clientLabel||'Client' },
     client:client?{ id:client.id, name:client.name }:{ id:'', name:'Client' },
     entity:entity||null, entities:p.entities||[], testcases:tcs,
+    entityAggregate,
     signoff:((p.entitySignoffs||{})[entity||''])||null,
   }});
 });
