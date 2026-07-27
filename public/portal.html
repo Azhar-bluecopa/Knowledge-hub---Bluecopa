@@ -365,11 +365,6 @@ function showError() {
 function renderLanding() {
   document.title = 'UAT Portal — ' + D.client.name;
   document.getElementById('pHeroClient').textContent = D.client.name;
-  document.getElementById('pHeroProject').textContent = D.project.name;
-  const meta = [];
-  if (D.project.phase) meta.push(D.project.phase);
-  if (D.project.goLiveDate) meta.push('Go-live: ' + D.project.goLiveDate);
-  document.getElementById('pHeroMeta').textContent = meta.join(' · ');
 }
 
 function startTesting() {
