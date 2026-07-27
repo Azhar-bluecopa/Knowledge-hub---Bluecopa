@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=21" defer></script>
+  <script src="/uat.js?v=22" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -7511,12 +7511,18 @@ async function updateFeedbackStatus(id) {
 
 <!-- Client note detail modal -->
 <div id="uatClientNoteModal" class="uat-modal-backdrop" onclick="if(event.target===this)UAT.closeClientNoteModal()">
-  <div class="uat-modal" style="max-width:600px">
+  <div class="uat-modal" id="uatClientNoteInner" style="max-width:600px;transition:max-width .2s,width .2s">
     <div class="uat-modal-header">
       <div class="uat-modal-title" id="uatClientNoteTitle">Client Note</div>
-      <button class="uat-modal-close" onclick="UAT.closeClientNoteModal()">✕</button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button id="uatClientNoteMaxBtn" title="Maximize" onclick="UAT.toggleMaxClientNote()"
+          style="background:none;border:1px solid #e4e6ea;border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:15px;color:#374151;display:flex;align-items:center;justify-content:center;transition:all .15s;line-height:1"
+          onmouseover="this.style.borderColor='#0d1117';this.style.color='#0d1117'"
+          onmouseout="this.style.borderColor='#e4e6ea';this.style.color='#374151'">⤢</button>
+        <button class="uat-modal-close" onclick="UAT.closeClientNoteModal()">✕</button>
+      </div>
     </div>
-    <div class="uat-modal-body" id="uatClientNoteBody" style="max-height:520px;overflow-y:auto"></div>
+    <div class="uat-modal-body" id="uatClientNoteBody" style="max-height:520px;overflow-y:auto;transition:max-height .2s"></div>
     <div class="uat-modal-footer">
       <button class="uat-btn uat-btn-ghost" onclick="UAT.closeClientNoteModal()">Close</button>
     </div>

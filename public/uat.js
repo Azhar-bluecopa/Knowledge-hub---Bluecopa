@@ -74,8 +74,26 @@ const UAT = (() => {
   }
 
   function getEntityClientComments(tc) {
-    if (!S.filterEntity) return tc.clientComments || '';
-    return ((tc.entityStatuses || {})[S.filterEntity] || {}).clientComments || '';
+    if (S.filterEntity) {
+      return ((tc.entityStatuses || {})[S.filterEntity] || {}).clientComments || '';
+    }
+    // All Entities: project-level first, then first entity-specific note found
+    if (tc.clientComments) return tc.clientComments;
+    const es = tc.entityStatuses || {};
+    for (const key of Object.keys(es)) {
+      if (es[key]?.clientComments) return es[key].clientComments;
+    }
+    return '';
+  }
+
+  function getAllEntityNotes(tc) {
+    const parts = [];
+    if (tc.clientComments) parts.push({ label: 'General', content: tc.clientComments });
+    const es = tc.entityStatuses || {};
+    for (const key of Object.keys(es)) {
+      if (es[key]?.clientComments) parts.push({ label: key, content: es[key].clientComments });
+    }
+    return parts;
   }
 
   function stripHtmlText(html) {
@@ -1128,22 +1146,63 @@ const UAT = (() => {
   function openClientNoteModal(tcId) {
     const tc = S.testcases.find(x => x.id === tcId);
     if (!tc) return;
-    const raw = getEntityClientComments(tc);
     const titleEl = el('uatClientNoteTitle');
     const bodyEl = el('uatClientNoteBody');
     if (titleEl) titleEl.textContent = `TC-${tc.seq} — Client Note`;
     if (bodyEl) {
-      if (!raw) {
-        bodyEl.innerHTML = '<p style="color:#9ca3af;font-size:13px">No note recorded.</p>';
+      if (S.filterEntity) {
+        // Single entity view
+        const raw = ((tc.entityStatuses || {})[S.filterEntity] || {}).clientComments || tc.clientComments || '';
+        bodyEl.innerHTML = raw
+          ? `<div style="font-size:13px;line-height:1.7;color:#0d1117;word-break:break-word">${raw}</div>`
+          : '<p style="color:#9ca3af;font-size:13px">No note recorded for this entity.</p>';
       } else {
-        // Render HTML content (includes pasted images)
-        bodyEl.innerHTML = `<div style="font-size:13px;line-height:1.7;color:#0d1117;word-break:break-word">${raw}</div>`;
+        // All Entities: show per-entity notes grouped
+        const parts = getAllEntityNotes(tc);
+        if (!parts.length) {
+          bodyEl.innerHTML = '<p style="color:#9ca3af;font-size:13px">No note recorded.</p>';
+        } else {
+          bodyEl.innerHTML = parts.map(p => `
+            <div style="margin-bottom:${parts.length > 1 ? 20 : 0}px">
+              ${parts.length > 1 ? `<div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:3px 10px;background:#f4f5f7;border-radius:6px;display:inline-block">${escHtml(p.label)}</div>` : ''}
+              <div style="font-size:13px;line-height:1.7;color:#0d1117;word-break:break-word">${p.content}</div>
+            </div>`).join('<hr style="border:none;border-top:1px solid #f1f2f5;margin:0 0 16px">');
+        }
       }
     }
+    // Reset maximize state on open
+    const inner = el('uatClientNoteInner');
+    if (inner) { inner.style.maxWidth = '600px'; inner.style.width = ''; inner.dataset.maximized = '0'; }
+    const maxBtn = el('uatClientNoteMaxBtn');
+    if (maxBtn) maxBtn.innerHTML = '⤢';
     el('uatClientNoteModal')?.classList.add('open');
   }
 
-  function closeClientNoteModal() { el('uatClientNoteModal')?.classList.remove('open'); }
+  function closeClientNoteModal() {
+    el('uatClientNoteModal')?.classList.remove('open');
+    // Reset maximize state
+    const inner = el('uatClientNoteInner');
+    if (inner) { inner.style.maxWidth = '600px'; inner.style.width = ''; inner.dataset.maximized = '0'; }
+  }
+
+  function toggleMaxClientNote() {
+    const inner = el('uatClientNoteInner');
+    const body = el('uatClientNoteBody');
+    const btn = el('uatClientNoteMaxBtn');
+    if (!inner) return;
+    const isMax = inner.dataset.maximized === '1';
+    if (!isMax) {
+      inner.style.maxWidth = '94vw'; inner.style.width = '94vw';
+      body.style.maxHeight = '76vh';
+      inner.dataset.maximized = '1';
+      if (btn) { btn.innerHTML = '⊡'; btn.title = 'Restore'; }
+    } else {
+      inner.style.maxWidth = '600px'; inner.style.width = '';
+      body.style.maxHeight = '520px';
+      inner.dataset.maximized = '0';
+      if (btn) { btn.innerHTML = '⤢'; btn.title = 'Maximize'; }
+    }
+  }
 
   /* ── Issue detail modal ──────────────────────────────────────────────────── */
   function openIssueDetail(id) {
@@ -1267,6 +1326,7 @@ const UAT = (() => {
     submitSignoff,
     openClientNoteModal,
     closeClientNoteModal,
+    toggleMaxClientNote,
     openIssueDetail,
     closeIssueDetail,
   };
