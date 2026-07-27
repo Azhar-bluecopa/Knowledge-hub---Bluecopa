@@ -193,7 +193,7 @@ const UAT = (() => {
 
   function renderDashboard(d) {
     const allTCs = d.totalTests;
-    el('uatDash_clients').textContent = d.totalClients;
+    if (el('uatDash_clients')) el('uatDash_clients').textContent = d.totalClients;
     el('uatDash_projects').textContent = d.activeProjects;
     el('uatDash_tests').textContent = allTCs;
     el('uatDash_issues').textContent = d.openIssues;
