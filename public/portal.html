@@ -30,50 +30,69 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f1f2f5;color:#0d1117
 .p-spin{width:40px;height:40px;border:3px solid rgba(201,162,39,.2);border-top-color:#c9a227;border-radius:50%;animation:spin .7s linear infinite}
 .p-loading-text{font-size:13px;color:#4b5563;font-weight:600;animation:pulse 1.5s ease infinite}
 
-/* ── Landing ── */
-.p-landing{min-height:100vh;display:flex;flex-direction:column}
-.p-header{padding:0 40px;background:rgba(13,17,23,.95);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.06);height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
-.p-header-logo{display:flex;align-items:center;gap:10px}
-.p-header-logo img{width:28px;height:28px;border-radius:6px}
+/* ── Shared: brand logo used in testing topbar ── */
 .p-logo{font-size:17px;font-weight:800;color:#fff;letter-spacing:-.3px}
 .p-logo span{color:#c9a227}
-.p-header-tag{font-size:10px;font-weight:700;color:#4b5563;letter-spacing:1px;text-transform:uppercase}
 
-/* Hero */
-.p-hero{flex:1;background:#0d1117;display:flex;align-items:center;justify-content:center;padding:64px 24px;position:relative;overflow:hidden}
-/* Ambient glow layers */
-.p-hero::before{content:'';position:absolute;top:-20%;left:50%;transform:translateX(-50%);width:800px;height:500px;background:radial-gradient(ellipse,rgba(201,162,39,.07) 0%,transparent 70%);pointer-events:none}
-.p-hero::after{content:'';position:absolute;bottom:-10%;right:-5%;width:500px;height:400px;background:radial-gradient(ellipse,rgba(59,130,246,.05) 0%,transparent 70%);pointer-events:none}
-/* Subtle grid lines */
-.p-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:64px 64px;pointer-events:none}
+/* ── Landing — redesigned split layout ── */
+.p-landing{display:flex;min-height:100vh;background:#0a0c14;overflow:hidden}
 
-.p-hero-card{max-width:580px;width:100%;text-align:center;position:relative;z-index:1}
+/* Left identity panel */
+.pl-left{flex:0 0 58%;position:relative;display:flex;flex-direction:column;padding:40px 56px 48px;overflow:hidden;border-right:1px solid rgba(255,255,255,.06)}
+.pl-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:56px 56px;pointer-events:none}
+.pl-glow{position:absolute;top:-20%;left:-10%;width:75%;height:75%;background:radial-gradient(ellipse,rgba(201,162,39,.09) 0%,transparent 65%);pointer-events:none;animation:float 8s ease-in-out infinite}
+.pl-glow2{position:absolute;bottom:-20%;right:5%;width:55%;height:55%;background:radial-gradient(ellipse,rgba(29,184,142,.07) 0%,transparent 65%);pointer-events:none;animation:float 10s ease-in-out 2s infinite}
+.pl-header{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;animation:fadeIn .4s ease both}
+.pl-logo{display:flex;align-items:center;gap:10px}
+.pl-logo img{width:32px;height:32px;border-radius:8px}
+.pl-brand{font-size:16px;font-weight:800;color:#f0f0f6;letter-spacing:-.2px}
+.pl-brand span{color:#c9a227}
+.pl-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.22);border-radius:99px;padding:6px 14px;font-size:11px;font-weight:700;color:#c9a227;letter-spacing:.5px;text-transform:uppercase}
+.pl-badge-dot{width:6px;height:6px;border-radius:50%;background:#c9a227;animation:pulse 1.8s ease infinite}
+.pl-content{flex:1;display:flex;flex-direction:column;justify-content:center;position:relative;z-index:1;padding:64px 0 48px}
+.pl-eyebrow{font-size:11px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:16px;animation:fadeUp .6s ease .15s both}
+.pl-client{font-size:52px;font-weight:800;color:#f0f0f6;line-height:1.08;margin-bottom:12px;letter-spacing:-.8px;animation:fadeUp .6s ease .3s both;max-width:600px}
+.pl-project{font-size:14px;color:#8a92a0;font-weight:500;animation:fadeUp .6s ease .45s both}
+.pl-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;animation:fadeUp .6s ease .5s both}
+.pl-meta-tag{display:inline-flex;align-items:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:6px;padding:4px 12px;font-size:11px;font-weight:600;color:#6b7280;font-family:'DM Mono',monospace;letter-spacing:.2px}
+.pl-divider{height:1px;background:linear-gradient(90deg,rgba(201,162,39,.3),rgba(255,255,255,.04),transparent);margin:32px 0;animation:fadeIn .6s ease .6s both;max-width:480px}
+.pl-cta{display:inline-flex;align-items:center;gap:12px;background:#c9a227;color:#0a0c14;border:none;border-radius:8px;padding:16px 40px;font-size:14px;font-weight:800;cursor:pointer;transition:all .22s;font-family:inherit;letter-spacing:.2px;position:relative;overflow:hidden;animation:fadeUp .6s ease .7s both;box-shadow:0 4px 24px rgba(201,162,39,.28),0 1px 4px rgba(0,0,0,.2);align-self:flex-start}
+.pl-cta::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15) 0%,transparent 50%)}
+.pl-cta:hover{background:#d4ae35;transform:translateY(-2px);box-shadow:0 8px 32px rgba(201,162,39,.45),0 2px 8px rgba(0,0,0,.2)}
+.pl-cta-arrow{display:inline-block;transition:transform .22s}
+.pl-cta:hover .pl-cta-arrow{transform:translateX(4px)}
+.pl-footer-text{margin-top:20px;font-size:12px;color:#374151;line-height:1.7;max-width:420px;animation:fadeIn .6s ease .9s both}
 
-/* Big logo in hero */
-.p-hero-logo-wrap{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:32px}
-.p-hero-icon{width:64px;height:64px;border-radius:16px;box-shadow:0 0 0 1px rgba(255,255,255,.08),0 8px 32px rgba(0,0,0,.4);animation:float 4s ease-in-out infinite}
-.p-hero-brand{text-align:left}
-.p-hero-brand-name{font-size:28px;font-weight:800;color:#fff;letter-spacing:-.5px;line-height:1}
-.p-hero-brand-name span{color:#c9a227}
-.p-hero-brand-sub{font-size:11px;font-weight:600;color:#4b5563;text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+/* Right stats panel */
+.pl-right{flex:1;display:flex;flex-direction:column;justify-content:center;padding:56px 44px;gap:16px;background:#060810;position:relative;overflow:hidden}
+.pl-right-glow{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);width:500px;height:500px;background:radial-gradient(ellipse,rgba(201,162,39,.05) 0%,transparent 60%);pointer-events:none}
+.pl-right-title{font-size:10px;font-weight:700;color:#1f2937;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:4px;animation:fadeIn .5s ease .25s both}
+#pHeroStats{display:flex;flex-direction:column;gap:16px}
 
-.p-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.22);border-radius:99px;padding:6px 16px;font-size:11px;font-weight:700;color:#c9a227;letter-spacing:.6px;text-transform:uppercase;margin-bottom:24px;animation:badgePop .5s cubic-bezier(.4,0,.2,1) .1s both}
-.p-badge-dot{width:6px;height:6px;border-radius:50%;background:#c9a227;animation:pulse 1.8s ease infinite}
+/* Stat cards */
+.pl-card{background:rgba(255,255,255,.032);border:1px solid rgba(255,255,255,.065);border-radius:12px;padding:24px 28px;position:relative;overflow:hidden;transition:transform .25s,background .25s,border-color .25s}
+.pl-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.09),transparent)}
+.pl-card:hover{background:rgba(255,255,255,.052);border-color:rgba(255,255,255,.11);transform:translateY(-2px)}
+.pl-card-1{animation:fadeUp .55s ease .35s both}
+.pl-card-2{animation:fadeUp .55s ease .5s both}
+.pl-card-3{animation:fadeUp .55s ease .65s both}
+.pl-card-icon{font-size:18px;margin-bottom:10px;display:block;opacity:.9}
+.pl-card-label{font-size:10px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.pl-card-value{font-size:42px;font-weight:800;color:#f0f0f6;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.pl-card-value.c-green{color:#22c55e}
+.pl-card-value.c-gold{color:#c9a227}
+.pl-card-sub{font-size:11px;color:#2d3748;margin-top:8px;line-height:1.5}
+.pl-card-bar-bg{background:rgba(255,255,255,.06);border-radius:99px;height:5px;overflow:hidden;margin-top:16px}
+.pl-card-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#c9a227,#e8c549);transition:width 1.2s cubic-bezier(.4,0,.2,1);width:0%}
+.pl-powered{font-size:10px;font-weight:600;color:#111827;text-align:center;letter-spacing:.3px;animation:fadeIn .5s ease 1s both}
 
-.p-welcome{font-size:12px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:8px}
-.p-client-name{font-size:40px;font-weight:800;color:#fff;line-height:1.15;margin-bottom:8px;letter-spacing:-.5px}
-.p-project-name{font-size:14px;color:#6b7280;font-weight:500;margin-bottom:4px}
-.p-project-meta{font-size:12px;color:#374151;margin-bottom:0}
-.p-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);margin:28px 0}
-
-.p-hero-stats{display:flex;justify-content:center;gap:40px;margin-bottom:36px}
-.p-stat-val{font-size:32px;font-weight:800;color:#fff;line-height:1}
-.p-stat-lbl{font-size:10px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-top:5px}
-
-.p-btn-start{display:inline-flex;align-items:center;gap:10px;background:#c9a227;color:#0d1117;border:none;border-radius:8px;padding:14px 36px;font-size:14px;font-weight:800;cursor:pointer;transition:all .2s;font-family:inherit;letter-spacing:.2px;position:relative;overflow:hidden}
-.p-btn-start::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15) 0%,transparent 50%)}
-.p-btn-start:hover{background:#d4ae35;transform:translateY(-2px);box-shadow:0 8px 28px rgba(201,162,39,.4)}
-.p-hero-footer{margin-top:16px;font-size:12px;color:#374151;line-height:1.6}
+@media(max-width:900px){
+  .p-landing{flex-direction:column}
+  .pl-left{flex:none;padding:32px 32px 40px;border-right:none;border-bottom:1px solid rgba(255,255,255,.06)}
+  .pl-client{font-size:36px}
+  .pl-content{padding:40px 0 32px}
+  .pl-right{padding:40px 32px}
+}
 
 /* ── Testing page ── */
 .p-testing{display:none;flex-direction:column;min-height:100vh}
@@ -246,37 +265,34 @@ tr:hover td{background:#fafafa}
 
 <!-- Landing Page -->
 <div id="pLanding" class="p-landing" style="display:none">
-  <div class="p-header">
-    <div class="p-header-logo anim-fade-in">
-      <img src="/bluecopa-icon.png" alt="Bluecopa">
-      <div class="p-logo">Blue<span>copa</span></div>
+  <!-- Left: identity panel -->
+  <div class="pl-left">
+    <div class="pl-grid"></div>
+    <div class="pl-glow"></div>
+    <div class="pl-glow2"></div>
+    <div class="pl-header">
+      <div class="pl-logo">
+        <img src="/bluecopa-icon.png" alt="Bluecopa">
+        <div class="pl-brand">Blue<span>copa</span></div>
+      </div>
+      <div class="pl-badge"><span class="pl-badge-dot"></span>UAT Portal</div>
     </div>
-    <div class="p-header-tag anim-fade-in d1">Implementation Portal</div>
+    <div class="pl-content">
+      <div class="pl-eyebrow">Welcome to your</div>
+      <div class="pl-client" id="pHeroClient">—</div>
+      <div class="pl-project" id="pHeroProject"></div>
+      <div class="pl-meta" id="pHeroMeta"></div>
+      <div class="pl-divider"></div>
+      <button class="pl-cta" onclick="startTesting()">Begin Testing <span class="pl-cta-arrow">→</span></button>
+      <div class="pl-footer-text">Review test cases, mark your status, and add notes to track your progress.</div>
+    </div>
   </div>
-  <div class="p-hero">
-    <div class="p-hero-grid"></div>
-    <div class="p-hero-card">
-      <!-- Big logo -->
-      <div class="p-hero-logo-wrap anim-scale-in">
-        <img src="/bluecopa-icon.png" alt="Bluecopa" class="p-hero-icon">
-        <div class="p-hero-brand">
-          <div class="p-hero-brand-name">Blue<span>copa</span></div>
-          <div class="p-hero-brand-sub">Implementation Portal</div>
-        </div>
-      </div>
-
-      <div class="p-badge anim-fade-up d1"><span class="p-badge-dot"></span>Bluecopa UAT Portal</div>
-      <div class="p-welcome anim-fade-up d2">Welcome to your</div>
-      <div class="p-client-name anim-fade-up d3" id="pHeroClient">—</div>
-      <div class="p-project-name anim-fade-up d4" id="pHeroProject"></div>
-      <div class="p-project-meta anim-fade-up d4" id="pHeroMeta"></div>
-      <div class="p-divider anim-fade-in d4"></div>
-      <div class="p-hero-stats anim-fade-up d5" id="pHeroStats"></div>
-      <div class="anim-fade-up d6">
-        <button class="p-btn-start" onclick="startTesting()">Begin Testing →</button>
-      </div>
-      <div class="p-hero-footer anim-fade-in d6">Review test cases, mark your status, and add notes to track your progress.</div>
-    </div>
+  <!-- Right: stats panel -->
+  <div class="pl-right">
+    <div class="pl-right-glow"></div>
+    <div class="pl-right-title">Project Overview</div>
+    <div id="pHeroStats"></div>
+    <div class="pl-powered">Powered by Bluecopa Implementation Suite</div>
   </div>
 </div>
 
@@ -372,25 +388,63 @@ function renderLanding() {
   const meta = [];
   if (D.project.phase) meta.push(D.project.phase);
   if (D.project.goLiveDate) meta.push('Go-live: ' + D.project.goLiveDate);
-  document.getElementById('pHeroMeta').textContent = meta.join(' · ');
+  document.getElementById('pHeroMeta').innerHTML = meta.map(m => '<span class="pl-meta-tag">' + m + '</span>').join('');
+
   const tcTotal = D.testcases.length;
-  let pass, aggTotal, pct;
+  let pass, aggTotal, pct, fail, blocked, pending;
   if (D.entityAggregate) {
-    // Multi-entity: progress = pairs passed / total pairs
     aggTotal = D.entityAggregate.total;
     pass = D.entityAggregate.pass;
+    fail = D.entityAggregate.fail || 0;
+    blocked = D.entityAggregate.blocked || 0;
+    pending = D.entityAggregate.pending || 0;
     pct = aggTotal ? Math.round(pass / aggTotal * 100) : 0;
   } else {
+    aggTotal = tcTotal;
     pass = D.testcases.filter(t => t.clientStatus === 'pass').length;
+    fail = D.testcases.filter(t => t.clientStatus === 'fail').length;
+    blocked = D.testcases.filter(t => t.clientStatus === 'blocked').length;
+    pending = tcTotal - pass - fail - blocked;
     pct = tcTotal ? Math.round(pass / tcTotal * 100) : 0;
   }
+
   document.getElementById('pHeroStats').innerHTML =
-    hStat(tcTotal, 'Test Cases') + hStat(pass, 'Passed', '#22c55e') + hStat(pct + '%', 'Complete', '#c9a227');
+    '<div class="pl-card pl-card-1">' +
+    '<span class="pl-card-icon">📋</span>' +
+    '<div class="pl-card-label">Test Cases</div>' +
+    '<div class="pl-card-value" id="plStatTotal">0</div>' +
+    '<div class="pl-card-sub">Across all modules and entities</div>' +
+    '</div>' +
+    '<div class="pl-card pl-card-2">' +
+    '<span class="pl-card-icon">✅</span>' +
+    '<div class="pl-card-label">Tests Passed</div>' +
+    '<div class="pl-card-value c-green" id="plStatPass">0</div>' +
+    '<div class="pl-card-sub">' + fail + ' failed · ' + blocked + ' blocked · ' + pending + ' pending</div>' +
+    '</div>' +
+    '<div class="pl-card pl-card-3">' +
+    '<span class="pl-card-icon">🎯</span>' +
+    '<div class="pl-card-label">Overall Progress</div>' +
+    '<div class="pl-card-value c-gold" id="plStatPct">0%</div>' +
+    '<div class="pl-card-bar-bg"><div class="pl-card-bar-fill" id="plStatBar"></div></div>' +
+    '</div>';
+
+  setTimeout(() => {
+    countUp(document.getElementById('plStatTotal'), tcTotal, '', 1000);
+    countUp(document.getElementById('plStatPass'), pass, '', 1000);
+    countUp(document.getElementById('plStatPct'), pct, '%', 1000);
+    setTimeout(() => { const b = document.getElementById('plStatBar'); if (b) b.style.width = pct + '%'; }, 100);
+  }, 500);
 }
 
-function hStat(val, lbl, color) {
-  return '<div style="text-align:center"><div style="font-size:32px;font-weight:800;color:' + (color||'#fff') + ';line-height:1">' + val + '</div>' +
-    '<div style="font-size:10px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:.6px;margin-top:6px">' + lbl + '</div></div>';
+function countUp(el, target, suffix, dur) {
+  if (!el) return;
+  const s = Date.now();
+  const tick = () => {
+    const t = Math.min((Date.now() - s) / dur, 1);
+    el.textContent = Math.round(target * (1 - Math.pow(1 - t, 3))) + (suffix || '');
+    if (t < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
 
 function startTesting() {
