@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>UAT Portal — Bluecopa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=DM+Mono:wght@400;500&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',system-ui,sans-serif;background:#f1f2f5;color:#0d1117;-webkit-font-smoothing:antialiased}
@@ -74,6 +74,8 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f1f2f5;color:#0d1117
 .p-btn-start::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15) 0%,transparent 50%)}
 .p-btn-start:hover{background:#d4ae35;transform:translateY(-2px);box-shadow:0 8px 28px rgba(201,162,39,.4)}
 .p-hero-footer{margin-top:20px;font-size:13px;color:#374151;line-height:1.7}
+@keyframes quoteGlow{0%,100%{opacity:.75;text-shadow:0 0 0 transparent}50%{opacity:1;text-shadow:0 0 32px rgba(201,162,39,.25),0 0 64px rgba(201,162,39,.1)}}
+.p-quote{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:20px;color:#d4b86a;line-height:1.7;margin-top:40px;max-width:640px;margin-left:auto;margin-right:auto;animation:fadeUp .8s ease 1.1s both,quoteGlow 4s ease-in-out 2.5s infinite;letter-spacing:.2px}
 
 /* ── Testing page ── */
 .p-testing{display:none;flex-direction:column;min-height:100vh}
@@ -273,6 +275,7 @@ tr:hover td{background:#fafafa}
         <button class="p-btn-start" onclick="startTesting()">Begin Testing →</button>
       </div>
       <div class="p-hero-footer anim-fade-in d6">Review test cases, mark your status, and add notes to track your progress.</div>
+      <div class="p-quote">"Every bug found in UAT is one less surprise in Production."</div>
     </div>
   </div>
 </div>
