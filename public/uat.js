@@ -612,16 +612,10 @@ const UAT = (() => {
     setProcContent('uatProcFsEditor', el('uatTCDrawer_procedure').innerHTML);
     el('uatProcFsSeq').textContent = `TC-${tc.seq}`;
     el('uatProcFsTitle').textContent = tc.testDescription || 'Test Procedure';
-    el('uatProcFsEditor').addEventListener('paste', fsEditorPaste);
     el('uatProcFullscreen').classList.add('open');
-    el('uatProcFsEditor').focus();
   }
 
   function closeProcFullscreen() {
-    // Sync content back to drawer editor without saving to DB
-    el('uatTCDrawer_procedure').innerHTML = el('uatProcFsEditor').innerHTML;
-    el('uatTCDrawer_procedure').querySelectorAll('img').forEach(img => { img.onclick = openImgLightbox; });
-    el('uatProcFsEditor').removeEventListener('paste', fsEditorPaste);
     el('uatProcFullscreen').classList.remove('open');
   }
 
@@ -922,11 +916,15 @@ const UAT = (() => {
     if (cr.ok) S.clients = cr.data;
     if (pr.ok) S.projects = pr.data;
     if (tr.ok) S.testcases = tr.data;
-    // Update project badge
     const nb = el('uatNavBadge_projects');
     if (nb) nb.textContent = S.projects.length;
     renderClientList();
     setView('dashboard');
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && el('uatProcFullscreen')?.classList.contains('open')) {
+        closeProcFullscreen();
+      }
+    });
   }
 
   /* ── Entity Management ──────────────────────────────────────────────────── */
