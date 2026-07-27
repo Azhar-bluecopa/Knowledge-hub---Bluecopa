@@ -1408,14 +1408,29 @@ app.get('/api/portal/:token', async (req, res) => {
   const client=u.clients.find(x=>x.id===p.clientId);
   const entity=req.query.entity||'';
   const testcases=u.testcases.filter(t=>t.projectId===p.id).sort((a,b)=>a.seq-b.seq);
+  const entityList=p.entities||[];
+  function aggStatus(arr){
+    if(arr.includes('fail'))return 'fail';
+    if(arr.includes('blocked'))return 'blocked';
+    if(arr.includes('in_progress'))return 'in_progress';
+    if(arr.some(s=>s==='pass'))return 'pass';
+    return 'not_tested';
+  }
   const tcs=testcases.map(tc=>{
-    let clientStatus,clientComments;
-    let bluecopaStatus,bluecopaComments;
+    let clientStatus,clientComments,bluecopaStatus,bluecopaComments;
     if (entity&&tc.entityStatuses) {
       const es=tc.entityStatuses[entity]||{};
       clientStatus=es.clientStatus||'not_tested'; clientComments=es.clientComments||'';
       bluecopaStatus=es.bluecopaStatus||tc.bluecopaStatus||'not_tested';
       bluecopaComments=es.bluecopaComments||tc.bluecopaComments||'';
+    } else if (!entity&&entityList.length>0) {
+      // Aggregate across all entities that have interacted with this TC
+      const es=tc.entityStatuses||{};
+      const bArr=entityList.map(e=>(es[e]?.bluecopaStatus)||'not_tested');
+      const cArr=entityList.map(e=>(es[e]?.clientStatus)||'not_tested');
+      bluecopaStatus=aggStatus(bArr);
+      clientStatus=aggStatus(cArr);
+      bluecopaComments=''; clientComments='';
     } else {
       clientStatus=tc.clientStatus||'not_tested'; clientComments=tc.clientComments||'';
       bluecopaStatus=tc.bluecopaStatus||'not_tested';
