@@ -116,6 +116,23 @@ const UAT = (() => {
     </td>`;
   }
 
+  function entityNoteCell(tc, entity, es) {
+    const raw = es.clientComments || '';
+    if (!raw) return `<td onclick="event.stopPropagation()" style="font-size:11px;color:#d1d5db;text-align:center">—</td>`;
+    const plain = stripHtmlText(raw);
+    const hasImg = raw.includes('<img');
+    const preview = plain.slice(0, 38) + (plain.length > 38 ? '…' : '');
+    const imgIcon = hasImg ? `<span style="color:#c9a227;font-size:10px;margin-left:3px" title="Contains screenshot">🖼</span>` : '';
+    const safeEntity = entity.replace(/'/g, "\\'");
+    return `<td onclick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;gap:6px;max-width:180px">
+        <span style="font-size:11px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${escHtml(preview)}${imgIcon}</span>
+        <button class="uat-btn uat-btn-ghost" style="padding:2px 8px;font-size:10px;white-space:nowrap;flex-shrink:0"
+          onclick="event.stopPropagation();UAT.viewEntityNote('${safeEntity}','${tc.id}')">View</button>
+      </div>
+    </td>`;
+  }
+
   function escHtml(s) {
     return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
@@ -429,7 +446,7 @@ const UAT = (() => {
               <td><span class="uat-status-pill ${bStatus}" style="pointer-events:none">${STATUS_LABELS[bStatus]||bStatus}</span></td>
               <td><span class="uat-status-pill ${cStatus}" style="pointer-events:none">${STATUS_LABELS[cStatus]||cStatus}</span></td>
               <td style="font-size:11px;color:#6b7280">${es.bluecopaComments||'—'}</td>
-              <td style="font-size:11px;color:#374151">${es.clientComments||'—'}</td>
+              ${entityNoteCell(tc, entity, es)}
             </tr>`;
         })
       ).join('');
@@ -1178,6 +1195,11 @@ const UAT = (() => {
     el('uatClientNoteModal')?.classList.add('open');
   }
 
+  function viewEntityNote(entity, tcId) {
+    selectEntity(entity);
+    openClientNoteModal(tcId);
+  }
+
   function closeClientNoteModal() {
     el('uatClientNoteModal')?.classList.remove('open');
     // Reset maximize state
@@ -1325,6 +1347,7 @@ const UAT = (() => {
     closeSignoffModal,
     submitSignoff,
     openClientNoteModal,
+    viewEntityNote,
     closeClientNoteModal,
     toggleMaxClientNote,
     openIssueDetail,
