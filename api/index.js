@@ -998,10 +998,10 @@ app.post('/api/uat/projects/:id/signoff', async (req, res) => {
 app.post('/api/uat/projects/:id/bluecopa-entity-signoff', async (req, res) => {
   await _dbReady; const u = uatDB(); const p = u.projects.find(x => x.id === req.params.id);
   if (!p) return res.status(404).json({ ok:false, error:'not found' });
-  const { entity, signedBy, role, date, comment } = req.body;
+  const { entity, signedBy, comment } = req.body;
   if (!entity || !signedBy) return res.status(400).json({ ok:false, error:'entity and signedBy required' });
   if (!p.bluecopaEntitySignoffs) p.bluecopaEntitySignoffs = {};
-  const signoff = { signedBy, role: role||'', date: date||new Date().toISOString().slice(0,10), comment: comment||'', signedAt: new Date().toISOString() };
+  const signoff = { signedBy, comment: comment||'', signedAt: new Date().toISOString() };
   p.bluecopaEntitySignoffs[entity] = signoff;
   uatLog('bluecopa_signoff', `Bluecopa signed off entity "${entity}" in "${p.name}"`, {projectId:p.id});
   await saveDB(db); res.json({ ok:true, data:{ signoff } });

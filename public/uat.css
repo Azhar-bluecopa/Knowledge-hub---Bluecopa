@@ -575,28 +575,17 @@
 .uat-toast.success { background: #15803d; }
 .uat-toast.error { background: #dc2626; }
 
-/* ── Bluecopa Entity Sign-off (matches portal style) ─────────────────────── */
-.uat-bsignoff-card { background: #fff; border: 1px solid #e4e6ea; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
-.uat-bsignoff-header { background: linear-gradient(135deg, #0d1117 0%, #1a1d27 100%); padding: 24px 32px; display: flex; align-items: center; gap: 16px; }
-.uat-bsignoff-icon { width: 44px; height: 44px; background: rgba(201,162,39,.15); border: 1px solid rgba(201,162,39,.25); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
-.uat-bsignoff-title { font-size: 16px; font-weight: 800; color: #fff; }
-.uat-bsignoff-sub { font-size: 12px; color: #6b7280; margin-top: 3px; line-height: 1.5; }
-.uat-bsignoff-body { padding: 28px 32px; }
-.uat-bsignoff-form { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+/* ── Bluecopa Entity Sign-off ─────────────────────────────────────────────── */
+.uat-bsignoff-card { background: #fff; border: 1px solid #e4e6ea; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.uat-bsignoff-header { background: linear-gradient(135deg, #0d1117 0%, #1a1d27 100%); padding: 20px 24px; display: flex; align-items: center; gap: 14px; }
+.uat-bsignoff-icon { width: 40px; height: 40px; background: rgba(201,162,39,.15); border: 1px solid rgba(201,162,39,.25); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.uat-bsignoff-title { font-size: 14px; font-weight: 700; color: #fff; }
+.uat-bsignoff-sub { font-size: 12px; color: #6b7280; margin-top: 2px; }
+.uat-bsignoff-form { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; padding: 20px 24px; }
 @media(max-width:640px) { .uat-bsignoff-form { grid-template-columns: 1fr; } }
-.uat-bsignoff-label { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; display: block; }
-.uat-bsignoff-input { width: 100%; border: 1px solid #e4e6ea; border-radius: 8px; padding: 10px 14px; font-size: 13px; font-family: inherit; color: #0d1117; transition: border-color .15s; background: #fff; box-sizing: border-box; }
-.uat-bsignoff-input:focus { outline: none; border-color: #c9a227; box-shadow: 0 0 0 3px rgba(201,162,39,.1); }
-.uat-bsignoff-input::placeholder { color: #9ca3af; }
-.uat-bsignoff-note { font-size: 12px; color: #9ca3af; margin-bottom: 20px; line-height: 1.6; display: flex; align-items: flex-start; gap: 8px; }
-.uat-bsignoff-btn { display: inline-flex; align-items: center; gap: 10px; background: #0d1117; color: #fff; border: none; border-radius: 8px; padding: 13px 32px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .2s; }
-.uat-bsignoff-btn:hover { background: #374151; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.15); }
-.uat-bsignoff-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
-.uat-bsigned-card { background: #fff; border: 1px solid #e4e6ea; border-radius: 12px; padding: 32px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
-.uat-bsigned-icon { font-size: 40px; margin-bottom: 12px; }
-.uat-bsigned-title { font-size: 16px; font-weight: 800; color: #15803d; margin-bottom: 4px; }
-.uat-bsigned-name { font-size: 22px; font-weight: 800; color: #0d1117; margin-bottom: 4px; }
-.uat-bsigned-role { font-size: 13px; color: #6b7280; margin-bottom: 8px; }
-.uat-bsigned-date { font-size: 12px; color: #9ca3af; font-weight: 600; }
-.uat-bsigned-badge { display: inline-flex; align-items: center; gap: 6px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 99px; padding: 6px 16px; font-size: 11px; font-weight: 700; color: #15803d; margin-top: 16px; }
-.uat-bsigned-reset { display: block; margin-top: 12px; font-size: 11px; color: #9ca3af; background: none; border: none; cursor: pointer; font-family: inherit; text-decoration: underline; }
+.uat-bsignoff-label { display: block; font-size: 11px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.uat-bsignoff-done { display: flex; align-items: center; gap: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px 20px; }
+.uat-bsignoff-done-icon { font-size: 24px; flex-shrink: 0; }
+.uat-bsignoff-done-title { font-size: 13px; font-weight: 700; color: #15803d; }
+.uat-bsignoff-done-meta { font-size: 12px; color: #374151; margin-top: 2px; }
+.uat-bsignoff-done-note { font-size: 11px; color: #6b7280; margin-top: 4px; font-style: italic; }
