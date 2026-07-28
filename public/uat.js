@@ -1354,41 +1354,47 @@ const UAT = (() => {
     const existing = (p?.bluecopaEntitySignoffs || {})[S.filterEntity];
     wrap.style.display = '';
     if (existing) {
-      const dateStr = existing.signedAt
-        ? new Date(existing.signedAt).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })
-        : '';
+      const dateStr = existing.date
+        ? new Date(existing.date + 'T00:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })
+        : (existing.signedAt ? new Date(existing.signedAt).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' }) : '');
       wrap.innerHTML = `
-        <div class="uat-bsignoff-done">
-          <div class="uat-bsignoff-done-icon">✅</div>
-          <div style="flex:1">
-            <div class="uat-bsignoff-done-title">Bluecopa Sign-off Complete — ${escHtml(S.filterEntity)}</div>
-            <div class="uat-bsignoff-done-meta">Signed by <strong>${escHtml(existing.signedBy)}</strong>${dateStr ? ' · ' + escHtml(dateStr) : ''}</div>
-            ${existing.comment ? `<div class="uat-bsignoff-done-note">${escHtml(existing.comment)}</div>` : ''}
-          </div>
-          <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.resetBluecopaSignoff()">Reset</button>
+        <div class="uat-bsigned-card">
+          <div class="uat-bsigned-icon">✅</div>
+          <div class="uat-bsigned-title">UAT Signed Off</div>
+          <div class="uat-bsigned-name">${escHtml(existing.signedBy)}</div>
+          ${existing.role ? `<div class="uat-bsigned-role">${escHtml(existing.role)}</div>` : ''}
+          ${dateStr ? `<div class="uat-bsigned-date">Signed on ${escHtml(dateStr)}</div>` : ''}
+          <div class="uat-bsigned-badge">✓ Formally accepted by Bluecopa — ${escHtml(S.filterEntity)}</div>
+          <button class="uat-bsigned-reset" onclick="UAT.resetBluecopaSignoff()">Remove sign-off</button>
         </div>`;
     } else {
+      const today = new Date().toISOString().slice(0, 10);
       wrap.innerHTML = `
         <div class="uat-bsignoff-card">
           <div class="uat-bsignoff-header">
             <div class="uat-bsignoff-icon">✍️</div>
             <div>
-              <div class="uat-bsignoff-title">Bluecopa Internal Sign-off — ${escHtml(S.filterEntity)}</div>
-              <div class="uat-bsignoff-sub">Confirm Bluecopa has completed testing for this entity.</div>
+              <div class="uat-bsignoff-title">UAT Sign-off Certificate — ${escHtml(S.filterEntity)}</div>
+              <div class="uat-bsignoff-sub">Complete this section when Bluecopa has finished testing for this entity.</div>
             </div>
           </div>
-          <div class="uat-bsignoff-form">
-            <div>
-              <label class="uat-bsignoff-label">Signed by *</label>
-              <input class="uat-form-control" id="bsignoffName" placeholder="Your name">
+          <div class="uat-bsignoff-body">
+            <div class="uat-bsignoff-form">
+              <div>
+                <label class="uat-bsignoff-label" for="bsignoffName">Full Name *</label>
+                <input class="uat-bsignoff-input" id="bsignoffName" placeholder="e.g. Azhar M" required>
+              </div>
+              <div>
+                <label class="uat-bsignoff-label" for="bsignoffRole">Designation / Role</label>
+                <input class="uat-bsignoff-input" id="bsignoffRole" placeholder="e.g. Delivery Manager">
+              </div>
+              <div>
+                <label class="uat-bsignoff-label" for="bsignoffDate">Sign-off Date *</label>
+                <input class="uat-bsignoff-input" id="bsignoffDate" type="date" value="${today}" required>
+              </div>
             </div>
-            <div>
-              <label class="uat-bsignoff-label">Comments</label>
-              <input class="uat-form-control" id="bsignoffComment" placeholder="Optional notes">
-            </div>
-            <div style="display:flex;align-items:flex-end">
-              <button class="uat-btn uat-btn-primary" style="width:100%;padding:10px 16px" onclick="UAT.submitBluecopaSignoff()">✓ Sign Off Entity</button>
-            </div>
+            <div class="uat-bsignoff-note"><span>ℹ️</span><span>By submitting, you confirm that Bluecopa has completed internal testing for the <strong>${escHtml(S.filterEntity)}</strong> entity and all critical test cases have been verified.</span></div>
+            <button class="uat-bsignoff-btn" id="bsignoffSubmitBtn" onclick="UAT.submitBluecopaSignoff()">Submit UAT Sign-off →</button>
           </div>
         </div>`;
     }
@@ -1396,10 +1402,13 @@ const UAT = (() => {
 
   async function submitBluecopaSignoff() {
     const name = (el('bsignoffName')?.value || '').trim();
-    const comment = (el('bsignoffComment')?.value || '').trim();
+    const role = (el('bsignoffRole')?.value || '').trim();
+    const date = el('bsignoffDate')?.value;
     if (!name) { toast('Please enter your name', 'error'); el('bsignoffName')?.focus(); return; }
+    const btn = el('bsignoffSubmitBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
     const r = await api('POST', `/api/uat/projects/${S.activeProjectId}/bluecopa-entity-signoff`, {
-      entity: S.filterEntity, signedBy: name, comment
+      entity: S.filterEntity, signedBy: name, role, date, comment: ''
     });
     if (r.ok) {
       const p = S.projects.find(x => x.id === S.activeProjectId);
@@ -1410,6 +1419,7 @@ const UAT = (() => {
       renderBluecopaSignoff();
       toast('Sign-off recorded ✓', 'success');
     } else {
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit UAT Sign-off →'; }
       toast('Failed to sign off', 'error');
     }
   }
