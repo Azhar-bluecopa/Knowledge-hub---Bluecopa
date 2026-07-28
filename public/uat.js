@@ -354,7 +354,6 @@ const UAT = (() => {
     if (S.view === 'progress') renderCategoryBars();
     renderTCTable(tcs);
     updateBadges();
-    renderBluecopaSignoff();
   }
 
   function renderEntityTabs() {
@@ -379,7 +378,6 @@ const UAT = (() => {
     renderTCTable(filteredTCs());
     updateBadges();
     if (S.view === 'progress') renderCategoryBars();
-    renderBluecopaSignoff();
   }
 
   function renderCategoryBars() {
@@ -1345,88 +1343,6 @@ const UAT = (() => {
 
   function closeIssueDetail() { el('uatIssueDetailModal')?.classList.remove('open'); }
 
-  /* ── Bluecopa Entity Sign-off ───────────────────────────────────────────── */
-  function renderBluecopaSignoff() {
-    const wrap = el('uatBluecopaSignoffWrap');
-    if (!wrap) return;
-    if (!S.filterEntity || !S.activeProjectId) { wrap.style.display = 'none'; return; }
-    const p = S.projects.find(x => x.id === S.activeProjectId);
-    const existing = (p?.bluecopaEntitySignoffs || {})[S.filterEntity];
-    wrap.style.display = '';
-    if (existing) {
-      const dateStr = existing.signedAt
-        ? new Date(existing.signedAt).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })
-        : '';
-      wrap.innerHTML = `
-        <div class="uat-bsignoff-done">
-          <div class="uat-bsignoff-done-icon">✅</div>
-          <div style="flex:1">
-            <div class="uat-bsignoff-done-title">Bluecopa Sign-off Complete — ${escHtml(S.filterEntity)}</div>
-            <div class="uat-bsignoff-done-meta">Signed by <strong>${escHtml(existing.signedBy)}</strong>${dateStr ? ' · ' + escHtml(dateStr) : ''}</div>
-            ${existing.comment ? `<div class="uat-bsignoff-done-note">${escHtml(existing.comment)}</div>` : ''}
-          </div>
-          <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.resetBluecopaSignoff()">Reset</button>
-        </div>`;
-    } else {
-      wrap.innerHTML = `
-        <div class="uat-bsignoff-card">
-          <div class="uat-bsignoff-header">
-            <div class="uat-bsignoff-icon">✍️</div>
-            <div>
-              <div class="uat-bsignoff-title">Bluecopa Internal Sign-off — ${escHtml(S.filterEntity)}</div>
-              <div class="uat-bsignoff-sub">Confirm Bluecopa has completed testing for this entity.</div>
-            </div>
-          </div>
-          <div class="uat-bsignoff-form">
-            <div>
-              <label class="uat-bsignoff-label">Signed by *</label>
-              <input class="uat-form-control" id="bsignoffName" placeholder="Your name">
-            </div>
-            <div>
-              <label class="uat-bsignoff-label">Comments</label>
-              <input class="uat-form-control" id="bsignoffComment" placeholder="Optional notes">
-            </div>
-            <div style="display:flex;align-items:flex-end">
-              <button class="uat-btn uat-btn-primary" style="width:100%;padding:10px 16px" onclick="UAT.submitBluecopaSignoff()">✓ Sign Off Entity</button>
-            </div>
-          </div>
-        </div>`;
-    }
-  }
-
-  async function submitBluecopaSignoff() {
-    const name = (el('bsignoffName')?.value || '').trim();
-    const comment = (el('bsignoffComment')?.value || '').trim();
-    if (!name) { toast('Please enter your name', 'error'); el('bsignoffName')?.focus(); return; }
-    const r = await api('POST', `/api/uat/projects/${S.activeProjectId}/bluecopa-entity-signoff`, {
-      entity: S.filterEntity, signedBy: name, comment
-    });
-    if (r.ok) {
-      const p = S.projects.find(x => x.id === S.activeProjectId);
-      if (p) {
-        if (!p.bluecopaEntitySignoffs) p.bluecopaEntitySignoffs = {};
-        p.bluecopaEntitySignoffs[S.filterEntity] = r.data.signoff;
-      }
-      renderBluecopaSignoff();
-      toast('Sign-off recorded ✓', 'success');
-    } else {
-      toast('Failed to sign off', 'error');
-    }
-  }
-
-  async function resetBluecopaSignoff() {
-    if (!confirm('Remove this sign-off?')) return;
-    const r = await api('DELETE', `/api/uat/projects/${S.activeProjectId}/bluecopa-entity-signoff`, { entity: S.filterEntity });
-    if (r.ok) {
-      const p = S.projects.find(x => x.id === S.activeProjectId);
-      if (p?.bluecopaEntitySignoffs) delete p.bluecopaEntitySignoffs[S.filterEntity];
-      renderBluecopaSignoff();
-      toast('Sign-off removed', 'success');
-    } else {
-      toast('Failed to remove sign-off', 'error');
-    }
-  }
-
   /* ── Admin Sign-off ─────────────────────────────────────────────────────── */
   function openSignoffModal() {
     if (!S.activeProjectId) return toast('Select a project first', 'error');
@@ -1505,8 +1421,6 @@ const UAT = (() => {
     closeSharePortal,
     copyLink,
     regenerateProjectPortal,
-    submitBluecopaSignoff,
-    resetBluecopaSignoff,
     openSignoffModal,
     closeSignoffModal,
     submitSignoff,

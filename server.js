@@ -1003,26 +1003,6 @@ app.post('/api/uat/projects/:id/signoff', async (req, res) => {
   uatLog('signoff',`UAT ${p.signoff.status} for "${p.name}"`,{projectId:p.id,clientId:p.clientId});
   await saveDB(db); res.json({ ok:true, data:p });
 });
-app.post('/api/uat/projects/:id/bluecopa-entity-signoff', async (req, res) => {
-  await _dbReady; const u=uatDB(); const p=u.projects.find(x=>x.id===req.params.id);
-  if (!p) return res.status(404).json({ ok:false, error:'not found' });
-  const { entity, signedBy, comment } = req.body;
-  if (!entity || !signedBy) return res.status(400).json({ ok:false, error:'entity and signedBy required' });
-  if (!p.bluecopaEntitySignoffs) p.bluecopaEntitySignoffs = {};
-  const signoff = { signedBy, comment: comment||'', signedAt: new Date().toISOString() };
-  p.bluecopaEntitySignoffs[entity] = signoff;
-  uatLog('bluecopa_signoff',`Bluecopa signed off entity "${entity}" in "${p.name}"`,{projectId:p.id});
-  await saveDB(db); res.json({ ok:true, data:{ signoff } });
-});
-app.delete('/api/uat/projects/:id/bluecopa-entity-signoff', async (req, res) => {
-  await _dbReady; const u=uatDB(); const p=u.projects.find(x=>x.id===req.params.id);
-  if (!p) return res.status(404).json({ ok:false, error:'not found' });
-  const entity = req.body?.entity;
-  if (!entity) return res.status(400).json({ ok:false, error:'entity required' });
-  if (p.bluecopaEntitySignoffs) delete p.bluecopaEntitySignoffs[entity];
-  await saveDB(db); res.json({ ok:true });
-});
-
 // ── Test Cases ────────────────────────────────────────────────────────────────
 app.get('/api/uat/testcases', async (req, res) => {
   await _dbReady; let list=uatDB().testcases;
