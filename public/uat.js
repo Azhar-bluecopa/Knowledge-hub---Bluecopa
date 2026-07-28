@@ -267,8 +267,11 @@ const UAT = (() => {
       return `
         <div class="uat-project-card" onclick="UAT.openProject('${p.id}')">
           <div class="uat-project-card-header">
-            <div>
-              <div class="uat-project-name">${p.name}</div>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:6px">
+                <div class="uat-project-name" id="pname-${p.id}">${p.name}</div>
+                <button class="uat-proj-edit-btn" onclick="UAT.editProjectName('${p.id}',event)" title="Rename project">✏</button>
+              </div>
               <div class="uat-project-client">${client ? client.name : '—'}</div>
             </div>
             <div class="uat-project-health ${healthColor(score)}">${score}%</div>
@@ -284,6 +287,30 @@ const UAT = (() => {
           </div>
         </div>`;
     }).join('');
+  }
+
+  function editProjectName(projectId, e) {
+    e.stopPropagation();
+    const nameEl = document.getElementById('pname-' + projectId);
+    if (!nameEl || nameEl.querySelector('input')) return;
+    const current = nameEl.textContent.trim();
+    nameEl.innerHTML = `<input class="uat-proj-name-input" value="${current.replace(/"/g,'&quot;')}" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.value='${current.replace(/'/g,"\\'")}';this.blur();}">`;
+    const inp = nameEl.querySelector('input');
+    inp.focus(); inp.select();
+    inp.addEventListener('blur', async () => {
+      const newName = inp.value.trim();
+      if (!newName || newName === current) { nameEl.textContent = current; return; }
+      const r = await api('PUT', `/api/uat/projects/${projectId}`, { name: newName });
+      if (r.ok) {
+        const p = S.projects.find(x => x.id === projectId);
+        if (p) p.name = newName;
+        nameEl.textContent = newName;
+        toast('Project renamed', 'success');
+      } else {
+        nameEl.textContent = current;
+        toast('Failed to rename', 'error');
+      }
+    });
   }
 
   function openProject(projectId) {
@@ -1371,6 +1398,7 @@ const UAT = (() => {
     saveProcedureFS,
     editClientLabel,
     renameEntity,
+    editProjectName,
     sharePortal,
     closeSharePortal,
     copyLink,
