@@ -969,20 +969,21 @@ app.get('/api/uat/projects', async (req, res) => {
 });
 app.post('/api/uat/projects', async (req, res) => {
   await _dbReady; const u=uatDB();
-  const { clientId: rawClientId, clientName: rawClientName='', name, entity='', businessUnit='', goLiveDate='', description='', seedDefaults=false } = req.body;
+  const { clientId: rawClientId, clientName: rawClientName='', clientWebsite='', name, entity='', businessUnit='', goLiveDate='', description='', seedDefaults=false } = req.body;
   if (!name) return res.status(400).json({ ok:false, error:'Project name required' });
   let clientId = rawClientId || '';
   let clientName = rawClientName.trim();
+  const website = clientWebsite.trim();
   if (!clientId && clientName) {
     let c = u.clients.find(x => x.name.toLowerCase() === clientName.toLowerCase());
-    if (!c) { c = { id:uatId(), name:clientName, shortCode:clientName.slice(0,3).toUpperCase(), createdAt:new Date().toISOString() }; u.clients.push(c); }
-    else clientName = c.name;
+    if (!c) { c = { id:uatId(), name:clientName, shortCode:clientName.slice(0,3).toUpperCase(), website, createdAt:new Date().toISOString() }; u.clients.push(c); }
+    else { clientName = c.name; if (website) c.website = website; }
     clientId = c.id;
   } else if (clientId) {
     const c = u.clients.find(x => x.id === clientId);
-    if (c) clientName = c.name;
+    if (c) { clientName = c.name; if (website) c.website = website; }
   }
-  const p={ id:uatId(), clientId, clientName, name, entity, businessUnit, goLiveDate, description, phase:'uat', status:'active', uatRound:1, signoff:null, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
+  const p={ id:uatId(), clientId, clientName, clientWebsite: website, name, entity, businessUnit, goLiveDate, description, phase:'uat', status:'active', uatRound:1, signoff:null, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
   u.projects.push(p);
   if (seedDefaults) {
     const tcs=UAT_DEFAULTS.map((d,i)=>uatNewTC({...d,id:uatId(),projectId:p.id,clientId,seq:i+1}));

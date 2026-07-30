@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=34" defer></script>
+  <script src="/uat.js?v=35" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -7036,6 +7036,11 @@ async function updateFeedbackStatus(id) {
             <label class="uat-form-label">Client Name *</label>
             <input class="uat-form-input" name="clientName" list="uatClientDatalist" placeholder="Type new or select existing client…" autocomplete="off" required>
             <datalist id="uatClientDatalist"></datalist>
+          </div>
+          <div class="uat-form-group">
+            <label class="uat-form-label">Client Website <span style="color:#9ca3af;font-weight:400">(optional)</span></label>
+            <input class="uat-form-input" name="clientWebsite" type="url" placeholder="e.g. https://acmecorp.com">
+            <div style="font-size:11px;color:#9ca3af;margin-top:4px">Logo is auto-fetched from this URL and shown on the client UAT portal.</div>
           </div>
           <div class="uat-form-group">
             <label class="uat-form-label">Project Name *</label>
