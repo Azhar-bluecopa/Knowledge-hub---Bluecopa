@@ -1361,6 +1361,7 @@ app.get('/api/portal/:token', async (req, res) => {
     entity: entity || null, entities: p.entities || [], testcases: tcs,
     entityAggregate,
     signoff: ((p.entitySignoffs || {})[entity || '']) || null,
+    allEntitySignoffs: p.entitySignoffs || {},
   }});
 });
 

@@ -475,11 +475,36 @@ function renderTable() {
 function renderSignoff() {
   const wrap = document.getElementById('pSignoffWrap');
   if (!wrap) return;
-  if (D.signoff) {
-    // Already signed — show confirmation
-    const d = D.signoff;
-    const dateStr = d.date ? new Date(d.date + 'T00:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' }) : d.date;
+  const entities = D.entities || [];
+  if (entities.length > 1 && !ENTITY) {
+    // All-entities view: one sign-off card per entity
     wrap.innerHTML =
+      '<div style="margin-bottom:20px">' +
+        '<div style="font-size:16px;font-weight:800;color:#0d1117">Entity Sign-offs</div>' +
+        '<div style="font-size:13px;color:#6b7280;margin-top:4px">Each entity must sign off independently to formally accept UAT.</div>' +
+      '</div>' +
+      entities.map(e => {
+        const eId = e.replace(/[^a-zA-Z0-9]/g,'_');
+        return '<div style="margin-bottom:24px">' +
+          '<div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">' + esc(e) + '</div>' +
+          '<div id="pSoWrap_' + eId + '"></div>' +
+        '</div>';
+      }).join('');
+    entities.forEach(e => {
+      const el = document.getElementById('pSoWrap_' + e.replace(/[^a-zA-Z0-9]/g,'_'));
+      if (el) _renderSignoffCard(el, (D.allEntitySignoffs||{})[e]||null, e);
+    });
+  } else {
+    _renderSignoffCard(wrap, D.signoff, ENTITY||null);
+  }
+}
+
+function _renderSignoffCard(wrapEl, signoff, entity) {
+  const eId = entity ? entity.replace(/[^a-zA-Z0-9]/g,'_') : '_';
+  if (signoff) {
+    const d = signoff;
+    const dateStr = d.date ? new Date(d.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : d.date;
+    wrapEl.innerHTML =
       '<div class="p-signed-card">' +
         '<div class="p-signed-icon">✅</div>' +
         '<div class="p-signed-title">UAT Signed Off</div>' +
@@ -489,48 +514,57 @@ function renderSignoff() {
         '<div class="p-signed-badge">✓ Formally accepted by ' + esc(D.client.name) + '</div>' +
       '</div>';
   } else {
-    // Show sign-off form
-    const today = new Date().toISOString().slice(0, 10);
-    wrap.innerHTML =
+    const today = new Date().toISOString().slice(0,10);
+    wrapEl.innerHTML =
       '<div class="p-signoff-card">' +
         '<div class="p-signoff-header">' +
           '<div class="p-signoff-icon">✍️</div>' +
           '<div>' +
             '<div class="p-signoff-title">UAT Sign-off Certificate</div>' +
-            '<div class="p-signoff-subtitle">Complete this section when you are ready to formally accept the UAT.</div>' +
+            '<div class="p-signoff-subtitle">Complete this section when you are ready to formally accept the UAT' + (entity ? ' for '+esc(entity) : '') + '.</div>' +
           '</div>' +
         '</div>' +
         '<div class="p-signoff-body">' +
           '<div class="p-signoff-form">' +
-            '<div><label class="p-sf-label" for="sfName">Full Name *</label><input class="p-sf-input" id="sfName" placeholder="e.g. Priya Sharma" required></div>' +
-            '<div><label class="p-sf-label" for="sfRole">Designation / Role</label><input class="p-sf-input" id="sfRole" placeholder="e.g. Finance Manager"></div>' +
-            '<div><label class="p-sf-label" for="sfDate">Sign-off Date *</label><input class="p-sf-input" id="sfDate" type="date" value="' + today + '" required></div>' +
+            '<div><label class="p-sf-label" for="sfName_'+eId+'">Full Name *</label><input class="p-sf-input" id="sfName_'+eId+'" placeholder="e.g. Priya Sharma" required></div>' +
+            '<div><label class="p-sf-label" for="sfRole_'+eId+'">Designation / Role</label><input class="p-sf-input" id="sfRole_'+eId+'" placeholder="e.g. Finance Manager"></div>' +
+            '<div><label class="p-sf-label" for="sfDate_'+eId+'">Sign-off Date *</label><input class="p-sf-input" id="sfDate_'+eId+'" type="date" value="'+today+'" required></div>' +
           '</div>' +
           '<div class="p-signoff-note"><span class="p-signoff-note-icon">ℹ️</span><span>By submitting, you confirm that the test cases marked as <strong>Pass</strong> meet your acceptance criteria and you are formally accepting this UAT round on behalf of ' + esc(D.client.name) + '.</span></div>' +
-          '<button class="p-signoff-btn" id="sfSubmitBtn" onclick="submitSignoff()">Submit UAT Sign-off →</button>' +
+          '<button class="p-signoff-btn" id="sfBtn_'+eId+'" onclick="submitSignoffFor(\''+(entity||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">Submit UAT Sign-off →</button>' +
         '</div>' +
       '</div>';
   }
 }
 
-async function submitSignoff() {
-  const name = document.getElementById('sfName')?.value?.trim();
-  const role = document.getElementById('sfRole')?.value?.trim();
-  const date = document.getElementById('sfDate')?.value;
-  if (!name) { toast('Please enter your name'); document.getElementById('sfName')?.focus(); return; }
-  const btn = document.getElementById('sfSubmitBtn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
-  const r = await fetch('/api/portal/' + TOKEN + '/signoff', {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, role, date, entity: ENTITY || undefined })
+async function submitSignoffFor(entity) {
+  const eId = entity ? entity.replace(/[^a-zA-Z0-9]/g,'_') : '_';
+  const name = document.getElementById('sfName_'+eId)?.value?.trim();
+  const role = document.getElementById('sfRole_'+eId)?.value?.trim();
+  const date = document.getElementById('sfDate_'+eId)?.value;
+  if (!name) { toast('Please enter your name'); document.getElementById('sfName_'+eId)?.focus(); return; }
+  const btn = document.getElementById('sfBtn_'+eId);
+  if (btn) { btn.disabled=true; btn.textContent='Submitting…'; }
+  const r = await fetch('/api/portal/'+TOKEN+'/signoff', {
+    method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ name, role, date, entity: entity||undefined })
   });
   if (r.ok) {
     const j = await r.json();
-    D.signoff = j.signoff;
-    renderSignoff();
+    if (!D.allEntitySignoffs) D.allEntitySignoffs={};
+    if (entity) D.allEntitySignoffs[entity]=j.signoff;
+    D.signoff=j.signoff;
+    const isAllView = (D.entities||[]).length>1 && !ENTITY;
+    if (isAllView && entity) {
+      const wrapEl = document.getElementById('pSoWrap_'+eId);
+      if (wrapEl) _renderSignoffCard(wrapEl, j.signoff, entity);
+    } else {
+      const wrap = document.getElementById('pSignoffWrap');
+      if (wrap) _renderSignoffCard(wrap, j.signoff, ENTITY||null);
+    }
     toast('Sign-off submitted successfully!');
   } else {
-    if (btn) { btn.disabled = false; btn.textContent = 'Submit UAT Sign-off →'; }
+    if (btn) { btn.disabled=false; btn.textContent='Submit UAT Sign-off →'; }
     toast('Failed to submit. Please try again.');
   }
 }
