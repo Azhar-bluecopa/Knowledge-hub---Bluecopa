@@ -293,10 +293,10 @@ tr:hover td{background:#fafafa}
   </header>
 
   <div class="p-hero">
+    <div class="p-hero-eyebrow"><span class="p-eyebrow-dot"></span>User Acceptance Testing</div>
     <div id="pClientLogoWrap" class="p-client-logo-wrap">
       <img id="pClientLogo" class="p-client-logo" alt="Client Logo">
     </div>
-    <div class="p-hero-eyebrow"><span class="p-eyebrow-dot"></span>User Acceptance Testing</div>
     <h1 class="p-hero-title" id="pHeroClient">—</h1>
     <p class="p-hero-sub">Review your test cases, mark your status, and sign off to formally complete the UAT round.</p>
     <button class="p-btn-start" onclick="startTesting()">Begin Testing <span class="p-btn-arrow">→</span></button>
@@ -410,8 +410,16 @@ function renderLanding() {
       const raw = website.startsWith('http') ? website : 'https://' + website;
       const domain = new URL(raw).hostname.replace(/^www\./, '');
       logoImg.src = 'https://logo.clearbit.com/' + domain;
-      logoImg.onload  = () => { logoWrap.style.display = 'inline-flex'; };
-      logoImg.onerror = () => { logoWrap.style.display = 'none'; };
+      logoImg.onload  = () => {
+        logoWrap.style.display = 'inline-flex';
+        const title = document.getElementById('pHeroClient');
+        if (title) title.style.display = 'none';
+      };
+      logoImg.onerror = () => {
+        logoWrap.style.display = 'none';
+        const title = document.getElementById('pHeroClient');
+        if (title) title.style.display = '';
+      };
     } catch(e) { logoWrap.style.display = 'none'; }
   }
 }
