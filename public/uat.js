@@ -258,7 +258,6 @@ const UAT = (() => {
       return;
     }
     wrap.innerHTML = projects.map(p => {
-      const client = S.clients.find(c => c.id === p.clientId);
       const tcs = S.testcases.filter(t => t.projectId === p.id);
       const bPass = tcs.filter(t => t.bluecopaStatus === 'pass').length;
       const cPass = tcs.filter(t => t.clientStatus === 'pass').length;
@@ -271,6 +270,10 @@ const UAT = (() => {
               <div style="display:flex;align-items:center;gap:6px">
                 <div class="uat-project-name" id="pname-${p.id}">${p.name}</div>
                 <button class="uat-proj-edit-btn" onclick="UAT.editProjectName('${p.id}',event)" title="Rename project">✏</button>
+              </div>
+              <div class="uat-project-client" id="pclient-${p.id}" style="display:flex;align-items:center;gap:4px;margin-top:2px">
+                <span class="pclient-text">${escHtml(p.clientName || S.clients.find(c=>c.id===p.clientId)?.name || '—')}</span>
+                <button class="uat-proj-edit-btn" onclick="UAT.editProjectClient('${p.id}',event)" title="Edit client name" style="opacity:.5;font-size:9px">✏</button>
               </div>
             </div>
             <div class="uat-project-health ${healthColor(score)}">${score}%</div>
@@ -308,6 +311,35 @@ const UAT = (() => {
       } else {
         nameEl.textContent = current;
         toast('Failed to rename', 'error');
+      }
+    });
+  }
+
+  function editProjectClient(projectId, e) {
+    e.stopPropagation();
+    const wrap = document.getElementById('pclient-' + projectId);
+    if (!wrap || wrap.querySelector('input')) return;
+    const textEl = wrap.querySelector('.pclient-text');
+    const current = textEl ? textEl.textContent.trim() : '';
+    const clientNames = S.clients.map(c => c.name);
+    wrap.innerHTML = `<input class="uat-proj-name-input" list="uatClientDatalistInline" value="${current.replace(/"/g,'&quot;')}" onclick="event.stopPropagation()" placeholder="Client name…" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.dataset.cancel='1';this.blur();}"><datalist id="uatClientDatalistInline">${clientNames.map(n=>`<option value="${n}">`).join('')}</datalist>`;
+    const inp = wrap.querySelector('input');
+    inp.focus(); inp.select();
+    inp.addEventListener('blur', async () => {
+      if (inp.dataset.cancel === '1') { renderProjects(); return; }
+      const newName = inp.value.trim();
+      if (!newName || newName === current) { renderProjects(); return; }
+      const r = await api('PUT', `/api/uat/projects/${projectId}`, { clientName: newName });
+      if (r.ok) {
+        const p = S.projects.find(x => x.id === projectId);
+        if (p) { p.clientName = r.data.clientName; p.clientId = r.data.clientId; }
+        if (r.data.clientId && !S.clients.find(c => c.id === r.data.clientId))
+          S.clients.push({ id: r.data.clientId, name: r.data.clientName });
+        renderProjects();
+        toast('Client updated', 'success');
+      } else {
+        renderProjects();
+        toast('Failed to update client', 'error');
       }
     });
   }
@@ -927,6 +959,8 @@ const UAT = (() => {
     const backdrop = el('uatModalNewProject');
     if (!backdrop) return;
     // Populate client dropdown
+    const dl = document.getElementById('uatClientDatalist');
+    if (dl) dl.innerHTML = S.clients.map(c => `<option value="${c.name}">`).join('');
     backdrop.classList.add('open');
   }
 
@@ -938,12 +972,14 @@ const UAT = (() => {
     const form = el('uatFormNewProject');
     if (!form) return;
     const data = Object.fromEntries(new FormData(form));
-    if (!data.name) return toast('Project name required', 'error');
+    if (!data.clientName || !data.name) return toast('Client name and project name required', 'error');
     data.seedDefaults = form.querySelector('[name=seedDefaults]')?.checked;
     data.entities = (data.entities || '').split(',').map(e => e.trim()).filter(Boolean);
     const r = await api('POST', '/api/uat/projects', data);
     if (r.ok) {
       S.projects.push(r.data);
+      if (r.data.clientId && !S.clients.find(c => c.id === r.data.clientId))
+        S.clients.push({ id: r.data.clientId, name: r.data.clientName });
       hideNewProjectModal();
       toast(data.seedDefaults ? 'Project created & seeded with 44 test cases' : 'Project created');
       if (data.seedDefaults) { openProject(r.data.id); } else { renderProjects(); }
@@ -1516,6 +1552,7 @@ const UAT = (() => {
     editClientLabel,
     renameEntity,
     editProjectName,
+    editProjectClient,
     sharePortal,
     closeSharePortal,
     copyLink,

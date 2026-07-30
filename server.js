@@ -969,9 +969,20 @@ app.get('/api/uat/projects', async (req, res) => {
 });
 app.post('/api/uat/projects', async (req, res) => {
   await _dbReady; const u=uatDB();
-  const { clientId, name, entity='', businessUnit='', goLiveDate='', description='', seedDefaults=false } = req.body;
-  if (!clientId||!name) return res.status(400).json({ ok:false, error:'clientId and name required' });
-  const p={ id:uatId(), clientId, name, entity, businessUnit, goLiveDate, description, phase:'uat', status:'active', uatRound:1, signoff:null, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
+  const { clientId: rawClientId, clientName: rawClientName='', name, entity='', businessUnit='', goLiveDate='', description='', seedDefaults=false } = req.body;
+  if (!name) return res.status(400).json({ ok:false, error:'Project name required' });
+  let clientId = rawClientId || '';
+  let clientName = rawClientName.trim();
+  if (!clientId && clientName) {
+    let c = u.clients.find(x => x.name.toLowerCase() === clientName.toLowerCase());
+    if (!c) { c = { id:uatId(), name:clientName, shortCode:clientName.slice(0,3).toUpperCase(), createdAt:new Date().toISOString() }; u.clients.push(c); }
+    else clientName = c.name;
+    clientId = c.id;
+  } else if (clientId) {
+    const c = u.clients.find(x => x.id === clientId);
+    if (c) clientName = c.name;
+  }
+  const p={ id:uatId(), clientId, clientName, name, entity, businessUnit, goLiveDate, description, phase:'uat', status:'active', uatRound:1, signoff:null, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
   u.projects.push(p);
   if (seedDefaults) {
     const tcs=UAT_DEFAULTS.map((d,i)=>uatNewTC({...d,id:uatId(),projectId:p.id,clientId,seq:i+1}));
@@ -983,6 +994,14 @@ app.post('/api/uat/projects', async (req, res) => {
 app.put('/api/uat/projects/:id', async (req, res) => {
   await _dbReady; const u=uatDB(); const p=u.projects.find(x=>x.id===req.params.id);
   if (!p) return res.status(404).json({ ok:false, error:'not found' });
+  if (req.body.clientName !== undefined) {
+    const cn = req.body.clientName.trim();
+    if (cn) {
+      let c = u.clients.find(x => x.name.toLowerCase() === cn.toLowerCase());
+      if (!c) { c = { id:uatId(), name:cn, shortCode:cn.slice(0,3).toUpperCase(), createdAt:new Date().toISOString() }; u.clients.push(c); }
+      req.body.clientId = c.id; req.body.clientName = c.name;
+    }
+  }
   Object.assign(p, req.body, { id:p.id, updatedAt:new Date().toISOString() });
   await saveDB(db); res.json({ ok:true, data:p });
 });
