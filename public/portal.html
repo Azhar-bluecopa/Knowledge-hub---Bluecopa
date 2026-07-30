@@ -30,66 +30,49 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f1f2f5;color:#0d1117
 .p-spin{width:40px;height:40px;border:3px solid rgba(201,162,39,.2);border-top-color:#c9a227;border-radius:50%;animation:spin .7s linear infinite}
 .p-loading-text{font-size:13px;color:#4b5563;font-weight:600;animation:pulse 1.5s ease infinite}
 
-/* ── Landing ── */
-.p-landing{min-height:100vh;display:flex;flex-direction:column;background:#07080e}
-.p-header{padding:0 48px;background:rgba(7,8,14,.92);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.05);height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+/* ── Landing (cinematic full-screen) ── */
+.p-landing{min-height:100vh;display:flex;flex-direction:column;background:#05081a;position:relative;overflow:hidden}
+.p-landing::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 55% 50%,rgba(20,45,210,.32) 0%,rgba(8,15,55,.55) 50%,transparent 78%);pointer-events:none;z-index:0}
+.p-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+
+/* Sparkle cross decorations */
+.p-sparkle{position:absolute;pointer-events:none;z-index:2;animation:fadeIn .8s ease both}
+.p-sparkle::before,.p-sparkle::after{content:'';position:absolute;border-radius:99px;background:rgba(255,255,255,.65)}
+.p-sparkle::before{width:22px;height:1.5px;top:50%;left:50%;transform:translate(-50%,-50%)}
+.p-sparkle::after{width:1.5px;height:22px;top:50%;left:50%;transform:translate(-50%,-50%)}
+.p-sparkle.sm::before{width:14px}.p-sparkle.sm::after{height:14px}
+.p-sparkle.lg::before{width:40px;height:2px;background:#fff}.p-sparkle.lg::after{width:2px;height:40px;background:#fff}
+.p-sparkle.glow::before{background:rgba(160,200,255,.9);box-shadow:0 0 10px 2px rgba(100,160,255,.55)}
+.p-sparkle.glow::after{background:rgba(160,200,255,.9);box-shadow:0 0 10px 2px rgba(100,160,255,.55)}
+
+/* Header */
+.p-header{position:relative;z-index:10;padding:0 48px;height:68px;display:flex;align-items:center;justify-content:space-between;background:rgba(5,8,26,.6);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.05)}
 .p-header-logo{display:flex;align-items:center;gap:10px}
 .p-header-logo img{width:28px;height:28px;border-radius:6px}
 .p-logo{font-size:17px;font-weight:800;color:#fff;letter-spacing:-.3px}
 .p-logo span{color:#c9a227}
-.p-header-tag{font-size:10px;font-weight:700;color:#3a3f50;letter-spacing:1.5px;text-transform:uppercase;font-family:'DM Mono',monospace}
+.p-header-tag{font-size:10px;font-weight:700;color:rgba(255,255,255,.18);letter-spacing:1.5px;text-transform:uppercase;font-family:'DM Mono',monospace}
 
-/* Hero */
-.p-hero{flex:1;background:#07080e;display:flex;align-items:center;padding:72px 48px;position:relative;overflow:hidden}
-.p-hero::before{content:'';position:absolute;top:-20%;left:-10%;width:900px;height:900px;background:radial-gradient(ellipse,rgba(201,162,39,.065) 0%,transparent 60%);pointer-events:none}
-.p-hero::after{content:'';position:absolute;bottom:0;right:0;width:700px;height:600px;background:radial-gradient(ellipse at bottom right,rgba(39,80,201,.04) 0%,transparent 65%);pointer-events:none}
-.p-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);background-size:80px 80px;pointer-events:none}
-.p-hero-inner{max-width:1280px;width:100%;margin:0 auto;display:grid;grid-template-columns:1fr 440px;gap:80px;align-items:center;position:relative;z-index:1}
-.p-hero-left{display:flex;flex-direction:column;align-items:flex-start}
-.p-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(201,162,39,.07);border:1px solid rgba(201,162,39,.16);border-radius:6px;padding:6px 14px;font-size:10px;font-weight:700;color:#a07f18;letter-spacing:1.5px;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:28px;animation:fadeUp .5s ease .1s both}
-.p-badge-dot{width:6px;height:6px;border-radius:50%;background:#c9a227;flex-shrink:0}
-.p-welcome-label{font-size:16px;font-weight:500;color:#525866;margin-bottom:8px;animation:fadeUp .5s ease .2s both}
-.p-client-name{font-size:76px;font-weight:800;line-height:1.05;letter-spacing:-2.5px;color:#f2f3f6;margin-bottom:24px;text-wrap:balance;animation:fadeUp .6s cubic-bezier(.4,0,.2,1) .3s both}
-.p-project-strip{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap;animation:fadeUp .5s ease .38s both}
-.p-project-name-tag{font-size:12px;font-weight:700;color:#c8cad0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:5px 12px}
-.p-project-phase-tag{font-size:10px;font-weight:700;color:#c9a227;background:rgba(201,162,39,.08);border:1px solid rgba(201,162,39,.15);border-radius:6px;padding:5px 12px;font-family:'DM Mono',monospace;letter-spacing:.5px}
-.p-hero-desc{font-size:15px;color:#4a5060;line-height:1.75;max-width:500px;margin-bottom:36px;font-weight:400;animation:fadeUp .5s ease .44s both}
-.p-steps{display:flex;align-items:flex-start;margin-bottom:44px;animation:fadeUp .5s ease .5s both}
-.p-step{display:flex;flex-direction:column;gap:5px;padding:0 20px}
-.p-step:first-child{padding-left:0}
-.p-step-num{font-size:10px;font-weight:700;color:#c9a227;font-family:'DM Mono',monospace;letter-spacing:.5px}
-.p-step-text{font-size:12px;font-weight:600;color:#6b7280;white-space:nowrap}
-.p-step-sep{font-size:12px;color:#1e2230;align-self:center;padding-bottom:2px;padding-top:14px}
-.p-btn-start{display:inline-flex;align-items:center;gap:12px;background:#c9a227;color:#07080e;border:none;border-radius:8px;padding:16px 40px;font-size:14px;font-weight:800;cursor:pointer;transition:all .2s;font-family:inherit;letter-spacing:.1px;animation:fadeUp .5s ease .56s both}
-.p-btn-start:hover{background:#d4ae35;transform:translateY(-2px);box-shadow:0 8px 32px rgba(201,162,39,.3)}
-.p-btn-start:focus{outline:2px solid rgba(201,162,39,.5);outline-offset:2px}
-.p-btn-arrow{font-size:16px;transition:transform .2s;display:inline-block}
+/* Hero — centered column */
+.p-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:48px 24px;position:relative;z-index:1}
+.p-hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:99px;padding:7px 20px;font-size:10px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:2px;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:32px;animation:fadeUp .5s ease .15s both}
+.p-eyebrow-dot{width:6px;height:6px;border-radius:50%;background:#c9a227;flex-shrink:0}
+.p-hero-title{font-size:96px;font-weight:800;color:#ffffff;line-height:1;letter-spacing:-3px;margin-bottom:20px;text-wrap:balance;max-width:1000px;animation:fadeUp .7s cubic-bezier(.4,0,.2,1) .25s both;text-shadow:0 0 80px rgba(80,120,255,.2),0 0 200px rgba(60,100,255,.1)}
+.p-hero-project{font-size:13px;font-weight:600;color:rgba(255,255,255,.3);margin-bottom:16px;font-family:'DM Mono',monospace;letter-spacing:.5px;animation:fadeUp .5s ease .35s both}
+.p-hero-sub{font-size:15px;color:rgba(255,255,255,.38);line-height:1.75;max-width:540px;margin-bottom:52px;font-weight:400;animation:fadeUp .5s ease .4s both}
+.p-btn-start{display:inline-flex;align-items:center;gap:12px;background:#c9a227;color:#05081a;border:none;border-radius:99px;padding:18px 56px;font-size:15px;font-weight:800;cursor:pointer;transition:all .25s;font-family:inherit;letter-spacing:.2px;box-shadow:0 0 48px rgba(201,162,39,.28),0 4px 24px rgba(0,0,0,.5);animation:fadeUp .5s ease .5s both}
+.p-btn-start:hover{background:#d4ae35;transform:translateY(-3px);box-shadow:0 0 80px rgba(201,162,39,.45),0 8px 40px rgba(0,0,0,.6)}
+.p-btn-start:focus{outline:2px solid rgba(201,162,39,.5);outline-offset:3px}
+.p-btn-arrow{font-size:18px;transition:transform .2s;display:inline-block}
 .p-btn-start:hover .p-btn-arrow{transform:translateX(4px)}
 
-/* Preview card (right column) */
-.p-hero-right{animation:scaleIn .6s cubic-bezier(.4,0,.2,1) .45s both}
-.p-preview-card{background:#0d0f18;border:1px solid rgba(255,255,255,.06);border-radius:16px;overflow:hidden;box-shadow:0 32px 72px rgba(0,0,0,.55),0 4px 16px rgba(0,0,0,.35)}
-.p-preview-header{padding:18px 24px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;justify-content:space-between}
-.p-preview-label{font-size:10px;font-weight:700;color:#2e3242;text-transform:uppercase;letter-spacing:1.5px;font-family:'DM Mono',monospace}
-.p-preview-status-dot{width:8px;height:8px;border-radius:50%;background:#1a4d26;box-shadow:0 0 8px rgba(34,197,94,.35)}
-.p-preview-project-name{padding:20px 24px 4px;font-size:16px;font-weight:800;color:#f2f3f6;line-height:1.3}
-.p-preview-project-phase{padding:4px 24px 20px;font-size:11px;font-weight:700;color:#3d4456;font-family:'DM Mono',monospace;letter-spacing:.5px}
-.p-preview-stats{padding:20px 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px;border-top:1px solid rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.04)}
-.p-pv-stat{display:flex;flex-direction:column;gap:5px}
-.p-pv-stat-val{font-size:26px;font-weight:800;color:#f2f3f6;font-variant-numeric:tabular-nums;line-height:1}
-.p-pv-stat-lbl{font-size:9px;font-weight:700;color:#2e3242;text-transform:uppercase;letter-spacing:.6px}
-.p-preview-entities{padding:16px 24px;display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px solid rgba(255,255,255,.04)}
-.p-pv-entity{font-size:10px;font-weight:700;color:#525866;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:4px 10px;font-family:'DM Mono',monospace}
-.p-preview-footer{padding:14px 24px}
-.p-preview-secure{font-size:11px;color:#272c38;font-weight:600}
+/* Footer */
+.p-landing-footer{position:relative;z-index:10;padding:16px 48px;border-top:1px solid rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;background:rgba(5,8,26,.5)}
+.p-lf-credit{font-size:11px;color:rgba(255,255,255,.12);font-weight:600}
+.p-lf-credit span{color:rgba(255,255,255,.2)}
 
-/* Landing bottom bar */
-.p-landing-footer{padding:20px 48px;border-top:1px solid rgba(255,255,255,.04);background:#07080e}
-.p-lf-credit{font-size:11px;color:#252a36;font-weight:600}
-.p-lf-credit span{color:#31374a}
-
-@media(max-width:1024px){.p-hero-inner{grid-template-columns:1fr}.p-hero-right{display:none}.p-client-name{font-size:54px;letter-spacing:-1.5px}.p-hero{padding:56px 40px}}
-@media(max-width:640px){.p-header{padding:0 24px}.p-hero{padding:40px 24px}.p-client-name{font-size:40px;letter-spacing:-1px}.p-steps{flex-wrap:wrap}.p-step-sep{display:none}.p-step{padding:0 12px}.p-step:first-child{padding-left:0}.p-landing-footer{padding:16px 24px}}
+@media(max-width:768px){.p-hero-title{font-size:60px;letter-spacing:-2px}.p-header{padding:0 24px}.p-hero{padding:40px 20px}.p-hero-sub{font-size:14px}}
+@media(max-width:480px){.p-hero-title{font-size:42px;letter-spacing:-1.5px}.p-btn-start{padding:16px 40px;font-size:14px}}
 
 /* ── Testing page ── */
 .p-testing{display:none;flex-direction:column;min-height:100vh}
@@ -262,6 +245,18 @@ tr:hover td{background:#fafafa}
 
 <!-- Landing Page -->
 <div id="pLanding" class="p-landing" style="display:none">
+  <canvas id="pCanvas" class="p-canvas"></canvas>
+
+  <!-- Sparkle star decorations -->
+  <div class="p-sparkle lg glow" style="top:22%;left:10%;animation-delay:.3s"></div>
+  <div class="p-sparkle sm" style="top:15%;left:37%;opacity:.55;animation-delay:.5s"></div>
+  <div class="p-sparkle glow" style="top:30%;right:12%;animation-delay:.2s"></div>
+  <div class="p-sparkle sm" style="top:63%;right:18%;opacity:.45;animation-delay:.6s"></div>
+  <div class="p-sparkle lg" style="bottom:28%;left:16%;opacity:.5;animation-delay:.4s"></div>
+  <div class="p-sparkle" style="top:52%;right:7%;opacity:.38;animation-delay:.7s"></div>
+  <div class="p-sparkle sm glow" style="bottom:32%;right:38%;animation-delay:.35s"></div>
+  <div class="p-sparkle" style="top:10%;right:25%;opacity:.48;animation-delay:.55s"></div>
+
   <header class="p-header">
     <div class="p-header-logo anim-fade-in">
       <img src="/bluecopa-icon.png" alt="Bluecopa">
@@ -269,39 +264,15 @@ tr:hover td{background:#fafafa}
     </div>
     <div class="p-header-tag anim-fade-in d2">Implementation Portal</div>
   </header>
+
   <div class="p-hero">
-    <div class="p-hero-grid"></div>
-    <div class="p-hero-inner">
-      <div class="p-hero-left">
-        <div class="p-badge"><span class="p-badge-dot"></span>UAT Portal</div>
-        <div class="p-welcome-label">Welcome,</div>
-        <h1 class="p-client-name" id="pHeroClient">—</h1>
-        <div class="p-project-strip" id="pProjectStrip"></div>
-        <p class="p-hero-desc">Your implementation is ready for User Acceptance Testing. Review each test case, update your status, and sign off when complete.</p>
-        <div class="p-steps">
-          <div class="p-step"><span class="p-step-num">01</span><span class="p-step-text">Review cases</span></div>
-          <span class="p-step-sep">→</span>
-          <div class="p-step"><span class="p-step-num">02</span><span class="p-step-text">Mark status</span></div>
-          <span class="p-step-sep">→</span>
-          <div class="p-step"><span class="p-step-num">03</span><span class="p-step-text">Submit sign-off</span></div>
-        </div>
-        <button class="p-btn-start" onclick="startTesting()">Begin Testing <span class="p-btn-arrow">→</span></button>
-      </div>
-      <div class="p-hero-right">
-        <div class="p-preview-card">
-          <div class="p-preview-header">
-            <span class="p-preview-label">Project Overview</span>
-            <span class="p-preview-status-dot"></span>
-          </div>
-          <div class="p-preview-project-name" id="pPreviewProject">—</div>
-          <div class="p-preview-project-phase" id="pPreviewPhase"></div>
-          <div class="p-preview-stats" id="pPreviewStats"></div>
-          <div class="p-preview-entities" id="pPreviewEntities"></div>
-          <div class="p-preview-footer"><span class="p-preview-secure">🔒 Secure, private portal</span></div>
-        </div>
-      </div>
-    </div>
+    <div class="p-hero-eyebrow"><span class="p-eyebrow-dot"></span>User Acceptance Testing</div>
+    <h1 class="p-hero-title" id="pHeroClient">—</h1>
+    <div class="p-hero-project" id="pHeroProject"></div>
+    <p class="p-hero-sub">Review your test cases, mark your status, and sign off to formally complete the UAT round.</p>
+    <button class="p-btn-start" onclick="startTesting()">Begin Testing <span class="p-btn-arrow">→</span></button>
   </div>
+
   <footer class="p-landing-footer">
     <span class="p-lf-credit">Powered by <span>Bluecopa</span></span>
   </footer>
@@ -395,45 +366,87 @@ function showError() {
 function renderLanding() {
   document.title = 'UAT Portal — ' + D.client.name;
   document.getElementById('pHeroClient').textContent = D.client.name;
-  const stripEl = document.getElementById('pProjectStrip');
-  if (stripEl && D.project.name) {
-    let html = '<span class="p-project-name-tag">' + esc(D.project.name) + '</span>';
-    if (D.project.phase) html += '<span class="p-project-phase-tag">' + esc(D.project.phase) + '</span>';
-    stripEl.innerHTML = html;
-  }
-  const previewProjectEl = document.getElementById('pPreviewProject');
-  if (previewProjectEl) previewProjectEl.textContent = D.project.name || '—';
-  const previewPhaseEl = document.getElementById('pPreviewPhase');
-  if (previewPhaseEl) {
+  const projectEl = document.getElementById('pHeroProject');
+  if (projectEl) {
     const parts = [];
+    if (D.project.name) parts.push(D.project.name);
     if (D.project.phase) parts.push(D.project.phase);
     if (D.project.goLiveDate) parts.push('Go-live ' + D.project.goLiveDate);
-    previewPhaseEl.textContent = parts.join(' · ');
-    if (!parts.length) previewPhaseEl.style.display = 'none';
+    projectEl.textContent = parts.join(' · ');
   }
-  const statsEl = document.getElementById('pPreviewStats');
-  if (statsEl) {
-    const agg = D.entityAggregate || {};
-    const total = agg.total || (D.testcases || []).length || 0;
-    const entityCount = (D.entities || []).length;
-    let html = '<div class="p-pv-stat"><div class="p-pv-stat-val">' + total + '</div><div class="p-pv-stat-lbl">Test Cases</div></div>';
-    if (entityCount > 0) html += '<div class="p-pv-stat"><div class="p-pv-stat-val">' + entityCount + '</div><div class="p-pv-stat-lbl">Entities</div></div>';
-    if (D.project.goLiveDate) {
-      const d = new Date(D.project.goLiveDate + 'T00:00:00');
-      const mo = d.toLocaleString('en-US', {month:'short'});
-      html += '<div class="p-pv-stat"><div class="p-pv-stat-val" style="font-size:16px;padding-top:6px">' + esc(mo + ' ' + d.getFullYear()) + '</div><div class="p-pv-stat-lbl">Go-Live</div></div>';
+  initLandingCanvas();
+}
+
+function initLandingCanvas() {
+  const canvas = document.getElementById('pCanvas');
+  if (!canvas || canvas._init) return;
+  canvas._init = true;
+  const ctx = canvas.getContext('2d');
+  let t = 0, W, H, cx, cy, R;
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    cx = W * 0.5; cy = H * 0.5;
+    R = Math.min(W * 0.27, H * 0.38);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  function frame() {
+    ctx.clearRect(0, 0, W, H);
+    // Central deep glow
+    const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.7);
+    grd.addColorStop(0, 'rgba(40,70,230,.22)');
+    grd.addColorStop(0.4, 'rgba(20,40,170,.1)');
+    grd.addColorStop(1, 'transparent');
+    ctx.fillStyle = grd; ctx.fillRect(0, 0, W, H);
+    // Latitude-like sweep curves
+    ctx.shadowBlur = 3;
+    const N = 34;
+    for (let i = 0; i <= N; i++) {
+      const f = i / N;
+      const theta = f * Math.PI;
+      const ry = R * Math.cos(theta);
+      const rx = R * Math.sin(theta);
+      if (rx < 2) continue;
+      const wave = 0.1 * Math.sin(f * Math.PI * 6 + t * 0.6);
+      const hue = 215 + f * 55;
+      const alpha = 0.24 * Math.sin(f * Math.PI) * (1 + 0.4 * Math.sin(t * 0.35 + f * 5));
+      ctx.beginPath();
+      ctx.strokeStyle = `hsla(${hue},70%,68%,${Math.max(0.03,Math.min(alpha,0.48))})`;
+      ctx.lineWidth = 0.85;
+      ctx.shadowColor = `hsla(${hue},75%,72%,.22)`;
+      for (let j = 0; j <= 100; j++) {
+        const u = (j / 100) * Math.PI * 2;
+        const r = rx * (1 + wave * Math.sin(u * 2 + t * 0.4));
+        const x = cx + r * Math.cos(u);
+        const y = cy - ry + rx * 0.12 * Math.sin(u + t * 0.25);
+        if (j === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
     }
-    statsEl.innerHTML = html;
-  }
-  const entitiesEl = document.getElementById('pPreviewEntities');
-  if (entitiesEl) {
-    const entities = D.entities || [];
-    if (entities.length > 1) {
-      entitiesEl.innerHTML = entities.map(e => '<span class="p-pv-entity">' + esc(e) + '</span>').join('');
-    } else {
-      entitiesEl.style.display = 'none';
+    // Longitude-like curves
+    ctx.shadowBlur = 2;
+    for (let i = 0; i < 20; i++) {
+      const f = i / 20;
+      const phi = f * Math.PI * 2;
+      const alpha = 0.1 + 0.07 * Math.cos(phi + t * 0.25);
+      ctx.beginPath();
+      ctx.strokeStyle = `rgba(130,155,255,${Math.max(0.04,alpha)})`;
+      ctx.lineWidth = 0.65;
+      ctx.shadowColor = 'rgba(130,155,255,.15)';
+      for (let j = 0; j <= 64; j++) {
+        const v = (j / 64) * Math.PI;
+        const x = cx + R * Math.sin(v) * Math.cos(phi + 0.1 * Math.sin(v * 2 + t * 0.3));
+        const y = cy - R * Math.cos(v) * 0.88 + R * 0.06 * Math.sin(phi * 2 + t * 0.2);
+        if (j === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
     }
+    ctx.shadowBlur = 0;
+    t += 0.005;
+    requestAnimationFrame(frame);
   }
+  frame();
 }
 
 function startTesting() {
