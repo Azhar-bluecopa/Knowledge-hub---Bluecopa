@@ -208,7 +208,7 @@ const UAT = (() => {
     } else {
       tbody.innerHTML = d.projects.map(p => `
         <tr onclick="UAT.openProject('${p.id}')" style="cursor:pointer">
-          <td><div class="uat-project-name">${p.name}</div><div class="uat-project-client">${p.clientName}</div></td>
+          <td><div class="uat-project-name">${p.name}</div></td>
           <td><span class="uat-priority ${p.phase==='go_live'?'pri-medium':'pri-low'}">${p.phase||'uat'}</span></td>
           <td>${p.total}</td>
           <td><span class="uat-status-pill pass" style="pointer-events:none">${p.bPassed}</span></td>
@@ -272,7 +272,6 @@ const UAT = (() => {
                 <div class="uat-project-name" id="pname-${p.id}">${p.name}</div>
                 <button class="uat-proj-edit-btn" onclick="UAT.editProjectName('${p.id}',event)" title="Rename project">✏</button>
               </div>
-              <div class="uat-project-client">${client ? client.name : '—'}</div>
             </div>
             <div class="uat-project-health ${healthColor(score)}">${score}%</div>
           </div>
@@ -928,9 +927,6 @@ const UAT = (() => {
     const backdrop = el('uatModalNewProject');
     if (!backdrop) return;
     // Populate client dropdown
-    const sel = qs('#uatModalNewProject [name=clientId]');
-    if (sel) sel.innerHTML = `<option value="">Select client…</option>` +
-      S.clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     backdrop.classList.add('open');
   }
 
@@ -942,7 +938,7 @@ const UAT = (() => {
     const form = el('uatFormNewProject');
     if (!form) return;
     const data = Object.fromEntries(new FormData(form));
-    if (!data.clientId || !data.name) return toast('Client and name required', 'error');
+    if (!data.name) return toast('Project name required', 'error');
     data.seedDefaults = form.querySelector('[name=seedDefaults]')?.checked;
     data.entities = (data.entities || '').split(',').map(e => e.trim()).filter(Boolean);
     const r = await api('POST', '/api/uat/projects', data);
