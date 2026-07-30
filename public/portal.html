@@ -52,6 +52,15 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f1f2f5;color:#0d1117
 .p-logo{font-size:17px;font-weight:800;color:#fff;letter-spacing:-.3px}
 .p-logo span{color:#c9a227}
 .p-header-tag{font-size:10px;font-weight:700;color:rgba(255,255,255,.18);letter-spacing:1.5px;text-transform:uppercase;font-family:'DM Mono',monospace}
+.p-ticker-wrap{flex:1;overflow:hidden;margin:0 40px;position:relative;height:68px;display:flex;align-items:center}
+.p-ticker-wrap::before,.p-ticker-wrap::after{content:'';position:absolute;top:0;bottom:0;width:56px;z-index:2;pointer-events:none}
+.p-ticker-wrap::before{left:0;background:linear-gradient(to right,rgba(5,8,26,.85),transparent)}
+.p-ticker-wrap::after{right:0;background:linear-gradient(to left,rgba(5,8,26,.85),transparent)}
+.p-ticker{display:flex;white-space:nowrap;animation:ticker 22s linear infinite}
+.p-ticker:hover{animation-play-state:paused}
+.p-ticker-text{font-size:11px;font-weight:700;color:#c9a227;letter-spacing:2px;text-transform:uppercase;font-family:'DM Mono',monospace;padding-right:72px;opacity:.85}
+.p-ticker-sep{font-size:11px;color:rgba(201,162,39,.35);padding-right:72px;font-family:'DM Mono',monospace;letter-spacing:2px}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 
 /* Hero — centered column */
 .p-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:48px 24px;position:relative;z-index:1}
@@ -264,6 +273,18 @@ tr:hover td{background:#fafafa}
     <div class="p-header-logo anim-fade-in">
       <img src="/bluecopa-icon.png" alt="Bluecopa">
       <div class="p-logo">Blue<span>copa</span></div>
+    </div>
+    <div class="p-ticker-wrap anim-fade-in d2">
+      <div class="p-ticker">
+        <span class="p-ticker-text">Every bug found in UAT is one less surprise in Production.</span>
+        <span class="p-ticker-sep">✦</span>
+        <span class="p-ticker-text">Every bug found in UAT is one less surprise in Production.</span>
+        <span class="p-ticker-sep">✦</span>
+        <span class="p-ticker-text">Every bug found in UAT is one less surprise in Production.</span>
+        <span class="p-ticker-sep">✦</span>
+        <span class="p-ticker-text">Every bug found in UAT is one less surprise in Production.</span>
+        <span class="p-ticker-sep">✦</span>
+      </div>
     </div>
     <div class="p-header-tag anim-fade-in d2">Implementation Portal</div>
   </header>
