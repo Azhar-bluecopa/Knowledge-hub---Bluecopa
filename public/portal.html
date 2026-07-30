@@ -65,8 +65,8 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f1f2f5;color:#0d1117
 
 /* Hero — centered column */
 .p-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:48px 24px;position:relative;z-index:1}
-.p-client-logo-wrap{display:none;align-items:center;justify-content:center;background:rgba(255,255,255,.92);border-radius:20px;padding:16px 36px;margin-bottom:32px;box-shadow:0 8px 40px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.2);animation:fadeUp .5s ease .1s both;max-width:340px}
-.p-client-logo{height:60px;max-width:280px;object-fit:contain;display:block}
+.p-client-logo-wrap{display:none;align-items:center;justify-content:center;background:rgba(255,255,255,.96);border-radius:20px;padding:20px 44px;margin-bottom:36px;box-shadow:0 12px 48px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.2);animation:fadeUp .6s cubic-bezier(.4,0,.2,1) .2s both;max-width:360px}
+.p-client-logo{height:72px;max-width:300px;object-fit:contain;display:block}
 .p-hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:99px;padding:7px 20px;font-size:10px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:2px;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:32px;animation:fadeUp .5s ease .15s both}
 .p-eyebrow-dot{width:6px;height:6px;border-radius:50%;background:#c9a227;flex-shrink:0}
 .p-hero-title{font-size:96px;font-weight:800;color:#ffffff;line-height:1;letter-spacing:-3px;margin-bottom:20px;text-wrap:balance;max-width:1000px;animation:fadeUp .7s cubic-bezier(.4,0,.2,1) .25s both;text-shadow:0 0 80px rgba(80,120,255,.2),0 0 200px rgba(60,100,255,.1)}
@@ -401,26 +401,37 @@ function renderLanding() {
   document.getElementById('pHeroClient').textContent = D.client.name;
   initLandingCanvas();
 
-  // Auto-fetch client logo from website via Clearbit
+  // Auto-fetch client logo — tries Clearbit, falls back to Google favicons
   const website = D.client.website || D.project.clientWebsite || '';
   const logoWrap = document.getElementById('pClientLogoWrap');
   const logoImg  = document.getElementById('pClientLogo');
+  const titleEl  = document.getElementById('pHeroClient');
   if (website && logoWrap && logoImg) {
     try {
-      const raw = website.startsWith('http') ? website : 'https://' + website;
+      const raw    = website.startsWith('http') ? website : 'https://' + website;
       const domain = new URL(raw).hostname.replace(/^www\./, '');
-      logoImg.src = 'https://logo.clearbit.com/' + domain;
-      logoImg.onload  = () => {
-        logoWrap.style.display = 'inline-flex';
-        const title = document.getElementById('pHeroClient');
-        if (title) title.style.display = 'none';
-      };
-      logoImg.onerror = () => {
-        logoWrap.style.display = 'none';
-        const title = document.getElementById('pHeroClient');
-        if (title) title.style.display = '';
-      };
-    } catch(e) { logoWrap.style.display = 'none'; }
+      const sources = [
+        'https://logo.clearbit.com/' + domain + '?size=200',
+        'https://www.google.com/s2/favicons?domain=' + domain + '&sz=256'
+      ];
+      function tryNext() {
+        if (!sources.length) {
+          logoWrap.style.display = 'none';
+          if (titleEl) titleEl.style.display = '';
+          return;
+        }
+        logoImg.src = sources.shift();
+        logoImg.onload  = () => {
+          logoWrap.style.display = 'inline-flex';
+          if (titleEl) titleEl.style.display = 'none';
+        };
+        logoImg.onerror = tryNext;
+      }
+      tryNext();
+    } catch(e) {
+      logoWrap.style.display = 'none';
+      if (titleEl) titleEl.style.display = '';
+    }
   }
 }
 

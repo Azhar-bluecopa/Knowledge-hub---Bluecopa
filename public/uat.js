@@ -275,6 +275,10 @@ const UAT = (() => {
                 <span class="pclient-text">${escHtml(p.clientName || S.clients.find(c=>c.id===p.clientId)?.name || '—')}</span>
                 <button class="uat-proj-edit-btn" onclick="UAT.editProjectClient('${p.id}',event)" title="Edit client name" style="opacity:.5;font-size:9px">✏</button>
               </div>
+              <div id="pwebsite-${p.id}" style="display:flex;align-items:center;gap:4px;margin-top:2px">
+                <span style="font-size:10px;color:#9ca3af;font-family:'DM Mono',monospace">${p.clientWebsite || S.clients.find(c=>c.id===p.clientId)?.website || ''}</span>
+                <button class="uat-proj-edit-btn" onclick="UAT.editProjectWebsite('${p.id}',event)" title="${p.clientWebsite ? 'Edit website' : 'Add client website (enables logo on portal)'}" style="opacity:.4;font-size:9px">🌐</button>
+              </div>
             </div>
             <div class="uat-project-health ${healthColor(score)}">${score}%</div>
           </div>
@@ -341,6 +345,30 @@ const UAT = (() => {
         renderProjects();
         toast('Failed to update client', 'error');
       }
+    });
+  }
+
+  function editProjectWebsite(projectId, e) {
+    e.stopPropagation();
+    const wrap = document.getElementById('pwebsite-' + projectId);
+    if (!wrap || wrap.querySelector('input')) return;
+    const p = S.projects.find(x => x.id === projectId);
+    const current = p?.clientWebsite || S.clients.find(c => c.id === p?.clientId)?.website || '';
+    wrap.innerHTML = `<input class="uat-proj-name-input" type="url" value="${current.replace(/"/g,'&quot;')}" placeholder="https://company.com" onclick="event.stopPropagation()" style="width:180px;font-size:10px" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.dataset.cancel='1';this.blur();}">`;
+    const inp = wrap.querySelector('input');
+    inp.focus();
+    inp.addEventListener('blur', async () => {
+      if (inp.dataset.cancel === '1') { renderProjects(); return; }
+      const newUrl = inp.value.trim();
+      if (newUrl === current) { renderProjects(); return; }
+      const r = await api('PUT', `/api/uat/projects/${projectId}`, { clientWebsite: newUrl });
+      if (r.ok) {
+        if (p) p.clientWebsite = newUrl;
+        const client = S.clients.find(c => c.id === p?.clientId);
+        if (client && newUrl) client.website = newUrl;
+        renderProjects();
+        toast('Website updated — logo will appear on client portal', 'success');
+      } else { renderProjects(); toast('Failed to update', 'error'); }
     });
   }
 
@@ -1553,6 +1581,7 @@ const UAT = (() => {
     renameEntity,
     editProjectName,
     editProjectClient,
+    editProjectWebsite,
     sharePortal,
     closeSharePortal,
     copyLink,

@@ -1003,6 +1003,11 @@ app.put('/api/uat/projects/:id', async (req, res) => {
       req.body.clientId = c.id; req.body.clientName = c.name;
     }
   }
+  if (req.body.clientWebsite !== undefined) {
+    const cid = req.body.clientId || p.clientId;
+    const c = u.clients.find(x => x.id === cid);
+    if (c) c.website = req.body.clientWebsite.trim();
+  }
   Object.assign(p, req.body, { id:p.id, updatedAt:new Date().toISOString() });
   await saveDB(db); res.json({ ok:true, data:p });
 });
