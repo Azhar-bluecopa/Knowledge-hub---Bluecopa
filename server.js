@@ -1362,7 +1362,21 @@ app.get('/api/portal/:token', async (req, res) => {
     entityAggregate,
     signoff: ((p.entitySignoffs || {})[entity || '']) || null,
     allEntitySignoffs: p.entitySignoffs || {},
+    bluecopaSignoff: ((p.bluecopaEntitySignoffs || {})[entity || '']) || null,
   }});
+});
+
+app.put('/api/uat/projects/:id/entity-signoff', async (req, res) => {
+  await _dbReady; const u = uatDB();
+  const p = u.projects.find(x => x.id === req.params.id);
+  if (!p) return res.status(404).json({ ok: false, error: 'not found' });
+  const { name, role, date, entity } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ ok: false, error: 'name required' });
+  const signoff = { name: name.trim(), role: (role || '').trim(), date: date || new Date().toISOString().slice(0, 10), signedAt: new Date().toISOString() };
+  if (!p.bluecopaEntitySignoffs) p.bluecopaEntitySignoffs = {};
+  p.bluecopaEntitySignoffs[entity || ''] = signoff;
+  p.updatedAt = new Date().toISOString();
+  await saveDB(db); res.json({ ok: true, signoff });
 });
 
 app.put('/api/portal/:token/signoff', async (req, res) => {

@@ -1351,78 +1351,97 @@ const UAT = (() => {
     if (!sec) return;
     const p = S.projects.find(x => x.id === S.activeProjectId);
     if (!p) { sec.style.display = 'none'; return; }
-    const entities = p.entities || [];
-    // All Entities tab OR no entities → single overall sign-off
-    // Specific entity tab → sign-off for that entity
     const isEntityTab = !!S.filterEntity;
     const signoffKey = isEntityTab ? S.filterEntity : '';
-    const signoff = (p.entitySignoffs || {})[signoffKey] || null;
+    const bluecopaSignoff = (p.bluecopaEntitySignoffs || {})[signoffKey] || null;
+    const clientSignoff = (p.entitySignoffs || {})[signoffKey] || null;
     const label = isEntityTab ? S.filterEntity : 'Overall';
     const clientName = (S.clients||[]).find(c=>c.id===p.clientId)?.name || p.clientLabel || 'Client';
     sec.style.display = '';
     const today = new Date().toISOString().slice(0, 10);
     const eId = signoffKey.replace(/[^a-zA-Z0-9]/g, '_') || '_overall';
 
-    if (signoff) {
-      const dateStr = signoff.date ? new Date(signoff.date + 'T00:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' }) : signoff.date;
-      sec.innerHTML =
-        `<div style="padding:24px 20px">` +
-          `<div style="background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:28px 32px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.04)">` +
-            `<div style="font-size:40px;margin-bottom:12px">✅</div>` +
-            `<div style="font-size:15px;font-weight:800;color:#15803d;margin-bottom:4px">UAT Signed Off</div>` +
-            `<div style="font-size:22px;font-weight:800;color:#0d1117;margin-bottom:4px">${escHtml(signoff.name)}</div>` +
-            (signoff.role ? `<div style="font-size:13px;color:#6b7280;margin-bottom:8px">${escHtml(signoff.role)}</div>` : '') +
-            `<div style="font-size:12px;color:#9ca3af;font-weight:600">Signed on ${escHtml(dateStr)}</div>` +
-            `<div style="display:inline-flex;align-items:center;gap:6px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:99px;padding:6px 16px;font-size:11px;font-weight:700;color:#15803d;margin-top:16px">✓ Formally accepted${isEntityTab ? ' — ' + escHtml(label) : ''} by ${escHtml(clientName)}</div>` +
-          `</div>` +
+    // Primary: Bluecopa sign-off
+    let primaryHtml;
+    if (bluecopaSignoff) {
+      const dateStr = bluecopaSignoff.date ? new Date(bluecopaSignoff.date + 'T00:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' }) : bluecopaSignoff.date;
+      primaryHtml =
+        `<div style="background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:28px 32px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.04)">` +
+          `<div style="font-size:40px;margin-bottom:12px">✅</div>` +
+          `<div style="font-size:15px;font-weight:800;color:#15803d;margin-bottom:4px">UAT Signed Off — Bluecopa Team</div>` +
+          `<div style="font-size:22px;font-weight:800;color:#0d1117;margin-bottom:4px">${escHtml(bluecopaSignoff.name)}</div>` +
+          (bluecopaSignoff.role ? `<div style="font-size:13px;color:#6b7280;margin-bottom:8px">${escHtml(bluecopaSignoff.role)}</div>` : '') +
+          `<div style="font-size:12px;color:#9ca3af;font-weight:600">Signed on ${escHtml(dateStr)}</div>` +
+          `<div style="display:inline-flex;align-items:center;gap:6px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:99px;padding:6px 16px;font-size:11px;font-weight:700;color:#15803d;margin-top:16px">✓ Bluecopa UAT sign-off complete${isEntityTab ? ' — ' + escHtml(label) : ''}</div>` +
         `</div>`;
     } else {
-      sec.innerHTML =
-        `<div style="padding:24px 20px">` +
-          `<div style="background:#fff;border:1px solid #e4e6ea;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">` +
-            `<div style="background:#0d1117;padding:22px 28px;display:flex;align-items:center;gap:16px">` +
-              `<div style="width:44px;height:44px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.25);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">✍️</div>` +
-              `<div>` +
-                `<div style="font-size:16px;font-weight:800;color:#fff">UAT Sign-off Certificate</div>` +
-                `<div style="font-size:12px;color:#6b7280;margin-top:3px">Complete this section to formally accept the UAT${isEntityTab ? ' for ' + escHtml(label) : ''}.</div>` +
-              `</div>` +
+      primaryHtml =
+        `<div style="background:#fff;border:1px solid #e4e6ea;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">` +
+          `<div style="background:#0d1117;padding:22px 28px;display:flex;align-items:center;gap:16px">` +
+            `<div style="width:44px;height:44px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.25);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">✍️</div>` +
+            `<div>` +
+              `<div style="font-size:16px;font-weight:800;color:#fff">Bluecopa UAT Sign-off Certificate</div>` +
+              `<div style="font-size:12px;color:#6b7280;margin-top:3px">Submit the Bluecopa team sign-off${isEntityTab ? ' for ' + escHtml(label) : ''}.</div>` +
             `</div>` +
-            `<div style="padding:24px 28px">` +
-              `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">` +
-                `<div><label style="display:block;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Full Name *</label><input class="uat-form-control" id="uatSoName_${eId}" placeholder="e.g. Priya Sharma"></div>` +
-                `<div><label style="display:block;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Designation / Role</label><input class="uat-form-control" id="uatSoRole_${eId}" placeholder="e.g. Finance Manager"></div>` +
-                `<div><label style="display:block;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Sign-off Date *</label><input class="uat-form-control" id="uatSoDate_${eId}" type="date" value="${today}"></div>` +
-              `</div>` +
-              `<div style="font-size:12px;color:#9ca3af;margin-bottom:18px;line-height:1.6;display:flex;align-items:flex-start;gap:8px"><span style="flex-shrink:0">ℹ️</span><span>By submitting, you confirm that the test cases meet acceptance criteria and are formally accepting this UAT round on behalf of ${escHtml(clientName)}.</span></div>` +
-              `<button class="uat-btn uat-btn-primary" id="uatSoBtn_${eId}" onclick="UAT.submitEntitySignoff('${signoffKey.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">Submit UAT Sign-off →</button>` +
+          `</div>` +
+          `<div style="padding:24px 28px">` +
+            `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">` +
+              `<div><label style="display:block;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Full Name *</label><input class="uat-form-control" id="uatSoName_${eId}" placeholder="e.g. Rahul Mehta"></div>` +
+              `<div><label style="display:block;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Designation / Role</label><input class="uat-form-control" id="uatSoRole_${eId}" placeholder="e.g. UAT Consultant"></div>` +
+              `<div><label style="display:block;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Sign-off Date *</label><input class="uat-form-control" id="uatSoDate_${eId}" type="date" value="${today}"></div>` +
             `</div>` +
+            `<div style="font-size:12px;color:#9ca3af;margin-bottom:18px;line-height:1.6;display:flex;align-items:flex-start;gap:8px"><span style="flex-shrink:0">ℹ️</span><span>By submitting, you confirm that the Bluecopa team has completed UAT review${isEntityTab ? ' for ' + escHtml(label) : ''}.</span></div>` +
+            `<button class="uat-btn uat-btn-primary" id="uatSoBtn_${eId}" onclick="UAT.submitEntitySignoff('${signoffKey.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">Submit Bluecopa Sign-off →</button>` +
           `</div>` +
         `</div>`;
     }
+
+    // Secondary: small client sign-off reference card
+    let clientHtml;
+    if (clientSignoff) {
+      const cDateStr = clientSignoff.date ? new Date(clientSignoff.date + 'T00:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' }) : clientSignoff.date;
+      clientHtml =
+        `<div style="margin-top:12px;padding:14px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;display:flex;align-items:center;gap:12px">` +
+          `<div style="font-size:18px;flex-shrink:0">✅</div>` +
+          `<div style="flex:1;min-width:0">` +
+            `<div style="font-size:11px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Client Sign-off Received</div>` +
+            `<div style="font-size:13px;font-weight:700;color:#0d1117">${escHtml(clientSignoff.name)}${clientSignoff.role ? ' · ' + escHtml(clientSignoff.role) : ''}</div>` +
+            `<div style="font-size:11px;color:#6b7280;margin-top:2px">Signed by ${escHtml(clientName)} on ${escHtml(cDateStr)}</div>` +
+          `</div>` +
+        `</div>`;
+    } else {
+      clientHtml =
+        `<div style="margin-top:12px;padding:12px 16px;background:#fafafa;border:1px solid #e4e6ea;border-radius:10px;display:flex;align-items:center;gap:10px">` +
+          `<div style="font-size:16px;flex-shrink:0">⏳</div>` +
+          `<div style="font-size:12px;color:#9ca3af">Client sign-off pending — ${escHtml(clientName)} has not yet submitted their sign-off${isEntityTab ? ' for ' + escHtml(label) : ''}.</div>` +
+        `</div>`;
+    }
+
+    sec.innerHTML = `<div style="padding:24px 20px">${primaryHtml}${clientHtml}</div>`;
   }
 
   async function submitEntitySignoff(signoffKey) {
     const eId = signoffKey.replace(/[^a-zA-Z0-9]/g, '_') || '_overall';
     const p = S.projects.find(x => x.id === S.activeProjectId);
-    if (!p?.portalToken) { toast('No portal token — generate a portal link first', 'error'); return; }
+    if (!p) { toast('No active project', 'error'); return; }
     const name = (el('uatSoName_' + eId)?.value || '').trim();
     const role = (el('uatSoRole_' + eId)?.value || '').trim();
     const date = el('uatSoDate_' + eId)?.value;
     if (!name) { toast('Please enter a name', 'error'); el('uatSoName_' + eId)?.focus(); return; }
     const btn = el('uatSoBtn_' + eId);
     if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
-    const r = await fetch(`/api/portal/${p.portalToken}/signoff`, {
+    const r = await fetch(`/api/uat/projects/${S.activeProjectId}/entity-signoff`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, role, date, entity: signoffKey || undefined })
     });
     const j = await r.json();
     if (r.ok) {
-      if (!p.entitySignoffs) p.entitySignoffs = {};
-      p.entitySignoffs[signoffKey] = j.signoff;
+      if (!p.bluecopaEntitySignoffs) p.bluecopaEntitySignoffs = {};
+      p.bluecopaEntitySignoffs[signoffKey] = j.signoff;
       renderEntitySignoffSection();
-      toast(signoffKey ? `Sign-off recorded for ${signoffKey}` : 'Overall sign-off recorded', 'success');
+      toast(signoffKey ? `Bluecopa sign-off recorded for ${signoffKey}` : 'Bluecopa sign-off recorded', 'success');
     } else {
-      if (btn) { btn.disabled = false; btn.textContent = 'Submit UAT Sign-off →'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit Bluecopa Sign-off →'; }
       toast('Failed to submit sign-off', 'error');
     }
   }

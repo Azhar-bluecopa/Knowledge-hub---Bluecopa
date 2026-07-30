@@ -475,27 +475,62 @@ function renderTable() {
 function renderSignoff() {
   const wrap = document.getElementById('pSignoffWrap');
   if (!wrap) return;
-  // All Entities tab → single overall sign-off; entity tab → entity sign-off
-  _renderSignoffCard(wrap, D.signoff, ENTITY||null);
+  const bluecopaSignoff = D.bluecopaSignoff || null;
+  const clientSignoff = D.signoff || null;
+  const entity = ENTITY || null;
+  const clientName = D.client?.name || 'Client';
+  let html = '';
+
+  // Bluecopa sign-off section (read-only)
+  html += '<div style="margin-bottom:20px">';
+  html += '<div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Bluecopa Team Sign-off</div>';
+  if (bluecopaSignoff) {
+    const dateStr = bluecopaSignoff.date ? new Date(bluecopaSignoff.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : bluecopaSignoff.date;
+    html +=
+      '<div class="p-signed-card" style="border-color:#bfdbfe;background:#eff6ff">' +
+        '<div class="p-signed-icon">✅</div>' +
+        '<div class="p-signed-title" style="color:#1d4ed8">UAT Review Complete — Bluecopa</div>' +
+        '<div class="p-signed-name">' + esc(bluecopaSignoff.name) + '</div>' +
+        (bluecopaSignoff.role ? '<div class="p-signed-role">' + esc(bluecopaSignoff.role) + '</div>' : '') +
+        '<div class="p-signed-date">Signed on ' + esc(dateStr) + '</div>' +
+        '<div class="p-signed-badge" style="background:#dbeafe;border-color:#bfdbfe;color:#1d4ed8">✓ Bluecopa UAT sign-off complete' + (entity ? ' — '+esc(entity) : '') + '</div>' +
+      '</div>';
+  } else {
+    html +=
+      '<div style="padding:14px 16px;background:#f8fafc;border:1px solid #e4e6ea;border-radius:10px;display:flex;align-items:center;gap:10px">' +
+        '<span style="font-size:18px">⏳</span>' +
+        '<span style="font-size:13px;color:#9ca3af">Bluecopa team sign-off is pending. This will appear once the Bluecopa team completes their UAT review.</span>' +
+      '</div>';
+  }
+  html += '</div>';
+
+  // Client sign-off section (interactive)
+  html += '<div>';
+  html += '<div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Your Sign-off</div>';
+  html += _renderSignoffCardHtml(clientSignoff, entity, clientName);
+  html += '</div>';
+
+  wrap.innerHTML = html;
 }
 
-function _renderSignoffCard(wrapEl, signoff, entity) {
+function _renderSignoffCardHtml(signoff, entity, clientName) {
   const eId = entity ? entity.replace(/[^a-zA-Z0-9]/g,'_') : '_';
   if (signoff) {
     const d = signoff;
     const dateStr = d.date ? new Date(d.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : d.date;
-    wrapEl.innerHTML =
+    return (
       '<div class="p-signed-card">' +
         '<div class="p-signed-icon">✅</div>' +
         '<div class="p-signed-title">UAT Signed Off</div>' +
         '<div class="p-signed-name">' + esc(d.name) + '</div>' +
         (d.role ? '<div class="p-signed-role">' + esc(d.role) + '</div>' : '') +
         '<div class="p-signed-date">Signed on ' + esc(dateStr) + '</div>' +
-        '<div class="p-signed-badge">✓ Formally accepted by ' + esc(D.client.name) + '</div>' +
-      '</div>';
+        '<div class="p-signed-badge">✓ Formally accepted by ' + esc(clientName) + '</div>' +
+      '</div>'
+    );
   } else {
     const today = new Date().toISOString().slice(0,10);
-    wrapEl.innerHTML =
+    return (
       '<div class="p-signoff-card">' +
         '<div class="p-signoff-header">' +
           '<div class="p-signoff-icon">✍️</div>' +
@@ -510,10 +545,11 @@ function _renderSignoffCard(wrapEl, signoff, entity) {
             '<div><label class="p-sf-label" for="sfRole_'+eId+'">Designation / Role</label><input class="p-sf-input" id="sfRole_'+eId+'" placeholder="e.g. Finance Manager"></div>' +
             '<div><label class="p-sf-label" for="sfDate_'+eId+'">Sign-off Date *</label><input class="p-sf-input" id="sfDate_'+eId+'" type="date" value="'+today+'" required></div>' +
           '</div>' +
-          '<div class="p-signoff-note"><span class="p-signoff-note-icon">ℹ️</span><span>By submitting, you confirm that the test cases marked as <strong>Pass</strong> meet your acceptance criteria and you are formally accepting this UAT round on behalf of ' + esc(D.client.name) + '.</span></div>' +
+          '<div class="p-signoff-note"><span class="p-signoff-note-icon">ℹ️</span><span>By submitting, you confirm that the test cases marked as <strong>Pass</strong> meet your acceptance criteria and you are formally accepting this UAT round on behalf of ' + esc(clientName) + '.</span></div>' +
           '<button class="p-signoff-btn" id="sfBtn_'+eId+'" onclick="submitSignoffFor(\''+(entity||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">Submit UAT Sign-off →</button>' +
         '</div>' +
-      '</div>';
+      '</div>'
+    );
   }
 }
 
@@ -532,8 +568,7 @@ async function submitSignoffFor(entity) {
   if (r.ok) {
     const j = await r.json();
     D.signoff = j.signoff;
-    const wrap = document.getElementById('pSignoffWrap');
-    if (wrap) _renderSignoffCard(wrap, j.signoff, ENTITY||null);
+    renderSignoff();
     toast('Sign-off submitted successfully!');
   } else {
     if (btn) { btn.disabled=false; btn.textContent='Submit UAT Sign-off →'; }
