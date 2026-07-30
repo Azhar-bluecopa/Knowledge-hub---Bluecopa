@@ -378,7 +378,7 @@ const UAT = (() => {
     const p = S.projects.find(x => x.id === projectId);
     if (p) {
       S.activeClientId = p.clientId;
-      S.clientLabel = p.clientLabel || 'Client';
+      S.clientLabel = p.clientName || p.clientLabel || 'Client';
     }
     setView('testcases');
     refreshClientLabels();
@@ -421,10 +421,9 @@ const UAT = (() => {
     if (!row) return;
     const p = S.projects.find(x => x.id === S.activeProjectId);
     const entities = p?.entities || [];
-    if (!entities.length) { row.style.display = 'none'; return; }
     row.style.display = 'flex';
     row.innerHTML =
-      `<button class="uat-entity-tab ${!S.filterEntity ? 'active' : ''}" onclick="UAT.selectEntity('')">All Entities</button>` +
+      (entities.length ? `<button class="uat-entity-tab ${!S.filterEntity ? 'active' : ''}" onclick="UAT.selectEntity('')">All Entities</button>` : '') +
       entities.map(e =>
         `<button class="uat-entity-tab ${S.filterEntity === e ? 'active' : ''}" onclick="UAT.selectEntity('${e.replace(/'/g,"\\'")}')">
           ${e}
