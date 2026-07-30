@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=30" defer></script>
+  <script src="/uat.js?v=31" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -6866,11 +6866,10 @@ async function updateFeedbackStatus(id) {
             </thead>
             <tbody id="uatTCBody"></tbody>
           </table>
+          <!-- Entity Sign-offs Section — inside scroll so table flex layout is unaffected -->
+          <div id="uatEntitySignoffSection" style="display:none"></div>
         </div>
       </div>
-
-      <!-- Entity Sign-offs Section -->
-      <div id="uatEntitySignoffSection" style="display:none"></div>
 
     </div>
 

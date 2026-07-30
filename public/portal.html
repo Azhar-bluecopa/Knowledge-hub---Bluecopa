@@ -475,28 +475,8 @@ function renderTable() {
 function renderSignoff() {
   const wrap = document.getElementById('pSignoffWrap');
   if (!wrap) return;
-  const entities = D.entities || [];
-  if (entities.length > 1 && !ENTITY) {
-    // All-entities view: one sign-off card per entity
-    wrap.innerHTML =
-      '<div style="margin-bottom:20px">' +
-        '<div style="font-size:16px;font-weight:800;color:#0d1117">Entity Sign-offs</div>' +
-        '<div style="font-size:13px;color:#6b7280;margin-top:4px">Each entity must sign off independently to formally accept UAT.</div>' +
-      '</div>' +
-      entities.map(e => {
-        const eId = e.replace(/[^a-zA-Z0-9]/g,'_');
-        return '<div style="margin-bottom:24px">' +
-          '<div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">' + esc(e) + '</div>' +
-          '<div id="pSoWrap_' + eId + '"></div>' +
-        '</div>';
-      }).join('');
-    entities.forEach(e => {
-      const el = document.getElementById('pSoWrap_' + e.replace(/[^a-zA-Z0-9]/g,'_'));
-      if (el) _renderSignoffCard(el, (D.allEntitySignoffs||{})[e]||null, e);
-    });
-  } else {
-    _renderSignoffCard(wrap, D.signoff, ENTITY||null);
-  }
+  // All Entities tab → single overall sign-off; entity tab → entity sign-off
+  _renderSignoffCard(wrap, D.signoff, ENTITY||null);
 }
 
 function _renderSignoffCard(wrapEl, signoff, entity) {
@@ -551,17 +531,9 @@ async function submitSignoffFor(entity) {
   });
   if (r.ok) {
     const j = await r.json();
-    if (!D.allEntitySignoffs) D.allEntitySignoffs={};
-    if (entity) D.allEntitySignoffs[entity]=j.signoff;
-    D.signoff=j.signoff;
-    const isAllView = (D.entities||[]).length>1 && !ENTITY;
-    if (isAllView && entity) {
-      const wrapEl = document.getElementById('pSoWrap_'+eId);
-      if (wrapEl) _renderSignoffCard(wrapEl, j.signoff, entity);
-    } else {
-      const wrap = document.getElementById('pSignoffWrap');
-      if (wrap) _renderSignoffCard(wrap, j.signoff, ENTITY||null);
-    }
+    D.signoff = j.signoff;
+    const wrap = document.getElementById('pSignoffWrap');
+    if (wrap) _renderSignoffCard(wrap, j.signoff, ENTITY||null);
     toast('Sign-off submitted successfully!');
   } else {
     if (btn) { btn.disabled=false; btn.textContent='Submit UAT Sign-off →'; }
