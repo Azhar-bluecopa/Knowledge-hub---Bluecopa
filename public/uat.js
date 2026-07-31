@@ -1527,7 +1527,7 @@ const UAT = (() => {
       const entities = proj?.entities || [];
       entitySel.innerHTML = '<option value="">All Entities</option>' +
         entities.map(e => `<option value="${escHtml(e)}">${escHtml(e)}</option>`).join('');
-      if (S.activeEntity && entities.includes(S.activeEntity)) entitySel.value = S.activeEntity;
+      if (S.filterEntity && entities.includes(S.filterEntity)) entitySel.value = S.filterEntity;
     }
     el('uatIssueModal')?.classList.add('open');
   }
