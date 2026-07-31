@@ -29,10 +29,15 @@ const UAT = (() => {
   }
 
   async function api(method, path, body) {
-    const opts = { method, headers: authH() };
-    if (body !== undefined) opts.body = JSON.stringify(body);
-    const r = await fetch(path, opts);
-    return r.json();
+    try {
+      const opts = { method, headers: authH() };
+      if (body !== undefined) opts.body = JSON.stringify(body);
+      const r = await fetch(path, opts);
+      if (!r.ok) return { ok: false, error: r.statusText };
+      return r.json();
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
   }
 
   function toast(msg, type = 'success') {
@@ -191,14 +196,18 @@ const UAT = (() => {
   function _destroyDashChart(id) { if (_dc[id]) { _dc[id].destroy(); delete _dc[id]; } }
 
   async function loadDashboard() {
-    const [rd, ri, rt] = await Promise.all([
-      api('GET', '/api/uat/dashboard'),
-      S.issues.length    ? { ok: true, data: S.issues }    : api('GET', '/api/uat/issues'),
-      S.testcases.length ? { ok: true, data: S.testcases } : api('GET', '/api/uat/testcases'),
-    ]);
-    if (rd && rd.ok) S.dashData = rd.data;
-    if (ri && ri.ok) S.issues = ri.data;
-    if (rt && rt.ok) S.testcases = rt.data;
+    try {
+      const [rd, ri, rt] = await Promise.all([
+        api('GET', '/api/uat/dashboard'),
+        S.issues.length    ? { ok: true, data: S.issues }    : api('GET', '/api/uat/issues'),
+        S.testcases.length ? { ok: true, data: S.testcases } : api('GET', '/api/uat/testcases'),
+      ]);
+      if (rd && rd.ok) S.dashData = rd.data;
+      if (ri && ri.ok) S.issues = Array.isArray(ri.data) ? ri.data : [];
+      if (rt && rt.ok) S.testcases = Array.isArray(rt.data) ? rt.data : [];
+    } catch (e) {
+      console.error('Dashboard load error:', e);
+    }
     _buildDashFilterOptions();
     renderDashboard();
   }
@@ -1602,14 +1611,18 @@ const UAT = (() => {
 
   /* ── Init ────────────────────────────────────────────────────────────────── */
   async function init() {
-    const [cr, pr, tr] = await Promise.all([
-      api('GET', '/api/uat/clients'),
-      api('GET', '/api/uat/projects'),
-      api('GET', '/api/uat/testcases'),
-    ]);
-    if (cr.ok) S.clients = cr.data;
-    if (pr.ok) S.projects = pr.data;
-    if (tr.ok) S.testcases = tr.data;
+    try {
+      const [cr, pr, tr] = await Promise.all([
+        api('GET', '/api/uat/clients'),
+        api('GET', '/api/uat/projects'),
+        api('GET', '/api/uat/testcases'),
+      ]);
+      if (cr.ok) S.clients = Array.isArray(cr.data) ? cr.data : [];
+      if (pr.ok) S.projects = Array.isArray(pr.data) ? pr.data : [];
+      if (tr.ok) S.testcases = Array.isArray(tr.data) ? tr.data : [];
+    } catch (e) {
+      console.error('UAT init error:', e);
+    }
     const nb = el('uatNavBadge_projects');
     if (nb) nb.textContent = S.projects.length;
     renderClientList();
