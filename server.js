@@ -1210,7 +1210,7 @@ app.get('/api/uat/portal/:token', async (req, res) => {
     const tc=u.testcases.filter(t=>t.projectId===p.id).sort((a,b)=>a.seq-b.seq);
     const total=tc.length, cPass=tc.filter(t=>t.clientStatus==='pass').length;
     const categories=[...new Set(tc.map(t=>t.category))];
-    return {...p,testcases:tc,total,cPassed:cPass,cPassRate:total?Math.round(cPass/total*100):0,categories};
+    return {...p,testcases:tc,total,cPassed:cPass,cPassRate:total?Math.round(cPass/total*100):0,categories,entities:c.entities||[]};
   });
   const issues=u.issues.filter(i=>i.clientId===c.id);
   res.json({ ok:true, data:{ client:{id:c.id,name:c.name,shortCode:c.shortCode}, projects, issues } });
@@ -1266,35 +1266,34 @@ app.get('/uat/portal/:token', async (req, res) => {
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',system-ui,sans-serif;background:#f1f2f5;color:#0d1117;font-size:14px}
-.topbar{background:#fff;border-bottom:1px solid #e4e6ea;padding:0 24px;height:56px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
-.logo{font-size:16px;font-weight:800;color:#0d1117;letter-spacing:-.3px}.logo span{color:#c9a227}
-.client-chip{background:#f4f5f7;border:1px solid #e4e6ea;border-radius:6px;padding:4px 10px;font-size:12px;color:#6b7280;font-weight:600}
-.proj-select{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:#6b7280}
-.proj-select select{border:1px solid #e4e6ea;border-radius:6px;padding:4px 10px;font-size:13px;font-weight:600;color:#0d1117;background:#fff;cursor:pointer;font-family:inherit}
+.topbar{background:#fff;border-bottom:1px solid #e4e6ea;padding:0 20px;height:56px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:20}
+.logo{font-size:15px;font-weight:800;color:#0d1117;letter-spacing:-.3px;flex-shrink:0}.logo span{color:#c9a227}
+.client-chip{background:#f4f5f7;border:1px solid #e4e6ea;border-radius:6px;padding:3px 10px;font-size:12px;color:#6b7280;font-weight:600;flex-shrink:0}
+.proj-sel{flex:1;display:flex;align-items:center;gap:6px;font-size:12px;color:#9ca3af;min-width:0}
+.proj-sel select{border:1px solid #e4e6ea;border-radius:6px;padding:4px 10px;font-size:13px;font-weight:600;color:#0d1117;background:#fff;cursor:pointer;font-family:inherit;max-width:200px}
+.it-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;background:#0d1117;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;flex-shrink:0;font-family:inherit}
+.it-btn:hover{background:#1a1d27}
+.it-dot{width:8px;height:8px;border-radius:50%;background:#dc2626;display:none}
+.it-dot.show{display:inline-block}
 .main{max-width:1100px;margin:0 auto;padding:20px 16px}
-.nav-tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:2px solid #e4e6ea;padding-bottom:0}
-.nav-tab{padding:10px 20px;font-size:13px;font-weight:700;color:#6b7280;background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;display:flex;align-items:center;gap:6px}
+.entity-tabs{display:none;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.ent-tab{padding:6px 14px;border:1px solid #e4e6ea;border-radius:99px;font-size:12px;font-weight:600;background:#fff;cursor:pointer;color:#6b7280;transition:all .15s;font-family:inherit}
+.ent-tab.active{background:#0d1117;color:#fff;border-color:#0d1117}
+.nav-tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:2px solid #e4e6ea}
+.nav-tab{padding:10px 20px;font-size:13px;font-weight:700;color:#6b7280;background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;font-family:inherit;display:flex;align-items:center;gap:6px}
 .nav-tab.active{color:#0d1117;border-bottom-color:#c9a227}
 .nav-tab:hover:not(.active){color:#374151}
 .badge-count{background:#e4e6ea;color:#374151;border-radius:99px;padding:1px 7px;font-size:11px;font-weight:700}
-.badge-count.alert{background:#fee2e2;color:#dc2626}
-.badge-count.warn{background:#fef9c3;color:#a16207}
 .tab-panel{display:none}.tab-panel.active{display:block}
-/* Overview */
-.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
-.stat-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:16px 20px}
-.stat-card .val{font-size:28px;font-weight:800;line-height:1}
-.stat-card .lbl{font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:14px 18px}
+.stat-card .val{font-size:26px;font-weight:800;line-height:1}.stat-card .lbl{font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
 .stat-card.green .val{color:#15803d}.stat-card.red .val{color:#dc2626}.stat-card.amber .val{color:#a16207}.stat-card.blue .val{color:#1d4ed8}
 .prog-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:16px 20px;margin-bottom:20px}
-.prog-card-title{font-size:13px;font-weight:700;color:#374151;margin-bottom:10px}
+.prog-card-title{font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
 .prog-bar-bg{background:#f1f2f5;border-radius:99px;height:10px;overflow:hidden;margin-bottom:6px}
-.prog-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#22c55e,#16a34a);transition:width .5s}
-.prog-pct{font-size:24px;font-weight:800;color:#15803d}
-.issues-alert{background:#fff;border:1px solid #fde68a;border-left:4px solid #c9a227;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:none}
-.issues-alert-title{font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px}
-.issues-alert-desc{font-size:12px;color:#78350f}
-/* Test cases */
+.prog-bar-fill{height:100%;border-radius:99px;background:#22c55e;transition:width .5s}
+.prog-pct{font-size:22px;font-weight:800;color:#15803d}
 .table-wrap{background:#fff;border:1px solid #e4e6ea;border-radius:12px;overflow:hidden}
 table{width:100%;border-collapse:collapse}
 th{background:#f8f9fa;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;border-bottom:1px solid #e4e6ea;text-align:left;white-space:nowrap}
@@ -1302,17 +1301,41 @@ td{padding:12px 14px;border-bottom:1px solid #f1f2f5;vertical-align:top;font-siz
 tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 .cat-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;font-family:monospace;background:#f4f5f7;color:#374151}
 .status-cell{position:relative}
-.status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
+.status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;border:none;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:inherit}
 .status-pill:hover{filter:brightness(.93)}
 .s-not_tested{background:#f1f2f5;color:#6b7280}.s-in_progress{background:#dbeafe;color:#1d4ed8}.s-pass{background:#dcfce7;color:#15803d}.s-fail{background:#fee2e2;color:#dc2626}.s-blocked{background:#fef3c7;color:#b45309}
 .status-dd{position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:#fff;border:1px solid #e4e6ea;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:4px;min-width:140px;display:none}
 .status-dd.open{display:block}
-.status-dd button{display:flex;align-items:center;gap:8px;width:100%;padding:7px 12px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;border-radius:6px;color:#0d1117;text-align:left}
+.status-dd button{display:flex;align-items:center;gap:8px;width:100%;padding:7px 12px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;border-radius:6px;color:#0d1117;text-align:left;font-family:inherit}
 .status-dd button:hover{background:#f4f5f7}
 .comment-area{width:100%;border:1px solid #e4e6ea;border-radius:6px;padding:8px;font-size:12px;font-family:inherit;resize:vertical;min-height:60px;color:#0d1117}
 .comment-area:focus{outline:2px solid rgba(201,162,39,.4);border-color:#c9a227}
-.save-btn{margin-top:6px;padding:5px 12px;background:#0d1117;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer}
-/* Issues */
+.save-btn{margin-top:6px;padding:5px 12px;background:#0d1117;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+#issueTrackerView{display:none}
+.it-header{display:flex;align-items:center;gap:14px;margin-bottom:24px}
+.it-back-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;background:#fff;color:#374151;border:1px solid #e4e6ea;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
+.it-back-btn:hover{border-color:#0d1117;color:#0d1117}
+.it-page-title{font-size:20px;font-weight:800;color:#0d1117}
+.it-page-sub{font-size:13px;color:#6b7280;margin-top:2px}
+.entity-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-top:8px}
+.entity-card{background:#fff;border:1px solid #e4e6ea;border-radius:14px;padding:20px 22px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.entity-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.10);border-color:#c9a227}
+.entity-card>*{pointer-events:none}
+.entity-card-accent{position:absolute;top:0;left:0;right:0;height:4px;border-radius:14px 14px 0 0;background:#e4e6ea}
+.entity-card-accent.has-open{background:#dc2626}
+.entity-card-accent.has-pending{background:#c9a227}
+.entity-card-accent.all-solved{background:#22c55e}
+.entity-card-icon{font-size:28px;margin-bottom:10px}
+.entity-card-name{font-size:15px;font-weight:800;color:#0d1117;margin-bottom:6px}
+.entity-card-stats{display:flex;gap:8px;flex-wrap:wrap}
+.entity-stat{font-size:12px;font-weight:600;padding:2px 8px;border-radius:5px}
+.entity-stat.open{background:#fef2f2;color:#dc2626}
+.entity-stat.pending{background:#fffbeb;color:#a16207}
+.entity-stat.solved{background:#f0fdf4;color:#15803d}
+.entity-stat.none{background:#f4f5f7;color:#6b7280}
+.it-issue-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.it-entity-label{font-size:18px;font-weight:800;color:#0d1117}
+.it-issue-count{font-size:13px;color:#6b7280;font-weight:500}
 .issue-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:18px 20px;margin-bottom:12px}
 .issue-card.open{border-left:4px solid #dc2626}.issue-card.in_progress{border-left:4px solid #6366f1}.issue-card.resolved{border-left:4px solid #c9a227}.issue-card.solved{border-left:4px solid #22c55e}
 .issue-ref{font-size:11px;font-family:monospace;font-weight:700;color:#9ca3af;margin-bottom:4px}
@@ -1337,69 +1360,76 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 .issue-cfm-btn{padding:8px 16px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
 .issue-cfm-btn.yes{background:#15803d;color:#fff}.issue-cfm-btn.yes:hover{background:#166534}
 .issue-cfm-btn.no{background:#fff;color:#dc2626;border:1px solid #dc2626}.issue-cfm-btn.no:hover{background:#fef2f2}
-.entity-tabs{display:none;gap:6px;flex-wrap:wrap;padding:0 0 16px;margin-bottom:4px}
-.ent-tab{padding:6px 14px;border:1px solid #e4e6ea;border-radius:99px;font-size:12px;font-weight:600;background:#fff;cursor:pointer;color:#6b7280;transition:all .15s}
-.ent-tab.active{background:#0d1117;color:#fff;border-color:#0d1117}
 .empty-state{padding:48px;text-align:center;color:#6b7280;font-size:14px}
 .toast{position:fixed;bottom:24px;right:24px;background:#0d1117;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:100;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
 .toast.show{opacity:1;transform:translateY(0)}
-@media(max-width:768px){th:nth-child(5),td:nth-child(5),th:nth-child(6),td:nth-child(6){display:none}.dash-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){th:nth-child(5),td:nth-child(5),th:nth-child(6),td:nth-child(6){display:none}.dash-grid{grid-template-columns:repeat(2,1fr)}.entity-card-grid{grid-template-columns:1fr 1fr}}
 </style></head><body>
 <div class="topbar">
   <div class="logo">Blue<span>copa</span></div>
   <div class="client-chip">${c.name}</div>
-  <div class="proj-select">Project: <select id="projSelect" onchange="selectProject(this.value)"></select></div>
+  <div class="proj-sel">Project: <select id="projSelect" onchange="selectProject(this.value)"></select></div>
+  <button class="it-btn" onclick="openIssueTracker()"><span class="it-dot" id="itDot"></span>Issue Tracker</button>
 </div>
-<div class="main">
+<div id="signoffView" class="main">
   <div class="entity-tabs" id="entityTabs"></div>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="switchTab('overview',this)">Overview</button>
     <button class="nav-tab" onclick="switchTab('testcases',this)">Test Cases <span class="badge-count" id="tcBadge">0</span></button>
-    <button class="nav-tab" onclick="switchTab('issues',this)">Issues <span class="badge-count" id="issueBadge">0</span></button>
   </div>
-
   <div id="tab-overview" class="tab-panel active">
     <div class="dash-grid" id="dashStats"></div>
-    <div class="prog-card"><div class="prog-card-title">Overall Pass Rate</div>
+    <div class="prog-card">
+      <div class="prog-card-title">Overall Pass Rate</div>
       <div style="display:flex;align-items:center;gap:16px">
         <div class="prog-pct" id="dashPct">0%</div>
         <div style="flex:1"><div class="prog-bar-bg"><div class="prog-bar-fill" id="dashBar" style="width:0%"></div></div></div>
       </div>
     </div>
-    <div class="issues-alert" id="dashAlert">
-      <div class="issues-alert-title" id="dashAlertTitle"></div>
-      <div class="issues-alert-desc" id="dashAlertDesc"></div>
-    </div>
-    <div id="dashIssuePreview"></div>
   </div>
-
   <div id="tab-testcases" class="tab-panel">
     <div class="table-wrap"><table><thead><tr>
       <th>#</th><th>Category</th><th>Test Description</th><th>Expected Result</th>
       <th>Bluecopa Status</th><th>Bluecopa Notes</th><th>Your Status</th><th>Your Notes</th>
     </tr></thead><tbody id="tcBody"></tbody></table></div>
   </div>
-
-  <div id="tab-issues" class="tab-panel">
-    <div id="issuesList"></div>
+</div>
+<div id="issueTrackerView" class="main">
+  <div class="it-header">
+    <button class="it-back-btn" onclick="closeIssueTracker()">&#8592; Back to Sign-off</button>
+    <div>
+      <div class="it-page-title" id="itTitle">Issue Tracker</div>
+      <div class="it-page-sub" id="itSub">Select an entity to view its issues</div>
+    </div>
+  </div>
+  <div id="itEntityGrid"></div>
+  <div id="itIssueView" style="display:none">
+    <div class="it-issue-header">
+      <button class="it-back-btn" onclick="backToEntityGrid()">&#8592; Back</button>
+      <div class="it-entity-label" id="itEntityLabel"></div>
+      <div class="it-issue-count" id="itIssueCount"></div>
+    </div>
+    <div id="itIssueList"></div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
 <script>
 const TOKEN='${token}';
-let data=null,curProject=null,curTab='overview',curEntity='';
+let data=null,curProject=null,curTab='overview',curEntity='',itEntity=null;
 const SL={'not_tested':'Not Tested','in_progress':'In Progress','pass':'Pass','fail':'Fail','blocked':'Blocked'};
 const SC={'not_tested':'s-not_tested','in_progress':'s-in_progress','pass':'s-pass','fail':'s-fail','blocked':'s-blocked'};
+const STA_IT={open:'Open',in_progress:'In Progress',resolved:'Resolved — Pending Retest',solved:'Solved'};
+const SEV_C={critical:'#dc2626',high:'#ea580c',medium:'#c9a227',low:'#6b7280'};
 
-function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2400)}
+function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(function(){e.classList.remove('show');},2400);}
 function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
 function isoDate(s){if(!s)return '';return new Date(s).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 
 function switchTab(tab,btn){
   curTab=tab;
-  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(function(b){b.classList.remove('active');});
   btn.classList.add('active');
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
   document.getElementById('tab-'+tab).classList.add('active');
 }
 
@@ -1416,130 +1446,207 @@ function selectProject(id){
   curProject=data.projects.find(p=>p.id===id);
   curEntity='';
   document.getElementById('projSelect').value=id;
-  renderEntityTabs();renderOverview();renderTable();renderIssues();
+  renderEntityTabs();renderOverview();renderTable();updateItDot();
 }
 
 function selectEntity(e){
   curEntity=e;
-  document.querySelectorAll('.ent-tab').forEach(b=>b.classList.toggle('active',b.dataset.e===e));
-  renderOverview();renderTable();renderIssues();
+  document.querySelectorAll('.ent-tab').forEach(function(b){b.classList.toggle('active',b.dataset.e===e);});
+  renderOverview();renderTable();
 }
 
 function renderEntityTabs(){
   const entities=curProject.entities||[];
   const el=document.getElementById('entityTabs');
-  if(!el)return;
   if(!entities.length){el.style.display='none';return;}
   el.style.display='flex';
-  el.innerHTML='<button class="ent-tab active" data-e="" onclick="selectEntity(\'\')">All Entities</button>'+
-    entities.map(e=>'<button class="ent-tab" data-e="'+esc(e)+'" onclick="selectEntity(\''+esc(e).replace(/'/g,"\\'")+'\'">'+esc(e)+'</button>').join('');
+  el.innerHTML='<button class="ent-tab active" data-e="" onclick="selectEntity(this.dataset.e)">All</button>'+
+    entities.map(function(e){return '<button class="ent-tab" data-e="'+esc(e)+'" onclick="selectEntity(this.dataset.e)">'+esc(e)+'</button>';}).join('');
 }
 
 function renderOverview(){
   const p=curProject;
-  const tcs=curEntity
-    ? p.testcases.filter(t=>t.entityStatuses&&t.entityStatuses[curEntity]!==undefined)
-    : p.testcases;
-  const cst=t=>curEntity?(t.entityStatuses&&t.entityStatuses[curEntity]?.clientStatus||'not_tested'):t.clientStatus||'not_tested';
-  const total=tcs.length,pass=tcs.filter(t=>cst(t)==='pass').length,
-    fail=tcs.filter(t=>cst(t)==='fail').length,
-    blocked=tcs.filter(t=>cst(t)==='blocked').length,
-    pending=tcs.filter(t=>cst(t)==='not_tested'||cst(t)==='in_progress').length;
+  const tcs=curEntity?p.testcases.filter(t=>t.entityStatuses&&t.entityStatuses[curEntity]!==undefined):p.testcases;
+  const cst=function(t){return curEntity?(t.entityStatuses&&t.entityStatuses[curEntity]&&t.entityStatuses[curEntity].clientStatus||'not_tested'):t.clientStatus||'not_tested';};
+  const total=tcs.length,pass=tcs.filter(function(t){return cst(t)==='pass';}).length,
+    fail=tcs.filter(function(t){return cst(t)==='fail';}).length,
+    blocked=tcs.filter(function(t){return cst(t)==='blocked';}).length,
+    pending=tcs.filter(function(t){return cst(t)==='not_tested'||cst(t)==='in_progress';}).length;
   const pct=total?Math.round(pass/total*100):0;
   document.getElementById('dashStats').innerHTML=
-    \`<div class="stat-card"><div class="val">\${total}</div><div class="lbl">Total Tests</div></div>
-    <div class="stat-card green"><div class="val">\${pass}</div><div class="lbl">Passed</div></div>
-    <div class="stat-card red"><div class="val">\${fail}</div><div class="lbl">Failed</div></div>
-    <div class="stat-card amber"><div class="val">\${blocked}</div><div class="lbl">Blocked</div></div>
-    <div class="stat-card blue"><div class="val">\${pending}</div><div class="lbl">Pending Review</div></div>\`;
+    '<div class="stat-card"><div class="val">'+total+'</div><div class="lbl">Total Tests</div></div>'+
+    '<div class="stat-card green"><div class="val">'+pass+'</div><div class="lbl">Passed</div></div>'+
+    '<div class="stat-card red"><div class="val">'+fail+'</div><div class="lbl">Failed</div></div>'+
+    '<div class="stat-card amber"><div class="val">'+blocked+'</div><div class="lbl">Blocked</div></div>'+
+    '<div class="stat-card blue"><div class="val">'+pending+'</div><div class="lbl">Pending</div></div>';
   document.getElementById('dashPct').textContent=pct+'%';
   document.getElementById('dashBar').style.width=pct+'%';
   document.getElementById('tcBadge').textContent=total;
-  const issues=(data.issues||[]).filter(i=>i.projectId===p.id);
-  const openIssues=issues.filter(i=>i.status==='open'||i.status==='in_progress');
-  const pendingIssues=issues.filter(i=>i.status==='resolved');
-  const ib=document.getElementById('issueBadge');
-  ib.textContent=issues.length;
-  ib.className='badge-count'+(pendingIssues.length?' warn':openIssues.length?' alert':'');
-  const alertEl=document.getElementById('dashAlert');
-  if(pendingIssues.length){
-    alertEl.style.display='block';
-    document.getElementById('dashAlertTitle').textContent='Action Required: '+pendingIssues.length+' issue'+(pendingIssues.length>1?'s':'')+' awaiting your confirmation';
-    document.getElementById('dashAlertDesc').textContent='The Bluecopa team has resolved these issues. Please go to the Issues tab to retest and confirm.';
-  } else { alertEl.style.display='none'; }
-  const SEV={critical:'#dc2626',high:'#ea580c',medium:'#c9a227',low:'#6b7280'};
-  const STA={open:'Open',in_progress:'In Progress',resolved:'Pending Retest',solved:'Solved'};
-  document.getElementById('dashIssuePreview').innerHTML=issues.length
-    ? \`<div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:12px">Issues Summary</div>\`+
-      issues.slice(0,3).map(i=>\`<div class="issue-card \${i.status||'open'}" style="margin-bottom:8px">
-        <div class="issue-ref">\${esc(i.ref)}</div>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <div class="issue-title" style="margin:0">\${esc(i.title)}</div>
-          <span class="issue-badge \${i.status||'open'}">\${STA[i.status]||'Open'}</span>
-        </div>
-        \${i.eta?'<div class="issue-eta" style="margin-top:8px">📅 Expected fix: <strong>'+new Date(i.eta+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+'</strong></div>':''}
-      </div>\`).join('')+
-      (issues.length>3?'<div style="text-align:center;padding:8px"><button onclick="document.querySelector(\\'.nav-tab:nth-child(3)\\').click()" style="border:none;background:none;color:#6366f1;font-weight:700;font-size:13px;cursor:pointer">View all '+issues.length+' issues →</button></div>':'')
-    : '';
 }
 
 function renderTable(){
   const allTcs=curProject.testcases;
-  const tcs=curEntity?allTcs.filter(t=>t.entityStatuses&&t.entityStatuses[curEntity]!==undefined):allTcs;
+  const tcs=curEntity?allTcs.filter(function(t){return t.entityStatuses&&t.entityStatuses[curEntity]!==undefined;}):allTcs;
   if(!tcs.length){document.getElementById('tcBody').innerHTML='<tr><td colspan="8" class="empty-state">'+(curEntity?'No test cases for '+esc(curEntity)+'.':'No test cases found.')+'</td></tr>';return;}
-  document.getElementById('tcBody').innerHTML=tcs.map(tc=>{
+  document.getElementById('tcBody').innerHTML=tcs.map(function(tc){
     const es=curEntity&&tc.entityStatuses&&tc.entityStatuses[curEntity]?tc.entityStatuses[curEntity]:{};
     const cStatus=curEntity?(es.clientStatus||'not_tested'):(tc.clientStatus||'not_tested');
     const cComment=curEntity?(es.clientComments||''):(tc.clientComments||'');
     const bStatus=curEntity?(es.bluecopaStatus||tc.bluecopaStatus||'not_tested'):(tc.bluecopaStatus||'not_tested');
     const bComment=curEntity?(es.bluecopaComments||tc.bluecopaComments||''):(tc.bluecopaComments||'');
-    return \`<tr id="row_\${tc.id}">
-      <td><span style="color:#6b7280;font-size:12px;font-weight:600">\${tc.seq}</span></td>
-      <td><span class="cat-badge">\${tc.category}</span><div style="font-size:11px;color:#6b7280;margin-top:3px">\${tc.subCategory||''}</div></td>
-      <td style="max-width:240px"><div style="font-weight:600;line-height:1.4">\${tc.testDescription}</div></td>
-      <td style="max-width:180px;color:#6b7280;font-size:12px;line-height:1.4">\${tc.expectedResult}</td>
-      <td><span class="status-pill \${SC[bStatus]||'s-not_tested'}">\${SL[bStatus]||'Not Tested'}</span></td>
-      <td style="color:#374151;font-size:12px;line-height:1.5;max-width:180px">\${bComment||'<span style="color:#d1d5db">—</span>'}</td>
-      <td class="status-cell">
-        <button class="status-pill \${SC[cStatus]||'s-not_tested'}" onclick="toggleDD('\${tc.id}',event)">\${SL[cStatus]||'Not Tested'} ▾</button>
-        <div class="status-dd" id="dd_\${tc.id}">\${Object.entries(SL).map(([k,v])=>\`<button onclick="setStatus('\${tc.id}','\${k}')">\${v}</button>\`).join('')}</div>
-      </td>
-      <td style="min-width:160px">
-        <textarea class="comment-area" id="cmt_\${tc.id}" placeholder="+ Add note">\${cComment}</textarea>
-        <button class="save-btn" onclick="saveComment('\${tc.id}')">Save</button>
-      </td>
-    </tr>\`;
+    return '<tr id="row_'+tc.id+'">'+
+      '<td><span style="color:#6b7280;font-size:12px;font-weight:600">'+tc.seq+'</span></td>'+
+      '<td><span class="cat-badge">'+esc(tc.category)+'</span><div style="font-size:11px;color:#6b7280;margin-top:3px">'+esc(tc.subCategory||'')+'</div></td>'+
+      '<td style="max-width:240px"><div style="font-weight:600;line-height:1.4">'+esc(tc.testDescription)+'</div></td>'+
+      '<td style="max-width:180px;color:#6b7280;font-size:12px;line-height:1.4">'+esc(tc.expectedResult)+'</td>'+
+      '<td><span class="status-pill '+(SC[bStatus]||'s-not_tested')+'">'+(SL[bStatus]||'Not Tested')+'</span></td>'+
+      '<td style="color:#374151;font-size:12px;line-height:1.5;max-width:180px">'+(bComment?esc(bComment):'<span style="color:#d1d5db">&mdash;</span>')+'</td>'+
+      '<td class="status-cell">'+
+        '<button class="status-pill '+(SC[cStatus]||'s-not_tested')+'" data-id="'+tc.id+'" onclick="toggleDD(this.dataset.id,event)">'+(SL[cStatus]||'Not Tested')+' &#9662;</button>'+
+        '<div class="status-dd" id="dd_'+tc.id+'">'+
+          Object.entries(SL).map(function(kv){return '<button data-id="'+tc.id+'" data-s="'+kv[0]+'" onclick="setStatus(this.dataset.id,this.dataset.s)">'+kv[1]+'</button>';}).join('')+
+        '</div>'+
+      '</td>'+
+      '<td style="min-width:160px">'+
+        '<textarea class="comment-area" id="cmt_'+tc.id+'" placeholder="+ Add note">'+esc(cComment)+'</textarea>'+
+        '<button class="save-btn" data-id="'+tc.id+'" onclick="saveComment(this.dataset.id)">Save</button>'+
+      '</td>'+
+    '</tr>';
   }).join('');
 }
 
-function renderIssues(){
-  const issues=(data.issues||[]).filter(i=>i.projectId===curProject.id&&(!curEntity||!i.entity||i.entity===curEntity));
-  const el=document.getElementById('issuesList');
-  if(!issues.length){el.innerHTML='<div class="empty-state">No issues raised for this project.</div>';return;}
-  const STA={open:'Open',in_progress:'In Progress',resolved:'Resolved — Pending Retest',solved:'Solved'};
-  const SEV={critical:'#dc2626',high:'#ea580c',medium:'#c9a227',low:'#6b7280'};
+function updateItDot(){
+  const issues=(data.issues||[]).filter(function(i){return i.projectId===curProject.id;});
+  const hasAction=issues.some(function(i){return i.status==='open'||i.status==='in_progress'||i.status==='resolved';});
+  document.getElementById('itDot').classList.toggle('show',hasAction);
+}
+
+function openIssueTracker(){
+  document.getElementById('signoffView').style.display='none';
+  document.getElementById('issueTrackerView').style.display='block';
+  itEntity=null;
+  document.getElementById('itIssueView').style.display='none';
+  document.getElementById('itEntityGrid').style.display='block';
+  document.getElementById('itTitle').textContent='Issue Tracker';
+  document.getElementById('itSub').textContent='Select an entity to view its issues';
+  renderEntityGrid();
+}
+
+function closeIssueTracker(){
+  document.getElementById('issueTrackerView').style.display='none';
+  document.getElementById('signoffView').style.display='block';
+}
+
+function renderEntityGrid(){
+  const issues=(data.issues||[]).filter(function(i){return i.projectId===curProject.id;});
+  const entities=curProject.entities||[];
+
+  function accentCls(open,pending,solved,total){
+    if(open)return 'has-open';
+    if(pending)return 'has-pending';
+    if(solved&&solved===total&&total>0)return 'all-solved';
+    return '';
+  }
+  function statsHtml(open,pending,solved,total){
+    const s=[];
+    if(open)s.push('<span class="entity-stat open">'+open+' open</span>');
+    if(pending)s.push('<span class="entity-stat pending">'+pending+' pending retest</span>');
+    if(solved)s.push('<span class="entity-stat solved">'+solved+' solved</span>');
+    if(!total)s.push('<span class="entity-stat none">No issues</span>');
+    return s.join('');
+  }
+
+  const allOpen=issues.filter(function(i){return i.status==='open'||i.status==='in_progress';}).length;
+  const allPending=issues.filter(function(i){return i.status==='resolved';}).length;
+  const allSolved=issues.filter(function(i){return i.status==='solved';}).length;
+
+  let html='<div class="entity-card-grid">';
+  html+='<div class="entity-card" data-entity="__all__" onclick="openEntityIssues(this)">'+
+    '<div class="entity-card-accent '+accentCls(allOpen,allPending,allSolved,issues.length)+'"></div>'+
+    '<div class="entity-card-icon">&#128203;</div>'+
+    '<div class="entity-card-name">All Entities</div>'+
+    '<div class="entity-card-stats">'+statsHtml(allOpen,allPending,allSolved,issues.length)+'</div>'+
+    '</div>';
+
+  entities.forEach(function(e){
+    const ei=issues.filter(function(i){return i.entity===e;});
+    const open=ei.filter(function(i){return i.status==='open'||i.status==='in_progress';}).length;
+    const pending=ei.filter(function(i){return i.status==='resolved';}).length;
+    const solved=ei.filter(function(i){return i.status==='solved';}).length;
+    html+='<div class="entity-card" data-entity="'+esc(e)+'" onclick="openEntityIssues(this)">'+
+      '<div class="entity-card-accent '+accentCls(open,pending,solved,ei.length)+'"></div>'+
+      '<div class="entity-card-icon">&#127970;</div>'+
+      '<div class="entity-card-name">'+esc(e)+'</div>'+
+      '<div class="entity-card-stats">'+statsHtml(open,pending,solved,ei.length)+'</div>'+
+      '</div>';
+  });
+  html+='</div>';
+  document.getElementById('itEntityGrid').innerHTML=html;
+}
+
+function openEntityIssues(el){
+  const raw=el.dataset.entity;
+  itEntity=raw==='__all__'?null:raw;
+  document.getElementById('itEntityGrid').style.display='none';
+  document.getElementById('itIssueView').style.display='block';
+  const label=itEntity===null?'All Entities':itEntity;
+  document.getElementById('itEntityLabel').textContent=label;
+  document.getElementById('itTitle').textContent='Issue Tracker — '+label;
+  document.getElementById('itSub').textContent='';
+  renderItIssues();
+}
+
+function backToEntityGrid(){
+  itEntity=null;
+  document.getElementById('itIssueView').style.display='none';
+  document.getElementById('itEntityGrid').style.display='block';
+  document.getElementById('itTitle').textContent='Issue Tracker';
+  document.getElementById('itSub').textContent='Select an entity to view its issues';
+}
+
+function renderItIssues(){
+  const allIssues=(data.issues||[]).filter(function(i){return i.projectId===curProject.id;});
+  const issues=itEntity===null?allIssues:allIssues.filter(function(i){return i.entity===itEntity;});
+  const el=document.getElementById('itIssueList');
+  document.getElementById('itIssueCount').textContent=issues.length+' issue'+(issues.length!==1?'s':'');
+  if(!issues.length){el.innerHTML='<div class="empty-state">No issues'+(itEntity?' for '+esc(itEntity):'')+' yet.</div>';return;}
   el.innerHTML=issues.map(function(i){
-    const sev=SEV[(i.severity||'').toLowerCase()]||'#6b7280';
-    const etaHtml=i.eta?'<div class="issue-eta">📅 Expected fix: <strong>'+new Date(i.eta+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+'</strong></div>':'';
+    const sev=SEV_C[(i.severity||'').toLowerCase()]||'#6b7280';
+    const etaHtml=i.eta?'<div class="issue-eta">&#128197; Expected fix: <strong>'+new Date(i.eta+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+'</strong></div>':'';
     const upds=i.updates||[];
     const tlHtml=upds.length?'<div class="issue-timeline"><div class="issue-tl-head">Updates from Bluecopa</div>'+
-      upds.map(function(u){const isC=u.author==='Client';return '<div class="issue-upd-row">'+
-        '<div class="issue-upd-av '+(isC?'c':'b')+'">'+(isC?'C':'B')+'</div>'+
-        '<div class="issue-upd-body"><div class="issue-upd-meta"><span class="issue-upd-name">'+esc(u.author)+'</span><span class="issue-upd-time">'+isoDate(u.at)+'</span></div>'+
-        '<div class="issue-upd-text">'+esc(u.text)+'</div></div></div>';
+      upds.map(function(u){
+        const isC=u.author==='Client';
+        return '<div class="issue-upd-row">'+
+          '<div class="issue-upd-av '+(isC?'c':'b')+'">'+(isC?'C':'B')+'</div>'+
+          '<div class="issue-upd-body">'+
+            '<div class="issue-upd-meta"><span class="issue-upd-name">'+esc(u.author)+'</span><span class="issue-upd-time">'+isoDate(u.at)+'</span></div>'+
+            '<div class="issue-upd-text">'+esc(u.text)+'</div>'+
+          '</div></div>';
       }).join('')+'</div>':'';
     let action='';
-    if(i.status==='resolved'){action='<div class="issue-confirm"><div class="issue-confirm-label">⏳ Action Required — Please Retest</div>'+
-      '<div class="issue-confirm-desc">Bluecopa has marked this resolved. Please retest and confirm.</div>'+
-      '<div class="issue-confirm-btns"><button class="issue-cfm-btn yes" onclick="confirmIssue(\''+i.id+'\',\'solved\')">✓ Confirmed Fixed</button>'+
-      '<button class="issue-cfm-btn no" onclick="confirmIssue(\''+i.id+'\',\'reopen\')">✗ Still Not Working</button></div></div>';
-    }else if(i.status==='solved'){action='<div style="font-size:12px;font-weight:700;color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px 12px;margin-top:12px">✓ You confirmed this issue is resolved</div>';}
+    if(i.status==='resolved'){
+      action='<div class="issue-confirm">'+
+        '<div class="issue-confirm-label">&#9200; Action Required — Please Retest</div>'+
+        '<div class="issue-confirm-desc">Bluecopa has marked this resolved. Please retest and confirm.</div>'+
+        '<div class="issue-confirm-btns">'+
+          '<button class="issue-cfm-btn yes" data-id="'+i.id+'" data-v="solved" onclick="confirmIssue(this.dataset.id,this.dataset.v)">&#10003; Confirmed Fixed</button>'+
+          '<button class="issue-cfm-btn no" data-id="'+i.id+'" data-v="reopen" onclick="confirmIssue(this.dataset.id,this.dataset.v)">&#10007; Still Not Working</button>'+
+        '</div></div>';
+    } else if(i.status==='solved'){
+      action='<div style="font-size:12px;font-weight:700;color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px 12px;margin-top:12px">&#10003; You confirmed this issue is resolved</div>';
+    }
+    const entityTag=i.entity?'<span style="font-size:11px;font-weight:600;color:#6366f1;background:#eef2ff;border-radius:5px;padding:2px 8px">'+esc(i.entity)+'</span>':'';
     return '<div class="issue-card '+(i.status||'open')+'">'+
-      '<div class="issue-ref">'+esc(i.ref)+' · Raised '+isoDate(i.createdAt)+'</div>'+
+      '<div class="issue-ref">'+esc(i.ref)+' &middot; Raised '+isoDate(i.createdAt)+'</div>'+
       '<div class="issue-title">'+esc(i.title)+'</div>'+
-      '<div class="issue-meta"><span class="issue-badge '+(i.status||'open')+'">'+(STA[i.status]||'Open')+'</span>'+
-      '<span style="font-size:11px;font-weight:700;color:'+sev+'">'+esc(i.severity||'Medium')+'</span></div>'+
-      etaHtml+tlHtml+action+'</div>';
+      '<div class="issue-meta">'+
+        '<span class="issue-badge '+(i.status||'open')+'">'+(STA_IT[i.status]||'Open')+'</span>'+
+        '<span style="font-size:11px;font-weight:700;color:'+sev+'">'+esc(i.severity||'Medium')+'</span>'+
+        entityTag+
+      '</div>'+
+      etaHtml+tlHtml+action+
+    '</div>';
   }).join('');
 }
 
@@ -1547,31 +1654,51 @@ async function confirmIssue(issueId,verdict){
   try{
     const r=await fetch('/api/uat/portal/'+TOKEN+'/issue/'+issueId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientVerdict:verdict})});
     const j=await r.json();
-    if(j.ok){const idx=(data.issues||[]).findIndex(i=>i.id===issueId);if(idx>=0)data.issues[idx]=j.data;renderOverview();renderIssues();toast(verdict==='solved'?'Issue marked resolved!':'Issue reopened.');}
-    else toast('Failed to update.');
+    if(j.ok){
+      const idx=(data.issues||[]).findIndex(function(i){return i.id===issueId;});
+      if(idx>=0)data.issues[idx]=j.data;
+      updateItDot();renderItIssues();renderEntityGrid();
+      toast(verdict==='solved'?'Issue marked resolved!':'Issue reopened.');
+    } else { toast('Failed to update.'); }
   }catch(e){toast('Network error.');}
 }
 
-function toggleDD(id,e){e.stopPropagation();document.querySelectorAll('.status-dd').forEach(d=>{if(d.id!=='dd_'+id)d.classList.remove('open');});document.getElementById('dd_'+id).classList.toggle('open');}
-document.addEventListener('click',()=>document.querySelectorAll('.status-dd').forEach(d=>d.classList.remove('open')));
+function toggleDD(id,e){
+  e.stopPropagation();
+  document.querySelectorAll('.status-dd').forEach(function(d){if(d.id!=='dd_'+id)d.classList.remove('open');});
+  document.getElementById('dd_'+id).classList.toggle('open');
+}
+document.addEventListener('click',function(){document.querySelectorAll('.status-dd').forEach(function(d){d.classList.remove('open');});});
 
 async function setStatus(tcId,status){
   document.getElementById('dd_'+tcId).classList.remove('open');
-  const tc=curProject.testcases.find(t=>t.id===tcId);
+  const tc=curProject.testcases.find(function(t){return t.id===tcId;});
   const body={clientStatus:status};
-  if(curEntity){body.entity=curEntity;if(!tc.entityStatuses)tc.entityStatuses={};if(!tc.entityStatuses[curEntity])tc.entityStatuses[curEntity]={};tc.entityStatuses[curEntity].clientStatus=status;}
-  else tc.clientStatus=status;
+  if(curEntity){
+    body.entity=curEntity;
+    if(!tc.entityStatuses)tc.entityStatuses={};
+    if(!tc.entityStatuses[curEntity])tc.entityStatuses[curEntity]={};
+    tc.entityStatuses[curEntity].clientStatus=status;
+  } else { tc.clientStatus=status; }
   const r=await fetch('/api/uat/portal/'+TOKEN+'/tc/'+tcId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(r.ok){renderOverview();const row=document.getElementById('row_'+tcId);if(row){const pill=row.querySelector('.status-cell .status-pill');pill.className='status-pill '+SC[status];pill.innerHTML=SL[status]+' ▾';}toast('Status updated');}
-  else toast('Failed to save');
+  if(r.ok){
+    renderOverview();
+    const row=document.getElementById('row_'+tcId);
+    if(row){const pill=row.querySelector('.status-cell .status-pill');pill.className='status-pill '+(SC[status]||'s-not_tested');pill.innerHTML=(SL[status]||'Not Tested')+' &#9662;';}
+    toast('Status updated');
+  } else { toast('Failed to save'); }
 }
 
 async function saveComment(tcId){
   const text=document.getElementById('cmt_'+tcId).value;
-  const tc=curProject.testcases.find(t=>t.id===tcId);
+  const tc=curProject.testcases.find(function(t){return t.id===tcId;});
   const body={clientComments:text};
-  if(curEntity){body.entity=curEntity;if(!tc.entityStatuses)tc.entityStatuses={};if(!tc.entityStatuses[curEntity])tc.entityStatuses[curEntity]={};tc.entityStatuses[curEntity].clientComments=text;}
-  else tc.clientComments=text;
+  if(curEntity){
+    body.entity=curEntity;
+    if(!tc.entityStatuses)tc.entityStatuses={};
+    if(!tc.entityStatuses[curEntity])tc.entityStatuses[curEntity]={};
+    tc.entityStatuses[curEntity].clientComments=text;
+  } else { tc.clientComments=text; }
   const r=await fetch('/api/uat/portal/'+TOKEN+'/tc/'+tcId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   if(r.ok)toast('Note saved');else toast('Failed to save');
 }
