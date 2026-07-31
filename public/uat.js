@@ -1513,6 +1513,53 @@ const UAT = (() => {
   function openIssueDetail(id) { _renderIssueModal(id); }
   function closeIssueDetail() { el('uatIssueDetailModal')?.classList.remove('open'); }
 
+  function openIssueModal(tcId) {
+    const tc = S.testcases.find(x => x.id === tcId);
+    const proj = tc ? S.projects.find(p => p.id === tc.projectId) : S.projects.find(p => p.id === S.activeProjectId);
+    el('uatIssueFormTCRef').value = tcId || '';
+    el('uatIssueFormTitle').value = tc ? `TC-${tc.seq} Fail: ${tc.testDescription?.slice(0,60) || ''}` : '';
+    el('uatIssueFormDesc').value = '';
+    el('uatIssueFormAssignee').value = '';
+    el('uatIssueFormSeverity').value = 'medium';
+    // Populate entity dropdown
+    const entitySel = el('uatIssueFormEntity');
+    if (entitySel) {
+      const entities = proj?.entities || [];
+      entitySel.innerHTML = '<option value="">All Entities</option>' +
+        entities.map(e => `<option value="${escHtml(e)}">${escHtml(e)}</option>`).join('');
+      if (S.activeEntity && entities.includes(S.activeEntity)) entitySel.value = S.activeEntity;
+    }
+    el('uatIssueModal')?.classList.add('open');
+  }
+
+  function closeIssueModal() { el('uatIssueModal')?.classList.remove('open'); }
+
+  async function saveIssue() {
+    const title = el('uatIssueFormTitle')?.value.trim();
+    if (!title) { toast('Title is required', 'error'); return; }
+    const tcId = el('uatIssueFormTCRef')?.value;
+    const tc = tcId ? S.testcases.find(x => x.id === tcId) : null;
+    const proj = tc ? S.projects.find(p => p.id === tc.projectId) : S.projects.find(p => p.id === S.activeProjectId);
+    if (!proj) { toast('No project selected', 'error'); return; }
+    const body = {
+      testCaseId: tcId || null,
+      projectId: proj.id,
+      clientId: proj.clientId,
+      title,
+      description: el('uatIssueFormDesc')?.value.trim() || '',
+      severity: el('uatIssueFormSeverity')?.value || 'medium',
+      assignedTo: el('uatIssueFormAssignee')?.value.trim() || '',
+      entity: el('uatIssueFormEntity')?.value || '',
+    };
+    const r = await api('POST', '/api/uat/issues', body);
+    if (r.ok) {
+      S.issues.push(r.data);
+      closeIssueModal();
+      renderIssues();
+      toast('Issue raised successfully');
+    } else toast('Failed to raise issue', 'error');
+  }
+
   async function saveIssueField(id, field, value) {
     const r = await api('PUT', `/api/uat/issues/${id}`, { [field]: value });
     if (r.ok) {
@@ -1740,6 +1787,9 @@ const UAT = (() => {
     toggleMaxClientNote,
     openIssueDetail,
     closeIssueDetail,
+    openIssueModal,
+    closeIssueModal,
+    saveIssue,
     selectIssueProject,
     saveIssueField,
     addIssueUpdate,

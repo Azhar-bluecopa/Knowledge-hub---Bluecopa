@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=40" defer></script>
+  <script src="/uat.js?v=41" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -7491,6 +7491,14 @@ async function updateFeedbackStatus(id) {
               <option value="low">Low</option>
             </select>
           </div>
+          <div class="uat-form-group">
+            <label class="uat-form-label">Entity</label>
+            <select class="uat-form-control" id="uatIssueFormEntity">
+              <option value="">All Entities</option>
+            </select>
+          </div>
+        </div>
+        <div class="uat-form-row">
           <div class="uat-form-group">
             <label class="uat-form-label">Assign To</label>
             <input class="uat-form-control" id="uatIssueFormAssignee" placeholder="Team member name">

@@ -1086,10 +1086,10 @@ app.get('/api/uat/issues', async (req, res) => {
 });
 app.post('/api/uat/issues', async (req, res) => {
   await _dbReady; const u=uatDB();
-  const { testCaseId, projectId, clientId, title, description='', severity='medium', assignedTo='' } = req.body;
+  const { testCaseId, projectId, clientId, title, description='', severity='medium', assignedTo='', entity='' } = req.body;
   if (!title) return res.status(400).json({ ok:false, error:'title required' });
   const cnt=u.issues.filter(i=>i.projectId===projectId).length+1;
-  const issue={ id:uatId(), testCaseId, projectId, clientId, ref:`ISS-${String(cnt).padStart(3,'0')}`, title, description, severity, status:'open', assignedTo, resolution:'', createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
+  const issue={ id:uatId(), testCaseId, projectId, clientId, ref:`ISS-${String(cnt).padStart(3,'0')}`, title, description, severity, status:'open', assignedTo, entity, resolution:'', createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
   u.issues.push(issue);
   if (testCaseId) { const tc=u.testcases.find(x=>x.id===testCaseId); if(tc){tc.bluecopaStatus='blocked';tc.updatedAt=new Date().toISOString();} }
   uatLog('issue_opened', `Issue "${title}" raised`, {projectId, clientId});
@@ -1233,10 +1233,17 @@ app.put('/api/uat/portal/:token/tc/:id', async (req, res) => {
   if (!c) return res.status(403).json({ ok:false, error:'invalid token' });
   const tc=u.testcases.find(x=>x.id===req.params.id&&x.clientId===c.id);
   if (!tc) return res.status(404).json({ ok:false, error:'not found' });
-  const { clientStatus, clientComments, attachments } = req.body;
-  if (clientStatus   !== undefined) { tc.clientStatus=clientStatus; uatLog('c_status',`Client: ${clientStatus} on TC-${tc.seq}`,{projectId:tc.projectId,clientId:c.id}); }
-  if (clientComments !== undefined) tc.clientComments=clientComments;
-  if (attachments    !== undefined) tc.attachments=attachments;
+  const { clientStatus, clientComments, attachments, entity } = req.body;
+  if (entity) {
+    if (!tc.entityStatuses) tc.entityStatuses = {};
+    if (!tc.entityStatuses[entity]) tc.entityStatuses[entity] = {};
+    if (clientStatus   !== undefined) { tc.entityStatuses[entity].clientStatus=clientStatus; uatLog('c_status',`Client[${entity}]: ${clientStatus} on TC-${tc.seq}`,{projectId:tc.projectId,clientId:c.id}); }
+    if (clientComments !== undefined) tc.entityStatuses[entity].clientComments=clientComments;
+  } else {
+    if (clientStatus   !== undefined) { tc.clientStatus=clientStatus; uatLog('c_status',`Client: ${clientStatus} on TC-${tc.seq}`,{projectId:tc.projectId,clientId:c.id}); }
+    if (clientComments !== undefined) tc.clientComments=clientComments;
+  }
+  if (attachments !== undefined) tc.attachments=attachments;
   tc.updatedAt=new Date().toISOString();
   await saveDB(db); res.json({ ok:true, data:tc });
 });
@@ -1323,6 +1330,9 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 .issue-cfm-btn{padding:8px 16px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
 .issue-cfm-btn.yes{background:#15803d;color:#fff}.issue-cfm-btn.yes:hover{background:#166534}
 .issue-cfm-btn.no{background:#fff;color:#dc2626;border:1px solid #dc2626}.issue-cfm-btn.no:hover{background:#fef2f2}
+.entity-tabs{display:none;gap:6px;flex-wrap:wrap;padding:0 0 16px;margin-bottom:4px}
+.ent-tab{padding:6px 14px;border:1px solid #e4e6ea;border-radius:99px;font-size:12px;font-weight:600;background:#fff;cursor:pointer;color:#6b7280;transition:all .15s}
+.ent-tab.active{background:#0d1117;color:#fff;border-color:#0d1117}
 .empty-state{padding:48px;text-align:center;color:#6b7280;font-size:14px}
 .toast{position:fixed;bottom:24px;right:24px;background:#0d1117;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:100;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
 .toast.show{opacity:1;transform:translateY(0)}
@@ -1334,6 +1344,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
   <div class="proj-select">Project: <select id="projSelect" onchange="selectProject(this.value)"></select></div>
 </div>
 <div class="main">
+  <div class="entity-tabs" id="entityTabs"></div>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="switchTab('overview',this)">Overview</button>
     <button class="nav-tab" onclick="switchTab('testcases',this)">Test Cases <span class="badge-count" id="tcBadge">0</span></button>
@@ -1369,7 +1380,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 <div class="toast" id="toast"></div>
 <script>
 const TOKEN='${token}';
-let data=null,curProject=null,curTab='overview';
+let data=null,curProject=null,curTab='overview',curEntity='';
 const SL={'not_tested':'Not Tested','in_progress':'In Progress','pass':'Pass','fail':'Fail','blocked':'Blocked'};
 const SC={'not_tested':'s-not_tested','in_progress':'s-in_progress','pass':'s-pass','fail':'s-fail','blocked':'s-blocked'};
 
@@ -1396,17 +1407,37 @@ async function load(){
 
 function selectProject(id){
   curProject=data.projects.find(p=>p.id===id);
+  curEntity='';
   document.getElementById('projSelect').value=id;
+  renderEntityTabs();renderOverview();renderTable();renderIssues();
+}
+
+function selectEntity(e){
+  curEntity=e;
+  document.querySelectorAll('.ent-tab').forEach(b=>b.classList.toggle('active',b.dataset.e===e));
   renderOverview();renderTable();renderIssues();
+}
+
+function renderEntityTabs(){
+  const entities=curProject.entities||[];
+  const el=document.getElementById('entityTabs');
+  if(!el)return;
+  if(!entities.length){el.style.display='none';return;}
+  el.style.display='flex';
+  el.innerHTML='<button class="ent-tab active" data-e="" onclick="selectEntity(\'\')">All Entities</button>'+
+    entities.map(e=>'<button class="ent-tab" data-e="'+esc(e)+'" onclick="selectEntity(\''+esc(e).replace(/'/g,"\\'")+'\'">'+esc(e)+'</button>').join('');
 }
 
 function renderOverview(){
   const p=curProject;
-  const tcs=p.testcases;
-  const total=tcs.length,pass=tcs.filter(t=>t.clientStatus==='pass').length,
-    fail=tcs.filter(t=>t.clientStatus==='fail').length,
-    blocked=tcs.filter(t=>t.clientStatus==='blocked').length,
-    pending=tcs.filter(t=>!t.clientStatus||t.clientStatus==='not_tested').length;
+  const tcs=curEntity
+    ? p.testcases.filter(t=>t.entityStatuses&&t.entityStatuses[curEntity]!==undefined)
+    : p.testcases;
+  const cst=t=>curEntity?(t.entityStatuses&&t.entityStatuses[curEntity]?.clientStatus||'not_tested'):t.clientStatus||'not_tested';
+  const total=tcs.length,pass=tcs.filter(t=>cst(t)==='pass').length,
+    fail=tcs.filter(t=>cst(t)==='fail').length,
+    blocked=tcs.filter(t=>cst(t)==='blocked').length,
+    pending=tcs.filter(t=>cst(t)==='not_tested'||cst(t)==='in_progress').length;
   const pct=total?Math.round(pass/total*100):0;
   document.getElementById('dashStats').innerHTML=
     \`<div class="stat-card"><div class="val">\${total}</div><div class="lbl">Total Tests</div></div>
@@ -1446,29 +1477,36 @@ function renderOverview(){
 }
 
 function renderTable(){
-  const tcs=curProject.testcases;
-  if(!tcs.length){document.getElementById('tcBody').innerHTML='<tr><td colspan="8" class="empty-state">No test cases found.</td></tr>';return;}
-  document.getElementById('tcBody').innerHTML=tcs.map(tc=>\`
-    <tr id="row_\${tc.id}">
+  const allTcs=curProject.testcases;
+  const tcs=curEntity?allTcs.filter(t=>t.entityStatuses&&t.entityStatuses[curEntity]!==undefined):allTcs;
+  if(!tcs.length){document.getElementById('tcBody').innerHTML='<tr><td colspan="8" class="empty-state">'+(curEntity?'No test cases for '+esc(curEntity)+'.':'No test cases found.')+'</td></tr>';return;}
+  document.getElementById('tcBody').innerHTML=tcs.map(tc=>{
+    const es=curEntity&&tc.entityStatuses&&tc.entityStatuses[curEntity]?tc.entityStatuses[curEntity]:{};
+    const cStatus=curEntity?(es.clientStatus||'not_tested'):(tc.clientStatus||'not_tested');
+    const cComment=curEntity?(es.clientComments||''):(tc.clientComments||'');
+    const bStatus=curEntity?(es.bluecopaStatus||tc.bluecopaStatus||'not_tested'):(tc.bluecopaStatus||'not_tested');
+    const bComment=curEntity?(es.bluecopaComments||tc.bluecopaComments||''):(tc.bluecopaComments||'');
+    return \`<tr id="row_\${tc.id}">
       <td><span style="color:#6b7280;font-size:12px;font-weight:600">\${tc.seq}</span></td>
       <td><span class="cat-badge">\${tc.category}</span><div style="font-size:11px;color:#6b7280;margin-top:3px">\${tc.subCategory||''}</div></td>
       <td style="max-width:240px"><div style="font-weight:600;line-height:1.4">\${tc.testDescription}</div></td>
       <td style="max-width:180px;color:#6b7280;font-size:12px;line-height:1.4">\${tc.expectedResult}</td>
-      <td><span class="status-pill \${SC[tc.bluecopaStatus]||'s-not_tested'}">\${SL[tc.bluecopaStatus]||'Not Tested'}</span></td>
-      <td style="color:#374151;font-size:12px;line-height:1.5;max-width:180px">\${tc.bluecopaComments||'<span style="color:#d1d5db">—</span>'}</td>
+      <td><span class="status-pill \${SC[bStatus]||'s-not_tested'}">\${SL[bStatus]||'Not Tested'}</span></td>
+      <td style="color:#374151;font-size:12px;line-height:1.5;max-width:180px">\${bComment||'<span style="color:#d1d5db">—</span>'}</td>
       <td class="status-cell">
-        <button class="status-pill \${SC[tc.clientStatus]||'s-not_tested'}" onclick="toggleDD('\${tc.id}',event)">\${SL[tc.clientStatus]||'Not Tested'} ▾</button>
+        <button class="status-pill \${SC[cStatus]||'s-not_tested'}" onclick="toggleDD('\${tc.id}',event)">\${SL[cStatus]||'Not Tested'} ▾</button>
         <div class="status-dd" id="dd_\${tc.id}">\${Object.entries(SL).map(([k,v])=>\`<button onclick="setStatus('\${tc.id}','\${k}')">\${v}</button>\`).join('')}</div>
       </td>
       <td style="min-width:160px">
-        <textarea class="comment-area" id="cmt_\${tc.id}" placeholder="+ Add note">\${tc.clientComments||''}</textarea>
+        <textarea class="comment-area" id="cmt_\${tc.id}" placeholder="+ Add note">\${cComment}</textarea>
         <button class="save-btn" onclick="saveComment('\${tc.id}')">Save</button>
       </td>
-    </tr>\`).join('');
+    </tr>\`;
+  }).join('');
 }
 
 function renderIssues(){
-  const issues=(data.issues||[]).filter(i=>i.projectId===curProject.id);
+  const issues=(data.issues||[]).filter(i=>i.projectId===curProject.id&&(!curEntity||!i.entity||i.entity===curEntity));
   const el=document.getElementById('issuesList');
   if(!issues.length){el.innerHTML='<div class="empty-state">No issues raised for this project.</div>';return;}
   const STA={open:'Open',in_progress:'In Progress',resolved:'Resolved — Pending Retest',solved:'Solved'};
@@ -1512,16 +1550,22 @@ document.addEventListener('click',()=>document.querySelectorAll('.status-dd').fo
 
 async function setStatus(tcId,status){
   document.getElementById('dd_'+tcId).classList.remove('open');
-  const tc=curProject.testcases.find(t=>t.id===tcId);tc.clientStatus=status;
-  const r=await fetch('/api/uat/portal/'+TOKEN+'/tc/'+tcId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientStatus:status})});
+  const tc=curProject.testcases.find(t=>t.id===tcId);
+  const body={clientStatus:status};
+  if(curEntity){body.entity=curEntity;if(!tc.entityStatuses)tc.entityStatuses={};if(!tc.entityStatuses[curEntity])tc.entityStatuses[curEntity]={};tc.entityStatuses[curEntity].clientStatus=status;}
+  else tc.clientStatus=status;
+  const r=await fetch('/api/uat/portal/'+TOKEN+'/tc/'+tcId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   if(r.ok){renderOverview();const row=document.getElementById('row_'+tcId);if(row){const pill=row.querySelector('.status-cell .status-pill');pill.className='status-pill '+SC[status];pill.innerHTML=SL[status]+' ▾';}toast('Status updated');}
   else toast('Failed to save');
 }
 
 async function saveComment(tcId){
   const text=document.getElementById('cmt_'+tcId).value;
-  curProject.testcases.find(t=>t.id===tcId).clientComments=text;
-  const r=await fetch('/api/uat/portal/'+TOKEN+'/tc/'+tcId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientComments:text})});
+  const tc=curProject.testcases.find(t=>t.id===tcId);
+  const body={clientComments:text};
+  if(curEntity){body.entity=curEntity;if(!tc.entityStatuses)tc.entityStatuses={};if(!tc.entityStatuses[curEntity])tc.entityStatuses[curEntity]={};tc.entityStatuses[curEntity].clientComments=text;}
+  else tc.clientComments=text;
+  const r=await fetch('/api/uat/portal/'+TOKEN+'/tc/'+tcId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   if(r.ok)toast('Note saved');else toast('Failed to save');
 }
 
