@@ -171,7 +171,7 @@ const UAT = (() => {
   }
 
   function breadcrumb(v) {
-    const names = { dashboard:'Overview', projects:'Projects', testcases:'Test Cases', progress:'Category Progress', issues:'Issues', repository:'Repository' };
+    const names = { dashboard:'Overview', projects:'Projects', issues:'Issues' };
     let html = 'UAT Platform';
     if (S.activeClientId) {
       const c = S.clients.find(x => x.id === S.activeClientId);
@@ -185,57 +185,448 @@ const UAT = (() => {
   }
 
   /* ── Dashboard ──────────────────────────────────────────────────────────── */
+  const _df = { project: '', entity: '', severity: '', status: '', assignee: '', dateFrom: '', dateTo: '' };
+  const _dc = {}; // chart instances
+
+  function _destroyDashChart(id) { if (_dc[id]) { _dc[id].destroy(); delete _dc[id]; } }
+
   async function loadDashboard() {
-    const r = await api('GET', '/api/uat/dashboard');
-    if (!r.ok) return;
-    S.dashData = r.data;
-    renderDashboard(r.data);
+    const [rd, ri, rt] = await Promise.all([
+      api('GET', '/api/uat/dashboard'),
+      S.issues.length    ? { ok: true, data: S.issues }    : api('GET', '/api/uat/issues'),
+      S.testcases.length ? { ok: true, data: S.testcases } : api('GET', '/api/uat/testcases'),
+    ]);
+    if (rd && rd.ok) S.dashData = rd.data;
+    if (ri && ri.ok) S.issues = ri.data;
+    if (rt && rt.ok) S.testcases = rt.data;
+    _buildDashFilterOptions();
+    requireChartJs(() => renderDashboard());
   }
 
-  function renderDashboard(d) {
-    const allTCs = d.totalTests;
-    if (el('uatDash_clients')) el('uatDash_clients').textContent = d.totalClients;
-    el('uatDash_projects').textContent = d.activeProjects;
-    el('uatDash_tests').textContent = allTCs;
-    el('uatDash_issues').textContent = d.openIssues;
-    el('uatDash_bpass').textContent = `${d.bPassRate}%`;
-    el('uatDash_cpass').textContent = `${d.cPassRate}%`;
-    el('uatDash_critfail').textContent = d.criticalFails;
-
-    // Projects table
-    const tbody = el('uatDash_projects_tbody');
-    if (!d.projects.length) {
-      tbody.innerHTML = `<tr><td colspan="7" class="uat-empty" style="padding:32px">No projects yet</td></tr>`;
-    } else {
-      tbody.innerHTML = d.projects.map(p => `
-        <tr onclick="UAT.openProject('${p.id}')" style="cursor:pointer">
-          <td><div class="uat-project-name">${p.name}</div></td>
-          <td><span class="uat-priority ${p.phase==='go_live'?'pri-medium':'pri-low'}">${p.phase||'uat'}</span></td>
-          <td>${p.total}</td>
-          <td><span class="uat-status-pill pass" style="pointer-events:none">${p.bPassed}</span></td>
-          <td><span class="uat-status-pill pass" style="pointer-events:none">${p.cPassed}</span></td>
-          <td><span class="uat-status-pill blocked" style="pointer-events:none">${p.openIssues}</span></td>
-          <td>
-            <div class="uat-project-bar-bg" style="min-width:80px">
-              <div class="uat-project-bar-fill" style="width:${p.goLiveScore}%;background:${barColor(p.goLiveScore)}"></div>
-            </div>
-            <div style="font-size:11px;font-weight:700;color:${barColor(p.goLiveScore)};text-align:right;margin-top:2px">${p.goLiveScore}%</div>
-          </td>
-        </tr>`).join('');
+  function _buildDashFilterOptions() {
+    const pSel = el('dFiltProject');
+    if (pSel) {
+      const cur = pSel.value;
+      pSel.innerHTML = '<option value="">All Projects</option>' +
+        S.projects.map(p => `<option value="${p.id}"${p.id===cur?' selected':''}>${escHtml(p.name)}</option>`).join('');
     }
-
-    // Activity feed
-    const feed = el('uatDash_activity');
-    if (!d.activity.length) {
-      feed.innerHTML = `<div style="color:#9ca3af;font-size:13px;padding:16px">No recent activity</div>`;
-    } else {
-      feed.innerHTML = d.activity.slice(0, 15).map(a => `
-        <div class="uat-activity-item">
-          <div class="uat-activity-dot"></div>
-          <div class="uat-activity-msg">${a.message}</div>
-          <div class="uat-activity-time">${relTime(a.createdAt)}</div>
-        </div>`).join('');
+    _updateEntityFilter();
+    const assignees = [...new Set(S.issues.map(i => i.assignedTo).filter(Boolean))].sort();
+    const aSel = el('dFiltAssignee');
+    if (aSel) {
+      const cur = aSel.value;
+      aSel.innerHTML = '<option value="">All Assignees</option>' +
+        assignees.map(a => `<option value="${escHtml(a)}"${a===cur?' selected':''}>${escHtml(a)}</option>`).join('');
     }
+  }
+
+  function _updateEntityFilter() {
+    const projId = el('dFiltProject') ? el('dFiltProject').value : '';
+    let entities = [];
+    if (projId) {
+      const p = S.projects.find(x => x.id === projId);
+      if (p) entities = p.entities || [];
+    } else {
+      entities = [...new Set(S.projects.flatMap(p => p.entities || []))];
+    }
+    const eSel = el('dFiltEntity');
+    if (eSel) {
+      const cur = eSel.value;
+      eSel.innerHTML = '<option value="">All Entities</option>' +
+        entities.map(e => `<option value="${escHtml(e)}"${e===cur?' selected':''}>${escHtml(e)}</option>`).join('');
+    }
+  }
+
+  function onDashProjChange() { _updateEntityFilter(); applyDashFilters(); }
+
+  function applyDashFilters() {
+    _df.project  = el('dFiltProject')  ? el('dFiltProject').value  : '';
+    _df.entity   = el('dFiltEntity')   ? el('dFiltEntity').value   : '';
+    _df.severity = el('dFiltSeverity') ? el('dFiltSeverity').value : '';
+    _df.status   = el('dFiltStatus')   ? el('dFiltStatus').value   : '';
+    _df.assignee = el('dFiltAssignee') ? el('dFiltAssignee').value : '';
+    _df.dateFrom = el('dFiltDateFrom') ? el('dFiltDateFrom').value : '';
+    _df.dateTo   = el('dFiltDateTo')   ? el('dFiltDateTo').value   : '';
+    const n = Object.values(_df).filter(Boolean).length;
+    const chip = el('dFiltChip');
+    if (chip) { chip.textContent = n ? `${n} filter${n>1?'s':''} active` : ''; chip.style.display = n ? '' : 'none'; }
+    renderDashboard();
+  }
+
+  function resetDashFilters() {
+    Object.keys(_df).forEach(k => _df[k] = '');
+    ['dFiltProject','dFiltEntity','dFiltSeverity','dFiltStatus','dFiltAssignee'].forEach(id => { if (el(id)) el(id).value = ''; });
+    ['dFiltDateFrom','dFiltDateTo'].forEach(id => { if (el(id)) el(id).value = ''; });
+    const chip = el('dFiltChip'); if (chip) { chip.style.display = 'none'; chip.textContent = ''; }
+    _updateEntityFilter();
+    renderDashboard();
+  }
+
+  function _filteredData() {
+    const f = _df;
+    const issues = S.issues.filter(i => {
+      if (f.project  && i.projectId !== f.project)  return false;
+      if (f.entity   && i.entity    !== f.entity)   return false;
+      if (f.severity && i.severity  !== f.severity) return false;
+      if (f.status   && i.status    !== f.status)   return false;
+      if (f.assignee && i.assignedTo!== f.assignee) return false;
+      if (f.dateFrom && i.createdAt <  f.dateFrom)  return false;
+      if (f.dateTo   && i.createdAt >  f.dateTo + 'T23:59:59') return false;
+      return true;
+    });
+    const testcases = S.testcases.filter(t => !f.project || t.projectId === f.project);
+    return { issues, testcases };
+  }
+
+  function _setText(id, val) { const e = el(id); if (e) e.textContent = val; }
+
+  function _fmtHours(h) {
+    if (h === null || h === undefined || isNaN(h)) return '—';
+    if (h < 1) return Math.round(h * 60) + 'm';
+    if (h < 24) return h.toFixed(1) + 'h';
+    return (h / 24).toFixed(1) + 'd';
+  }
+
+  function renderDashboard() {
+    const { issues, testcases: tcs } = _filteredData();
+
+    // ── KPIs ──────────────────────────────────────────────────────────────
+    const totalTCs  = tcs.length;
+    const passedTCs = tcs.filter(t => t.clientStatus === 'pass').length;
+    const failedTCs = tcs.filter(t => t.clientStatus === 'fail').length;
+    const blockedTCs = tcs.filter(t => t.clientStatus === 'blocked' || t.bluecopaStatus === 'blocked').length;
+    const pct = totalTCs ? Math.round(passedTCs / totalTCs * 100) : 0;
+
+    const openIssues    = issues.filter(i => i.status === 'open' || i.status === 'in_progress').length;
+    const criticalOpen  = issues.filter(i => (i.status === 'open' || i.status === 'in_progress') && i.severity === 'critical').length;
+
+    const resolved = issues.filter(i => (i.status === 'resolved' || i.status === 'solved') && i.resolvedAt && i.createdAt);
+    const times    = resolved.map(i => (new Date(i.resolvedAt) - new Date(i.createdAt)) / 3600000);
+    const avgMTTR  = times.length ? times.reduce((a, b) => a + b, 0) / times.length : null;
+    const medMTTR  = times.length ? [...times].sort((a, b) => a - b)[Math.floor(times.length / 2)] : null;
+
+    const SLA_H = { critical: 24, high: 48, medium: 120, low: 240 };
+    const slaBase = resolved.filter(i => SLA_H[i.severity]);
+    const slaOk   = slaBase.filter(i => (new Date(i.resolvedAt) - new Date(i.createdAt)) / 3600000 <= SLA_H[i.severity]).length;
+    const slaPct  = slaBase.length ? Math.round(slaOk / slaBase.length * 100) : null;
+
+    _setText('dKpi_completion',    pct + '%');
+    _setText('dKpi_completionSub', `${passedTCs} of ${totalTCs} test cases passed`);
+    _setText('dKpi_tests',         totalTCs);
+    _setText('dKpi_pass',          passedTCs);
+    _setText('dKpi_fail',          failedTCs);
+    _setText('dKpi_blocked',       blockedTCs);
+    _setText('dKpi_openIssues',    openIssues);
+    _setText('dKpi_openIssuesSub', `of ${issues.length} total`);
+    _setText('dKpi_critical',      criticalOpen);
+    _setText('dKpi_mttr',          _fmtHours(avgMTTR));
+    _setText('dKpi_mttrSub',       'Median: ' + _fmtHours(medMTTR));
+    _setText('dKpi_sla',           slaPct !== null ? slaPct + '%' : '—');
+    _setText('dKpi_slaSub',        slaBase.length ? `${slaOk}/${slaBase.length} within SLA` : 'No resolved issues');
+
+    // ── Charts ────────────────────────────────────────────────────────────
+    _chartEntityProgress(tcs);
+    _chartIssueSeverity(issues);
+    _chartIssueStatus(issues);
+    _chartIssueTrend(issues);
+    _chartIssueModule(issues, tcs);
+    _chartIssuePriority(tcs);
+    _chartTesterPerf(issues);
+    _chartCoverage(tcs);
+
+    // ── Bottom panels ─────────────────────────────────────────────────────
+    _renderDashProjects(issues, tcs);
+    _renderSignoff();
+    _renderActivity();
+  }
+
+  // ── Chart helpers ────────────────────────────────────────────────────────
+  const _CJ_FONT = "'Inter','DM Sans',system-ui,sans-serif";
+
+  function _chartOpts(extra) {
+    return Object.assign({ responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { size: 11, family: _CJ_FONT }, boxWidth: 10 } }, datalabels: { display: false } } }, extra);
+  }
+
+  function _chartEntityProgress(tcs) {
+    _destroyDashChart('ep');
+    const c = el('chartEntityProgress'); if (!c) return;
+    const projId = _df.project;
+    const proj   = projId ? S.projects.find(p => p.id === projId) : null;
+    let groups   = proj ? (proj.entities || []) : [...new Set(S.projects.flatMap(p => p.entities || []))];
+    let passD = [], failD = [], blockedD = [], otherD = [], labels = [];
+    if (!groups.length) {
+      groups = S.projects.filter(p => tcs.some(t => t.projectId === p.id)).map(p => p.id);
+      labels = groups.map(id => (S.projects.find(p => p.id === id) || {}).name || id);
+    } else {
+      labels = groups;
+    }
+    groups.forEach((g, i) => {
+      const isProj = !proj && !projId;
+      const gtcs   = isProj ? tcs.filter(t => t.projectId === g) : tcs.filter(t => {
+        const es = t.entityStatuses && t.entityStatuses[g];
+        return true; // include all — use entity-specific status when available
+      });
+      let pass = 0, fail = 0, blocked = 0, other = 0;
+      gtcs.forEach(t => {
+        const es = !isProj && t.entityStatuses && t.entityStatuses[g];
+        const cs = es ? es.clientStatus : t.clientStatus;
+        const bs = es ? es.bluecopaStatus : t.bluecopaStatus;
+        if (cs === 'pass') pass++;
+        else if (cs === 'fail') fail++;
+        else if (cs === 'blocked' || bs === 'blocked') blocked++;
+        else other++;
+      });
+      passD.push(pass); failD.push(fail); blockedD.push(blocked); otherD.push(other);
+    });
+    _dc['ep'] = new Chart(c.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Pass',    data: passD,    backgroundColor: '#22c55e', borderRadius: 3 },
+          { label: 'Fail',    data: failD,    backgroundColor: '#dc2626', borderRadius: 3 },
+          { label: 'Blocked', data: blockedD, backgroundColor: '#f59e0b', borderRadius: 3 },
+          { label: 'Pending', data: otherD,   backgroundColor: '#e5e7eb', borderRadius: 3 },
+        ]
+      },
+      options: _chartOpts({
+        indexAxis: 'y',
+        scales: {
+          x: { stacked: true, grid: { color: '#f0f1f5' }, ticks: { font: { size: 11 }, stepSize: 1 } },
+          y: { stacked: true, grid: { display: false },   ticks: { font: { size: 11 } } },
+        },
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10 } }, datalabels: { display: false } },
+      })
+    });
+  }
+
+  function _chartIssueSeverity(issues) {
+    _destroyDashChart('sev');
+    const c = el('chartIssueSeverity'); if (!c) return;
+    const cnt = { critical: 0, high: 0, medium: 0, low: 0 };
+    issues.forEach(i => { if (cnt[i.severity] !== undefined) cnt[i.severity]++; });
+    _dc['sev'] = new Chart(c.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Critical', 'High', 'Medium', 'Low'],
+        datasets: [{ data: [cnt.critical, cnt.high, cnt.medium, cnt.low], backgroundColor: ['#dc2626','#ea580c','#f59e0b','#6b7280'], borderWidth: 0, hoverOffset: 4 }]
+      },
+      options: _chartOpts({ cutout: '68%', plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10 } }, datalabels: { display: false } } })
+    });
+  }
+
+  function _chartIssueStatus(issues) {
+    _destroyDashChart('sts');
+    const c = el('chartIssueStatus'); if (!c) return;
+    const cnt = { open: 0, in_progress: 0, resolved: 0, solved: 0 };
+    issues.forEach(i => { if (cnt[i.status] !== undefined) cnt[i.status]++; });
+    _dc['sts'] = new Chart(c.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Open', 'In Progress', 'Resolved', 'Solved'],
+        datasets: [{ data: [cnt.open, cnt.in_progress, cnt.resolved, cnt.solved], backgroundColor: ['#dc2626','#3548FF','#f59e0b','#22c55e'], borderWidth: 0, hoverOffset: 4 }]
+      },
+      options: _chartOpts({ cutout: '68%', plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10 } }, datalabels: { display: false } } })
+    });
+  }
+
+  function _chartIssueTrend(issues) {
+    _destroyDashChart('trend');
+    const c = el('chartIssueTrend'); if (!c) return;
+    const weeks = [];
+    const now = new Date();
+    for (let i = 9; i >= 0; i--) { const d = new Date(now); d.setDate(d.getDate() - i * 7); weeks.push(d); }
+    const labels = weeks.map(d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    const inWeek = (arr, field, ws) => { const we = new Date(ws); we.setDate(we.getDate() + 7); return arr.filter(x => { const d = new Date(x[field]); return d >= ws && d < we; }).length; };
+    const created  = weeks.map(w => inWeek(issues, 'createdAt', w));
+    const resolved = weeks.map(w => inWeek(issues.filter(i => i.resolvedAt), 'resolvedAt', w));
+    _dc['trend'] = new Chart(c.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Created',  data: created,  borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,.08)',  fill: true, tension: .4, pointRadius: 3, pointBackgroundColor: '#dc2626' },
+          { label: 'Resolved', data: resolved, borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,.08)',  fill: true, tension: .4, pointRadius: 3, pointBackgroundColor: '#22c55e' },
+        ]
+      },
+      options: _chartOpts({
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: { grid: { color: '#f0f1f5' }, ticks: { font: { size: 10 } } },
+          y: { grid: { color: '#f0f1f5' }, ticks: { font: { size: 11 }, stepSize: 1 }, min: 0 }
+        },
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10 } }, datalabels: { display: false } },
+      })
+    });
+  }
+
+  function _chartIssueModule(issues, tcs) {
+    _destroyDashChart('mod');
+    const c = el('chartIssueModule'); if (!c) return;
+    const counts = {};
+    issues.forEach(i => {
+      const tc = i.testCaseId ? tcs.find(t => t.id === i.testCaseId) : null;
+      const cat = (tc && tc.category) || 'Other';
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    _dc['mod'] = new Chart(el('chartIssueModule').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: sorted.map(([k]) => k),
+        datasets: [{ label: 'Issues', data: sorted.map(([, v]) => v), backgroundColor: '#3548FF', borderRadius: 5, borderSkipped: false }]
+      },
+      options: _chartOpts({
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+          y: { grid: { color: '#f0f1f5' }, ticks: { font: { size: 11 }, stepSize: 1 }, min: 0 }
+        },
+        plugins: { legend: { display: false }, datalabels: { display: false } },
+      })
+    });
+  }
+
+  function _chartIssuePriority(tcs) {
+    _destroyDashChart('pri');
+    const c = el('chartIssuePriority'); if (!c) return;
+    const failed = tcs.filter(t => t.clientStatus === 'fail' || t.bluecopaStatus === 'fail');
+    const cnt = { critical: 0, high: 0, medium: 0, low: 0 };
+    failed.forEach(t => { if (cnt[t.priority] !== undefined) cnt[t.priority]++; });
+    _dc['pri'] = new Chart(c.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: ['Critical', 'High', 'Medium', 'Low'],
+        datasets: [{ data: [cnt.critical, cnt.high, cnt.medium, cnt.low], backgroundColor: ['#dc2626','#ea580c','#f59e0b','#6b7280'], borderRadius: 5, borderSkipped: false }]
+      },
+      options: _chartOpts({
+        indexAxis: 'y',
+        scales: {
+          x: { grid: { color: '#f0f1f5' }, ticks: { font: { size: 11 }, stepSize: 1 }, min: 0 },
+          y: { grid: { display: false },   ticks: { font: { size: 11 } } }
+        },
+        plugins: { legend: { display: false }, datalabels: { display: false } },
+      })
+    });
+  }
+
+  function _chartTesterPerf(issues) {
+    _destroyDashChart('tester');
+    const c = el('chartTesterPerf'); if (!c) return;
+    const map = {};
+    issues.forEach(i => {
+      const name = i.assignedTo || 'Unassigned';
+      if (!map[name]) map[name] = { open: 0, resolved: 0 };
+      if (i.status === 'open' || i.status === 'in_progress') map[name].open++;
+      else map[name].resolved++;
+    });
+    const sorted = Object.entries(map).sort((a, b) => (b[1].open + b[1].resolved) - (a[1].open + a[1].resolved)).slice(0, 8);
+    const labels = sorted.map(([k]) => k.split(' ')[0]);
+    _dc['tester'] = new Chart(c.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Open',     data: sorted.map(([, v]) => v.open),     backgroundColor: '#dc2626', borderRadius: 3, stack: 'tst' },
+          { label: 'Resolved', data: sorted.map(([, v]) => v.resolved), backgroundColor: '#22c55e', borderRadius: 3, stack: 'tst' },
+        ]
+      },
+      options: _chartOpts({
+        scales: {
+          x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } },
+          y: { stacked: true, grid: { color: '#f0f1f5' }, ticks: { font: { size: 11 }, stepSize: 1 }, min: 0 }
+        },
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10 } }, datalabels: { display: false } },
+      })
+    });
+  }
+
+  function _chartCoverage(tcs) {
+    _destroyDashChart('cov');
+    const c = el('chartCoverage'); if (!c) return;
+    const labels = [], rates = [];
+    ['R2R','P2P','O2C','Planning','Dashboards','Reports','Security','Integrations'].forEach(cat => {
+      const ctcs = tcs.filter(t => t.category === cat);
+      if (!ctcs.length) return;
+      labels.push(cat);
+      rates.push(Math.round(ctcs.filter(t => t.clientStatus === 'pass').length / ctcs.length * 100));
+    });
+    _dc['cov'] = new Chart(c.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{ label: 'Pass %', data: rates, backgroundColor: rates.map(v => v >= 80 ? '#22c55e' : v >= 50 ? '#f59e0b' : '#dc2626'), borderRadius: 5, borderSkipped: false }]
+      },
+      options: _chartOpts({
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+          y: { min: 0, max: 100, grid: { color: '#f0f1f5' }, ticks: { font: { size: 11 }, callback: v => v + '%' } }
+        },
+        plugins: { legend: { display: false }, datalabels: { display: false } },
+      })
+    });
+  }
+
+  function _renderDashProjects(issues, tcs) {
+    const tbody = el('uatDash_projects_tbody'); if (!tbody) return;
+    const projs = _df.project ? S.projects.filter(p => p.id === _df.project) : S.projects;
+    if (!projs.length) {
+      tbody.innerHTML = `<tr><td colspan="7" class="uat-empty" style="padding:24px">No projects yet</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = projs.map(p => {
+      const ptcs  = tcs.filter(t => t.projectId === p.id);
+      const pass  = ptcs.filter(t => t.clientStatus === 'pass').length;
+      const pct   = ptcs.length ? Math.round(pass / ptcs.length * 100) : 0;
+      const open  = issues.filter(i => i.projectId === p.id && (i.status === 'open' || i.status === 'in_progress')).length;
+      const bpass = ptcs.filter(t => t.bluecopaStatus === 'pass').length;
+      const score = ptcs.length ? Math.min(100, Math.round(((bpass * 0.6) + (pass * 0.4)) / ptcs.length * 100)) : 0;
+      const sc    = barColor(score);
+      const cl    = S.clients.find(c => c.id === p.clientId);
+      const hasSignoff = (p.signoff && p.signoff.status === 'signed') || (p.portalSignoff && p.portalSignoff.name);
+      return `<tr onclick="UAT.openProject('${p.id}')" style="cursor:pointer">
+        <td><div style="font-weight:700;color:#090909;font-size:13px">${escHtml(p.name)}</div></td>
+        <td style="color:#6b7280;font-size:12px">${escHtml(cl ? cl.name : (p.clientName || '—'))}</td>
+        <td style="font-size:13px">${ptcs.length}</td>
+        <td><div style="display:flex;align-items:center;gap:7px">
+          <div style="flex:1;height:6px;background:#f0f1f5;border-radius:99px;overflow:hidden;min-width:48px">
+            <div style="height:100%;border-radius:99px;background:${barColor(pct)};width:${pct}%"></div>
+          </div>
+          <span style="font-size:12px;font-weight:700;color:#374151;white-space:nowrap">${pct}%</span>
+        </div></td>
+        <td>${open ? `<span style="font-size:11px;font-weight:700;background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:99px">${open} open</span>` : '<span style="color:#9ca3af;font-size:12px">—</span>'}</td>
+        <td><span style="font-size:14px;font-weight:800;color:${sc}">${score}%</span></td>
+        <td>${hasSignoff ? '<span style="font-size:11px;font-weight:700;background:#f0fdf4;color:#15803d;padding:2px 8px;border-radius:99px">✓ Signed</span>' : '<span style="font-size:11px;font-weight:700;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:99px">Pending</span>'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function _renderSignoff() {
+    const list = el('dSignoffList'); if (!list) return;
+    const projs = _df.project ? S.projects.filter(p => p.id === _df.project) : S.projects;
+    if (!projs.length) { list.innerHTML = '<div style="color:#9ca3af;font-size:12px">No projects</div>'; return; }
+    list.innerHTML = projs.slice(0, 8).map(p => {
+      const signed = (p.signoff && p.signoff.status === 'signed') || (p.portalSignoff && p.portalSignoff.name);
+      const who    = (p.portalSignoff && p.portalSignoff.name) || (p.signoff && p.signoff.signedBy) || '';
+      return `<div class="uat-signoff-row">
+        <div class="uat-signoff-name" title="${escHtml(p.name)}">${escHtml(p.name)}</div>
+        ${signed
+          ? `<span class="uat-signoff-badge signed">✓ ${escHtml(who || 'Signed')}</span>`
+          : `<span class="uat-signoff-badge pending">Pending</span>`}
+      </div>`;
+    }).join('');
+  }
+
+  function _renderActivity() {
+    const feed = el('uatDash_activity'); if (!feed) return;
+    const activity = (S.dashData && S.dashData.activity) || [];
+    if (!activity.length) { feed.innerHTML = '<div style="color:#9ca3af;font-size:12px;padding:8px 0">No recent activity</div>'; return; }
+    feed.innerHTML = activity.slice(0, 10).map(a =>
+      `<div class="uat-dash-act-item">
+        <div class="uat-dash-act-dot"></div>
+        <div class="uat-dash-act-msg">${escHtml(a.message)}</div>
+        <div class="uat-dash-act-time">${relTime(a.createdAt)}</div>
+      </div>`
+    ).join('');
   }
 
   /* ── Projects ───────────────────────────────────────────────────────────── */
@@ -1794,5 +2185,8 @@ const UAT = (() => {
     saveIssueField,
     addIssueUpdate,
     markIssueResolved,
+    applyDashFilters,
+    resetDashFilters,
+    onDashProjChange,
   };
 })();

@@ -13,13 +13,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Non-blocking font load: media=print swapped to all once loaded -->
   <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
     media="print" onload="this.media='all'">
   <noscript>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
   <link rel="stylesheet" href="/style.css?v=80">
-  <link rel="stylesheet" href="/uat.css?v=20">
+  <link rel="stylesheet" href="/uat.css?v=21">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -6674,17 +6674,8 @@ async function updateFeedbackStatus(id) {
     <button class="uat-nav-tab" data-view="projects" onclick="UAT.setView('projects')">
       Projects <span class="uat-nav-badge" id="uatNavBadge_projects">0</span>
     </button>
-    <button class="uat-nav-tab" data-view="testcases" onclick="UAT.setView('testcases')">
-      Test Cases <span class="uat-nav-badge" id="uatNavBadge_testcases">0</span>
-    </button>
-    <button class="uat-nav-tab" data-view="progress" onclick="UAT.setView('progress')">
-      Category Progress
-    </button>
     <button class="uat-nav-tab" data-view="issues" onclick="UAT.setView('issues')">
       Issues
-    </button>
-    <button class="uat-nav-tab" data-view="repository" onclick="UAT.setView('repository');UAT.loadRepository()">
-      Repository
     </button>
   </nav>
 
@@ -6693,43 +6684,174 @@ async function updateFeedbackStatus(id) {
 
     <!-- ── DASHBOARD ──────────────────────────────────────────────────── -->
     <div id="uatView_dashboard" class="uat-view active">
-      <!-- KPI row -->
-      <div class="uat-stats-row">
-        <div class="uat-stat-card"><div class="uat-stat-label">Active Projects</div><div class="uat-stat-value" id="uatDash_projects">—</div></div>
-        <div class="uat-stat-card"><div class="uat-stat-label">Total Tests</div><div class="uat-stat-value" id="uatDash_tests">—</div></div>
-        <div class="uat-stat-card success"><div class="uat-stat-label">Bluecopa Pass</div><div class="uat-stat-value" id="uatDash_bpass">—</div></div>
-        <div class="uat-stat-card success"><div class="uat-stat-label">Client Pass</div><div class="uat-stat-value" id="uatDash_cpass">—</div></div>
-        <div class="uat-stat-card warning"><div class="uat-stat-label">Open Issues</div><div class="uat-stat-value" id="uatDash_issues">—</div></div>
-        <div class="uat-stat-card danger"><div class="uat-stat-label">Critical Fails</div><div class="uat-stat-value" id="uatDash_critfail">—</div></div>
+
+      <!-- Filter bar -->
+      <div class="uat-dash-filters">
+        <span class="uat-dash-filter-label">Filter:</span>
+        <select class="uat-dash-filter-select" id="dFiltProject" onchange="UAT.onDashProjChange()">
+          <option value="">All Projects</option>
+        </select>
+        <select class="uat-dash-filter-select" id="dFiltEntity" onchange="UAT.applyDashFilters()">
+          <option value="">All Entities</option>
+        </select>
+        <select class="uat-dash-filter-select" id="dFiltSeverity" onchange="UAT.applyDashFilters()">
+          <option value="">All Severities</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <select class="uat-dash-filter-select" id="dFiltStatus" onchange="UAT.applyDashFilters()">
+          <option value="">All Statuses</option>
+          <option value="open">Open</option>
+          <option value="in_progress">In Progress</option>
+          <option value="resolved">Resolved</option>
+          <option value="solved">Solved</option>
+        </select>
+        <select class="uat-dash-filter-select" id="dFiltAssignee" onchange="UAT.applyDashFilters()">
+          <option value="">All Assignees</option>
+        </select>
+        <input type="date" class="uat-dash-filter-date" id="dFiltDateFrom" onchange="UAT.applyDashFilters()" title="From date">
+        <input type="date" class="uat-dash-filter-date" id="dFiltDateTo" onchange="UAT.applyDashFilters()" title="To date">
+        <button class="uat-dash-filter-reset" onclick="UAT.resetDashFilters()">↺ Reset</button>
+        <span class="uat-dash-filter-chip" id="dFiltChip"></span>
       </div>
 
-      <!-- Projects table -->
-      <div class="uat-section">
-        <div class="uat-section-header">
-          <div class="uat-section-title">All Projects</div>
-          <button class="uat-btn uat-btn-primary uat-btn-sm" onclick="UAT.showNewProjectModal()">+ New Project</button>
-        </div>
-        <div class="uat-table-wrap" style="border:none;border-radius:0">
-          <div class="uat-table-scroll">
-            <table class="uat-table">
-              <thead>
-                <tr>
-                  <th>Project / Client</th><th>Phase</th><th>Tests</th>
-                  <th>Bluecopa ✓</th><th>Client ✓</th><th>Issues</th><th>Go-Live Score</th>
-                </tr>
-              </thead>
-              <tbody id="uatDash_projects_tbody"></tbody>
-            </table>
+      <!-- Dashboard body -->
+      <div class="uat-dash-body">
+
+        <!-- KPI Row -->
+        <div class="uat-kpi-row">
+          <div class="uat-kpi-card kpi-blue">
+            <span class="uat-kpi-icon">📊</span>
+            <div class="uat-kpi-val" id="dKpi_completion">—</div>
+            <div class="uat-kpi-label">UAT Completion</div>
+            <div class="uat-kpi-sub" id="dKpi_completionSub">Client pass rate</div>
+          </div>
+          <div class="uat-kpi-card kpi-green">
+            <span class="uat-kpi-icon">✅</span>
+            <div class="uat-kpi-val" id="dKpi_tests">—</div>
+            <div class="uat-kpi-label">Total Test Cases</div>
+            <div class="uat-kpi-mini-row">
+              <div class="uat-kpi-mini-stat"><div class="uat-kpi-mini-val" id="dKpi_pass" style="color:#22c55e">—</div><div class="uat-kpi-mini-lbl">Pass</div></div>
+              <div class="uat-kpi-mini-stat"><div class="uat-kpi-mini-val" id="dKpi_fail" style="color:#dc2626">—</div><div class="uat-kpi-mini-lbl">Fail</div></div>
+              <div class="uat-kpi-mini-stat"><div class="uat-kpi-mini-val" id="dKpi_blocked" style="color:#f59e0b">—</div><div class="uat-kpi-mini-lbl">Blocked</div></div>
+            </div>
+          </div>
+          <div class="uat-kpi-card kpi-amber">
+            <span class="uat-kpi-icon">🐛</span>
+            <div class="uat-kpi-val" id="dKpi_openIssues">—</div>
+            <div class="uat-kpi-label">Open Issues</div>
+            <div class="uat-kpi-sub" id="dKpi_openIssuesSub">of — total</div>
+          </div>
+          <div class="uat-kpi-card kpi-red">
+            <span class="uat-kpi-icon">🚨</span>
+            <div class="uat-kpi-val" id="dKpi_critical">—</div>
+            <div class="uat-kpi-label">Critical Open</div>
+            <div class="uat-kpi-sub">Unresolved critical issues</div>
+          </div>
+          <div class="uat-kpi-card kpi-purple">
+            <span class="uat-kpi-icon">⏱️</span>
+            <div class="uat-kpi-val" id="dKpi_mttr">—</div>
+            <div class="uat-kpi-label">Avg Resolution Time</div>
+            <div class="uat-kpi-sub" id="dKpi_mttrSub">Median: —</div>
+          </div>
+          <div class="uat-kpi-card kpi-teal">
+            <span class="uat-kpi-icon">🎯</span>
+            <div class="uat-kpi-val" id="dKpi_sla">—</div>
+            <div class="uat-kpi-label">SLA Compliance</div>
+            <div class="uat-kpi-sub" id="dKpi_slaSub">Resolved within target</div>
           </div>
         </div>
-      </div>
 
-      <!-- Activity feed -->
-      <div class="uat-dash-card">
-        <div class="uat-dash-card-title">Recent Activity</div>
-        <div id="uatDash_activity"></div>
-      </div>
-    </div>
+        <!-- Charts Row 1: Entity progress + Severity donut + Status donut -->
+        <div class="uat-charts-row uat-charts-3col">
+          <div class="uat-chart-card">
+            <div class="uat-chart-title">Testing Progress by Entity</div>
+            <div class="uat-chart-sub">Client status breakdown per entity / project</div>
+            <div class="uat-chart-wrap" style="height:220px"><canvas id="chartEntityProgress"></canvas></div>
+          </div>
+          <div class="uat-chart-card">
+            <div class="uat-chart-title">Issues by Severity</div>
+            <div class="uat-chart-sub">All issues distribution</div>
+            <div class="uat-chart-wrap" style="height:220px"><canvas id="chartIssueSeverity"></canvas></div>
+          </div>
+          <div class="uat-chart-card">
+            <div class="uat-chart-title">Issues by Status</div>
+            <div class="uat-chart-sub">Current status breakdown</div>
+            <div class="uat-chart-wrap" style="height:220px"><canvas id="chartIssueStatus"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Charts Row 2: Issue trend (wide) + Module bar -->
+        <div class="uat-charts-row uat-charts-2col">
+          <div class="uat-chart-card">
+            <div class="uat-chart-title">Issue Trend</div>
+            <div class="uat-chart-sub">Issues created vs resolved — last 10 weeks</div>
+            <div class="uat-chart-wrap" style="height:200px"><canvas id="chartIssueTrend"></canvas></div>
+          </div>
+          <div class="uat-chart-card">
+            <div class="uat-chart-title">Issues by Module</div>
+            <div class="uat-chart-sub">Linked to test case category</div>
+            <div class="uat-chart-wrap" style="height:200px"><canvas id="chartIssueModule"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Charts Row 3: Priority + Tester perf + Coverage -->
+        <div class="uat-charts-row uat-charts-3eq">
+          <div class="uat-chart-card">
+            <div class="uat-chart-title">Failed TCs by Priority</div>
+            <div class="uat-chart-sub">Failed test cases grouped by priority</div>
+            <div class="uat-chart-wrap" style="height:180px"><canvas id="chartIssuePriority"></canvas></div>
+          </div>
+          <div class="uat-chart-card">
+            <div class="uat-chart-title">Tester Performance</div>
+            <div class="uat-chart-sub">Issues open vs resolved per assignee</div>
+            <div class="uat-chart-wrap" style="height:180px"><canvas id="chartTesterPerf"></canvas></div>
+          </div>
+          <div class="uat-chart-card">
+            <div class="uat-chart-title">Coverage by Category</div>
+            <div class="uat-chart-sub">Client pass rate per test category</div>
+            <div class="uat-chart-wrap" style="height:180px"><canvas id="chartCoverage"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Bottom: Projects table + Sign-off + Activity -->
+        <div class="uat-dash-bottom">
+          <div class="uat-dash-projects">
+            <div class="uat-dash-tbl-head">
+              <div class="uat-dash-tbl-title">Projects Overview</div>
+              <button class="uat-btn uat-btn-primary uat-btn-sm" onclick="UAT.showNewProjectModal()">+ New Project</button>
+            </div>
+            <div class="uat-table-scroll" style="max-height:320px">
+              <table class="uat-table">
+                <thead>
+                  <tr>
+                    <th>Project</th><th>Client</th><th>Tests</th>
+                    <th>Pass Rate</th><th>Open Issues</th><th>Score</th><th>Sign-off</th>
+                  </tr>
+                </thead>
+                <tbody id="uatDash_projects_tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="uat-dash-side">
+            <!-- Client sign-off status -->
+            <div class="uat-dash-side-card">
+              <div class="uat-chart-title" style="margin-bottom:10px">Client Sign-off Status</div>
+              <div id="dSignoffList"><div style="color:#9ca3af;font-size:12px;padding:8px 0">Loading…</div></div>
+            </div>
+            <!-- Recent activity -->
+            <div class="uat-dash-side-card">
+              <div class="uat-chart-title" style="margin-bottom:10px">Recent Activity</div>
+              <div id="uatDash_activity"><div style="color:#9ca3af;font-size:12px;padding:8px 0">Loading…</div></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.uat-dash-body -->
+    </div><!-- /#uatView_dashboard -->
 
     <!-- ── PROJECTS ───────────────────────────────────────────────────── -->
     <div id="uatView_projects" class="uat-view">
