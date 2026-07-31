@@ -15,6 +15,7 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/index.js" },
+    { "src": "/uat/portal/(.*)", "dest": "/api/index.js" },
     { "src": "/portal/(.*)", "dest": "/public/portal.html", "headers": { "cache-control": "no-cache, no-store, must-revalidate" } },
     { "src": "/uploads/(.*)", "dest": "/public/uploads/$1" },
     {
