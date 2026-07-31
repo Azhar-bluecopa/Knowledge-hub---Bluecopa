@@ -1210,7 +1210,7 @@ app.get('/api/uat/portal/:token', async (req, res) => {
     const tc=u.testcases.filter(t=>t.projectId===p.id).sort((a,b)=>a.seq-b.seq);
     const total=tc.length, cPass=tc.filter(t=>t.clientStatus==='pass').length;
     const categories=[...new Set(tc.map(t=>t.category))];
-    return {...p,testcases:tc,total,cPassed:cPass,cPassRate:total?Math.round(cPass/total*100):0,categories,entities:c.entities||[]};
+    return {...p,testcases:tc,total,cPassed:cPass,cPassRate:total?Math.round(cPass/total*100):0,categories,entities:p.entities||[]};
   });
   const issues=u.issues.filter(i=>i.clientId===c.id);
   res.json({ ok:true, data:{ client:{id:c.id,name:c.name,shortCode:c.shortCode}, projects, issues } });
