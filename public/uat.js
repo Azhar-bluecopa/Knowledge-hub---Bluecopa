@@ -1475,7 +1475,7 @@ const UAT = (() => {
       <!-- Description -->
       ${i.description ? `<div style="margin-bottom:16px">
         <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Client Description</div>
-        <div style="font-size:13px;line-height:1.7;color:#0d1117;border:1px solid #e4e6ea;border-radius:8px;padding:12px;word-break:break-word">${escHtml(i.description)}</div>
+        <div class="uat-issue-desc-html" style="font-size:13px;line-height:1.7;color:#0d1117;border:1px solid #e4e6ea;border-radius:8px;padding:12px;word-break:break-word;overflow:hidden"></div>
       </div>` : ''}
       <!-- Timeline -->
       <div style="margin-bottom:16px">
@@ -1498,6 +1498,16 @@ const UAT = (() => {
 
     el('uatIssueDetailRef')?.setAttribute('data', id);
     el('uatIssueDetailModal')?.classList.add('open');
+    // Set description as innerHTML so embedded screenshots render correctly
+    const descEl = bodyEl?.querySelector('.uat-issue-desc-html');
+    if (descEl && i.description) descEl.innerHTML = i.description;
+    // Scale down any oversized images inside the description
+    if (descEl) descEl.querySelectorAll('img').forEach(img => {
+      img.style.maxWidth = '100%';
+      img.style.height = 'auto';
+      img.style.borderRadius = '6px';
+      img.style.marginTop = '8px';
+    });
   }
 
   function openIssueDetail(id) { _renderIssueModal(id); }
