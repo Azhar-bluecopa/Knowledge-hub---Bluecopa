@@ -190,7 +190,7 @@ const UAT = (() => {
   }
 
   /* ── Dashboard ──────────────────────────────────────────────────────────── */
-  const _df = { project: '', entity: '', severity: '', status: '', assignee: '', dateFrom: '', dateTo: '' };
+  const _df = { client: '', project: '', entity: '', severity: '', status: '', assignee: '', dateFrom: '', dateTo: '' };
   const _dc = {}; // chart instances
 
   function _destroyDashChart(id) { if (_dc[id]) { _dc[id].destroy(); delete _dc[id]; } }
@@ -213,12 +213,15 @@ const UAT = (() => {
   }
 
   function _buildDashFilterOptions() {
-    const pSel = el('dFiltProject');
-    if (pSel) {
-      const cur = pSel.value;
-      pSel.innerHTML = '<option value="">All Projects</option>' +
-        S.projects.map(p => `<option value="${p.id}"${p.id===cur?' selected':''}>${escHtml(p.name)}</option>`).join('');
+    // Client dropdown
+    const cSel = el('dFiltClient');
+    if (cSel) {
+      const cur = cSel.value;
+      cSel.innerHTML = '<option value="">All Clients</option>' +
+        S.clients.map(c => `<option value="${c.id}"${c.id===cur?' selected':''}>${escHtml(c.name)}</option>`).join('');
     }
+    // Project dropdown — filtered by selected client
+    _updateProjectFilter();
     _updateEntityFilter();
     const assignees = [...new Set(S.issues.map(i => i.assignedTo).filter(Boolean))].sort();
     const aSel = el('dFiltAssignee');
@@ -229,14 +232,30 @@ const UAT = (() => {
     }
   }
 
+  function _updateProjectFilter() {
+    const clientId = el('dFiltClient') ? el('dFiltClient').value : '';
+    const projects = clientId ? S.projects.filter(p => p.clientId === clientId) : S.projects;
+    const pSel = el('dFiltProject');
+    if (pSel) {
+      const cur = pSel.value;
+      // If current project doesn't belong to new client, reset it
+      const valid = projects.some(p => p.id === cur);
+      pSel.innerHTML = '<option value="">All Projects</option>' +
+        projects.map(p => `<option value="${p.id}"${p.id===cur&&valid?' selected':''}>${escHtml(p.name)}</option>`).join('');
+    }
+  }
+
   function _updateEntityFilter() {
-    const projId = el('dFiltProject') ? el('dFiltProject').value : '';
+    const clientId = el('dFiltClient') ? el('dFiltClient').value : '';
+    const projId   = el('dFiltProject') ? el('dFiltProject').value : '';
+    let projects = S.projects;
+    if (clientId) projects = projects.filter(p => p.clientId === clientId);
     let entities = [];
     if (projId) {
       const p = S.projects.find(x => x.id === projId);
       if (p) entities = p.entities || [];
     } else {
-      entities = [...new Set(S.projects.flatMap(p => p.entities || []))];
+      entities = [...new Set(projects.flatMap(p => p.entities || []))];
     }
     const eSel = el('dFiltEntity');
     if (eSel) {
@@ -246,9 +265,11 @@ const UAT = (() => {
     }
   }
 
-  function onDashProjChange() { _updateEntityFilter(); applyDashFilters(); }
+  function onDashClientChange() { _updateProjectFilter(); _updateEntityFilter(); applyDashFilters(); }
+  function onDashProjChange()   { _updateEntityFilter(); applyDashFilters(); }
 
   function applyDashFilters() {
+    _df.client   = el('dFiltClient')   ? el('dFiltClient').value   : '';
     _df.project  = el('dFiltProject')  ? el('dFiltProject').value  : '';
     _df.entity   = el('dFiltEntity')   ? el('dFiltEntity').value   : '';
     _df.severity = el('dFiltSeverity') ? el('dFiltSeverity').value : '';
@@ -264,16 +285,23 @@ const UAT = (() => {
 
   function resetDashFilters() {
     Object.keys(_df).forEach(k => _df[k] = '');
-    ['dFiltProject','dFiltEntity','dFiltSeverity','dFiltStatus','dFiltAssignee'].forEach(id => { if (el(id)) el(id).value = ''; });
+    ['dFiltClient','dFiltProject','dFiltEntity','dFiltSeverity','dFiltStatus','dFiltAssignee'].forEach(id => { if (el(id)) el(id).value = ''; });
     ['dFiltDateFrom','dFiltDateTo'].forEach(id => { if (el(id)) el(id).value = ''; });
     const chip = el('dFiltChip'); if (chip) { chip.style.display = 'none'; chip.textContent = ''; }
+    _updateProjectFilter();
     _updateEntityFilter();
     renderDashboard();
   }
 
   function _filteredData() {
     const f = _df;
+    // Resolve the set of projectIds in scope (for client filter)
+    let scopeProjects = null;
+    if (f.client) {
+      scopeProjects = new Set(S.projects.filter(p => p.clientId === f.client).map(p => p.id));
+    }
     const issues = S.issues.filter(i => {
+      if (scopeProjects && !scopeProjects.has(i.projectId)) return false;
       if (f.project  && i.projectId !== f.project)  return false;
       if (f.entity   && i.entity    !== f.entity)   return false;
       if (f.severity && i.severity  !== f.severity) return false;
@@ -283,7 +311,11 @@ const UAT = (() => {
       if (f.dateTo   && i.createdAt >  f.dateTo + 'T23:59:59') return false;
       return true;
     });
-    const testcases = S.testcases.filter(t => !f.project || t.projectId === f.project);
+    const testcases = S.testcases.filter(t => {
+      if (scopeProjects && !scopeProjects.has(t.projectId)) return false;
+      if (f.project && t.projectId !== f.project) return false;
+      return true;
+    });
     return { issues, testcases };
   }
 
@@ -362,18 +394,31 @@ const UAT = (() => {
   function _chartEntityProgress(tcs) {
     _destroyDashChart('ep');
     const c = el('chartEntityProgress'); if (!c) return;
-    const projId = _df.project;
-    const proj   = projId ? S.projects.find(p => p.id === projId) : null;
-    let groups   = proj ? (proj.entities || []) : [...new Set(S.projects.flatMap(p => p.entities || []))];
-    let passD = [], failD = [], blockedD = [], otherD = [], labels = [];
-    if (!groups.length) {
-      groups = S.projects.filter(p => tcs.some(t => t.projectId === p.id)).map(p => p.id);
-      labels = groups.map(id => (S.projects.find(p => p.id === id) || {}).name || id);
-    } else {
+    const projId   = _df.project;
+    const clientId = _df.client;
+    const proj     = projId ? S.projects.find(p => p.id === projId) : null;
+    // Scope projects: by selected project > selected client > all
+    let scopeProjs = proj ? [proj] : clientId ? S.projects.filter(p => p.clientId === clientId) : S.projects;
+    let groups, labels, groupByProject = false;
+    if (proj) {
+      // Single project: group by entity
+      groups = proj.entities || [];
       labels = groups;
+    } else {
+      // No specific project: try entities first
+      const entities = [...new Set(scopeProjs.flatMap(p => p.entities || []))];
+      if (entities.length) {
+        groups = entities; labels = entities;
+      } else {
+        // Fall back to grouping by project
+        groupByProject = true;
+        groups = scopeProjs.filter(p => tcs.some(t => t.projectId === p.id)).map(p => p.id);
+        labels = groups.map(id => (S.projects.find(p => p.id === id) || {}).name || id);
+      }
     }
+    let passD = [], failD = [], blockedD = [], otherD = [];
     groups.forEach((g, i) => {
-      const isProj = !proj && !projId;
+      const isProj = groupByProject;
       const gtcs   = isProj ? tcs.filter(t => t.projectId === g) : tcs.filter(t => {
         const es = t.entityStatuses && t.entityStatuses[g];
         return true; // include all — use entity-specific status when available
@@ -580,7 +625,9 @@ const UAT = (() => {
 
   function _renderDashProjects(issues, tcs) {
     const tbody = el('uatDash_projects_tbody'); if (!tbody) return;
-    const projs = _df.project ? S.projects.filter(p => p.id === _df.project) : S.projects;
+    let projs = S.projects;
+    if (_df.client)  projs = projs.filter(p => p.clientId === _df.client);
+    if (_df.project) projs = projs.filter(p => p.id === _df.project);
     if (!projs.length) {
       tbody.innerHTML = `<tr><td colspan="7" class="uat-empty" style="padding:24px">No projects yet</td></tr>`;
       return;
@@ -614,7 +661,9 @@ const UAT = (() => {
 
   function _renderSignoff() {
     const list = el('dSignoffList'); if (!list) return;
-    const projs = _df.project ? S.projects.filter(p => p.id === _df.project) : S.projects;
+    let projs = S.projects;
+    if (_df.client)  projs = projs.filter(p => p.clientId === _df.client);
+    if (_df.project) projs = projs.filter(p => p.id === _df.project);
     if (!projs.length) { list.innerHTML = '<div style="color:#9ca3af;font-size:12px">No projects</div>'; return; }
     list.innerHTML = projs.slice(0, 8).map(p => {
       const signed = (p.signoff && p.signoff.status === 'signed') || (p.portalSignoff && p.portalSignoff.name);
@@ -2203,6 +2252,7 @@ const UAT = (() => {
     markIssueResolved,
     applyDashFilters,
     resetDashFilters,
+    onDashClientChange,
     onDashProjChange,
   };
 })();

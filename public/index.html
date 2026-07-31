@@ -6647,7 +6647,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=42" defer></script>
+  <script src="/uat.js?v=43" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -6688,6 +6688,9 @@ async function updateFeedbackStatus(id) {
       <!-- Filter bar -->
       <div class="uat-dash-filters">
         <span class="uat-dash-filter-label">Filter:</span>
+        <select class="uat-dash-filter-select" id="dFiltClient" onchange="UAT.onDashClientChange()">
+          <option value="">All Clients</option>
+        </select>
         <select class="uat-dash-filter-select" id="dFiltProject" onchange="UAT.onDashProjChange()">
           <option value="">All Projects</option>
         </select>
