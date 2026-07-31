@@ -146,6 +146,19 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f1f2f5;color:#0d1117
 .p-issue-confirm-btn.pass:hover{background:#166534}
 .p-issue-confirm-btn.fail{background:#fff;color:#dc2626;border:1px solid #dc2626}
 .p-issue-confirm-btn.fail:hover{background:#fef2f2}
+.p-issue-eta-row{display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;font-weight:600;background:#fffbeb;border:1px solid rgba(201,162,39,.25);border-radius:6px;padding:6px 10px;margin-top:8px}
+.p-issue-eta-icon{font-size:13px}
+.p-issue-timeline{margin-top:12px;border-top:1px solid #f1f2f5;padding-top:12px}
+.p-issue-timeline-head{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.p-issue-update-row{display:flex;gap:8px;margin-bottom:8px}
+.p-issue-update-avatar{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
+.p-issue-update-avatar.bluecopa{background:#e0f2fe;color:#0369a1}
+.p-issue-update-avatar.client{background:#f0fdf4;color:#15803d}
+.p-issue-update-body{flex:1}
+.p-issue-update-meta{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.p-issue-update-name{font-size:11px;font-weight:700;color:#374151}
+.p-issue-update-time{font-size:10px;color:#9ca3af}
+.p-issue-update-text{font-size:12px;color:#374151;line-height:1.5;background:#f8f9fa;border-radius:5px;padding:7px 10px}
 .p-issue-update{font-size:12px;color:#374151;background:#f8f9fa;border-radius:6px;padding:8px 10px;margin-top:8px;line-height:1.5;border-left:2px solid #e4e6ea}
 .p-issue-update-author{font-weight:700;color:#6b7280;margin-right:4px}
 
@@ -620,6 +633,11 @@ function renderTesting() {
 
 function esc(s) { const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
 
+function issueDate(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleString('en-GB', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
 function renderIssues() {
   const issues = D.issues || [];
   const sec = document.getElementById('pIssuesSection');
@@ -639,40 +657,65 @@ function renderIssues() {
   if (summary) summary.innerHTML = parts.join(' · ');
 
   const SEV_COLOR = { critical:'#dc2626', high:'#ea580c', medium:'#c9a227', low:'#6b7280' };
+  const STATUS_LABEL = { open:'Open', in_progress:'In Progress', resolved:'Resolved — Pending Retest', solved:'Solved' };
 
   list.innerHTML = issues.map(function(i) {
-    const lastUpdate = (i.updates || []).slice(-1)[0];
-    const etaHtml = i.eta ? '<span class="p-issue-eta">ETA: ' + new Date(i.eta + 'T00:00:00').toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) + '</span>' : '';
     const sevColor = SEV_COLOR[(i.severity||'').toLowerCase()] || '#6b7280';
+    const updates = i.updates || [];
 
-    let confirmHtml = '';
+    // ETA row
+    const etaHtml = i.eta
+      ? '<div class="p-issue-eta-row"><span class="p-issue-eta-icon">📅</span>Expected fix date: <strong>' +
+          new Date(i.eta + 'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) +
+        '</strong></div>'
+      : '';
+
+    // Full timeline — shown for all statuses
+    const timelineHtml = updates.length
+      ? '<div class="p-issue-timeline">' +
+          '<div class="p-issue-timeline-head">Updates from Bluecopa</div>' +
+          updates.map(function(u) {
+            const isClient = u.author === 'Client';
+            return '<div class="p-issue-update-row">' +
+              '<div class="p-issue-update-avatar ' + (isClient ? 'client' : 'bluecopa') + '">' + (isClient ? 'C' : 'B') + '</div>' +
+              '<div class="p-issue-update-body">' +
+                '<div class="p-issue-update-meta">' +
+                  '<span class="p-issue-update-name">' + esc(u.author) + '</span>' +
+                  '<span class="p-issue-update-time">' + issueDate(u.at) + '</span>' +
+                '</div>' +
+                '<div class="p-issue-update-text">' + esc(u.text) + '</div>' +
+              '</div>' +
+            '</div>';
+          }).join('') +
+        '</div>'
+      : '';
+
+    // Action buttons for resolved state
+    let actionHtml = '';
     if (i.status === 'resolved') {
-      const latestNote = (i.updates || []).filter(u => u.author !== 'Client').slice(-1)[0];
-      confirmHtml =
-        '<div class="p-issue-confirm">' +
+      actionHtml =
+        '<div class="p-issue-confirm" style="margin-top:12px">' +
           '<div class="p-issue-confirm-label">⏳ Action Required — Please Retest</div>' +
-          (latestNote ? '<div class="p-issue-update" style="margin-bottom:10px"><span class="p-issue-update-author">Bluecopa:</span>' + esc(latestNote.text) + '</div>' : '') +
-          '<div class="p-issue-confirm-desc">The Bluecopa team has marked this issue as resolved. Please retest and confirm whether it has been fixed.</div>' +
+          '<div class="p-issue-confirm-desc">The Bluecopa team has marked this issue as resolved. Please retest and let us know if it\'s fixed.</div>' +
           '<div class="p-issue-confirm-btns">' +
             '<button class="p-issue-confirm-btn pass" onclick="confirmIssue(\'' + i.id + '\',\'solved\')">✓ Confirmed Fixed</button>' +
             '<button class="p-issue-confirm-btn fail" onclick="confirmIssue(\'' + i.id + '\',\'reopen\')">✗ Still Not Working</button>' +
           '</div>' +
         '</div>';
     } else if (i.status === 'solved') {
-      confirmHtml = '<div style="font-size:12px;color:#15803d;font-weight:600;margin-top:8px">✓ You confirmed this issue is resolved.</div>';
-    } else if (lastUpdate) {
-      confirmHtml = '<div class="p-issue-update"><span class="p-issue-update-author">' + esc(lastUpdate.author) + ':</span>' + esc(lastUpdate.text) + '</div>';
+      actionHtml = '<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#15803d;font-weight:700;margin-top:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px 12px">✓ You confirmed this issue is resolved — thank you!</div>';
     }
 
     return '<div class="p-issue-card ' + (i.status||'open') + '">' +
-      '<div class="p-issue-ref">' + esc(i.ref) + '</div>' +
+      '<div class="p-issue-ref">' + esc(i.ref) + ' · Raised ' + issueDate(i.createdAt) + '</div>' +
       '<div class="p-issue-title">' + esc(i.title) + '</div>' +
       '<div class="p-issue-meta">' +
-        '<span class="p-issue-badge ' + (i.status||'open') + '">' + (i.status === 'solved' ? 'Solved' : i.status === 'resolved' ? 'Resolved — Pending Retest' : i.status === 'in_progress' ? 'In Progress' : 'Open') + '</span>' +
+        '<span class="p-issue-badge ' + (i.status||'open') + '">' + (STATUS_LABEL[i.status] || 'Open') + '</span>' +
         '<span style="font-size:11px;font-weight:700;color:' + sevColor + '">' + esc(i.severity||'Medium') + '</span>' +
-        etaHtml +
       '</div>' +
-      confirmHtml +
+      etaHtml +
+      timelineHtml +
+      actionHtml +
     '</div>';
   }).join('');
 }
