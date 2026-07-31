@@ -20,6 +20,7 @@
   </noscript>
   <link rel="stylesheet" href="/style.css?v=80">
   <link rel="stylesheet" href="/uat.css?v=21">
+  <link rel="stylesheet" href="/ews.css?v=1">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -4232,6 +4233,12 @@ async function updateFeedbackStatus(id) {
           <span class="mc-drop-badge mc-drop-live">Live</span>
         </div>
         <div class="mc-drop-divider"></div>
+        <div class="mc-drop-item" onclick="EWS.open();mcCloseBrowse()">
+          <div class="mc-drop-icon" style="background:rgba(220,38,38,.1);">⚠️</div>
+          <div class="mc-drop-text"><div class="mc-drop-title">Early Warning System</div><div class="mc-drop-sub">Proactive risk detection & escalation</div></div>
+          <span class="mc-drop-badge" style="background:rgba(220,38,38,.1);color:#dc2626;border:1px solid rgba(220,38,38,.25);">New</span>
+        </div>
+        <div class="mc-drop-divider"></div>
         <!-- Leadership Insights — only shown to approved users -->
         <div class="mc-drop-item" id="mcLiItem" onclick="liOpen();mcCloseBrowse()" style="display:none;">
           <div class="mc-drop-icon" style="background:rgba(201,162,39,.1);">👑</div>
@@ -4553,6 +4560,28 @@ async function updateFeedbackStatus(id) {
           <div class="dw-card-stat"><div class="dw-card-stat-n">📋</div><div class="dw-card-stat-l">Test Cases</div></div>
           <div class="dw-card-stat"><div class="dw-card-stat-n">🔗</div><div class="dw-card-stat-l">Portal</div></div>
           <div class="dw-card-stat"><div class="dw-card-stat-n">✅</div><div class="dw-card-stat-l">Sign-off</div></div>
+        </div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+      <div class="dw-card" style="--cr:220,38,38;--fdur:4.4s;--fdel:3.2s;" onclick="EWS.open()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-card-badge" style="background:rgba(220,38,38,.15);color:#dc2626;border:1px solid rgba(220,38,38,.2)">● New</div>
+        <span class="dw-card-icon">⚠️</span>
+        <div class="dw-card-num">09</div>
+        <div class="dw-card-name">Early Warning System</div>
+        <div class="dw-card-desc">Proactive risk detection for delivery teams — surface issues before they become escalations.</div>
+        <div class="dw-card-tags"><span class="dw-card-tag">Risk</span><span class="dw-card-tag">Escalation</span><span class="dw-card-tag">Mitigation</span></div>
+        <div class="dw-card-features">
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>12 trigger types with severity scoring</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>6-step escalation workflow & ownership</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Action items, updates & leadership view</div>
+        </div>
+        <div class="dw-card-stat-row">
+          <div class="dw-card-stat"><div class="dw-card-stat-n">🎯</div><div class="dw-card-stat-l">Risks</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">📋</div><div class="dw-card-stat-l">Actions</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">📊</div><div class="dw-card-stat-l">Analytics</div></div>
         </div>
         <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
@@ -6648,6 +6677,7 @@ async function updateFeedbackStatus(id) {
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
   <script src="/uat.js?v=43" defer></script>
+  <script src="/ews.js?v=1" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -7363,6 +7393,366 @@ async function updateFeedbackStatus(id) {
 
 <!-- Toast notification -->
 <div id="uatToast" class="uat-toast"></div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     EWS — EARLY WARNING SYSTEM OVERLAY
+═══════════════════════════════════════════════════════════════════════════ -->
+<div id="ewsOverlay" style="display:none">
+
+  <!-- Topbar -->
+  <div class="ews-topbar">
+    <button class="ews-back-btn" onclick="EWS.close()">← Back</button>
+    <div style="width:1px;height:20px;background:#e4e6ea"></div>
+    <div class="ews-topbar-brand">
+      <span class="ews-topbar-icon">⚠️</span>
+      <span class="ews-topbar-title">Early Warning System</span>
+    </div>
+    <span class="ews-breadcrumb" id="ewsBreadcrumb">EWS</span>
+    <div style="flex:1"></div>
+    <button class="ews-btn-primary" onclick="EWS.showNewModal()">+ Raise EWS</button>
+  </div>
+
+  <!-- Tab nav -->
+  <nav class="ews-nav">
+    <button class="ews-nav-tab active" data-view="dashboard" onclick="EWS.setView('dashboard')">Dashboard</button>
+    <button class="ews-nav-tab" data-view="list" onclick="EWS.setView('list')">All Warnings <span class="ews-nav-badge" id="ewsNavBadge">0</span></button>
+  </nav>
+
+  <!-- Body -->
+  <div class="ews-body">
+
+    <!-- ── Dashboard view ── -->
+    <div id="ewsView_dashboard" class="ews-view active">
+
+      <!-- Dashboard filter bar -->
+      <div class="ews-dash-filters">
+        <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px">Filter:</span>
+        <select class="ews-dash-filter-select" id="edfClient" onchange="EWS.onDashClientChange()">
+          <option value="">All Clients</option>
+        </select>
+        <select class="ews-dash-filter-select" id="edfProject" onchange="EWS.onDashProjectChange()">
+          <option value="">All Projects</option>
+        </select>
+        <select class="ews-dash-filter-select" id="edfSeverity" onchange="EWS.applyDashFilters()">
+          <option value="">All Severities</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <select class="ews-dash-filter-select" id="edfStatus" onchange="EWS.applyDashFilters()">
+          <option value="">All Statuses</option>
+          <option value="detected">Risk Detected</option>
+          <option value="ews_raised">EWS Raised</option>
+          <option value="plan_defined">Plan Defined</option>
+          <option value="leadership_engaged">Leadership Engaged</option>
+          <option value="in_review">In Review</option>
+          <option value="resolved">Resolved</option>
+          <option value="closed">Closed</option>
+        </select>
+        <button class="ews-btn-secondary ews-btn-sm" onclick="EWS.resetDashFilters()">↺ Reset</button>
+      </div>
+
+      <div class="ews-dash-body">
+
+        <!-- KPI row -->
+        <div class="ews-kpi-row">
+          <div class="ews-kpi-card kpi-red">
+            <div class="ews-kpi-val" id="ewsKpi_active">—</div>
+            <div class="ews-kpi-label">Active Warnings</div>
+            <div class="ews-kpi-sub" id="ewsKpi_activeSub">Open EWS items</div>
+          </div>
+          <div class="ews-kpi-card kpi-amber">
+            <div class="ews-kpi-val" id="ewsKpi_critical">—</div>
+            <div class="ews-kpi-label">Critical / High</div>
+            <div class="ews-kpi-sub" id="ewsKpi_criticalSub">Highest priority</div>
+          </div>
+          <div class="ews-kpi-card kpi-green">
+            <div class="ews-kpi-val" id="ewsKpi_resolved">—</div>
+            <div class="ews-kpi-label">Resolved</div>
+            <div class="ews-kpi-sub" id="ewsKpi_resolvedSub">All time</div>
+          </div>
+          <div class="ews-kpi-card kpi-blue">
+            <div class="ews-kpi-val" id="ewsKpi_avgDays">—</div>
+            <div class="ews-kpi-label">Avg Days to Resolve</div>
+            <div class="ews-kpi-sub" id="ewsKpi_avgDaysSub">Resolution speed</div>
+          </div>
+          <div class="ews-kpi-card kpi-purple">
+            <div class="ews-kpi-val" id="ewsKpi_atRisk">—</div>
+            <div class="ews-kpi-label">Projects at Risk</div>
+            <div class="ews-kpi-sub" id="ewsKpi_atRiskSub">With active EWS</div>
+          </div>
+        </div>
+
+        <!-- Charts row 1: trigger bar + status donut + severity donut -->
+        <div class="ews-charts-row" style="grid-template-columns:2fr 1fr 1fr">
+          <div class="ews-chart-card">
+            <div class="ews-chart-title">EWS by Trigger Type</div>
+            <div class="ews-chart-sub">Distribution across risk categories</div>
+            <div style="height:200px"><canvas id="ewsChartTrigger"></canvas></div>
+          </div>
+          <div class="ews-chart-card">
+            <div class="ews-chart-title">Status Distribution</div>
+            <div class="ews-chart-sub">Current workflow stage</div>
+            <div style="height:200px"><canvas id="ewsChartStatus"></canvas></div>
+          </div>
+          <div class="ews-chart-card">
+            <div class="ews-chart-title">Severity Mix</div>
+            <div class="ews-chart-sub">Active warnings by severity</div>
+            <div style="height:200px"><canvas id="ewsChartSeverity"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Charts row 2: trend line + risk heatmap -->
+        <div class="ews-charts-row" style="grid-template-columns:3fr 2fr">
+          <div class="ews-chart-card">
+            <div class="ews-chart-title">EWS Trend</div>
+            <div class="ews-chart-sub">Raised vs resolved over last 8 weeks</div>
+            <div style="height:180px"><canvas id="ewsChartTrend"></canvas></div>
+          </div>
+          <div class="ews-chart-card">
+            <div class="ews-chart-title">Risk Heatmap</div>
+            <div class="ews-chart-sub">Severity × Likelihood matrix</div>
+            <div id="ewsHeatmap" style="margin-top:8px"></div>
+          </div>
+        </div>
+
+        <!-- Projects at risk -->
+        <div class="ews-chart-card">
+          <div class="ews-chart-title">Projects at Risk</div>
+          <div class="ews-chart-sub">Projects with active early warnings</div>
+          <table class="ews-table" style="margin-top:14px">
+            <thead><tr>
+              <th>PROJECT</th><th>CLIENT</th><th>ACTIVE EWS</th><th>CRITICAL</th><th>LAST RAISED</th><th>HEALTH SCORE</th>
+            </tr></thead>
+            <tbody id="ewsAtRiskBody"></tbody>
+          </table>
+        </div>
+
+      </div><!-- /ews-dash-body -->
+    </div><!-- /ewsView_dashboard -->
+
+    <!-- ── List view ── -->
+    <div id="ewsView_list" class="ews-view">
+
+      <!-- List filter bar -->
+      <div class="ews-list-header">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <select class="ews-dash-filter-select" id="elfClient" onchange="EWS.onListClientChange()">
+            <option value="">All Clients</option>
+          </select>
+          <select class="ews-dash-filter-select" id="elfProject" onchange="EWS.applyListFilters()">
+            <option value="">All Projects</option>
+          </select>
+          <select class="ews-dash-filter-select" id="elfSeverity" onchange="EWS.applyListFilters()">
+            <option value="">All Severities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <select class="ews-dash-filter-select" id="elfStatus" onchange="EWS.applyListFilters()">
+            <option value="">All Statuses</option>
+            <option value="detected">Risk Detected</option>
+            <option value="ews_raised">EWS Raised</option>
+            <option value="plan_defined">Plan Defined</option>
+            <option value="leadership_engaged">Leadership Engaged</option>
+            <option value="in_review">In Review</option>
+            <option value="resolved">Resolved</option>
+            <option value="closed">Closed</option>
+          </select>
+          <select class="ews-dash-filter-select" id="elfTrigger" onchange="EWS.applyListFilters()">
+            <option value="">All Triggers</option>
+          </select>
+          <button class="ews-btn-secondary ews-btn-sm" onclick="EWS.resetListFilters()">↺ Reset</button>
+        </div>
+        <button class="ews-btn-primary" onclick="EWS.showNewModal()">+ Raise EWS</button>
+      </div>
+
+      <div class="ews-table-wrap">
+        <table class="ews-table">
+          <thead><tr>
+            <th>REF</th>
+            <th>TITLE / PROJECT</th>
+            <th>TRIGGER</th>
+            <th>SEVERITY</th>
+            <th>STATUS</th>
+            <th>RISK</th>
+            <th>OWNER</th>
+            <th>RAISED</th>
+            <th>TARGET</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="ewsListBody"></tbody>
+        </table>
+      </div>
+    </div><!-- /ewsView_list -->
+
+  </div><!-- /ews-body -->
+</div><!-- /ewsOverlay -->
+
+<!-- EWS Drawer overlay + drawer -->
+<div class="ews-drawer-overlay" id="ewsDrawerOverlay" onclick="EWS.closeDrawer()"></div>
+<div class="ews-drawer" id="ewsDrawer">
+  <div class="ews-drawer-header">
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <span id="ewsDrRef"></span>
+        <span id="ewsDrSeverity"></span>
+        <span id="ewsDrStatus"></span>
+      </div>
+      <div id="ewsDrTitle" style="font-size:17px;font-weight:800;color:#090909;line-height:1.3"></div>
+      <div id="ewsDrProject" style="font-size:12px;color:#9ca3af;margin-top:4px"></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:flex-start;flex-shrink:0">
+      <div id="ewsDrRiskScore" class="ews-risk-score" style="width:40px;height:40px;font-size:16px"></div>
+      <button onclick="EWS.closeDrawer()" style="border:none;background:transparent;font-size:22px;cursor:pointer;color:#9ca3af;padding:2px;line-height:1">×</button>
+    </div>
+  </div>
+
+  <!-- 6-step progress bar -->
+  <div style="padding:14px 24px;background:#fafbff;border-bottom:1px solid #f0f0f0">
+    <div class="ews-progress-steps" id="ewsDrProgress"></div>
+  </div>
+
+  <div class="ews-drawer-body" id="ewsDrawerBody"></div>
+
+  <!-- Bottom toolbar -->
+  <div class="ews-drawer-toolbar">
+    <button class="ews-btn-secondary ews-btn-sm" onclick="EWS.showAddUpdate()">+ Update</button>
+    <button class="ews-btn-secondary ews-btn-sm" onclick="EWS.showAddAction()">+ Action</button>
+    <div style="flex:1"></div>
+    <button class="ews-btn-primary ews-btn-sm" id="ewsDrAdvanceBtn" onclick="EWS.advanceStatus()">Advance Status →</button>
+  </div>
+</div>
+
+<!-- EWS New Warning Modal -->
+<div class="ews-modal-bg" id="ewsModalBg" style="display:none" onclick="if(event.target===this)EWS.hideNewModal()">
+  <div class="ews-modal">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px">
+      <div>
+        <div class="ews-modal-title">Raise Early Warning</div>
+        <div style="font-size:12px;color:#9ca3af;margin-top:4px">Document a risk before it becomes a critical issue</div>
+      </div>
+      <button onclick="EWS.hideNewModal()" style="border:none;background:none;font-size:22px;cursor:pointer;color:#9ca3af;padding:0;line-height:1;margin-top:2px">×</button>
+    </div>
+
+    <!-- Trigger type -->
+    <div style="margin-bottom:20px">
+      <div class="ews-label">Select Risk Trigger *</div>
+      <div class="ews-trigger-grid" id="ewsTriggerGrid"></div>
+    </div>
+
+    <!-- Title + Project/Client -->
+    <div class="ews-form-row full">
+      <div class="ews-form-group">
+        <label class="ews-label">Warning Title *</label>
+        <input class="ews-input" id="ewsFTitle" placeholder="Brief description of the risk...">
+      </div>
+    </div>
+    <div class="ews-form-row">
+      <div class="ews-form-group">
+        <label class="ews-label">Client</label>
+        <select class="ews-select" id="ewsFClient" onchange="EWS.onFormClientChange()">
+          <option value="">Select client...</option>
+        </select>
+      </div>
+      <div class="ews-form-group">
+        <label class="ews-label">Project</label>
+        <select class="ews-select" id="ewsFProject">
+          <option value="">Select project...</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Severity + Likelihood -->
+    <div class="ews-form-row">
+      <div class="ews-form-group">
+        <label class="ews-label">Severity *</label>
+        <select class="ews-select" id="ewsFSeverity">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+          <option value="critical">Critical</option>
+        </select>
+      </div>
+      <div class="ews-form-group">
+        <label class="ews-label">Likelihood *</label>
+        <select class="ews-select" id="ewsFLikelihood">
+          <option value="unlikely">Unlikely</option>
+          <option value="possible" selected>Possible</option>
+          <option value="likely">Likely</option>
+          <option value="certain">Certain</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="ews-form-row full">
+      <div class="ews-form-group">
+        <label class="ews-label">Description *</label>
+        <textarea class="ews-textarea" id="ewsFDesc" placeholder="What is the risk? What triggered this warning?"></textarea>
+      </div>
+    </div>
+
+    <!-- Root cause + Impact -->
+    <div class="ews-form-row">
+      <div class="ews-form-group">
+        <label class="ews-label">Root Cause</label>
+        <textarea class="ews-textarea" id="ewsFRootCause" placeholder="What is causing this risk?"></textarea>
+      </div>
+      <div class="ews-form-group">
+        <label class="ews-label">Current Impact</label>
+        <textarea class="ews-textarea" id="ewsFImpact" placeholder="What impact is this having now?"></textarea>
+      </div>
+    </div>
+
+    <!-- Corrective plan -->
+    <div class="ews-form-row full">
+      <div class="ews-form-group">
+        <label class="ews-label">Corrective Plan</label>
+        <textarea class="ews-textarea" id="ewsFPlan" placeholder="What actions will be taken to mitigate this risk?"></textarea>
+      </div>
+    </div>
+
+    <!-- Owners -->
+    <div class="ews-form-row">
+      <div class="ews-form-group">
+        <label class="ews-label">Internal Owner (Bluecopa)</label>
+        <input class="ews-input" id="ewsFOwner" placeholder="Name of internal owner...">
+      </div>
+      <div class="ews-form-group">
+        <label class="ews-label">Client Contact</label>
+        <input class="ews-input" id="ewsFClientContact" placeholder="Client-side contact...">
+      </div>
+    </div>
+
+    <!-- Target date + Review frequency -->
+    <div class="ews-form-row">
+      <div class="ews-form-group">
+        <label class="ews-label">Target Resolution Date</label>
+        <input class="ews-input" type="date" id="ewsFTargetDate">
+      </div>
+      <div class="ews-form-group">
+        <label class="ews-label">Review Frequency</label>
+        <select class="ews-select" id="ewsFReviewFreq">
+          <option value="weekly">Weekly</option>
+          <option value="biweekly" selected>Bi-weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="adhoc">Ad-hoc</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid #f3f4f8">
+      <button class="ews-btn-secondary" onclick="EWS.hideNewModal()">Cancel</button>
+      <button class="ews-btn-primary" onclick="EWS.submitNewEws()">Raise EWS</button>
+    </div>
+  </div>
+</div>
+
+<!-- EWS Toast -->
+<div id="ewsToast" class="ews-toast"></div>
 
 <!-- ── MODALS ── -->
 

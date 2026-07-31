@@ -1901,6 +1901,167 @@ app.put('/api/portal/:token/tc/:id', async (req, res) => {
   await saveDB(db); res.json({ ok:true });
 });
 
+// ══ EWS — EARLY WARNING SYSTEM ═══════════════════════════════════════════════
+
+function ewsDB() {
+  if (!db.ews) db.ews = { ewsList:[], nextEwsId:1, activity:[] };
+  return db.ews;
+}
+
+function ewsUid() { return 'ews_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+
+function ewsLog(type, msg, meta={}) {
+  const u = ewsDB();
+  u.activity.unshift({ type, msg, at:new Date().toISOString(), ...meta });
+  if (u.activity.length > 200) u.activity.length = 200;
+}
+
+// GET all EWS (with optional query filters)
+app.get('/api/ews', async (req, res) => {
+  await _dbReady;
+  let list = ewsDB().ewsList;
+  if (req.query.clientId)    list = list.filter(e => e.clientId    === req.query.clientId);
+  if (req.query.projectId)   list = list.filter(e => e.projectId   === req.query.projectId);
+  if (req.query.severity)    list = list.filter(e => e.severity    === req.query.severity);
+  if (req.query.status)      list = list.filter(e => e.status      === req.query.status);
+  if (req.query.triggerType) list = list.filter(e => e.triggerType === req.query.triggerType);
+  res.json({ ok:true, data:list });
+});
+
+// GET single EWS — must come BEFORE /api/ews (handled already, but keep explicit)
+app.get('/api/ews/:id', async (req, res) => {
+  await _dbReady;
+  const e = ewsDB().ewsList.find(x => x.id === req.params.id);
+  if (!e) return res.status(404).json({ ok:false, error:'not found' });
+  res.json({ ok:true, data:e });
+});
+
+// POST create EWS
+app.post('/api/ews', async (req, res) => {
+  await _dbReady;
+  const u = ewsDB();
+  const { title, projectId='', clientId='', projectName='', clientName='',
+    triggerType='emerging_risk', severity='medium', likelihood='possible',
+    description='', rootCause='', currentImpact='', potentialImpact='',
+    correctivePlan='', internalOwner='', clientContact='',
+    targetResolutionDate='', reviewFrequency='biweekly', raisedBy='' } = req.body;
+  if (!title || !title.trim()) return res.status(400).json({ ok:false, error:'title required' });
+  const now = new Date().toISOString();
+  const svMap = { critical:4, high:3, medium:2, low:1 };
+  const lkMap = { certain:4, likely:3, possible:2, unlikely:1 };
+  const rs = (svMap[severity]||2) * (lkMap[likelihood]||2);
+  const seq = u.nextEwsId++;
+  const ews = {
+    id: ewsUid(),
+    ref: `EWS-${String(seq).padStart(3,'0')}`,
+    title: title.trim(),
+    projectId, clientId, projectName, clientName,
+    triggerType, severity, likelihood, riskScore: rs,
+    description, rootCause, currentImpact, potentialImpact,
+    correctivePlan, internalOwner, clientContact,
+    targetResolutionDate, reviewFrequency,
+    status: 'ews_raised', escalationLevel: 'team',
+    raisedBy,
+    actionItems: [],
+    updates: [],
+    detectedAt: now, raisedAt: now,
+    resolvedAt: null, closedAt: null,
+    nextReviewDate: '', lastReviewDate: '',
+    createdAt: now, updatedAt: now,
+  };
+  ews.updates.push({ id:ewsUid(), text:`EWS raised${description?' — '+description.slice(0,80):''}`, author:raisedBy||'System', type:'created', at:now });
+  u.ewsList.unshift(ews);
+  ewsLog('ews_raised', `EWS "${title}" raised`, { ewsId:ews.id, projectId, clientId });
+  await saveDB(db);
+  res.json({ ok:true, data:ews });
+});
+
+// PUT update EWS (status, fields, and/or inline update)
+app.put('/api/ews/:id', async (req, res) => {
+  await _dbReady;
+  const u = ewsDB();
+  const ews = u.ewsList.find(x => x.id === req.params.id);
+  if (!ews) return res.status(404).json({ ok:false, error:'not found' });
+  const now = new Date().toISOString();
+  const { addUpdate, ...rest } = req.body;
+  // Inline update entry
+  if (addUpdate && addUpdate.text) {
+    ews.updates.unshift({ id:ewsUid(), text:addUpdate.text, author:addUpdate.author||'System', type:addUpdate.type||'update', at:now });
+  }
+  // Status change
+  if (rest.status && rest.status !== ews.status) {
+    if (rest.status === 'resolved' && !ews.resolvedAt) rest.resolvedAt = now;
+    if (rest.status === 'closed'   && !ews.closedAt)   rest.closedAt   = now;
+    if (!addUpdate) {
+      ews.updates.unshift({ id:ewsUid(), text:`Status changed to "${rest.status.replace(/_/g,' ')}"`, author:'System', type:'status_change', at:now });
+    }
+    ewsLog('status_change', `EWS "${ews.title}" → ${rest.status}`, { ewsId:ews.id });
+  }
+  // Recompute risk score if severity/likelihood changed
+  if (rest.severity || rest.likelihood) {
+    const svMap = { critical:4, high:3, medium:2, low:1 };
+    const lkMap = { certain:4, likely:3, possible:2, unlikely:1 };
+    rest.riskScore = (svMap[rest.severity||ews.severity]||2) * (lkMap[rest.likelihood||ews.likelihood]||2);
+  }
+  Object.assign(ews, rest, { id:ews.id, ref:ews.ref, updatedAt:now });
+  await saveDB(db);
+  res.json({ ok:true, data:ews });
+});
+
+// DELETE EWS
+app.delete('/api/ews/:id', async (req, res) => {
+  await _dbReady;
+  const u = ewsDB();
+  u.ewsList = u.ewsList.filter(x => x.id !== req.params.id);
+  await saveDB(db);
+  res.json({ ok:true });
+});
+
+// POST add update entry
+app.post('/api/ews/:id/updates', async (req, res) => {
+  await _dbReady;
+  const u = ewsDB();
+  const ews = u.ewsList.find(x => x.id === req.params.id);
+  if (!ews) return res.status(404).json({ ok:false, error:'not found' });
+  const now = new Date().toISOString();
+  const update = { id:ewsUid(), text:req.body.text||'', author:req.body.author||'System', type:req.body.type||'update', at:now };
+  ews.updates.unshift(update);
+  ews.updatedAt = now;
+  ewsLog('update', `Update on "${ews.title}"`, { ewsId:ews.id });
+  await saveDB(db);
+  res.json({ ok:true, data:update });
+});
+
+// POST add action item
+app.post('/api/ews/:id/actions', async (req, res) => {
+  await _dbReady;
+  const u = ewsDB();
+  const ews = u.ewsList.find(x => x.id === req.params.id);
+  if (!ews) return res.status(404).json({ ok:false, error:'not found' });
+  const now = new Date().toISOString();
+  const action = { id:ewsUid(), title:req.body.title||'', assignee:req.body.assignee||'', dueDate:req.body.dueDate||'', status:'open', completedAt:null, notes:'', createdAt:now };
+  ews.actionItems.push(action);
+  ews.updatedAt = now;
+  await saveDB(db);
+  res.json({ ok:true, data:action });
+});
+
+// PUT toggle/update action item
+app.put('/api/ews/:ewsId/actions/:actionId', async (req, res) => {
+  await _dbReady;
+  const u = ewsDB();
+  const ews = u.ewsList.find(x => x.id === req.params.ewsId);
+  if (!ews) return res.status(404).json({ ok:false, error:'EWS not found' });
+  const action = (ews.actionItems||[]).find(a => a.id === req.params.actionId);
+  if (!action) return res.status(404).json({ ok:false, error:'action not found' });
+  const now = new Date().toISOString();
+  if (req.body.status === 'completed' && action.status !== 'completed') req.body.completedAt = now;
+  Object.assign(action, req.body, { id:action.id });
+  ews.updatedAt = now;
+  await saveDB(db);
+  res.json({ ok:true, data:action });
+});
+
 // ── Upload (disabled on Vercel) ───────────────────────────────────────────────
 app.post('/api/upload', (req, res) => {
   res.status(503).json({ error: 'File uploads are not supported on the Vercel deployment.' });
