@@ -168,6 +168,35 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f1f2f5;color:#0d1117
 .p-tab.active{background:#0d1117;color:#fff;border-color:#0d1117}
 .p-tab:hover:not(.active){border-color:#c9a227;color:#c9a227}
 
+/* Issue Tracker button */
+.p-it-btn{display:inline-flex;align-items:center;gap:7px;background:#0d1117;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap}
+.p-it-btn:hover{background:#1a1d27}
+.p-it-dot{width:8px;height:8px;border-radius:50%;background:#dc2626;flex-shrink:0}
+/* Issue Tracker full-page view */
+.p-it-view{display:none;flex-direction:column;min-height:100vh}
+.p-it-view.active{display:flex}
+/* IT entity grid */
+.p-it-section-head{margin-bottom:24px}
+.p-it-page-title{font-size:20px;font-weight:800;color:#0d1117}
+.p-it-page-sub{font-size:13px;color:#6b7280;margin-top:4px}
+.p-entity-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.p-entity-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:20px;cursor:pointer;transition:all .18s;box-shadow:0 1px 3px rgba(0,0,0,.04);user-select:none}
+.p-entity-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-2px);border-color:#c9a227}
+.p-entity-card>*{pointer-events:none}
+.p-entity-card-icon{font-size:24px;margin-bottom:12px}
+.p-entity-card-name{font-size:15px;font-weight:800;color:#0d1117;margin-bottom:8px}
+.p-entity-stat-row{display:flex;gap:10px;flex-wrap:wrap}
+.p-entity-stat{font-size:12px;font-weight:700;padding:2px 8px;border-radius:5px}
+.p-entity-stat.open{background:#fef2f2;color:#dc2626}
+.p-entity-stat.solved{background:#f0fdf4;color:#15803d}
+.p-entity-stat.pending{background:rgba(201,162,39,.1);color:#c9a227}
+.p-entity-stat.none{background:#f4f5f7;color:#9ca3af}
+/* IT back button */
+.p-it-back-btn{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #e4e6ea;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;color:#374151;cursor:pointer;transition:all .15s;font-family:inherit;margin-bottom:20px}
+.p-it-back-btn:hover{border-color:#c9a227;color:#c9a227}
+.p-it-issue-title{font-size:18px;font-weight:800;color:#0d1117;margin-bottom:20px}
+.p-it-empty{text-align:center;padding:48px 24px;color:#9ca3af;font-size:13px;font-weight:600;background:#fff;border-radius:12px;border:1px dashed #e4e6ea}
+
 /* Table */
 .p-table-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)}
 .p-table-scroll{overflow-x:auto}
@@ -366,6 +395,7 @@ tr:hover td{background:#fafafa}
         Home
       </button>
       <div class="p-prog-chip" id="pTopProg"></div>
+      <button class="p-it-btn" id="pItBtn" style="display:none" onclick="openIssueTracker()"><span class="p-it-dot" id="pItDot" style="display:none"></span>Issue Tracker</button>
     </div>
   </div>
   <div class="p-content">
@@ -387,13 +417,37 @@ tr:hover td{background:#fafafa}
     <!-- Sign-off Section -->
     <div class="p-signoff-wrap" id="pSignoffWrap"></div>
 
-    <!-- Issues Section -->
-    <div class="p-issues-section" id="pIssuesSection" style="display:none">
-      <div class="p-issues-section-head">
-        <div class="p-issues-title">Issues Tracker</div>
-        <div id="pIssuesSummary" style="font-size:12px;color:#6b7280"></div>
+  </div>
+</div>
+
+<!-- Issue Tracker View -->
+<div id="pItView" class="p-it-view">
+  <div class="p-topbar">
+    <div class="p-topbar-logo">
+      <img src="/bluecopa-icon.png" alt="Bluecopa">
+      <div class="p-logo" style="color:#0d1117">Blue<span>copa</span></div>
+    </div>
+    <div class="p-topbar-sep"></div>
+    <div class="p-topbar-project" id="pItTopProject"></div>
+    <div class="p-topbar-client" id="pItTopClient"></div>
+    <div class="p-topbar-right">
+      <button class="p-it-btn" onclick="closeIssueTracker()">← Back to Sign-off</button>
+    </div>
+  </div>
+  <div class="p-content">
+    <!-- Entity card grid -->
+    <div id="pItEntityGrid">
+      <div class="p-it-section-head">
+        <div class="p-it-page-title">Issue Tracker</div>
+        <div class="p-it-page-sub">Select an entity to view its issues</div>
       </div>
-      <div id="pIssuesList"></div>
+      <div class="p-entity-grid" id="pItCards"></div>
+    </div>
+    <!-- Per-entity issue list -->
+    <div id="pItIssueView" style="display:none">
+      <button class="p-it-back-btn" onclick="backToEntityGrid()">← Back</button>
+      <div class="p-it-issue-title" id="pItIssueTitle"></div>
+      <div id="pItIssueList"></div>
     </div>
   </div>
 </div>
@@ -628,7 +682,7 @@ function renderTesting() {
   renderProgress();
   renderTable();
   renderSignoff();
-  renderIssues();
+  updateItBtn();
 }
 
 function esc(s) { const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
@@ -638,39 +692,104 @@ function issueDate(iso) {
   return new Date(iso).toLocaleString('en-GB', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
 }
 
-function renderIssues() {
+// ── Issue Tracker ─────────────────────────────────────────────────────────────
+function updateItBtn() {
+  const btn = document.getElementById('pItBtn');
+  const dot = document.getElementById('pItDot');
+  if (!btn) return;
   const issues = D.issues || [];
-  const sec = document.getElementById('pIssuesSection');
-  const list = document.getElementById('pIssuesList');
-  const summary = document.getElementById('pIssuesSummary');
-  if (!sec || !list) return;
-  if (!issues.length) { sec.style.display = 'none'; return; }
-  sec.style.display = '';
+  if (!issues.length) { btn.style.display = 'none'; return; }
+  btn.style.display = '';
+  const hasOpen = issues.some(function(i) { return i.status === 'open' || i.status === 'in_progress'; });
+  dot.style.display = hasOpen ? '' : 'none';
+}
 
-  const open = issues.filter(i => i.status === 'open' || i.status === 'in_progress').length;
-  const pending = issues.filter(i => i.status === 'resolved').length;
-  const solved = issues.filter(i => i.status === 'solved').length;
-  const parts = [];
-  if (open) parts.push('<span style="color:#dc2626;font-weight:700">' + open + ' open</span>');
-  if (pending) parts.push('<span style="color:#c9a227;font-weight:700">' + pending + ' awaiting your confirmation</span>');
-  if (solved) parts.push('<span style="color:#15803d;font-weight:700">' + solved + ' resolved</span>');
-  if (summary) summary.innerHTML = parts.join(' · ');
+function openIssueTracker() {
+  document.getElementById('pTesting').classList.remove('active');
+  const itv = document.getElementById('pItView');
+  itv.classList.add('active');
+  document.getElementById('pItTopProject').textContent = D.project.name;
+  document.getElementById('pItTopClient').textContent = D.client.name;
+  document.getElementById('pItEntityGrid').style.display = '';
+  document.getElementById('pItIssueView').style.display = 'none';
+  renderEntityGrid();
+}
 
+function closeIssueTracker() {
+  document.getElementById('pItView').classList.remove('active');
+  document.getElementById('pTesting').classList.add('active');
+}
+
+function renderEntityGrid() {
+  const issues = D.issues || [];
+  const entities = D.entities || [];
+  const cards = document.getElementById('pItCards');
+  if (!cards) return;
+
+  function cardHtml(entityName, entityIssues, icon) {
+    const open = entityIssues.filter(function(i) { return i.status === 'open' || i.status === 'in_progress'; }).length;
+    const pending = entityIssues.filter(function(i) { return i.status === 'resolved'; }).length;
+    const solved = entityIssues.filter(function(i) { return i.status === 'solved'; }).length;
+    var stats = '';
+    if (!entityIssues.length) {
+      stats = '<span class="p-entity-stat none">No issues</span>';
+    } else {
+      if (open) stats += '<span class="p-entity-stat open">' + open + ' open</span>';
+      if (pending) stats += '<span class="p-entity-stat pending">' + pending + ' awaiting retest</span>';
+      if (solved) stats += '<span class="p-entity-stat solved">' + solved + ' solved</span>';
+    }
+    var dataAttr = entityName === '__all__' ? 'data-entity="__all__"' : 'data-entity="' + esc(entityName) + '"';
+    return '<div class="p-entity-card" ' + dataAttr + ' onclick="openEntityIssues(this)">' +
+      '<div class="p-entity-card-icon">' + icon + '</div>' +
+      '<div class="p-entity-card-name">' + esc(entityName === '__all__' ? 'All Entities' : entityName) + '</div>' +
+      '<div class="p-entity-stat-row">' + stats + '</div>' +
+    '</div>';
+  }
+
+  var html = cardHtml('__all__', issues, '📋');
+  entities.forEach(function(e) {
+    var entityIssues = issues.filter(function(i) { return i.entity === e; });
+    html += cardHtml(e, entityIssues, '🏢');
+  });
+  cards.innerHTML = html;
+}
+
+function openEntityIssues(el) {
+  var raw = el.dataset.entity;
+  var entityName = raw === '__all__' ? null : raw;
+  document.getElementById('pItEntityGrid').style.display = 'none';
+  var iv = document.getElementById('pItIssueView');
+  iv.style.display = '';
+  document.getElementById('pItIssueTitle').textContent = entityName ? entityName : 'All Entities';
+  renderItIssueList(entityName);
+}
+
+function backToEntityGrid() {
+  document.getElementById('pItIssueView').style.display = 'none';
+  document.getElementById('pItEntityGrid').style.display = '';
+}
+
+function renderItIssueList(entityName) {
+  const allIssues = D.issues || [];
+  const issues = entityName === null
+    ? allIssues
+    : allIssues.filter(function(i) { return i.entity === entityName; });
+  const list = document.getElementById('pItIssueList');
+  if (!list) return;
+  if (!issues.length) {
+    list.innerHTML = '<div class="p-it-empty">No issues for this entity.</div>';
+    return;
+  }
   const SEV_COLOR = { critical:'#dc2626', high:'#ea580c', medium:'#c9a227', low:'#6b7280' };
   const STATUS_LABEL = { open:'Open', in_progress:'In Progress', resolved:'Resolved — Pending Retest', solved:'Solved' };
-
   list.innerHTML = issues.map(function(i) {
     const sevColor = SEV_COLOR[(i.severity||'').toLowerCase()] || '#6b7280';
     const updates = i.updates || [];
-
-    // ETA row
     const etaHtml = i.eta
       ? '<div class="p-issue-eta-row"><span class="p-issue-eta-icon">📅</span>Expected fix date: <strong>' +
           new Date(i.eta + 'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) +
         '</strong></div>'
       : '';
-
-    // Full timeline — shown for all statuses
     const timelineHtml = updates.length
       ? '<div class="p-issue-timeline">' +
           '<div class="p-issue-timeline-head">Updates from Bluecopa</div>' +
@@ -689,53 +808,59 @@ function renderIssues() {
           }).join('') +
         '</div>'
       : '';
-
-    // Action buttons for resolved state
-    let actionHtml = '';
+    const entityTag = i.entity ? '<span style="font-size:11px;font-weight:700;color:#6366f1;background:#eef2ff;border-radius:5px;padding:2px 8px">' + esc(i.entity) + '</span>' : '';
+    var actionHtml = '';
     if (i.status === 'resolved') {
-      actionHtml =
-        '<div class="p-issue-confirm" style="margin-top:12px">' +
-          '<div class="p-issue-confirm-label">⏳ Action Required — Please Retest</div>' +
-          '<div class="p-issue-confirm-desc">The Bluecopa team has marked this issue as resolved. Please retest and let us know if it\'s fixed.</div>' +
-          '<div class="p-issue-confirm-btns">' +
-            '<button class="p-issue-confirm-btn pass" onclick="confirmIssue(\'' + i.id + '\',\'solved\')">✓ Confirmed Fixed</button>' +
-            '<button class="p-issue-confirm-btn fail" onclick="confirmIssue(\'' + i.id + '\',\'reopen\')">✗ Still Not Working</button>' +
-          '</div>' +
-        '</div>';
+      actionHtml = '<div class="p-issue-confirm" style="margin-top:12px">' +
+        '<div class="p-issue-confirm-label">⏳ Action Required — Please Retest</div>' +
+        '<div class="p-issue-confirm-desc">The Bluecopa team has marked this issue as resolved. Please retest and let us know if it\'s fixed.</div>' +
+        '<div class="p-issue-confirm-btns">' +
+          '<button class="p-issue-confirm-btn pass" data-id="' + i.id + '" data-v="solved" onclick="confirmIssueIt(this.dataset.id,this.dataset.v)">✓ Confirmed Fixed</button>' +
+          '<button class="p-issue-confirm-btn fail" data-id="' + i.id + '" data-v="reopen" onclick="confirmIssueIt(this.dataset.id,this.dataset.v)">✗ Still Not Working</button>' +
+        '</div>' +
+      '</div>';
     } else if (i.status === 'solved') {
       actionHtml = '<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#15803d;font-weight:700;margin-top:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px 12px">✓ You confirmed this issue is resolved — thank you!</div>';
     }
-
     return '<div class="p-issue-card ' + (i.status||'open') + '">' +
       '<div class="p-issue-ref">' + esc(i.ref) + ' · Raised ' + issueDate(i.createdAt) + '</div>' +
       '<div class="p-issue-title">' + esc(i.title) + '</div>' +
       '<div class="p-issue-meta">' +
         '<span class="p-issue-badge ' + (i.status||'open') + '">' + (STATUS_LABEL[i.status] || 'Open') + '</span>' +
         '<span style="font-size:11px;font-weight:700;color:' + sevColor + '">' + esc(i.severity||'Medium') + '</span>' +
+        entityTag +
       '</div>' +
-      etaHtml +
-      timelineHtml +
-      actionHtml +
+      etaHtml + timelineHtml + actionHtml +
     '</div>';
   }).join('');
 }
 
-async function confirmIssue(issueId, verdict) {
+async function confirmIssueIt(issueId, verdict) {
   try {
     const r = await fetch('/api/portal/' + TOKEN + '/issue/' + issueId, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ clientVerdict: verdict })
     });
     const j = await r.json();
     if (j.ok) {
-      const idx = (D.issues || []).findIndex(i => i.id === issueId);
+      const idx = (D.issues || []).findIndex(function(i) { return i.id === issueId; });
       if (idx >= 0) D.issues[idx] = j.data;
-      renderIssues();
+      updateItBtn();
+      renderEntityGrid();
+      // Re-render the current issue list view
+      const iv = document.getElementById('pItIssueView');
+      if (iv && iv.style.display !== 'none') {
+        const title = document.getElementById('pItIssueTitle').textContent;
+        const entities = D.entities || [];
+        renderItIssueList(entities.includes(title) ? title : null);
+      }
       toast(verdict === 'solved' ? 'Thank you — issue marked as resolved!' : 'Issue reopened — Bluecopa team has been notified.');
     } else toast('Failed to update issue. Please try again.');
   } catch(e) { toast('Network error. Please try again.'); }
 }
+
+function renderIssues() { /* issues now handled by Issue Tracker view */ }
+
 
 function renderEntityTabs() {
   const entities = D.entities || [];
