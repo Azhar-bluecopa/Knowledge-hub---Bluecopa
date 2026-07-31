@@ -9,6 +9,7 @@ const UAT = (() => {
     clients: [], projects: [], testcases: [], issues: [], templates: [], activity: [],
     activeClientId: null,
     activeProjectId: null,
+    issuesProjectFilter: '',
     clientLabel: 'Client',
     drawerTC: null,
     drawerTcId: null,
@@ -1089,32 +1090,72 @@ const UAT = (() => {
 
   /* ── Issues ──────────────────────────────────────────────────────────────── */
   async function loadIssues() {
-    const params = S.activeProjectId ? `?projectId=${S.activeProjectId}` : '';
-    const r = await api('GET', `/api/uat/issues${params}`);
+    const r = await api('GET', '/api/uat/issues');
     if (r.ok) S.issues = r.data;
+    renderIssues();
+  }
+
+  function selectIssueProject(projectId) {
+    S.issuesProjectFilter = projectId;
     renderIssues();
   }
 
   function renderIssues() {
     const tbody = el('uatIssuesTbody');
+    const thead = el('uatIssuesThead');
+    const tabRow = el('uatIssuesTabRow');
     if (!tbody) return;
-    if (!S.issues.length) {
-      tbody.innerHTML = `<tr><td colspan="6"><div class="uat-empty" style="padding:32px">No issues logged</div></td></tr>`;
+
+    // Build project tab bar
+    if (tabRow) {
+      const projectsWithIssues = S.projects.filter(p => S.issues.some(i => i.projectId === p.id));
+      const allCount = S.issues.length;
+      tabRow.innerHTML =
+        `<button class="uat-entity-tab ${S.issuesProjectFilter===''?'active':''}" onclick="UAT.selectIssueProject('')">All <span style="font-size:10px;opacity:.65">(${allCount})</span></button>` +
+        projectsWithIssues.map(p => {
+          const cnt = S.issues.filter(i => i.projectId === p.id).length;
+          return `<button class="uat-entity-tab ${S.issuesProjectFilter===p.id?'active':''}" onclick="UAT.selectIssueProject('${p.id}')">${escHtml(p.name)} <span style="font-size:10px;opacity:.65">(${cnt})</span></button>`;
+        }).join('');
+    }
+
+    // Filter issues by selected project
+    const visible = S.issuesProjectFilter
+      ? S.issues.filter(i => i.projectId === S.issuesProjectFilter)
+      : S.issues;
+
+    const showProjectCol = !S.issuesProjectFilter;
+
+    // Update thead
+    if (thead) {
+      thead.innerHTML = `<tr>
+        <th>Ref</th><th>Title</th>
+        ${showProjectCol ? '<th>Project</th>' : ''}
+        <th>Severity</th><th>Status</th><th>Assignee</th><th>Raised</th>
+      </tr>`;
+    }
+
+    const colSpan = showProjectCol ? 7 : 6;
+    if (!visible.length) {
+      tbody.innerHTML = `<tr><td colspan="${colSpan}"><div class="uat-empty" style="padding:32px">No issues logged</div></td></tr>`;
       return;
     }
     const SEV = { critical: 'pri-critical', high: 'pri-high', medium: 'pri-medium', low: 'pri-low' };
-    tbody.innerHTML = S.issues.map(i => `
+    tbody.innerHTML = visible.map(i => {
+      const proj = showProjectCol ? S.projects.find(p => p.id === i.projectId) : null;
+      return `
       <tr style="cursor:pointer" onclick="UAT.openIssueDetail('${i.id}')" title="Click to view details">
         <td><span style="font-size:11px;font-family:monospace;font-weight:700;color:#6b7280">${i.ref}</span></td>
         <td>
           <div style="font-weight:600;font-size:13px;color:#0d1117">${escHtml(i.title)}</div>
           ${i.source==='client_portal'?'<span style="font-size:10px;font-weight:700;color:#c9a227;background:rgba(201,162,39,.1);border-radius:4px;padding:1px 6px">Client Portal</span>':''}
         </td>
+        ${showProjectCol ? `<td><span style="font-size:12px;color:#374151">${escHtml(proj ? proj.name : '—')}</span></td>` : ''}
         <td><span class="uat-priority ${SEV[(i.severity||'').toLowerCase()]||'pri-low'}">${i.severity||'Med'}</span></td>
         <td><span class="uat-status-pill ${i.status==='open'?'fail':i.status==='resolved'?'pass':'in_progress'}" style="pointer-events:none">${i.status}</span></td>
         <td>${escHtml(i.assignedTo || '—')}</td>
         <td>${relTime(i.createdAt)}</td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
   }
 
   /* ── Repository ──────────────────────────────────────────────────────────── */
@@ -1595,5 +1636,6 @@ const UAT = (() => {
     toggleMaxClientNote,
     openIssueDetail,
     closeIssueDetail,
+    selectIssueProject,
   };
 })();
