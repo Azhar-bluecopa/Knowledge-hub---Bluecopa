@@ -1252,219 +1252,197 @@ app.get('/uat/portal/:token', async (req, res) => {
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',system-ui,sans-serif;background:#f1f2f5;color:#0d1117;font-size:14px}
-.topbar{background:#fff;border-bottom:1px solid #e4e6ea;padding:0 24px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:10}
-.logo{font-size:16px;font-weight:800;color:#0d1117;letter-spacing:-.3px}
-.logo span{color:#c9a227}
+.topbar{background:#fff;border-bottom:1px solid #e4e6ea;padding:0 24px;height:56px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
+.logo{font-size:16px;font-weight:800;color:#0d1117;letter-spacing:-.3px}.logo span{color:#c9a227}
 .client-chip{background:#f4f5f7;border:1px solid #e4e6ea;border-radius:6px;padding:4px 10px;font-size:12px;color:#6b7280;font-weight:600}
-.main{max-width:1200px;margin:0 auto;padding:24px 16px}
-.page-title{font-size:22px;font-weight:800;margin-bottom:4px}
-.page-sub{color:#6b7280;font-size:13px;margin-bottom:24px}
-.project-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
-.proj-tab{padding:8px 16px;border:1px solid #e4e6ea;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;background:#fff;transition:all .15s}
-.proj-tab.active{background:#0d1117;color:#fff;border-color:#0d1117}
-.progress-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;gap:24px;flex-wrap:wrap;align-items:center}
-.prog-stat{text-align:center}
-.prog-stat .val{font-size:24px;font-weight:800;color:#0d1117}
-.prog-stat .lbl{font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-.prog-bar-wrap{flex:1;min-width:200px}
-.prog-bar-bg{background:#f1f2f5;border-radius:99px;height:8px;overflow:hidden}
-.prog-bar-fill{height:100%;border-radius:99px;background:#22c55e;transition:width .4s}
-.prog-label{display:flex;justify-content:space-between;font-size:12px;color:#6b7280;margin-bottom:4px}
+.proj-select{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:#6b7280}
+.proj-select select{border:1px solid #e4e6ea;border-radius:6px;padding:4px 10px;font-size:13px;font-weight:600;color:#0d1117;background:#fff;cursor:pointer;font-family:inherit}
+.main{max-width:1100px;margin:0 auto;padding:20px 16px}
+.nav-tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:2px solid #e4e6ea;padding-bottom:0}
+.nav-tab{padding:10px 20px;font-size:13px;font-weight:700;color:#6b7280;background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;display:flex;align-items:center;gap:6px}
+.nav-tab.active{color:#0d1117;border-bottom-color:#c9a227}
+.nav-tab:hover:not(.active){color:#374151}
+.badge-count{background:#e4e6ea;color:#374151;border-radius:99px;padding:1px 7px;font-size:11px;font-weight:700}
+.badge-count.alert{background:#fee2e2;color:#dc2626}
+.badge-count.warn{background:#fef9c3;color:#a16207}
+.tab-panel{display:none}.tab-panel.active{display:block}
+/* Overview */
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:16px 20px}
+.stat-card .val{font-size:28px;font-weight:800;line-height:1}
+.stat-card .lbl{font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+.stat-card.green .val{color:#15803d}.stat-card.red .val{color:#dc2626}.stat-card.amber .val{color:#a16207}.stat-card.blue .val{color:#1d4ed8}
+.prog-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:16px 20px;margin-bottom:20px}
+.prog-card-title{font-size:13px;font-weight:700;color:#374151;margin-bottom:10px}
+.prog-bar-bg{background:#f1f2f5;border-radius:99px;height:10px;overflow:hidden;margin-bottom:6px}
+.prog-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#22c55e,#16a34a);transition:width .5s}
+.prog-pct{font-size:24px;font-weight:800;color:#15803d}
+.issues-alert{background:#fff;border:1px solid #fde68a;border-left:4px solid #c9a227;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:none}
+.issues-alert-title{font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px}
+.issues-alert-desc{font-size:12px;color:#78350f}
+/* Test cases */
 .table-wrap{background:#fff;border:1px solid #e4e6ea;border-radius:12px;overflow:hidden}
 table{width:100%;border-collapse:collapse}
 th{background:#f8f9fa;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;border-bottom:1px solid #e4e6ea;text-align:left;white-space:nowrap}
 td{padding:12px 14px;border-bottom:1px solid #f1f2f5;vertical-align:top;font-size:13px}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:#fafafa}
+tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 .cat-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;font-family:monospace;background:#f4f5f7;color:#374151}
-.priority-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
-.p-critical{background:#dc2626}.p-high{background:#f97316}.p-medium{background:#3b82f6}.p-low{background:#6b7280}
 .status-cell{position:relative}
 .status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
 .status-pill:hover{filter:brightness(.93)}
-.s-not_tested{background:#f1f2f5;color:#6b7280}
-.s-in_progress{background:#dbeafe;color:#1d4ed8}
-.s-pass{background:#dcfce7;color:#15803d}
-.s-fail{background:#fee2e2;color:#dc2626}
-.s-blocked{background:#fef3c7;color:#b45309}
+.s-not_tested{background:#f1f2f5;color:#6b7280}.s-in_progress{background:#dbeafe;color:#1d4ed8}.s-pass{background:#dcfce7;color:#15803d}.s-fail{background:#fee2e2;color:#dc2626}.s-blocked{background:#fef3c7;color:#b45309}
 .status-dd{position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:#fff;border:1px solid #e4e6ea;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:4px;min-width:140px;display:none}
 .status-dd.open{display:block}
 .status-dd button{display:flex;align-items:center;gap:8px;width:100%;padding:7px 12px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;border-radius:6px;color:#0d1117;text-align:left}
 .status-dd button:hover{background:#f4f5f7}
 .comment-area{width:100%;border:1px solid #e4e6ea;border-radius:6px;padding:8px;font-size:12px;font-family:inherit;resize:vertical;min-height:60px;color:#0d1117}
 .comment-area:focus{outline:2px solid rgba(201,162,39,.4);border-color:#c9a227}
-.save-btn{margin-top:6px;padding:5px 12px;background:#0d1117;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}
-.save-btn:hover{background:#1a1d27}
-.b-status-col{color:#6b7280;font-size:12px}
-.b-comment-col{color:#374151;font-size:12px;line-height:1.5;max-width:220px}
+.save-btn{margin-top:6px;padding:5px 12px;background:#0d1117;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer}
+/* Issues */
+.issue-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:18px 20px;margin-bottom:12px}
+.issue-card.open{border-left:4px solid #dc2626}.issue-card.in_progress{border-left:4px solid #6366f1}.issue-card.resolved{border-left:4px solid #c9a227}.issue-card.solved{border-left:4px solid #22c55e}
+.issue-ref{font-size:11px;font-family:monospace;font-weight:700;color:#9ca3af;margin-bottom:4px}
+.issue-title{font-size:15px;font-weight:700;color:#0d1117;margin-bottom:8px;line-height:1.4}
+.issue-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.issue-badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:5px}
+.issue-badge.open{background:#fef2f2;color:#dc2626}.issue-badge.in_progress{background:#eef2ff;color:#6366f1}.issue-badge.resolved{background:#fffbeb;color:#c9a227}.issue-badge.solved{background:#f0fdf4;color:#15803d}
+.issue-eta{background:#fffbeb;border:1px solid rgba(201,162,39,.3);border-radius:6px;padding:7px 12px;font-size:12px;color:#374151;font-weight:600;margin:8px 0;display:inline-flex;align-items:center;gap:6px}
+.issue-timeline{margin-top:14px;border-top:1px solid #f1f2f5;padding-top:14px}
+.issue-tl-head{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.issue-upd-row{display:flex;gap:10px;margin-bottom:10px}
+.issue-upd-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.issue-upd-av.b{background:#e0f2fe;color:#0369a1}.issue-upd-av.c{background:#f0fdf4;color:#15803d}
+.issue-upd-body{flex:1}
+.issue-upd-meta{font-size:11px;margin-bottom:4px}
+.issue-upd-name{font-weight:700;color:#374151}.issue-upd-time{color:#9ca3af;margin-left:6px}
+.issue-upd-text{font-size:13px;color:#374151;line-height:1.5;background:#f8f9fa;border-radius:6px;padding:8px 10px}
+.issue-confirm{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px 16px;margin-top:14px}
+.issue-confirm-label{font-size:12px;font-weight:700;color:#92400e;margin-bottom:4px}
+.issue-confirm-desc{font-size:12px;color:#78350f;margin-bottom:12px;line-height:1.5}
+.issue-confirm-btns{display:flex;gap:8px;flex-wrap:wrap}
+.issue-cfm-btn{padding:8px 16px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.issue-cfm-btn.yes{background:#15803d;color:#fff}.issue-cfm-btn.yes:hover{background:#166534}
+.issue-cfm-btn.no{background:#fff;color:#dc2626;border:1px solid #dc2626}.issue-cfm-btn.no:hover{background:#fef2f2}
 .empty-state{padding:48px;text-align:center;color:#6b7280;font-size:14px}
 .toast{position:fixed;bottom:24px;right:24px;background:#0d1117;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:100;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
 .toast.show{opacity:1;transform:translateY(0)}
-@media(max-width:768px){th:nth-child(5),td:nth-child(5),th:nth-child(6),td:nth-child(6){display:none}}
-.issues-section{margin-top:28px}
-.issues-title{font-size:16px;font-weight:800;color:#0d1117;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.issue-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:16px 20px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-.issue-card.open{border-left:4px solid #dc2626}
-.issue-card.in_progress{border-left:4px solid #6366f1}
-.issue-card.resolved{border-left:4px solid #c9a227}
-.issue-card.solved{border-left:4px solid #22c55e;opacity:.85}
-.issue-ref{font-size:11px;font-family:monospace;font-weight:700;color:#9ca3af;margin-bottom:4px}
-.issue-title{font-size:14px;font-weight:700;color:#0d1117;margin-bottom:8px;line-height:1.4}
-.issue-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
-.issue-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px}
-.issue-badge.open{background:#fef2f2;color:#dc2626}
-.issue-badge.in_progress{background:#eef2ff;color:#6366f1}
-.issue-badge.resolved{background:#fffbeb;color:#c9a227}
-.issue-badge.solved{background:#f0fdf4;color:#15803d}
-.issue-eta{background:#fffbeb;border:1px solid rgba(201,162,39,.3);border-radius:6px;padding:7px 12px;font-size:12px;color:#374151;font-weight:600;margin:8px 0;display:flex;align-items:center;gap:6px}
-.issue-timeline{margin-top:12px;border-top:1px solid #f1f2f5;padding-top:12px}
-.issue-tl-head{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
-.issue-upd-row{display:flex;gap:8px;margin-bottom:8px}
-.issue-upd-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
-.issue-upd-av.b{background:#e0f2fe;color:#0369a1}
-.issue-upd-av.c{background:#f0fdf4;color:#15803d}
-.issue-upd-body{flex:1}
-.issue-upd-meta{font-size:11px;margin-bottom:4px}
-.issue-upd-name{font-weight:700;color:#374151}
-.issue-upd-time{color:#9ca3af;margin-left:6px}
-.issue-upd-text{font-size:12px;color:#374151;background:#f8f9fa;border-radius:5px;padding:7px 10px;line-height:1.5}
-.issue-confirm{background:#fffbeb;border:1px solid rgba(201,162,39,.3);border-radius:8px;padding:14px;margin-top:12px}
-.issue-confirm-label{font-size:11px;font-weight:700;color:#c9a227;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-.issue-confirm-desc{font-size:12px;color:#6b7280;margin-bottom:10px;line-height:1.5}
-.issue-confirm-btns{display:flex;gap:8px;flex-wrap:wrap}
-.issue-cfm-btn{padding:8px 14px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
-.issue-cfm-btn.yes{background:#15803d;color:#fff}
-.issue-cfm-btn.yes:hover{background:#166534}
-.issue-cfm-btn.no{background:#fff;color:#dc2626;border:1px solid #dc2626}
-.issue-cfm-btn.no:hover{background:#fef2f2}
+@media(max-width:768px){th:nth-child(5),td:nth-child(5),th:nth-child(6),td:nth-child(6){display:none}.dash-grid{grid-template-columns:repeat(2,1fr)}}
 </style></head><body>
 <div class="topbar">
   <div class="logo">Blue<span>copa</span></div>
   <div class="client-chip">${c.name}</div>
-  <div style="margin-left:auto;font-size:12px;color:#6b7280">UAT Client Portal</div>
+  <div class="proj-select">Project: <select id="projSelect" onchange="selectProject(this.value)"></select></div>
 </div>
-<div class="main" id="app">
-  <div class="page-title">UAT Sign-off Portal</div>
-  <div class="page-sub">Review test cases, update your status, and add comments. Your changes are saved automatically.</div>
-  <div id="projectTabs" class="project-tabs"></div>
-  <div id="progressCard" class="progress-card"></div>
-  <div class="table-wrap"><table id="tcTable"><thead><tr>
-    <th>#</th><th>Category</th><th>Test Description</th><th>Expected Result</th>
-    <th>Bluecopa Status</th><th>Bluecopa Comments</th>
-    <th>Your Status</th><th>Your Comments</th>
-  </tr></thead><tbody id="tcBody"></tbody></table></div>
-  <div class="issues-section" id="issuesSection" style="display:none"></div>
+<div class="main">
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('overview',this)">Overview</button>
+    <button class="nav-tab" onclick="switchTab('testcases',this)">Test Cases <span class="badge-count" id="tcBadge">0</span></button>
+    <button class="nav-tab" onclick="switchTab('issues',this)">Issues <span class="badge-count" id="issueBadge">0</span></button>
+  </div>
+
+  <div id="tab-overview" class="tab-panel active">
+    <div class="dash-grid" id="dashStats"></div>
+    <div class="prog-card"><div class="prog-card-title">Overall Pass Rate</div>
+      <div style="display:flex;align-items:center;gap:16px">
+        <div class="prog-pct" id="dashPct">0%</div>
+        <div style="flex:1"><div class="prog-bar-bg"><div class="prog-bar-fill" id="dashBar" style="width:0%"></div></div></div>
+      </div>
+    </div>
+    <div class="issues-alert" id="dashAlert">
+      <div class="issues-alert-title" id="dashAlertTitle"></div>
+      <div class="issues-alert-desc" id="dashAlertDesc"></div>
+    </div>
+    <div id="dashIssuePreview"></div>
+  </div>
+
+  <div id="tab-testcases" class="tab-panel">
+    <div class="table-wrap"><table><thead><tr>
+      <th>#</th><th>Category</th><th>Test Description</th><th>Expected Result</th>
+      <th>Bluecopa Status</th><th>Bluecopa Notes</th><th>Your Status</th><th>Your Notes</th>
+    </tr></thead><tbody id="tcBody"></tbody></table></div>
+  </div>
+
+  <div id="tab-issues" class="tab-panel">
+    <div id="issuesList"></div>
+  </div>
 </div>
 <div class="toast" id="toast"></div>
 <script>
 const TOKEN='${token}';
-let data=null, curProject=null;
+let data=null,curProject=null,curTab='overview';
+const SL={'not_tested':'Not Tested','in_progress':'In Progress','pass':'Pass','fail':'Fail','blocked':'Blocked'};
+const SC={'not_tested':'s-not_tested','in_progress':'s-in_progress','pass':'s-pass','fail':'s-fail','blocked':'s-blocked'};
 
-const STATUS_LABELS={'not_tested':'Not Tested','in_progress':'In Progress','pass':'Pass','fail':'Fail','blocked':'Blocked'};
-const STATUS_CLASS={'not_tested':'s-not_tested','in_progress':'s-in_progress','pass':'s-pass','fail':'s-fail','blocked':'s-blocked'};
+function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2400)}
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function isoDate(s){if(!s)return '';return new Date(s).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 
-function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2400)}
+function switchTab(tab,btn){
+  curTab=tab;
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+}
 
 async function load(){
   const r=await fetch('/api/uat/portal/'+TOKEN);
-  if(!r.ok){document.getElementById('app').innerHTML='<p style="color:#dc2626;padding:40px">Unable to load portal data.</p>';return;}
-  data=await r.json(); data=data.data;
-  renderTabs();
-  if(data.projects.length>0) selectProject(data.projects[0].id);
-}
-
-function renderTabs(){
-  const el=document.getElementById('projectTabs');
-  el.innerHTML=data.projects.map(p=>\`<button class="proj-tab" onclick="selectProject('\${p.id}')" id="ptab_\${p.id}">\${p.name}</button>\`).join('');
+  if(!r.ok)return;
+  data=(await r.json()).data;
+  const sel=document.getElementById('projSelect');
+  sel.innerHTML=data.projects.map(p=>\`<option value="\${p.id}">\${p.name}</option>\`).join('');
+  if(data.projects.length) selectProject(data.projects[0].id);
 }
 
 function selectProject(id){
   curProject=data.projects.find(p=>p.id===id);
-  document.querySelectorAll('.proj-tab').forEach(b=>{b.classList.toggle('active',b.id==='ptab_'+id);});
-  renderProgress();renderTable();renderIssues();
+  document.getElementById('projSelect').value=id;
+  renderOverview();renderTable();renderIssues();
 }
 
-function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
-function isoDate(s){if(!s)return '';return new Date(s).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
-
-function renderIssues(){
-  const sec=document.getElementById('issuesSection');
-  if(!sec||!data||!curProject)return;
-  const issues=(data.issues||[]).filter(function(i){return i.projectId===curProject.id;});
-  if(!issues.length){sec.style.display='none';return;}
-  sec.style.display='';
-  const open=issues.filter(function(i){return i.status==='open'||i.status==='in_progress';}).length;
-  const pending=issues.filter(function(i){return i.status==='resolved';}).length;
-  const solved=issues.filter(function(i){return i.status==='solved';}).length;
-  const summary=[];
-  if(open)summary.push('<span style="color:#dc2626;font-weight:700">'+open+' open</span>');
-  if(pending)summary.push('<span style="color:#c9a227;font-weight:700">'+pending+' awaiting your confirmation</span>');
-  if(solved)summary.push('<span style="color:#15803d;font-weight:700">'+solved+' resolved</span>');
-  const SEV={critical:'#dc2626',high:'#ea580c',medium:'#c9a227',low:'#6b7280'};
-  const STA={open:'Open',in_progress:'In Progress',resolved:'Resolved — Pending Retest',solved:'Solved'};
-  sec.innerHTML='<div class="issues-title">Issues Tracker <span style="font-size:13px;font-weight:500;color:#6b7280">'+summary.join(' · ')+'</span></div>'+
-    issues.map(function(i){
-      const sev=SEV[(i.severity||'').toLowerCase()]||'#6b7280';
-      const etaHtml=i.eta?'<div class="issue-eta">📅 Expected fix: <strong>'+new Date(i.eta+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+'</strong></div>':'';
-      const upds=i.updates||[];
-      const tlHtml=upds.length
-        ?'<div class="issue-timeline"><div class="issue-tl-head">Updates from Bluecopa</div>'+
-          upds.map(function(u){
-            const isC=u.author==='Client';
-            return '<div class="issue-upd-row">'+
-              '<div class="issue-upd-av '+(isC?'c':'b')+'">'+(isC?'C':'B')+'</div>'+
-              '<div class="issue-upd-body">'+
-                '<div class="issue-upd-meta"><span class="issue-upd-name">'+esc(u.author)+'</span><span class="issue-upd-time">'+isoDate(u.at)+'</span></div>'+
-                '<div class="issue-upd-text">'+esc(u.text)+'</div>'+
-              '</div></div>';
-          }).join('')+'</div>'
-        :'';
-      let action='';
-      if(i.status==='resolved'){
-        action='<div class="issue-confirm">'+
-          '<div class="issue-confirm-label">⏳ Action Required — Please Retest</div>'+
-          '<div class="issue-confirm-desc">The Bluecopa team has marked this issue as resolved. Please retest and confirm whether it has been fixed.</div>'+
-          '<div class="issue-confirm-btns">'+
-            '<button class="issue-cfm-btn yes" onclick="confirmIssue(\''+i.id+'\',\'solved\')">✓ Confirmed Fixed</button>'+
-            '<button class="issue-cfm-btn no" onclick="confirmIssue(\''+i.id+'\',\'reopen\')">✗ Still Not Working</button>'+
-          '</div></div>';
-      } else if(i.status==='solved'){
-        action='<div style="font-size:12px;font-weight:700;color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px 12px;margin-top:10px">✓ You confirmed this issue is resolved</div>';
-      }
-      return '<div class="issue-card '+(i.status||'open')+'">'+
-        '<div class="issue-ref">'+esc(i.ref)+' &nbsp;·&nbsp; Raised '+isoDate(i.createdAt)+'</div>'+
-        '<div class="issue-title">'+esc(i.title)+'</div>'+
-        '<div class="issue-meta"><span class="issue-badge '+(i.status||'open')+'">'+(STA[i.status]||'Open')+'</span>'+
-          '<span style="font-size:11px;font-weight:700;color:'+sev+'">'+esc(i.severity||'Medium')+'</span></div>'+
-        etaHtml+tlHtml+action+'</div>';
-    }).join('');
-}
-
-async function confirmIssue(issueId,verdict){
-  try{
-    const r=await fetch('/api/uat/portal/'+TOKEN+'/issue/'+issueId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientVerdict:verdict})});
-    const j=await r.json();
-    if(j.ok){
-      const idx=(data.issues||[]).findIndex(function(i){return i.id===issueId;});
-      if(idx>=0)data.issues[idx]=j.data;
-      renderIssues();
-      toast(verdict==='solved'?'Thank you — issue marked as resolved!':'Issue reopened — Bluecopa team has been notified.');
-    }else toast('Failed to update. Please try again.');
-  }catch(e){toast('Network error. Please try again.');}
-}
-
-function renderProgress(){
-  const p=curProject;const total=p.testcases.length;const pass=p.testcases.filter(t=>t.clientStatus==='pass').length;
+function renderOverview(){
+  const p=curProject;
+  const tcs=p.testcases;
+  const total=tcs.length,pass=tcs.filter(t=>t.clientStatus==='pass').length,
+    fail=tcs.filter(t=>t.clientStatus==='fail').length,
+    blocked=tcs.filter(t=>t.clientStatus==='blocked').length,
+    pending=tcs.filter(t=>!t.clientStatus||t.clientStatus==='not_tested').length;
   const pct=total?Math.round(pass/total*100):0;
-  document.getElementById('progressCard').innerHTML=\`
-    <div class="prog-stat"><div class="val">\${total}</div><div class="lbl">Total Tests</div></div>
-    <div class="prog-stat"><div class="val" style="color:#22c55e">\${pass}</div><div class="lbl">Passed</div></div>
-    <div class="prog-stat"><div class="val" style="color:#dc2626">\${p.testcases.filter(t=>t.clientStatus==='fail').length}</div><div class="lbl">Failed</div></div>
-    <div class="prog-stat"><div class="val" style="color:#b45309">\${p.testcases.filter(t=>t.clientStatus==='blocked').length}</div><div class="lbl">Blocked</div></div>
-    <div class="prog-bar-wrap">
-      <div class="prog-label"><span>Your Pass Rate</span><span>\${pct}%</span></div>
-      <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:\${pct}%"></div></div>
-    </div>\`;
+  document.getElementById('dashStats').innerHTML=
+    \`<div class="stat-card"><div class="val">\${total}</div><div class="lbl">Total Tests</div></div>
+    <div class="stat-card green"><div class="val">\${pass}</div><div class="lbl">Passed</div></div>
+    <div class="stat-card red"><div class="val">\${fail}</div><div class="lbl">Failed</div></div>
+    <div class="stat-card amber"><div class="val">\${blocked}</div><div class="lbl">Blocked</div></div>
+    <div class="stat-card blue"><div class="val">\${pending}</div><div class="lbl">Pending Review</div></div>\`;
+  document.getElementById('dashPct').textContent=pct+'%';
+  document.getElementById('dashBar').style.width=pct+'%';
+  document.getElementById('tcBadge').textContent=total;
+  const issues=(data.issues||[]).filter(i=>i.projectId===p.id);
+  const openIssues=issues.filter(i=>i.status==='open'||i.status==='in_progress');
+  const pendingIssues=issues.filter(i=>i.status==='resolved');
+  const ib=document.getElementById('issueBadge');
+  ib.textContent=issues.length;
+  ib.className='badge-count'+(pendingIssues.length?' warn':openIssues.length?' alert':'');
+  const alertEl=document.getElementById('dashAlert');
+  if(pendingIssues.length){
+    alertEl.style.display='block';
+    document.getElementById('dashAlertTitle').textContent='Action Required: '+pendingIssues.length+' issue'+(pendingIssues.length>1?'s':'')+' awaiting your confirmation';
+    document.getElementById('dashAlertDesc').textContent='The Bluecopa team has resolved these issues. Please go to the Issues tab to retest and confirm.';
+  } else { alertEl.style.display='none'; }
+  const SEV={critical:'#dc2626',high:'#ea580c',medium:'#c9a227',low:'#6b7280'};
+  const STA={open:'Open',in_progress:'In Progress',resolved:'Pending Retest',solved:'Solved'};
+  document.getElementById('dashIssuePreview').innerHTML=issues.length
+    ? \`<div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:12px">Issues Summary</div>\`+
+      issues.slice(0,3).map(i=>\`<div class="issue-card \${i.status||'open'}" style="margin-bottom:8px">
+        <div class="issue-ref">\${esc(i.ref)}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div class="issue-title" style="margin:0">\${esc(i.title)}</div>
+          <span class="issue-badge \${i.status||'open'}">\${STA[i.status]||'Open'}</span>
+        </div>
+        \${i.eta?'<div class="issue-eta" style="margin-top:8px">📅 Expected fix: <strong>'+new Date(i.eta+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+'</strong></div>':''}
+      </div>\`).join('')+
+      (issues.length>3?'<div style="text-align:center;padding:8px"><button onclick="document.querySelector(\\'.nav-tab:nth-child(3)\\').click()" style="border:none;background:none;color:#6366f1;font-weight:700;font-size:13px;cursor:pointer">View all '+issues.length+' issues →</button></div>':'')
+    : '';
 }
 
 function renderTable(){
@@ -1474,45 +1452,77 @@ function renderTable(){
     <tr id="row_\${tc.id}">
       <td><span style="color:#6b7280;font-size:12px;font-weight:600">\${tc.seq}</span></td>
       <td><span class="cat-badge">\${tc.category}</span><div style="font-size:11px;color:#6b7280;margin-top:3px">\${tc.subCategory||''}</div></td>
-      <td style="max-width:250px"><div style="font-weight:600;line-height:1.4">\${tc.testDescription}</div></td>
-      <td style="max-width:200px;color:#6b7280;font-size:12px;line-height:1.4">\${tc.expectedResult}</td>
-      <td><span class="status-pill \${STATUS_CLASS[tc.bluecopaStatus]||'s-not_tested'}">\${STATUS_LABELS[tc.bluecopaStatus]||'Not Tested'}</span></td>
-      <td class="b-comment-col">\${tc.bluecopaComments||'<span style="color:#d1d5db">—</span>'}</td>
+      <td style="max-width:240px"><div style="font-weight:600;line-height:1.4">\${tc.testDescription}</div></td>
+      <td style="max-width:180px;color:#6b7280;font-size:12px;line-height:1.4">\${tc.expectedResult}</td>
+      <td><span class="status-pill \${SC[tc.bluecopaStatus]||'s-not_tested'}">\${SL[tc.bluecopaStatus]||'Not Tested'}</span></td>
+      <td style="color:#374151;font-size:12px;line-height:1.5;max-width:180px">\${tc.bluecopaComments||'<span style="color:#d1d5db">—</span>'}</td>
       <td class="status-cell">
-        <button class="status-pill \${STATUS_CLASS[tc.clientStatus]||'s-not_tested'}" onclick="toggleDD('\${tc.id}',event)">\${STATUS_LABELS[tc.clientStatus]||'Not Tested'} ▾</button>
-        <div class="status-dd" id="dd_\${tc.id}">
-          \${Object.entries(STATUS_LABELS).map(([k,v])=>\`<button onclick="setStatus('\${tc.id}','\${k}')">\${v}</button>\`).join('')}
-        </div>
+        <button class="status-pill \${SC[tc.clientStatus]||'s-not_tested'}" onclick="toggleDD('\${tc.id}',event)">\${SL[tc.clientStatus]||'Not Tested'} ▾</button>
+        <div class="status-dd" id="dd_\${tc.id}">\${Object.entries(SL).map(([k,v])=>\`<button onclick="setStatus('\${tc.id}','\${k}')">\${v}</button>\`).join('')}</div>
       </td>
-      <td style="min-width:180px">
-        <textarea class="comment-area" id="cmt_\${tc.id}" placeholder="Add your comments...">\${tc.clientComments||''}</textarea>
+      <td style="min-width:160px">
+        <textarea class="comment-area" id="cmt_\${tc.id}" placeholder="+ Add note">\${tc.clientComments||''}</textarea>
         <button class="save-btn" onclick="saveComment('\${tc.id}')">Save</button>
       </td>
     </tr>\`).join('');
 }
 
-function toggleDD(id,e){
-  e.stopPropagation();
-  document.querySelectorAll('.status-dd').forEach(d=>{if(d.id!=='dd_'+id)d.classList.remove('open');});
-  document.getElementById('dd_'+id).classList.toggle('open');
+function renderIssues(){
+  const issues=(data.issues||[]).filter(i=>i.projectId===curProject.id);
+  const el=document.getElementById('issuesList');
+  if(!issues.length){el.innerHTML='<div class="empty-state">No issues raised for this project.</div>';return;}
+  const STA={open:'Open',in_progress:'In Progress',resolved:'Resolved — Pending Retest',solved:'Solved'};
+  const SEV={critical:'#dc2626',high:'#ea580c',medium:'#c9a227',low:'#6b7280'};
+  el.innerHTML=issues.map(function(i){
+    const sev=SEV[(i.severity||'').toLowerCase()]||'#6b7280';
+    const etaHtml=i.eta?'<div class="issue-eta">📅 Expected fix: <strong>'+new Date(i.eta+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+'</strong></div>':'';
+    const upds=i.updates||[];
+    const tlHtml=upds.length?'<div class="issue-timeline"><div class="issue-tl-head">Updates from Bluecopa</div>'+
+      upds.map(function(u){const isC=u.author==='Client';return '<div class="issue-upd-row">'+
+        '<div class="issue-upd-av '+(isC?'c':'b')+'">'+(isC?'C':'B')+'</div>'+
+        '<div class="issue-upd-body"><div class="issue-upd-meta"><span class="issue-upd-name">'+esc(u.author)+'</span><span class="issue-upd-time">'+isoDate(u.at)+'</span></div>'+
+        '<div class="issue-upd-text">'+esc(u.text)+'</div></div></div>';
+      }).join('')+'</div>':'';
+    let action='';
+    if(i.status==='resolved'){action='<div class="issue-confirm"><div class="issue-confirm-label">⏳ Action Required — Please Retest</div>'+
+      '<div class="issue-confirm-desc">Bluecopa has marked this resolved. Please retest and confirm.</div>'+
+      '<div class="issue-confirm-btns"><button class="issue-cfm-btn yes" onclick="confirmIssue(\''+i.id+'\',\'solved\')">✓ Confirmed Fixed</button>'+
+      '<button class="issue-cfm-btn no" onclick="confirmIssue(\''+i.id+'\',\'reopen\')">✗ Still Not Working</button></div></div>';
+    }else if(i.status==='solved'){action='<div style="font-size:12px;font-weight:700;color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px 12px;margin-top:12px">✓ You confirmed this issue is resolved</div>';}
+    return '<div class="issue-card '+(i.status||'open')+'">'+
+      '<div class="issue-ref">'+esc(i.ref)+' · Raised '+isoDate(i.createdAt)+'</div>'+
+      '<div class="issue-title">'+esc(i.title)+'</div>'+
+      '<div class="issue-meta"><span class="issue-badge '+(i.status||'open')+'">'+(STA[i.status]||'Open')+'</span>'+
+      '<span style="font-size:11px;font-weight:700;color:'+sev+'">'+esc(i.severity||'Medium')+'</span></div>'+
+      etaHtml+tlHtml+action+'</div>';
+  }).join('');
 }
+
+async function confirmIssue(issueId,verdict){
+  try{
+    const r=await fetch('/api/uat/portal/'+TOKEN+'/issue/'+issueId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientVerdict:verdict})});
+    const j=await r.json();
+    if(j.ok){const idx=(data.issues||[]).findIndex(i=>i.id===issueId);if(idx>=0)data.issues[idx]=j.data;renderOverview();renderIssues();toast(verdict==='solved'?'Issue marked resolved!':'Issue reopened.');}
+    else toast('Failed to update.');
+  }catch(e){toast('Network error.');}
+}
+
+function toggleDD(id,e){e.stopPropagation();document.querySelectorAll('.status-dd').forEach(d=>{if(d.id!=='dd_'+id)d.classList.remove('open');});document.getElementById('dd_'+id).classList.toggle('open');}
 document.addEventListener('click',()=>document.querySelectorAll('.status-dd').forEach(d=>d.classList.remove('open')));
 
 async function setStatus(tcId,status){
   document.getElementById('dd_'+tcId).classList.remove('open');
-  const tc=curProject.testcases.find(t=>t.id===tcId);
-  tc.clientStatus=status;
+  const tc=curProject.testcases.find(t=>t.id===tcId);tc.clientStatus=status;
   const r=await fetch('/api/uat/portal/'+TOKEN+'/tc/'+tcId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientStatus:status})});
-  if(r.ok){renderProgress();const row=document.getElementById('row_'+tcId);if(row){const pill=row.querySelector('.status-cell .status-pill');pill.className='status-pill '+STATUS_CLASS[status];pill.innerHTML=STATUS_LABELS[status]+' ▾';}toast('Status updated');}
+  if(r.ok){renderOverview();const row=document.getElementById('row_'+tcId);if(row){const pill=row.querySelector('.status-cell .status-pill');pill.className='status-pill '+SC[status];pill.innerHTML=SL[status]+' ▾';}toast('Status updated');}
   else toast('Failed to save');
 }
 
 async function saveComment(tcId){
   const text=document.getElementById('cmt_'+tcId).value;
-  const tc=curProject.testcases.find(t=>t.id===tcId);
-  tc.clientComments=text;
+  curProject.testcases.find(t=>t.id===tcId).clientComments=text;
   const r=await fetch('/api/uat/portal/'+TOKEN+'/tc/'+tcId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientComments:text})});
-  if(r.ok) toast('Comment saved'); else toast('Failed to save');
+  if(r.ok)toast('Note saved');else toast('Failed to save');
 }
 
 load();
