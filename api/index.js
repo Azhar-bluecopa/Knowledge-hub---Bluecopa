@@ -1301,6 +1301,42 @@ tr:hover td{background:#fafafa}
 .toast{position:fixed;bottom:24px;right:24px;background:#0d1117;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:100;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
 .toast.show{opacity:1;transform:translateY(0)}
 @media(max-width:768px){th:nth-child(5),td:nth-child(5),th:nth-child(6),td:nth-child(6){display:none}}
+.issues-section{margin-top:28px}
+.issues-title{font-size:16px;font-weight:800;color:#0d1117;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.issue-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:16px 20px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.issue-card.open{border-left:4px solid #dc2626}
+.issue-card.in_progress{border-left:4px solid #6366f1}
+.issue-card.resolved{border-left:4px solid #c9a227}
+.issue-card.solved{border-left:4px solid #22c55e;opacity:.85}
+.issue-ref{font-size:11px;font-family:monospace;font-weight:700;color:#9ca3af;margin-bottom:4px}
+.issue-title{font-size:14px;font-weight:700;color:#0d1117;margin-bottom:8px;line-height:1.4}
+.issue-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.issue-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px}
+.issue-badge.open{background:#fef2f2;color:#dc2626}
+.issue-badge.in_progress{background:#eef2ff;color:#6366f1}
+.issue-badge.resolved{background:#fffbeb;color:#c9a227}
+.issue-badge.solved{background:#f0fdf4;color:#15803d}
+.issue-eta{background:#fffbeb;border:1px solid rgba(201,162,39,.3);border-radius:6px;padding:7px 12px;font-size:12px;color:#374151;font-weight:600;margin:8px 0;display:flex;align-items:center;gap:6px}
+.issue-timeline{margin-top:12px;border-top:1px solid #f1f2f5;padding-top:12px}
+.issue-tl-head{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.issue-upd-row{display:flex;gap:8px;margin-bottom:8px}
+.issue-upd-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
+.issue-upd-av.b{background:#e0f2fe;color:#0369a1}
+.issue-upd-av.c{background:#f0fdf4;color:#15803d}
+.issue-upd-body{flex:1}
+.issue-upd-meta{font-size:11px;margin-bottom:4px}
+.issue-upd-name{font-weight:700;color:#374151}
+.issue-upd-time{color:#9ca3af;margin-left:6px}
+.issue-upd-text{font-size:12px;color:#374151;background:#f8f9fa;border-radius:5px;padding:7px 10px;line-height:1.5}
+.issue-confirm{background:#fffbeb;border:1px solid rgba(201,162,39,.3);border-radius:8px;padding:14px;margin-top:12px}
+.issue-confirm-label{font-size:11px;font-weight:700;color:#c9a227;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.issue-confirm-desc{font-size:12px;color:#6b7280;margin-bottom:10px;line-height:1.5}
+.issue-confirm-btns{display:flex;gap:8px;flex-wrap:wrap}
+.issue-cfm-btn{padding:8px 14px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.issue-cfm-btn.yes{background:#15803d;color:#fff}
+.issue-cfm-btn.yes:hover{background:#166534}
+.issue-cfm-btn.no{background:#fff;color:#dc2626;border:1px solid #dc2626}
+.issue-cfm-btn.no:hover{background:#fef2f2}
 </style></head><body>
 <div class="topbar">
   <div class="logo">Blue<span>copa</span></div>
@@ -1317,6 +1353,7 @@ tr:hover td{background:#fafafa}
     <th>Bluecopa Status</th><th>Bluecopa Comments</th>
     <th>Your Status</th><th>Your Comments</th>
   </tr></thead><tbody id="tcBody"></tbody></table></div>
+  <div class="issues-section" id="issuesSection" style="display:none"></div>
 </div>
 <div class="toast" id="toast"></div>
 <script>
@@ -1344,7 +1381,76 @@ function renderTabs(){
 function selectProject(id){
   curProject=data.projects.find(p=>p.id===id);
   document.querySelectorAll('.proj-tab').forEach(b=>{b.classList.toggle('active',b.id==='ptab_'+id);});
-  renderProgress();renderTable();
+  renderProgress();renderTable();renderIssues();
+}
+
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function isoDate(s){if(!s)return '';return new Date(s).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+
+function renderIssues(){
+  const sec=document.getElementById('issuesSection');
+  if(!sec||!data||!curProject)return;
+  const issues=(data.issues||[]).filter(function(i){return i.projectId===curProject.id;});
+  if(!issues.length){sec.style.display='none';return;}
+  sec.style.display='';
+  const open=issues.filter(function(i){return i.status==='open'||i.status==='in_progress';}).length;
+  const pending=issues.filter(function(i){return i.status==='resolved';}).length;
+  const solved=issues.filter(function(i){return i.status==='solved';}).length;
+  const summary=[];
+  if(open)summary.push('<span style="color:#dc2626;font-weight:700">'+open+' open</span>');
+  if(pending)summary.push('<span style="color:#c9a227;font-weight:700">'+pending+' awaiting your confirmation</span>');
+  if(solved)summary.push('<span style="color:#15803d;font-weight:700">'+solved+' resolved</span>');
+  const SEV={critical:'#dc2626',high:'#ea580c',medium:'#c9a227',low:'#6b7280'};
+  const STA={open:'Open',in_progress:'In Progress',resolved:'Resolved — Pending Retest',solved:'Solved'};
+  sec.innerHTML='<div class="issues-title">Issues Tracker <span style="font-size:13px;font-weight:500;color:#6b7280">'+summary.join(' · ')+'</span></div>'+
+    issues.map(function(i){
+      const sev=SEV[(i.severity||'').toLowerCase()]||'#6b7280';
+      const etaHtml=i.eta?'<div class="issue-eta">📅 Expected fix: <strong>'+new Date(i.eta+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+'</strong></div>':'';
+      const upds=i.updates||[];
+      const tlHtml=upds.length
+        ?'<div class="issue-timeline"><div class="issue-tl-head">Updates from Bluecopa</div>'+
+          upds.map(function(u){
+            const isC=u.author==='Client';
+            return '<div class="issue-upd-row">'+
+              '<div class="issue-upd-av '+(isC?'c':'b')+'">'+(isC?'C':'B')+'</div>'+
+              '<div class="issue-upd-body">'+
+                '<div class="issue-upd-meta"><span class="issue-upd-name">'+esc(u.author)+'</span><span class="issue-upd-time">'+isoDate(u.at)+'</span></div>'+
+                '<div class="issue-upd-text">'+esc(u.text)+'</div>'+
+              '</div></div>';
+          }).join('')+'</div>'
+        :'';
+      let action='';
+      if(i.status==='resolved'){
+        action='<div class="issue-confirm">'+
+          '<div class="issue-confirm-label">⏳ Action Required — Please Retest</div>'+
+          '<div class="issue-confirm-desc">The Bluecopa team has marked this issue as resolved. Please retest and confirm whether it has been fixed.</div>'+
+          '<div class="issue-confirm-btns">'+
+            '<button class="issue-cfm-btn yes" onclick="confirmIssue(\''+i.id+'\',\'solved\')">✓ Confirmed Fixed</button>'+
+            '<button class="issue-cfm-btn no" onclick="confirmIssue(\''+i.id+'\',\'reopen\')">✗ Still Not Working</button>'+
+          '</div></div>';
+      } else if(i.status==='solved'){
+        action='<div style="font-size:12px;font-weight:700;color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px 12px;margin-top:10px">✓ You confirmed this issue is resolved</div>';
+      }
+      return '<div class="issue-card '+(i.status||'open')+'">'+
+        '<div class="issue-ref">'+esc(i.ref)+' &nbsp;·&nbsp; Raised '+isoDate(i.createdAt)+'</div>'+
+        '<div class="issue-title">'+esc(i.title)+'</div>'+
+        '<div class="issue-meta"><span class="issue-badge '+(i.status||'open')+'">'+(STA[i.status]||'Open')+'</span>'+
+          '<span style="font-size:11px;font-weight:700;color:'+sev+'">'+esc(i.severity||'Medium')+'</span></div>'+
+        etaHtml+tlHtml+action+'</div>';
+    }).join('');
+}
+
+async function confirmIssue(issueId,verdict){
+  try{
+    const r=await fetch('/api/uat/portal/'+TOKEN+'/issue/'+issueId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientVerdict:verdict})});
+    const j=await r.json();
+    if(j.ok){
+      const idx=(data.issues||[]).findIndex(function(i){return i.id===issueId;});
+      if(idx>=0)data.issues[idx]=j.data;
+      renderIssues();
+      toast(verdict==='solved'?'Thank you — issue marked as resolved!':'Issue reopened — Bluecopa team has been notified.');
+    }else toast('Failed to update. Please try again.');
+  }catch(e){toast('Network error. Please try again.');}
 }
 
 function renderProgress(){
