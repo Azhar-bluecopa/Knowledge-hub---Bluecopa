@@ -176,21 +176,50 @@ body{font-family:'Inter',system-ui,sans-serif;background:#F3F4F8;color:#090909;-
 .p-it-view{display:none;flex-direction:column;min-height:100vh}
 .p-it-view.active{display:flex}
 /* IT entity grid */
-.p-it-section-head{margin-bottom:24px}
-.p-it-page-title{font-size:20px;font-weight:800;color:#0d1117}
-.p-it-page-sub{font-size:13px;color:#6b7280;margin-top:4px}
-.p-entity-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
-.p-entity-card{background:#fff;border:1px solid #DADADA;border-radius:12px;padding:20px;cursor:pointer;transition:all .18s;box-shadow:0 1px 3px rgba(0,0,0,.04);user-select:none}
-.p-entity-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-2px);border-color:#3548FF}
+.p-it-section-head{margin-bottom:32px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.p-it-section-head-left{}
+.p-it-page-title{font-size:26px;font-weight:700;color:#090909;font-family:'Instrument Sans',sans-serif;letter-spacing:-.4px}
+.p-it-page-sub{font-size:13px;color:#6b7280;margin-top:5px}
+.p-it-total-chip{font-size:12px;font-weight:700;color:#3548FF;background:rgba(53,72,255,.07);border:1px solid rgba(53,72,255,.18);border-radius:8px;padding:7px 14px;white-space:nowrap;flex-shrink:0}
+.p-entity-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px}
+
+/* Card base */
+.p-entity-card{background:#fff;border:1px solid #DADADA;border-radius:16px;padding:24px;cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);box-shadow:0 1px 4px rgba(0,0,0,.05);user-select:none;position:relative;overflow:hidden}
+.p-entity-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:#3548FF;opacity:0;transition:opacity .2s}
+.p-entity-card:hover{box-shadow:0 8px 28px rgba(53,72,255,.10),0 2px 8px rgba(0,0,0,.05);transform:translateY(-3px);border-color:rgba(53,72,255,.3)}
+.p-entity-card:hover::before{opacity:1}
+.p-entity-card.p-ec-all::before{opacity:1}
 .p-entity-card>*{pointer-events:none}
-.p-entity-card-icon{font-size:24px;margin-bottom:12px}
-.p-entity-card-name{font-size:15px;font-weight:800;color:#0d1117;margin-bottom:8px}
-.p-entity-stat-row{display:flex;gap:10px;flex-wrap:wrap}
-.p-entity-stat{font-size:12px;font-weight:700;padding:2px 8px;border-radius:5px}
+
+/* Card header */
+.p-entity-card-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.p-entity-icon-wrap{width:44px;height:44px;border-radius:12px;background:rgba(53,72,255,.07);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s}
+.p-entity-card.p-ec-all .p-entity-icon-wrap{background:#3548FF}
+.p-entity-card:hover .p-entity-icon-wrap{background:rgba(53,72,255,.12)}
+.p-entity-card.p-ec-all:hover .p-entity-icon-wrap{background:#2134EB}
+.p-entity-card-name{font-size:15px;font-weight:700;color:#090909;flex:1;line-height:1.3}
+
+/* Count section */
+.p-entity-count-row{display:flex;align-items:baseline;gap:6px;margin-bottom:3px}
+.p-entity-total{font-size:42px;font-weight:700;color:#090909;line-height:1;font-family:'Instrument Sans',sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.p-entity-total-lbl{font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px}
+.p-entity-divider{height:1px;background:#f0f1f5;margin:16px 0}
+
+/* Stat pills */
+.p-entity-stat-row{display:flex;gap:6px;flex-wrap:wrap}
+.p-entity-stat{font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;display:inline-flex;align-items:center;gap:5px;line-height:1}
+.p-entity-stat-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
 .p-entity-stat.open{background:#fef2f2;color:#dc2626}
+.p-entity-stat.open .p-entity-stat-dot{background:#dc2626}
 .p-entity-stat.solved{background:#f0fdf4;color:#15803d}
-.p-entity-stat.pending{background:rgba(53,72,255,.1);color:#3548FF}
+.p-entity-stat.solved .p-entity-stat-dot{background:#22c55e}
+.p-entity-stat.pending{background:rgba(53,72,255,.08);color:#3548FF}
+.p-entity-stat.pending .p-entity-stat-dot{background:#3548FF}
 .p-entity-stat.none{background:#f4f5f7;color:#9ca3af}
+
+/* Card arrow */
+.p-entity-card-arrow{position:absolute;bottom:22px;right:22px;width:28px;height:28px;border-radius:50%;background:#f4f5f7;display:flex;align-items:center;justify-content:center;transition:all .2s;color:#9ca3af;font-size:13px;font-weight:700}
+.p-entity-card:hover .p-entity-card-arrow{background:rgba(53,72,255,.1);color:#3548FF}
 /* IT back button */
 .p-it-back-btn{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #e4e6ea;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;color:#374151;cursor:pointer;transition:all .15s;font-family:inherit;margin-bottom:20px}
 .p-it-back-btn:hover{border-color:#3548FF;color:#3548FF}
@@ -438,8 +467,11 @@ tr:hover td{background:#fafafa}
     <!-- Entity card grid -->
     <div id="pItEntityGrid">
       <div class="p-it-section-head">
-        <div class="p-it-page-title">Issue Tracker</div>
-        <div class="p-it-page-sub">Select an entity to view its issues</div>
+        <div class="p-it-section-head-left">
+          <div class="p-it-page-title">Issue Tracker</div>
+          <div class="p-it-page-sub">Select an entity to view its issues</div>
+        </div>
+        <div class="p-it-total-chip" id="pItTotalChip"></div>
       </div>
       <div class="p-entity-grid" id="pItCards"></div>
     </div>
@@ -726,30 +758,53 @@ function renderEntityGrid() {
   const cards = document.getElementById('pItCards');
   if (!cards) return;
 
-  function cardHtml(entityName, entityIssues, icon) {
+  const SVG_ALL = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
+  const SVG_ENT = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(53,72,255,.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5"/></svg>';
+
+  function cardHtml(entityName, entityIssues) {
+    const isAll = entityName === '__all__';
     const open = entityIssues.filter(function(i) { return i.status === 'open' || i.status === 'in_progress'; }).length;
     const pending = entityIssues.filter(function(i) { return i.status === 'resolved'; }).length;
     const solved = entityIssues.filter(function(i) { return i.status === 'solved'; }).length;
+    const total = entityIssues.length;
+    const displayName = isAll ? 'All Entities' : entityName;
+
     var stats = '';
-    if (!entityIssues.length) {
-      stats = '<span class="p-entity-stat none">No issues</span>';
+    if (!total) {
+      stats = '<span class="p-entity-stat none">No issues yet</span>';
     } else {
-      if (open) stats += '<span class="p-entity-stat open">' + open + ' open</span>';
-      if (pending) stats += '<span class="p-entity-stat pending">' + pending + ' awaiting retest</span>';
-      if (solved) stats += '<span class="p-entity-stat solved">' + solved + ' solved</span>';
+      if (open) stats += '<span class="p-entity-stat open"><span class="p-entity-stat-dot"></span>' + open + ' open</span>';
+      if (pending) stats += '<span class="p-entity-stat pending"><span class="p-entity-stat-dot"></span>' + pending + ' pending retest</span>';
+      if (solved) stats += '<span class="p-entity-stat solved"><span class="p-entity-stat-dot"></span>' + solved + ' solved</span>';
     }
-    var dataAttr = entityName === '__all__' ? 'data-entity="__all__"' : 'data-entity="' + esc(entityName) + '"';
-    return '<div class="p-entity-card" ' + dataAttr + ' onclick="openEntityIssues(this)">' +
-      '<div class="p-entity-card-icon">' + icon + '</div>' +
-      '<div class="p-entity-card-name">' + esc(entityName === '__all__' ? 'All Entities' : entityName) + '</div>' +
+
+    var dataAttr = isAll ? 'data-entity="__all__"' : 'data-entity="' + esc(entityName) + '"';
+    var cls = 'p-entity-card' + (isAll ? ' p-ec-all' : '');
+    var icon = isAll ? SVG_ALL : SVG_ENT;
+
+    return '<div class="' + cls + '" ' + dataAttr + ' onclick="openEntityIssues(this)">' +
+      '<div class="p-entity-card-header">' +
+        '<div class="p-entity-icon-wrap">' + icon + '</div>' +
+        '<div class="p-entity-card-name">' + esc(displayName) + '</div>' +
+      '</div>' +
+      '<div class="p-entity-count-row">' +
+        '<div class="p-entity-total">' + total + '</div>' +
+        '<div class="p-entity-total-lbl">issues</div>' +
+      '</div>' +
+      '<div class="p-entity-divider"></div>' +
       '<div class="p-entity-stat-row">' + stats + '</div>' +
+      '<div class="p-entity-card-arrow">→</div>' +
     '</div>';
   }
 
-  var html = cardHtml('__all__', issues, '📋');
+  // Update section header with total count
+  var totalChip = document.getElementById('pItTotalChip');
+  if (totalChip) totalChip.textContent = issues.length + ' total issue' + (issues.length !== 1 ? 's' : '');
+
+  var html = cardHtml('__all__', issues);
   entities.forEach(function(e) {
     var entityIssues = issues.filter(function(i) { return i.entity === e; });
-    html += cardHtml(e, entityIssues, '🏢');
+    html += cardHtml(e, entityIssues);
   });
   cards.innerHTML = html;
 }
