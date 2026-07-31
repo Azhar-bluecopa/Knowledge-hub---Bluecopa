@@ -200,7 +200,7 @@ const UAT = (() => {
     if (ri && ri.ok) S.issues = ri.data;
     if (rt && rt.ok) S.testcases = rt.data;
     _buildDashFilterOptions();
-    requireChartJs(() => renderDashboard());
+    renderDashboard();
   }
 
   function _buildDashFilterOptions() {
@@ -324,20 +324,23 @@ const UAT = (() => {
     _setText('dKpi_sla',           slaPct !== null ? slaPct + '%' : '—');
     _setText('dKpi_slaSub',        slaBase.length ? `${slaOk}/${slaBase.length} within SLA` : 'No resolved issues');
 
-    // ── Charts ────────────────────────────────────────────────────────────
-    _chartEntityProgress(tcs);
-    _chartIssueSeverity(issues);
-    _chartIssueStatus(issues);
-    _chartIssueTrend(issues);
-    _chartIssueModule(issues, tcs);
-    _chartIssuePriority(tcs);
-    _chartTesterPerf(issues);
-    _chartCoverage(tcs);
-
     // ── Bottom panels ─────────────────────────────────────────────────────
     _renderDashProjects(issues, tcs);
     _renderSignoff();
     _renderActivity();
+
+    // ── Charts (deferred until Chart.js CDN loads) ─────────────────────────
+    requireChartJs(() => {
+      const { issues: fi, testcases: ftcs } = _filteredData();
+      _chartEntityProgress(ftcs);
+      _chartIssueSeverity(fi);
+      _chartIssueStatus(fi);
+      _chartIssueTrend(fi);
+      _chartIssueModule(fi, ftcs);
+      _chartIssuePriority(ftcs);
+      _chartTesterPerf(fi);
+      _chartCoverage(ftcs);
+    });
   }
 
   // ── Chart helpers ────────────────────────────────────────────────────────
