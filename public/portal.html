@@ -119,6 +119,36 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f1f2f5;color:#0d1117
 .p-bar-bg{background:#f1f2f5;border-radius:99px;height:8px;overflow:hidden}
 .p-bar-fill{height:100%;border-radius:99px;background:#22c55e;transition:width .6s cubic-bezier(.4,0,.2,1)}
 
+/* Issues section */
+.p-issues-section{margin-top:32px}
+.p-issues-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.p-issues-title{font-size:16px;font-weight:800;color:#0d1117}
+.p-issue-card{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:16px 20px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.p-issue-card.open{border-left:3px solid #dc2626}
+.p-issue-card.resolved{border-left:3px solid #c9a227}
+.p-issue-card.solved{border-left:3px solid #22c55e;opacity:.8}
+.p-issue-card.in_progress{border-left:3px solid #6366f1}
+.p-issue-ref{font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:#9ca3af;margin-bottom:6px}
+.p-issue-title{font-size:14px;font-weight:700;color:#0d1117;margin-bottom:8px;line-height:1.4}
+.p-issue-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.p-issue-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px}
+.p-issue-badge.open{background:#fef2f2;color:#dc2626}
+.p-issue-badge.resolved{background:rgba(201,162,39,.1);color:#c9a227}
+.p-issue-badge.solved{background:#f0fdf4;color:#15803d}
+.p-issue-badge.in_progress{background:#eef2ff;color:#6366f1}
+.p-issue-eta{font-size:11px;color:#6b7280}
+.p-issue-confirm{background:#f8f9fa;border-radius:8px;padding:12px 14px;margin-top:10px;border:1px solid #e4e6ea}
+.p-issue-confirm-label{font-size:11px;font-weight:700;color:#c9a227;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.p-issue-confirm-desc{font-size:12px;color:#6b7280;margin-bottom:10px;line-height:1.5}
+.p-issue-confirm-btns{display:flex;gap:8px}
+.p-issue-confirm-btn{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.p-issue-confirm-btn.pass{background:#15803d;color:#fff}
+.p-issue-confirm-btn.pass:hover{background:#166534}
+.p-issue-confirm-btn.fail{background:#fff;color:#dc2626;border:1px solid #dc2626}
+.p-issue-confirm-btn.fail:hover{background:#fef2f2}
+.p-issue-update{font-size:12px;color:#374151;background:#f8f9fa;border-radius:6px;padding:8px 10px;margin-top:8px;line-height:1.5;border-left:2px solid #e4e6ea}
+.p-issue-update-author{font-weight:700;color:#6b7280;margin-right:4px}
+
 /* Entity tabs */
 .p-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .p-tab{padding:7px 16px;border:1px solid #e4e6ea;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;background:#fff;color:#374151;transition:all .15s;font-family:inherit}
@@ -343,6 +373,15 @@ tr:hover td{background:#fafafa}
 
     <!-- Sign-off Section -->
     <div class="p-signoff-wrap" id="pSignoffWrap"></div>
+
+    <!-- Issues Section -->
+    <div class="p-issues-section" id="pIssuesSection" style="display:none">
+      <div class="p-issues-section-head">
+        <div class="p-issues-title">Issues Tracker</div>
+        <div id="pIssuesSummary" style="font-size:12px;color:#6b7280"></div>
+      </div>
+      <div id="pIssuesList"></div>
+    </div>
   </div>
 </div>
 
@@ -576,6 +615,83 @@ function renderTesting() {
   renderProgress();
   renderTable();
   renderSignoff();
+  renderIssues();
+}
+
+function esc(s) { const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+
+function renderIssues() {
+  const issues = D.issues || [];
+  const sec = document.getElementById('pIssuesSection');
+  const list = document.getElementById('pIssuesList');
+  const summary = document.getElementById('pIssuesSummary');
+  if (!sec || !list) return;
+  if (!issues.length) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+
+  const open = issues.filter(i => i.status === 'open' || i.status === 'in_progress').length;
+  const pending = issues.filter(i => i.status === 'resolved').length;
+  const solved = issues.filter(i => i.status === 'solved').length;
+  const parts = [];
+  if (open) parts.push('<span style="color:#dc2626;font-weight:700">' + open + ' open</span>');
+  if (pending) parts.push('<span style="color:#c9a227;font-weight:700">' + pending + ' awaiting your confirmation</span>');
+  if (solved) parts.push('<span style="color:#15803d;font-weight:700">' + solved + ' resolved</span>');
+  if (summary) summary.innerHTML = parts.join(' · ');
+
+  const SEV_COLOR = { critical:'#dc2626', high:'#ea580c', medium:'#c9a227', low:'#6b7280' };
+
+  list.innerHTML = issues.map(function(i) {
+    const lastUpdate = (i.updates || []).slice(-1)[0];
+    const etaHtml = i.eta ? '<span class="p-issue-eta">ETA: ' + new Date(i.eta + 'T00:00:00').toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) + '</span>' : '';
+    const sevColor = SEV_COLOR[(i.severity||'').toLowerCase()] || '#6b7280';
+
+    let confirmHtml = '';
+    if (i.status === 'resolved') {
+      const latestNote = (i.updates || []).filter(u => u.author !== 'Client').slice(-1)[0];
+      confirmHtml =
+        '<div class="p-issue-confirm">' +
+          '<div class="p-issue-confirm-label">⏳ Action Required — Please Retest</div>' +
+          (latestNote ? '<div class="p-issue-update" style="margin-bottom:10px"><span class="p-issue-update-author">Bluecopa:</span>' + esc(latestNote.text) + '</div>' : '') +
+          '<div class="p-issue-confirm-desc">The Bluecopa team has marked this issue as resolved. Please retest and confirm whether it has been fixed.</div>' +
+          '<div class="p-issue-confirm-btns">' +
+            '<button class="p-issue-confirm-btn pass" onclick="confirmIssue(\'' + i.id + '\',\'solved\')">✓ Confirmed Fixed</button>' +
+            '<button class="p-issue-confirm-btn fail" onclick="confirmIssue(\'' + i.id + '\',\'reopen\')">✗ Still Not Working</button>' +
+          '</div>' +
+        '</div>';
+    } else if (i.status === 'solved') {
+      confirmHtml = '<div style="font-size:12px;color:#15803d;font-weight:600;margin-top:8px">✓ You confirmed this issue is resolved.</div>';
+    } else if (lastUpdate) {
+      confirmHtml = '<div class="p-issue-update"><span class="p-issue-update-author">' + esc(lastUpdate.author) + ':</span>' + esc(lastUpdate.text) + '</div>';
+    }
+
+    return '<div class="p-issue-card ' + (i.status||'open') + '">' +
+      '<div class="p-issue-ref">' + esc(i.ref) + '</div>' +
+      '<div class="p-issue-title">' + esc(i.title) + '</div>' +
+      '<div class="p-issue-meta">' +
+        '<span class="p-issue-badge ' + (i.status||'open') + '">' + (i.status === 'solved' ? 'Solved' : i.status === 'resolved' ? 'Resolved — Pending Retest' : i.status === 'in_progress' ? 'In Progress' : 'Open') + '</span>' +
+        '<span style="font-size:11px;font-weight:700;color:' + sevColor + '">' + esc(i.severity||'Medium') + '</span>' +
+        etaHtml +
+      '</div>' +
+      confirmHtml +
+    '</div>';
+  }).join('');
+}
+
+async function confirmIssue(issueId, verdict) {
+  try {
+    const r = await fetch('/api/portal/' + TOKEN + '/issue/' + issueId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientVerdict: verdict })
+    });
+    const j = await r.json();
+    if (j.ok) {
+      const idx = (D.issues || []).findIndex(i => i.id === issueId);
+      if (idx >= 0) D.issues[idx] = j.data;
+      renderIssues();
+      toast(verdict === 'solved' ? 'Thank you — issue marked as resolved!' : 'Issue reopened — Bluecopa team has been notified.');
+    } else toast('Failed to update issue. Please try again.');
+  } catch(e) { toast('Network error. Please try again.'); }
 }
 
 function renderEntityTabs() {

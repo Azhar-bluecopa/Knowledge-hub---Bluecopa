@@ -1098,7 +1098,14 @@ app.post('/api/uat/issues', async (req, res) => {
 app.put('/api/uat/issues/:id', async (req, res) => {
   await _dbReady; const u=uatDB(); const issue=u.issues.find(x=>x.id===req.params.id);
   if (!issue) return res.status(404).json({ ok:false, error:'not found' });
-  Object.assign(issue, req.body, { id:issue.id, updatedAt:new Date().toISOString() });
+  const now = new Date().toISOString();
+  const { addUpdate, ...rest } = req.body;
+  if (addUpdate && addUpdate.text) {
+    if (!issue.updates) issue.updates = [];
+    issue.updates.push({ text: addUpdate.text, author: addUpdate.author || 'Bluecopa', at: now });
+  }
+  if (rest.status === 'resolved' && issue.status !== 'resolved') rest.resolvedAt = now;
+  Object.assign(issue, rest, { id:issue.id, updatedAt:now });
   await saveDB(db); res.json({ ok:true, data:issue });
 });
 
@@ -1197,7 +1204,28 @@ app.get('/api/uat/portal/:token', async (req, res) => {
     const categories=[...new Set(tc.map(t=>t.category))];
     return {...p,testcases:tc,total,cPassed:cPass,cPassRate:total?Math.round(cPass/total*100):0,categories};
   });
-  res.json({ ok:true, data:{ client:{id:c.id,name:c.name,shortCode:c.shortCode}, projects } });
+  const issues=u.issues.filter(i=>i.clientId===c.id);
+  res.json({ ok:true, data:{ client:{id:c.id,name:c.name,shortCode:c.shortCode}, projects, issues } });
+});
+app.put('/api/uat/portal/:token/issue/:id', async (req, res) => {
+  await _dbReady; const u=uatDB(); const c=u.clients.find(x=>x.portalToken===req.params.token);
+  if (!c) return res.status(403).json({ ok:false, error:'invalid token' });
+  const issue=u.issues.find(x=>x.id===req.params.id&&x.clientId===c.id);
+  if (!issue) return res.status(404).json({ ok:false, error:'not found' });
+  const { clientVerdict } = req.body;
+  const now=new Date().toISOString();
+  if (!issue.updates) issue.updates=[];
+  if (clientVerdict==='solved') {
+    issue.status='solved';
+    issue.updates.push({ text:'Client confirmed: issue resolved and retested successfully.', author:'Client', at:now });
+    uatLog('issue_solved',`Issue ${issue.ref} confirmed resolved by client`,{projectId:issue.projectId,clientId:c.id});
+  } else if (clientVerdict==='reopen') {
+    issue.status='open';
+    issue.updates.push({ text:'Client retested and confirmed: issue is still present. Reopened.', author:'Client', at:now });
+    uatLog('issue_reopened',`Issue ${issue.ref} reopened by client`,{projectId:issue.projectId,clientId:c.id});
+  }
+  issue.updatedAt=now;
+  await saveDB(db); res.json({ ok:true, data:issue });
 });
 // Client updates their own status/comments via portal
 app.put('/api/uat/portal/:token/tc/:id', async (req, res) => {
@@ -1486,16 +1514,40 @@ app.get('/api/portal/:token', async (req, res) => {
     });
     entityAggregate={total,pass,fail,blocked,inProgress:inProg,pending:total-pass-fail-blocked-inProg};
   }
+  const issues=u.issues.filter(i=>i.projectId===p.id);
   res.json({ ok:true, data:{
     project:{ id:p.id, name:p.name, description:p.description||'', phase:p.phase,
-      goLiveDate:p.goLiveDate, clientLabel:p.clientLabel||'Client' },
-    client:client?{ id:client.id, name:client.name }:{ id:'', name:'Client' },
+      goLiveDate:p.goLiveDate, clientLabel:p.clientLabel||'Client',
+      clientWebsite:p.clientWebsite||'' },
+    client:client?{ id:client.id, name:client.name, website:client.website||'' }:{ id:'', name:'Client', website:'' },
     entity:entity||null, entities:p.entities||[], testcases:tcs,
     entityAggregate,
     signoff:((p.entitySignoffs||{})[entity||''])||null,
     allEntitySignoffs:p.entitySignoffs||{},
     bluecopaSignoff:((p.bluecopaEntitySignoffs||{})[entity||''])||null,
+    issues,
   }});
+});
+app.put('/api/portal/:token/issue/:id', async (req, res) => {
+  await _dbReady; const u=uatDB();
+  const p=u.projects.find(x=>x.portalToken===req.params.token);
+  if (!p) return res.status(403).json({ ok:false, error:'invalid token' });
+  const issue=u.issues.find(x=>x.id===req.params.id&&x.projectId===p.id);
+  if (!issue) return res.status(404).json({ ok:false, error:'not found' });
+  const { clientVerdict }=req.body;
+  const now=new Date().toISOString();
+  if (!issue.updates) issue.updates=[];
+  if (clientVerdict==='solved') {
+    issue.status='solved';
+    issue.updates.push({ text:'Client confirmed: issue resolved and retested successfully.', author:'Client', at:now });
+    uatLog('issue_solved',`Issue ${issue.ref} confirmed resolved by client`,{projectId:p.id,clientId:p.clientId});
+  } else if (clientVerdict==='reopen') {
+    issue.status='open';
+    issue.updates.push({ text:'Client retested and confirmed: issue is still present. Reopened.', author:'Client', at:now });
+    uatLog('issue_reopened',`Issue ${issue.ref} reopened by client`,{projectId:p.id,clientId:p.clientId});
+  }
+  issue.updatedAt=now;
+  await saveDB(db); res.json({ ok:true, data:issue });
 });
 
 app.put('/api/uat/projects/:id/entity-signoff', async (req, res) => {

@@ -1406,44 +1406,138 @@ const UAT = (() => {
   }
 
   /* ── Issue detail modal ──────────────────────────────────────────────────── */
-  function openIssueDetail(id) {
+  function _issueDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+
+  function _renderIssueModal(id) {
     const i = S.issues.find(x => x.id === id);
     if (!i) return;
     const SEV_CLS = { critical:'pri-critical', high:'pri-high', medium:'pri-medium', low:'pri-low' };
-    const STATUS_CLS = { open:'fail', resolved:'pass', in_progress:'in_progress', closed:'pass' };
+    const STATUS_CLS = { open:'fail', resolved:'in_progress', in_progress:'in_progress', solved:'pass', closed:'pass' };
     const tc = S.testcases.find(x => x.id === i.testCaseId);
+    const u = JSON.parse(localStorage.getItem('kb_user') || '{}');
+    const adminName = u.name || 'Bluecopa';
+
+    // Updates timeline
+    const updates = (i.updates || []);
+    const timelineHtml = updates.length ? updates.map(upd => `
+      <div style="display:flex;gap:10px;margin-bottom:10px">
+        <div style="width:28px;height:28px;border-radius:50%;background:${upd.author==='Client'?'#e0f2fe':'#f0fdf4'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${upd.author==='Client'?'#0369a1':'#15803d'};flex-shrink:0">${upd.author==='Client'?'C':'B'}</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+            <span style="font-size:12px;font-weight:700;color:#374151">${escHtml(upd.author)}</span>
+            <span style="font-size:11px;color:#9ca3af">${_issueDate(upd.at)}</span>
+          </div>
+          <div style="font-size:13px;color:#0d1117;line-height:1.5;background:#f8f9fa;border-radius:6px;padding:8px 12px">${escHtml(upd.text)}</div>
+        </div>
+      </div>`).join('') : `<div style="font-size:12px;color:#9ca3af;font-style:italic">No updates yet.</div>`;
+
+    // Status badge color
+    let statusLabel = i.status;
+    let statusBadge = '';
+    if (i.status === 'solved') statusBadge = `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:3px 10px">✓ Solved — Client Confirmed</span>`;
+    else if (i.status === 'resolved') statusBadge = `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:#c9a227;background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.25);border-radius:6px;padding:3px 10px">⏳ Awaiting Client Confirmation</span>`;
+    else statusBadge = `<span class="uat-status-pill ${STATUS_CLS[i.status]||'in_progress'}" style="pointer-events:none">${statusLabel}</span>`;
+
     const bodyEl = el('uatIssueDetailBody');
-    if (bodyEl) bodyEl.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+    if (!bodyEl) return;
+    bodyEl.innerHTML = `
+      <!-- Header badges -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
         <span style="font-size:12px;font-family:monospace;font-weight:700;color:#6b7280;background:#f4f5f7;border-radius:6px;padding:3px 10px">${escHtml(i.ref)}</span>
         <span class="uat-priority ${SEV_CLS[(i.severity||'').toLowerCase()]||'pri-low'}">${escHtml(i.severity||'Med')}</span>
-        <span class="uat-status-pill ${STATUS_CLS[i.status]||'in_progress'}" style="pointer-events:none">${escHtml(i.status)}</span>
+        ${statusBadge}
         ${i.source==='client_portal'?'<span style="font-size:11px;font-weight:700;color:#c9a227;background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.2);border-radius:6px;padding:3px 10px">Client Portal</span>':''}
       </div>
+      <!-- Title -->
       <div style="font-size:16px;font-weight:800;color:#0d1117;margin-bottom:16px;line-height:1.4">${escHtml(i.title)}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;background:#f8f9fa;border-radius:8px;padding:14px">
+      <!-- Meta grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;background:#f8f9fa;border-radius:8px;padding:14px">
         <div><div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Test Case</div>
           <div style="font-size:12px;font-weight:600;color:#374151">${tc ? `TC-${tc.seq}: ${tc.testDescription?.slice(0,50)||''}…` : i.testCaseId||'—'}</div></div>
-        <div><div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Assigned To</div>
-          <div style="font-size:12px;font-weight:600;color:#374151">${escHtml(i.assignedTo||'—')}</div></div>
         <div><div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Raised</div>
-          <div style="font-size:12px;font-weight:600;color:#374151">${i.createdAt ? new Date(i.createdAt).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div></div>
+          <div style="font-size:12px;font-weight:600;color:#374151">${_issueDate(i.createdAt)}</div></div>
+        <div>
+          <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Assigned To</div>
+          <input id="issueAssignedTo_${id}" type="text" value="${escHtml(i.assignedTo||'')}" placeholder="Unassigned"
+            style="font-size:12px;font-weight:600;color:#374151;border:1px solid #e4e6ea;border-radius:6px;padding:4px 8px;width:100%;font-family:inherit"
+            onchange="UAT.saveIssueField('${id}','assignedTo',this.value)">
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">ETA (Expected Fix Date)</div>
+          <input id="issueETA_${id}" type="date" value="${i.eta||''}"
+            style="font-size:12px;font-weight:600;color:#374151;border:1px solid #e4e6ea;border-radius:6px;padding:4px 8px;width:100%;font-family:inherit"
+            onchange="UAT.saveIssueField('${id}','eta',this.value)">
+        </div>
       </div>
-      ${i.description ? `
-        <div style="margin-bottom:8px">
-          <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Description / Client Notes</div>
-          <div style="font-size:13px;line-height:1.7;color:#0d1117;border:1px solid #e4e6ea;border-radius:8px;padding:14px;word-break:break-word">${i.description}</div>
-        </div>` : ''}
-      ${i.resolution ? `
-        <div style="margin-top:16px">
-          <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Resolution</div>
-          <div style="font-size:13px;line-height:1.6;color:#0d1117;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px">${escHtml(i.resolution)}</div>
-        </div>` : ''}`;
+      <!-- Description -->
+      ${i.description ? `<div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Client Description</div>
+        <div style="font-size:13px;line-height:1.7;color:#0d1117;border:1px solid #e4e6ea;border-radius:8px;padding:12px;word-break:break-word">${escHtml(i.description)}</div>
+      </div>` : ''}
+      <!-- Timeline -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Updates &amp; Timeline</div>
+        <div id="issueTimeline_${id}">${timelineHtml}</div>
+      </div>
+      <!-- Add update -->
+      ${i.status !== 'solved' ? `
+      <div style="border:1px solid #e4e6ea;border-radius:8px;padding:12px;background:#fafafa;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Add Update / Note</div>
+        <textarea id="issueUpdateText_${id}" rows="2" placeholder="Describe the progress, action taken, or resolution steps…"
+          style="width:100%;font-size:13px;border:1px solid #e4e6ea;border-radius:6px;padding:8px 10px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <button class="uat-btn uat-btn-secondary uat-btn-sm" onclick="UAT.addIssueUpdate('${id}','${escHtml(adminName).replace(/'/g,"\\'")}')">Post Update</button>
+          ${(i.status === 'open' || i.status === 'in_progress') ?
+            `<button class="uat-btn uat-btn-primary" style="background:#15803d;border-color:#15803d" onclick="UAT.markIssueResolved('${id}','${escHtml(adminName).replace(/'/g,"\\'")}')">✓ Mark as Resolved</button>` : ''}
+        </div>
+      </div>` : ''}
+      ${i.status === 'solved' && i.resolvedAt ? `<div style="font-size:12px;color:#15803d;font-weight:600;text-align:center;padding:8px;background:#f0fdf4;border-radius:8px">Issue resolved on ${_issueDate(i.resolvedAt)} and confirmed by client.</div>` : ''}`;
+
     el('uatIssueDetailRef')?.setAttribute('data', id);
     el('uatIssueDetailModal')?.classList.add('open');
   }
 
+  function openIssueDetail(id) { _renderIssueModal(id); }
   function closeIssueDetail() { el('uatIssueDetailModal')?.classList.remove('open'); }
+
+  async function saveIssueField(id, field, value) {
+    const r = await api('PUT', `/api/uat/issues/${id}`, { [field]: value });
+    if (r.ok) {
+      const idx = S.issues.findIndex(x => x.id === id);
+      if (idx >= 0) S.issues[idx] = r.data;
+    }
+  }
+
+  async function addIssueUpdate(id, author) {
+    const ta = el(`issueUpdateText_${id}`);
+    const text = (ta?.value || '').trim();
+    if (!text) return;
+    const r = await api('PUT', `/api/uat/issues/${id}`, { addUpdate: { text, author } });
+    if (r.ok) {
+      const idx = S.issues.findIndex(x => x.id === id);
+      if (idx >= 0) S.issues[idx] = r.data;
+      _renderIssueModal(id);
+    }
+  }
+
+  async function markIssueResolved(id, author) {
+    const ta = el(`issueUpdateText_${id}`);
+    const note = (ta?.value || '').trim() || 'Issue has been resolved by the Bluecopa team.';
+    const r = await api('PUT', `/api/uat/issues/${id}`, {
+      status: 'resolved',
+      addUpdate: { text: note, author }
+    });
+    if (r.ok) {
+      const idx = S.issues.findIndex(x => x.id === id);
+      if (idx >= 0) S.issues[idx] = r.data;
+      renderIssues();
+      _renderIssueModal(id);
+      toast('Issue marked as resolved — client will see this on their portal');
+    }
+  }
 
   /* ── Entity Sign-offs (sign-off section below the TC table) ─────────────── */
   function renderEntitySignoffSection() {
@@ -1637,5 +1731,8 @@ const UAT = (() => {
     openIssueDetail,
     closeIssueDetail,
     selectIssueProject,
+    saveIssueField,
+    addIssueUpdate,
+    markIssueResolved,
   };
 })();
