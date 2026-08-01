@@ -6677,7 +6677,7 @@ async function updateFeedbackStatus(id) {
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
   <script src="/uat.js?v=43" defer></script>
-  <script src="/ews.js?v=1" defer></script>
+  <script src="/ews.js?v=2" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -7653,15 +7653,11 @@ async function updateFeedbackStatus(id) {
     <div class="ews-form-row">
       <div class="ews-form-group">
         <label class="ews-label">Client</label>
-        <select class="ews-select" id="ewsFClient" onchange="EWS.onFormClientChange()">
-          <option value="">Select client...</option>
-        </select>
+        <input class="ews-input" id="ewsFClient" placeholder="Client name...">
       </div>
       <div class="ews-form-group">
         <label class="ews-label">Project</label>
-        <select class="ews-select" id="ewsFProject">
-          <option value="">Select project...</option>
-        </select>
+        <input class="ews-input" id="ewsFProject" placeholder="Project name...">
       </div>
     </div>
 
@@ -7741,6 +7737,20 @@ async function updateFeedbackStatus(id) {
           <option value="monthly">Monthly</option>
           <option value="adhoc">Ad-hoc</option>
         </select>
+      </div>
+    </div>
+
+    <!-- Stakeholders -->
+    <div class="ews-form-row full">
+      <div class="ews-form-group">
+        <label class="ews-label">Stakeholders (email)</label>
+        <div class="ews-stakeholder-input-row">
+          <input class="ews-input" id="ewsFStakeholderInput" type="email" placeholder="Add email address..."
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();EWS._addFormStakeholder()}">
+          <button class="ews-btn-secondary ews-btn-sm" onclick="EWS._addFormStakeholder()" type="button">Add</button>
+        </div>
+        <div class="ews-stakeholder-list" id="ewsFormStakeholderList" style="margin-top:6px"></div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:4px">Meeting invites and status updates will be sent to these addresses</div>
       </div>
     </div>
 

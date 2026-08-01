@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   EWS — Early Warning System  ·  ews.js  v1
-   IIFE module pattern, same as uat.js
+   EWS — Early Warning System  ·  ews.js  v2
+   Standalone module — no UAT dependency. Stakeholders + calendar invites.
 ═══════════════════════════════════════════════════════════════════════════ */
 
 const EWS = (() => {
@@ -10,23 +10,16 @@ const EWS = (() => {
   const S = {
     view: 'dashboard',
     ewsList: [],
-    projects: [],
-    clients: [],
     currentEwsId: null,
     inited: false,
     loading: false,
   };
 
-  // Dashboard filter state
   let _edf = { client:'', project:'', severity:'', status:'' };
-  // List filter state
   let _elf = { client:'', project:'', severity:'', status:'', triggerType:'' };
-  // Chart instances
   const _ec = {};
-  // Selected trigger in new-EWS modal
   let _selTrigger = '';
-  // Add-update panel open state
-  let _addUpdateOpen = false;
+  let _formStakeholders = [];
 
   // ── Constants ─────────────────────────────────────────────────────────────
   const TRIGGER_TYPES = {
@@ -64,10 +57,8 @@ const EWS = (() => {
 
   function fmtDate(iso) {
     if (!iso) return '—';
-    try {
-      const d = new Date(iso);
-      return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
-    } catch { return iso; }
+    try { return new Date(iso).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); }
+    catch { return iso; }
   }
 
   function relTime(iso) {
@@ -105,17 +96,14 @@ const EWS = (() => {
   async function api(method, path, body) {
     try {
       const u = currentUser();
-      const opts = {
-        method,
-        headers: { 'Content-Type': 'application/json', 'x-user-email': u.email || '' }
-      };
+      const opts = { method, headers: { 'Content-Type':'application/json', 'x-user-email': u.email||'' } };
       if (body !== undefined) opts.body = JSON.stringify(body);
       const r = await fetch(path, opts);
-      if (!r.ok) return { ok: false, error: r.statusText };
+      if (!r.ok) return { ok:false, error:r.statusText };
       const ct = r.headers.get('content-type') || '';
-      if (!ct.includes('json')) return { ok: false, error: 'non-JSON response' };
+      if (!ct.includes('json')) return { ok:false, error:'non-JSON response' };
       return r.json();
-    } catch(e) { return { ok: false, error: e.message }; }
+    } catch(e) { return { ok:false, error:e.message }; }
   }
 
   function toast(msg, dur = 3000) {
@@ -132,7 +120,7 @@ const EWS = (() => {
 
   function severityBadge(s) {
     const map = { critical:'Critical', high:'High', medium:'Medium', low:'Low' };
-    return `<span class="ews-severity-badge ${escHtml(s)}">${escHtml(map[s] || s)}</span>`;
+    return `<span class="ews-severity-badge ${escHtml(s)}">${escHtml(map[s]||s)}</span>`;
   }
 
   function statusPill(s) {
@@ -141,40 +129,28 @@ const EWS = (() => {
   }
 
   function riskBubble(score) {
-    const col = riskColor(score);
-    return `<span class="ews-risk-score" style="background:${col};font-size:11px">${score}</span>`;
+    return `<span class="ews-risk-score" style="background:${riskColor(score)};font-size:11px">${score}</span>`;
   }
 
-  function triggerLabel(t) {
-    return TRIGGER_TYPES[t]?.label || t || '—';
-  }
+  function triggerLabel(t) { return TRIGGER_TYPES[t]?.label || t || '—'; }
+  function triggerIcon(t)  { return TRIGGER_TYPES[t]?.icon  || '⚠️'; }
 
-  function triggerIcon(t) {
-    return TRIGGER_TYPES[t]?.icon || '⚠️';
-  }
-
-  // ── Filtered data helpers ─────────────────────────────────────────────────
+  // ── Filtered data — uses free-text clientName / projectName ──────────────
   function _dashFiltered() {
     let list = S.ewsList;
-    if (_edf.client) {
-      const projs = new Set(S.projects.filter(p => p.clientId === _edf.client).map(p => p.id));
-      list = list.filter(e => projs.has(e.projectId));
-    }
-    if (_edf.project)  list = list.filter(e => e.projectId === _edf.project);
-    if (_edf.severity) list = list.filter(e => e.severity === _edf.severity);
-    if (_edf.status)   list = list.filter(e => e.status === _edf.status);
+    if (_edf.client)   list = list.filter(e => e.clientName  === _edf.client);
+    if (_edf.project)  list = list.filter(e => e.projectName === _edf.project);
+    if (_edf.severity) list = list.filter(e => e.severity    === _edf.severity);
+    if (_edf.status)   list = list.filter(e => e.status      === _edf.status);
     return list;
   }
 
   function _listFiltered() {
     let list = S.ewsList;
-    if (_elf.client) {
-      const projs = new Set(S.projects.filter(p => p.clientId === _elf.client).map(p => p.id));
-      list = list.filter(e => projs.has(e.projectId));
-    }
-    if (_elf.project)     list = list.filter(e => e.projectId === _elf.project);
-    if (_elf.severity)    list = list.filter(e => e.severity === _elf.severity);
-    if (_elf.status)      list = list.filter(e => e.status === _elf.status);
+    if (_elf.client)      list = list.filter(e => e.clientName  === _elf.client);
+    if (_elf.project)     list = list.filter(e => e.projectName === _elf.project);
+    if (_elf.severity)    list = list.filter(e => e.severity    === _elf.severity);
+    if (_elf.status)      list = list.filter(e => e.status      === _elf.status);
     if (_elf.triggerType) list = list.filter(e => e.triggerType === _elf.triggerType);
     return list;
   }
@@ -199,7 +175,7 @@ const EWS = (() => {
 
   function setView(v) {
     S.view = v;
-    document.querySelectorAll('#ewsOverlay .ews-view').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('#ewsOverlay .ews-view').forEach(e => e.classList.remove('active'));
     document.querySelectorAll('#ewsOverlay .ews-nav-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.view === v);
     });
@@ -209,23 +185,16 @@ const EWS = (() => {
     if (v === 'list')      renderList();
   }
 
-  // ── Init ──────────────────────────────────────────────────────────────────
+  // ── Init — fetches only EWS data (standalone) ─────────────────────────────
   async function init() {
     if (S.loading) return;
     S.loading = true;
     try {
-      // Fetch EWS, projects, clients in parallel
-      const [ewsR, projR, clientR] = await Promise.all([
-        api('GET', '/api/ews'),
-        api('GET', '/api/uat/projects'),
-        api('GET', '/api/uat/clients'),
-      ]);
-      if (ewsR.ok && Array.isArray(ewsR.data))     S.ewsList  = ewsR.data;
-      if (projR.ok && Array.isArray(projR.data))   S.projects = projR.data;
-      if (clientR.ok && Array.isArray(clientR.data)) S.clients = clientR.data;
-    } catch(e) { /* silent */ }
+      const r = await api('GET', '/api/ews');
+      if (r.ok && Array.isArray(r.data)) S.ewsList = r.data;
+    } catch { /* silent */ }
     S.loading = false;
-    _buildFilterOptions();
+    _buildFiltersFromData();
     renderDashboard();
     renderList();
     _updateNavBadge();
@@ -235,6 +204,7 @@ const EWS = (() => {
     const r = await api('GET', '/api/ews');
     if (r.ok && Array.isArray(r.data)) S.ewsList = r.data;
     _updateNavBadge();
+    _buildFiltersFromData();
     renderDashboard();
     renderList();
   }
@@ -245,74 +215,54 @@ const EWS = (() => {
     if (b) b.textContent = active;
   }
 
-  // ── Filter options builder ────────────────────────────────────────────────
-  function _buildFilterOptions() {
-    // Dashboard client/project selects
-    _populateClientSelect('edfClient', _edf.client);
-    _populateClientSelect('elfClient', _elf.client);
-    _populateClientSelect('ewsFClient', '');
-    _populateDashProjectSelect();
-    _populateListProjectSelect();
-    _populateFormProjectSelect('');
+  // ── Filter options — derived from EWS data itself (no UAT) ───────────────
+  function _buildFiltersFromData() {
+    const clients  = [...new Set(S.ewsList.map(e => e.clientName).filter(Boolean))].sort();
+    const projects = [...new Set(S.ewsList.map(e => e.projectName).filter(Boolean))].sort();
 
-    // List trigger type
+    const clientOpts = '<option value="">All Clients</option>' +
+      clients.map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
+    const projOpts = '<option value="">All Projects</option>' +
+      projects.map(p => `<option value="${escHtml(p)}">${escHtml(p)}</option>`).join('');
+
+    ['edfClient','elfClient'].forEach(id => {
+      const s = el(id);
+      if (s) { const v = s.value; s.innerHTML = clientOpts; s.value = v; }
+    });
+    ['edfProject','elfProject'].forEach(id => {
+      const s = el(id);
+      if (s) { const v = s.value; s.innerHTML = projOpts; s.value = v; }
+    });
+
     const tSel = el('elfTrigger');
     if (tSel) {
+      const tv = tSel.value;
       tSel.innerHTML = '<option value="">All Triggers</option>' +
         Object.entries(TRIGGER_TYPES).map(([k,v]) =>
           `<option value="${k}">${v.icon} ${escHtml(v.label)}</option>`
         ).join('');
-      tSel.value = _elf.triggerType || '';
+      tSel.value = tv;
     }
-  }
-
-  function _populateClientSelect(selId, currentVal) {
-    const sel = el(selId);
-    if (!sel) return;
-    sel.innerHTML = '<option value="">All Clients</option>' +
-      S.clients.map(c => `<option value="${escHtml(c.id)}">${escHtml(c.name)}</option>`).join('');
-    sel.value = currentVal || '';
-  }
-
-  function _populateDashProjectSelect() {
-    const sel = el('edfProject');
-    if (!sel) return;
-    let projs = S.projects;
-    if (_edf.client) projs = projs.filter(p => p.clientId === _edf.client);
-    sel.innerHTML = '<option value="">All Projects</option>' +
-      projs.map(p => `<option value="${escHtml(p.id)}">${escHtml(p.name)}</option>`).join('');
-    sel.value = _edf.project || '';
-  }
-
-  function _populateListProjectSelect() {
-    const sel = el('elfProject');
-    if (!sel) return;
-    let projs = S.projects;
-    if (_elf.client) projs = projs.filter(p => p.clientId === _elf.client);
-    sel.innerHTML = '<option value="">All Projects</option>' +
-      projs.map(p => `<option value="${escHtml(p.id)}">${escHtml(p.name)}</option>`).join('');
-    sel.value = _elf.project || '';
-  }
-
-  function _populateFormProjectSelect(clientId) {
-    const sel = el('ewsFProject');
-    if (!sel) return;
-    let projs = S.projects;
-    if (clientId) projs = projs.filter(p => p.clientId === clientId);
-    sel.innerHTML = '<option value="">Select project...</option>' +
-      projs.map(p => `<option value="${escHtml(p.id)}">${escHtml(p.name)}</option>`).join('');
   }
 
   // ── Dashboard filter handlers ─────────────────────────────────────────────
   function onDashClientChange() {
-    _edf.client  = (el('edfClient')?.value || '');
+    _edf.client  = el('edfClient')?.value || '';
     _edf.project = '';
-    _populateDashProjectSelect();
+    const projects = [...new Set(
+      S.ewsList.filter(e => !_edf.client || e.clientName === _edf.client).map(e => e.projectName).filter(Boolean)
+    )].sort();
+    const projSel = el('edfProject');
+    if (projSel) {
+      projSel.innerHTML = '<option value="">All Projects</option>' +
+        projects.map(p => `<option value="${escHtml(p)}">${escHtml(p)}</option>`).join('');
+      projSel.value = '';
+    }
     applyDashFilters();
   }
 
   function onDashProjectChange() {
-    _edf.project = (el('edfProject')?.value || '');
+    _edf.project = el('edfProject')?.value || '';
     applyDashFilters();
   }
 
@@ -326,9 +276,7 @@ const EWS = (() => {
 
   function resetDashFilters() {
     _edf = { client:'', project:'', severity:'', status:'' };
-    const ids = ['edfClient','edfProject','edfSeverity','edfStatus'];
-    ids.forEach(id => { const s = el(id); if (s) s.value = ''; });
-    _populateDashProjectSelect();
+    ['edfClient','edfProject','edfSeverity','edfStatus'].forEach(id => { const s=el(id); if(s) s.value=''; });
     renderDashboard();
   }
 
@@ -336,7 +284,15 @@ const EWS = (() => {
   function onListClientChange() {
     _elf.client  = el('elfClient')?.value || '';
     _elf.project = '';
-    _populateListProjectSelect();
+    const projects = [...new Set(
+      S.ewsList.filter(e => !_elf.client || e.clientName === _elf.client).map(e => e.projectName).filter(Boolean)
+    )].sort();
+    const projSel = el('elfProject');
+    if (projSel) {
+      projSel.innerHTML = '<option value="">All Projects</option>' +
+        projects.map(p => `<option value="${escHtml(p)}">${escHtml(p)}</option>`).join('');
+      projSel.value = '';
+    }
     applyListFilters();
   }
 
@@ -351,16 +307,8 @@ const EWS = (() => {
 
   function resetListFilters() {
     _elf = { client:'', project:'', severity:'', status:'', triggerType:'' };
-    const ids = ['elfClient','elfProject','elfSeverity','elfStatus','elfTrigger'];
-    ids.forEach(id => { const s = el(id); if (s) s.value = ''; });
-    _populateListProjectSelect();
+    ['elfClient','elfProject','elfSeverity','elfStatus','elfTrigger'].forEach(id => { const s=el(id); if(s) s.value=''; });
     renderList();
-  }
-
-  // ── Form client change ────────────────────────────────────────────────────
-  function onFormClientChange() {
-    const clientId = el('ewsFClient')?.value || '';
-    _populateFormProjectSelect(clientId);
   }
 
   // ── Dashboard render ──────────────────────────────────────────────────────
@@ -368,7 +316,6 @@ const EWS = (() => {
     const list = _dashFiltered();
     _renderKPIs(list);
     _renderAtRisk(list);
-
     if (typeof requireChartJs === 'function') {
       requireChartJs(() => {
         _renderChartTrigger(list);
@@ -386,25 +333,20 @@ const EWS = (() => {
     const active   = list.filter(e => !['resolved','closed'].includes(e.status));
     const critical = active.filter(e => e.severity === 'critical' || e.severity === 'high');
     const resolved = list.filter(e => ['resolved','closed'].includes(e.status));
-    const projs    = new Set(active.map(e => e.projectId).filter(Boolean));
-
-    const times = resolved.filter(e => e.resolvedAt && e.raisedAt).map(e =>
+    const projs    = new Set(active.map(e => e.projectName).filter(Boolean));
+    const times    = resolved.filter(e => e.resolvedAt && e.raisedAt).map(e =>
       (new Date(e.resolvedAt) - new Date(e.raisedAt)) / 86400000
     );
-    const avgDays = times.length
-      ? (times.reduce((a,b) => a+b, 0) / times.length).toFixed(1)
-      : '—';
-
-    _setKpi('ewsKpi_active', active.length, `${list.length} total`);
+    const avgDays  = times.length ? (times.reduce((a,b) => a+b, 0) / times.length).toFixed(1) : '—';
+    _setKpi('ewsKpi_active',   active.length,   `${list.length} total`);
     _setKpi('ewsKpi_critical', critical.length, `${critical.filter(e=>e.severity==='critical').length} critical`);
     _setKpi('ewsKpi_resolved', resolved.length, 'all time');
-    _setKpi('ewsKpi_avgDays', avgDays, times.length ? `from ${times.length} resolved` : 'no data yet');
-    _setKpi('ewsKpi_atRisk', projs.size, 'with active EWS');
+    _setKpi('ewsKpi_avgDays',  avgDays, times.length ? `from ${times.length} resolved` : 'no data yet');
+    _setKpi('ewsKpi_atRisk',   projs.size, 'with active EWS');
   }
 
   function _setKpi(valId, val, sub) {
-    const v = el(valId);
-    const s = el(valId + 'Sub');
+    const v = el(valId), s = el(valId + 'Sub');
     if (v) v.textContent = val;
     if (s) s.textContent = sub;
   }
@@ -417,23 +359,18 @@ const EWS = (() => {
       tbody.innerHTML = `<tr><td colspan="6" class="ews-table-empty">🟢 No projects currently at risk</td></tr>`;
       return;
     }
-
-    // Group by project
     const byProj = {};
     active.forEach(e => {
-      const pid = e.projectId || '__no_proj__';
-      if (!byProj[pid]) byProj[pid] = { name: e.projectName || 'Unknown', clientName: e.clientName || '—', items: [] };
-      byProj[pid].items.push(e);
+      const key = e.projectName || '__none__';
+      if (!byProj[key]) byProj[key] = { name: e.projectName || 'Unknown Project', clientName: e.clientName || '—', items: [] };
+      byProj[key].items.push(e);
     });
-
     tbody.innerHTML = Object.values(byProj).sort((a,b) => b.items.length - a.items.length).map(row => {
       const critCount = row.items.filter(e => e.severity === 'critical').length;
-      const lastRaised = row.items.reduce((latest, e) => {
-        return !latest || e.raisedAt > latest ? e.raisedAt : latest;
-      }, null);
-      const maxScore = Math.max(...row.items.map(e => e.riskScore || 0));
-      const healthPct = Math.max(0, 100 - Math.min(100, maxScore * 7));
-      const healthCol = healthPct >= 70 ? '#22c55e' : healthPct >= 40 ? '#f59e0b' : '#dc2626';
+      const lastRaised = row.items.reduce((lat, e) => (!lat || e.raisedAt > lat ? e.raisedAt : lat), null);
+      const maxScore   = Math.max(...row.items.map(e => e.riskScore || 0));
+      const healthPct  = Math.max(0, 100 - Math.min(100, maxScore * 7));
+      const healthCol  = healthPct >= 70 ? '#22c55e' : healthPct >= 40 ? '#f59e0b' : '#dc2626';
       return `<tr>
         <td><strong>${escHtml(row.name)}</strong></td>
         <td style="color:#6b7280">${escHtml(row.clientName)}</td>
@@ -468,11 +405,12 @@ const EWS = (() => {
           borderRadius: 6, borderSkipped: false }]
       },
       options: {
-        indexAxis: 'y',
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x}` } } },
-        scales: { x: { grid: { color: '#f3f4f8' }, ticks: { color: '#9ca3af', font: { size: 11 } }, beginAtZero: true },
-                  y: { grid: { display: false }, ticks: { color: '#374151', font: { size: 11 } } } }
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend:{ display:false }, tooltip:{ callbacks:{ label: ctx => ` ${ctx.parsed.x}` } } },
+        scales: {
+          x: { grid:{ color:'#f3f4f8' }, ticks:{ color:'#9ca3af', font:{ size:11 } }, beginAtZero:true },
+          y: { grid:{ display:false }, ticks:{ color:'#374151', font:{ size:11 } } }
+        }
       }
     });
   }
@@ -497,11 +435,10 @@ const EWS = (() => {
           borderWidth: 2, borderColor: '#fff', hoverBorderWidth: 3 }]
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
-        cutout: '65%',
+        responsive: true, maintainAspectRatio: false, cutout: '65%',
         plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 11 }, color: '#374151' } },
-          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } }
+          legend: { position:'bottom', labels:{ boxWidth:10, padding:10, font:{size:11}, color:'#374151' } },
+          tooltip: { callbacks:{ label: ctx => ` ${ctx.label}: ${ctx.parsed}` } }
         }
       }
     });
@@ -514,7 +451,8 @@ const EWS = (() => {
     const active = list.filter(e => !['resolved','closed'].includes(e.status));
     const SCOL2 = { critical:'#dc2626', high:'#f97316', medium:'#f59e0b', low:'#22c55e' };
     const keys = ['critical','high','medium','low'];
-    const counts = {}; active.forEach(e => { counts[e.severity] = (counts[e.severity]||0)+1; });
+    const counts = {};
+    active.forEach(e => { counts[e.severity] = (counts[e.severity]||0)+1; });
     const entries = keys.filter(k => counts[k]);
     if (!entries.length) { c.style.display='none'; return; }
     c.style.display = '';
@@ -527,11 +465,8 @@ const EWS = (() => {
           borderWidth: 2, borderColor: '#fff' }]
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
-        cutout: '65%',
-        plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 11 }, color: '#374151' } },
-        }
+        responsive: true, maintainAspectRatio: false, cutout: '65%',
+        plugins: { legend:{ position:'bottom', labels:{ boxWidth:10, padding:10, font:{size:11}, color:'#374151' } } }
       }
     });
   }
@@ -540,29 +475,23 @@ const EWS = (() => {
     _destroyChart('trend');
     const c = el('ewsChartTrend');
     if (!c || !window.Chart) return;
-
-    // Build 8-week buckets
     const weeks = [];
     const now = new Date();
     for (let i = 7; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i * 7);
-      weeks.push({ label: d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' }), raised: 0, resolved: 0, ts: d.getTime() });
+      weeks.push({ label: d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' }), raised:0, resolved:0, ts: d.getTime() });
     }
-    const bucketOf = (iso) => {
+    const bucketOf = iso => {
       if (!iso) return -1;
       const t = new Date(iso).getTime();
-      for (let i = weeks.length - 1; i >= 0; i--) {
-        if (t >= weeks[i].ts - 7*86400000) return i;
-      }
+      for (let i = weeks.length-1; i >= 0; i--) if (t >= weeks[i].ts - 7*86400000) return i;
       return -1;
     };
     S.ewsList.forEach(e => {
-      const ri = bucketOf(e.raisedAt);
-      if (ri >= 0) weeks[ri].raised++;
+      const ri = bucketOf(e.raisedAt); if (ri >= 0) weeks[ri].raised++;
       if (e.resolvedAt) { const si = bucketOf(e.resolvedAt); if (si >= 0) weeks[si].resolved++; }
     });
-
     _ec['trend'] = new Chart(c.getContext('2d'), {
       type: 'line',
       data: {
@@ -574,7 +503,7 @@ const EWS = (() => {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position:'bottom', labels: { boxWidth:10, padding:10, font:{size:11}, color:'#374151' } } },
+        plugins: { legend:{ position:'bottom', labels:{ boxWidth:10, padding:10, font:{size:11}, color:'#374151' } } },
         scales: {
           x: { grid:{color:'#f3f4f8'}, ticks:{color:'#9ca3af', font:{size:11}} },
           y: { grid:{color:'#f3f4f8'}, ticks:{color:'#9ca3af', font:{size:11}}, beginAtZero:true }
@@ -586,8 +515,6 @@ const EWS = (() => {
   function _renderHeatmap(list) {
     const wrap = el('ewsHeatmap');
     if (!wrap) return;
-
-    // Severity (rows) × Likelihood (cols)
     const sevs = ['critical','high','medium','low'];
     const liks  = ['unlikely','possible','likely','certain'];
     const counts = {};
@@ -595,28 +522,24 @@ const EWS = (() => {
       const k = `${e.severity}:${e.likelihood}`;
       counts[k] = (counts[k] || 0) + 1;
     });
-
     let html = `<div style="display:grid;grid-template-columns:60px repeat(4,1fr);gap:3px;align-items:center">`;
-    // Header row: likelihood labels
     html += `<div style="font-size:9px;color:#9ca3af;text-align:center;font-weight:700">↑ SEVERITY</div>`;
     liks.forEach(l => {
       html += `<div style="font-size:9px;color:#9ca3af;text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:.3px">${l.slice(0,3).toUpperCase()}</div>`;
     });
-    // Rows: severity
     sevs.forEach(sev => {
       const svScore = { critical:4, high:3, medium:2, low:1 }[sev] || 1;
       html += `<div style="font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.3px;text-align:right;padding-right:6px">${sev.toUpperCase()}</div>`;
       liks.forEach(lik => {
         const lkScore = { certain:4, likely:3, possible:2, unlikely:1 }[lik] || 1;
-        const score = svScore * lkScore;
-        const cnt = counts[`${sev}:${lik}`] || 0;
-        const col = score >= 12 ? '#dc2626' : score >= 8 ? '#f97316' : score >= 4 ? '#f59e0b' : '#dcfce7';
+        const score   = svScore * lkScore;
+        const cnt     = counts[`${sev}:${lik}`] || 0;
+        const col     = score >= 12 ? '#dc2626' : score >= 8 ? '#f97316' : score >= 4 ? '#f59e0b' : '#dcfce7';
         const textCol = score >= 4 ? '#fff' : '#9ca3af';
         html += `<div class="ews-heatmap-cell" style="background:${col};color:${textCol}" title="${sev} × ${lik}: ${cnt} active">${cnt || ''}</div>`;
       });
     });
-    html += `</div>`;
-    html += `<div style="font-size:9px;color:#9ca3af;text-align:center;margin-top:4px;font-weight:600">LIKELIHOOD →</div>`;
+    html += `</div><div style="font-size:9px;color:#9ca3af;text-align:center;margin-top:4px;font-weight:600">LIKELIHOOD →</div>`;
     wrap.innerHTML = html;
   }
 
@@ -634,15 +557,12 @@ const EWS = (() => {
       return;
     }
     tbody.innerHTML = list.map(e => {
-      const proj = S.projects.find(p => p.id === e.projectId);
-      const projName = e.projectName || proj?.name || '—';
-      const clientName = e.clientName || '—';
       const score = e.riskScore || riskScore(e.severity, e.likelihood);
       return `<tr>
         <td><span class="ews-ref-chip">${escHtml(e.ref||'—')}</span></td>
         <td>
           <div style="font-weight:600;color:#090909;font-size:13px;cursor:pointer" onclick="EWS.openDrawer('${escHtml(e.id)}')">${escHtml(e.title)}</div>
-          <div style="font-size:11px;color:#9ca3af;margin-top:2px">${escHtml(projName)} · ${escHtml(clientName)}</div>
+          <div style="font-size:11px;color:#9ca3af;margin-top:2px">${escHtml(e.projectName||'—')} · ${escHtml(e.clientName||'—')}</div>
         </td>
         <td><span style="font-size:12px">${triggerIcon(e.triggerType)}</span> <span style="font-size:12px;color:#374151">${escHtml(triggerLabel(e.triggerType))}</span></td>
         <td>${severityBadge(e.severity)}</td>
@@ -651,9 +571,7 @@ const EWS = (() => {
         <td style="font-size:12px;color:#374151">${escHtml(e.internalOwner||'—')}</td>
         <td style="font-size:12px;color:#6b7280">${fmtDate(e.raisedAt)}</td>
         <td style="font-size:12px;color:${e.targetResolutionDate && new Date(e.targetResolutionDate)<new Date() && !['resolved','closed'].includes(e.status)?'#dc2626':'#6b7280'}">${fmtDate(e.targetResolutionDate)}</td>
-        <td>
-          <button class="ews-btn-secondary ews-btn-sm" onclick="EWS.openDrawer('${escHtml(e.id)}')" style="padding:4px 10px;font-size:11px">View →</button>
-        </td>
+        <td><button class="ews-btn-secondary ews-btn-sm" onclick="EWS.openDrawer('${escHtml(e.id)}')" style="padding:4px 10px;font-size:11px">View →</button></td>
       </tr>`;
     }).join('');
   }
@@ -672,13 +590,10 @@ const EWS = (() => {
     S.currentEwsId = null;
     el('ewsDrawerOverlay')?.classList.remove('open');
     el('ewsDrawer')?.classList.remove('open');
-    _addUpdateOpen = false;
   }
 
   function _renderDrawer(ews) {
     const score = ews.riskScore || riskScore(ews.severity, ews.likelihood);
-
-    // Header
     el('ewsDrRef').innerHTML    = `<span class="ews-ref-chip">${escHtml(ews.ref||'EWS')}</span>`;
     el('ewsDrSeverity').innerHTML = severityBadge(ews.severity);
     el('ewsDrStatus').innerHTML   = statusPill(ews.status);
@@ -687,7 +602,6 @@ const EWS = (() => {
     const scoreEl = el('ewsDrRiskScore');
     if (scoreEl) { scoreEl.textContent = score; scoreEl.style.background = riskColor(score); }
 
-    // Progress steps
     const progEl = el('ewsDrProgress');
     if (progEl) {
       const curIdx = STATUS_KEYS.indexOf(ews.status);
@@ -701,25 +615,28 @@ const EWS = (() => {
       }).join('');
     }
 
-    // Advance button
     const advBtn = el('ewsDrAdvanceBtn');
     if (advBtn) {
       const next = STATUSES[ews.status]?.next;
-      if (next) {
-        advBtn.textContent = `→ ${STATUSES[next].label}`;
-        advBtn.style.display = '';
-      } else {
-        advBtn.style.display = 'none';
-      }
+      if (next) { advBtn.textContent = `→ ${STATUSES[next].label}`; advBtn.style.display = ''; }
+      else        advBtn.style.display = 'none';
     }
 
-    // Body
     _renderDrawerBody(ews);
   }
 
   function _renderDrawerBody(ews) {
     const body = el('ewsDrawerBody');
     if (!body) return;
+
+    const stakeholders = ews.stakeholders || [];
+    const stakeholdersHtml = stakeholders.length
+      ? `<div class="ews-stakeholder-list">${stakeholders.map(em =>
+          `<span class="ews-stakeholder-chip">${escHtml(em)}<button onclick="EWS._removeDrawerStakeholder('${escHtml(em)}')" type="button" title="Remove">×</button></span>`
+        ).join('')}</div>`
+      : `<div style="color:#9ca3af;font-size:12px;padding:4px 0">No stakeholders added yet</div>`;
+
+    const canSchedule = ews.reviewFrequency && ews.reviewFrequency !== 'adhoc' && stakeholders.length > 0;
 
     const actionItemsHtml = (ews.actionItems || []).length
       ? ews.actionItems.map(a => {
@@ -736,12 +653,14 @@ const EWS = (() => {
 
     const updatesHtml = (ews.updates || []).length
       ? `<ul class="ews-timeline">${ews.updates.map(u => {
-          const cls = u.type === 'status_change' ? 'status' : u.type === 'created' ? 'created' : u.type === 'action' ? 'action' : '';
-          const dot = u.type === 'status_change' ? '↑' : u.type === 'created' ? '★' : u.type === 'action' ? '✓' : '●';
+          const cls = u.type === 'status_change' ? 'status' : u.type === 'created' ? 'created' : u.type === 'action' ? 'action' : u.type === 'decision' ? 'decision' : u.type === 'review' ? 'review' : '';
+          const dot = u.type === 'status_change' ? '↑' : u.type === 'created' ? '★' : u.type === 'action' ? '✓' : u.type === 'decision' ? '⚖' : u.type === 'review' ? '📋' : '●';
+          const label = u.type === 'decision' ? '<span style="font-size:10px;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:.4px;margin-right:6px">Decision</span>' :
+                        u.type === 'review'   ? '<span style="font-size:10px;font-weight:700;color:#14b8a6;text-transform:uppercase;letter-spacing:.4px;margin-right:6px">Review</span>' : '';
           return `<li class="ews-timeline-item">
             <div class="ews-timeline-dot ${cls}">${dot}</div>
             <div>
-              <div class="ews-timeline-text">${escHtml(u.text)}</div>
+              <div class="ews-timeline-text">${label}${escHtml(u.text)}</div>
               <div class="ews-timeline-meta">${escHtml(u.author||'System')} · ${relTime(u.at)}</div>
             </div>
           </li>`;
@@ -749,12 +668,25 @@ const EWS = (() => {
       : `<div style="color:#9ca3af;font-size:12px">No activity yet</div>`;
 
     body.innerHTML = `
-      <!-- Description -->
+      <!-- Risk Description -->
       <div class="ews-drawer-section">
         <div class="ews-drawer-section-title">Risk Description</div>
         <div style="font-size:13px;color:#090909;line-height:1.6">${escHtml(ews.description || '—')}</div>
         ${ews.rootCause ? `<div style="margin-top:10px"><span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px">Root Cause</span><div style="font-size:13px;color:#374151;margin-top:4px;line-height:1.5">${escHtml(ews.rootCause)}</div></div>` : ''}
         ${ews.currentImpact ? `<div style="margin-top:10px"><span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px">Current Impact</span><div style="font-size:13px;color:#374151;margin-top:4px;line-height:1.5">${escHtml(ews.currentImpact)}</div></div>` : ''}
+        <div style="margin-top:10px">
+          <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px">Business Impact</span>
+          ${ews.businessImpact
+            ? `<div style="font-size:13px;color:#374151;margin-top:4px;line-height:1.5">${escHtml(ews.businessImpact)}</div>`
+            : `<div style="font-size:12px;color:#9ca3af;margin-top:4px">Not specified — <button class="ews-inline-btn" onclick="EWS._editBusinessImpact()">Add impact</button></div>`}
+          <div id="ewsBusinessImpactEdit" class="ews-add-update-form" style="margin-top:8px">
+            <textarea class="ews-textarea" id="ewsBusinessImpactText" placeholder="Describe financial, operational or reputational impact..." style="min-height:64px;margin-bottom:8px">${escHtml(ews.businessImpact||'')}</textarea>
+            <div style="display:flex;gap:8px;justify-content:flex-end">
+              <button class="ews-btn-secondary ews-btn-sm" onclick="EWS._cancelBusinessImpact()">Cancel</button>
+              <button class="ews-btn-primary ews-btn-sm" onclick="EWS._saveBusinessImpact()">Save</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Corrective Plan & Action Items -->
@@ -781,9 +713,43 @@ const EWS = (() => {
         </div>
       </div>
 
-      <!-- People & Review -->
+      <!-- Stakeholders & Meetings -->
       <div class="ews-drawer-section">
-        <div class="ews-drawer-section-title">Ownership & Review</div>
+        <div class="ews-drawer-section-title">Stakeholders &amp; Meetings</div>
+        ${stakeholdersHtml}
+        <div class="ews-stakeholder-input-row" style="margin-top:8px">
+          <input class="ews-input" id="ewsDrawerStakeholderInput" type="email" placeholder="Add email address..."
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();EWS._addDrawerStakeholder()}">
+          <button class="ews-btn-secondary ews-btn-sm" onclick="EWS._addDrawerStakeholder()">Add</button>
+        </div>
+        <div style="margin-top:10px">
+          ${ews.meetLink
+            ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <a href="${escHtml(ews.meetLink)}" target="_blank" rel="noopener" style="color:#3548FF;font-size:12px;font-weight:600">🎥 Join Google Meet</a>
+                <button class="ews-inline-btn" onclick="EWS._clearMeetLink()">Change</button>
+              </div>`
+            : `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+                <input class="ews-input" id="ewsDrawerMeetLink" type="url" placeholder="Paste Google Meet or video link..." style="flex:1;font-size:12px">
+                <button class="ews-btn-secondary ews-btn-sm" onclick="EWS._saveMeetLink()">Save</button>
+              </div>`}
+          ${canSchedule
+            ? `<div style="display:flex;align-items:center;gap:10px">
+                <button id="ewsScheduleBtn" class="ews-btn-secondary ews-btn-sm" onclick="EWS.scheduleReviews()" style="display:flex;align-items:center;gap:4px">
+                  📅 Send Calendar Invite
+                </button>
+                ${ews.calendarInviteSent ? `<span style="font-size:11px;color:#22c55e">✓ Invite sent${ews.calendarInviteSentAt ? ' ' + relTime(ews.calendarInviteSentAt) : ''}</span>` : ''}
+              </div>`
+            : stakeholders.length === 0
+              ? `<div style="font-size:11px;color:#9ca3af">Add stakeholder emails above to enable calendar invites</div>`
+              : ews.reviewFrequency === 'adhoc'
+                ? `<div style="font-size:11px;color:#9ca3af">Set a recurring review frequency to enable calendar invites</div>`
+                : ''}
+        </div>
+      </div>
+
+      <!-- Ownership & Review -->
+      <div class="ews-drawer-section">
+        <div class="ews-drawer-section-title">Ownership &amp; Review</div>
         <div class="ews-info-grid">
           <div class="ews-info-item"><label>Internal Owner</label><div class="ews-info-val">${escHtml(ews.internalOwner||'—')}</div></div>
           <div class="ews-info-item"><label>Client Contact</label><div class="ews-info-val">${escHtml(ews.clientContact||'—')}</div></div>
@@ -795,17 +761,22 @@ const EWS = (() => {
         </div>
       </div>
 
-      <!-- Activity timeline -->
+      <!-- Activity & Decisions -->
       <div class="ews-drawer-section">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-          <div class="ews-drawer-section-title" style="margin-bottom:0">Activity</div>
-          <button class="ews-btn-secondary ews-btn-sm" onclick="EWS.showAddUpdate()" style="font-size:11px;padding:4px 10px">+ Update</button>
+          <div class="ews-drawer-section-title" style="margin-bottom:0">Activity &amp; Decisions</div>
+          <button class="ews-btn-secondary ews-btn-sm" onclick="EWS.showAddUpdate()" style="font-size:11px;padding:4px 10px">+ Add</button>
         </div>
         <div id="ewsAddUpdateForm" class="ews-add-update-form">
-          <textarea class="ews-textarea" id="ewsNewUpdateText" placeholder="What's the latest update on this risk?" style="min-height:72px;margin-bottom:8px"></textarea>
+          <select class="ews-select" id="ewsUpdateType" style="margin-bottom:8px;font-size:12px">
+            <option value="update">General Update</option>
+            <option value="decision">Decision Made</option>
+            <option value="review">Review Notes</option>
+          </select>
+          <textarea class="ews-textarea" id="ewsNewUpdateText" placeholder="What's the latest update, decision, or review notes?" style="min-height:72px;margin-bottom:8px"></textarea>
           <div style="display:flex;gap:8px;justify-content:flex-end">
             <button class="ews-btn-secondary ews-btn-sm" onclick="EWS.hideAddUpdate()">Cancel</button>
-            <button class="ews-btn-primary ews-btn-sm" onclick="EWS.submitAddUpdate()">Post Update</button>
+            <button class="ews-btn-primary ews-btn-sm" onclick="EWS.submitAddUpdate()">Post</button>
           </div>
         </div>
         ${updatesHtml}
@@ -820,21 +791,26 @@ const EWS = (() => {
 
   function hideAddUpdate() {
     const f = el('ewsAddUpdateForm');
-    if (f) { f.classList.remove('open'); const t = el('ewsNewUpdateText'); if (t) t.value = ''; }
+    if (f) {
+      f.classList.remove('open');
+      const t = el('ewsNewUpdateText'); if (t) t.value = '';
+      const s = el('ewsUpdateType'); if (s) s.value = 'update';
+    }
   }
 
   async function submitAddUpdate() {
     if (!S.currentEwsId) return;
     const text = el('ewsNewUpdateText')?.value?.trim();
+    const type = el('ewsUpdateType')?.value || 'update';
     if (!text) { toast('Please enter an update'); return; }
     const u = currentUser();
-    const r = await api('POST', `/api/ews/${S.currentEwsId}/updates`, { text, author: u.name || u.email || 'Team', type:'update' });
+    const r = await api('POST', `/api/ews/${S.currentEwsId}/updates`, { text, author: u.name || u.email || 'Team', type });
     if (!r.ok) { toast('Failed to post update'); return; }
     hideAddUpdate();
     await loadList();
     const ews = S.ewsList.find(e => e.id === S.currentEwsId);
     if (ews) _renderDrawerBody(ews);
-    toast('Update posted');
+    toast(type === 'decision' ? 'Decision recorded' : type === 'review' ? 'Review notes saved' : 'Update posted');
   }
 
   function showAddAction() {
@@ -846,9 +822,7 @@ const EWS = (() => {
     const f = el('ewsAddActionForm');
     if (f) {
       f.classList.remove('open');
-      ['ewsNewActionTitle','ewsNewActionAssignee','ewsNewActionDue'].forEach(id => {
-        const inp = el(id); if (inp) inp.value = '';
-      });
+      ['ewsNewActionTitle','ewsNewActionAssignee','ewsNewActionDue'].forEach(id => { const i=el(id); if(i) i.value=''; });
     }
   }
 
@@ -882,14 +856,14 @@ const EWS = (() => {
 
   async function advanceStatus() {
     if (!S.currentEwsId) return;
-    const ews = S.ewsList.find(e => e.id === S.currentEwsId);
-    if (!ews) return;
+    const ews  = S.ewsList.find(e => e.id === S.currentEwsId);
+    if (!ews)  return;
     const next = STATUSES[ews.status]?.next;
     if (!next) return;
     const u = currentUser();
     const r = await api('PUT', `/api/ews/${S.currentEwsId}`, {
       status: next,
-      addUpdate: { text: `Status advanced to: ${STATUSES[next].label}`, author: u.name || 'System', type: 'status_change' }
+      addUpdate: { text:`Status advanced to: ${STATUSES[next].label}`, author: u.name || 'System', type:'status_change' }
     });
     if (!r.ok) { toast('Failed to update status'); return; }
     await loadList();
@@ -898,11 +872,109 @@ const EWS = (() => {
     toast(`Status updated: ${STATUSES[next].label}`);
   }
 
+  // ── Drawer stakeholder management ─────────────────────────────────────────
+  async function _addDrawerStakeholder() {
+    if (!S.currentEwsId) return;
+    const input = el('ewsDrawerStakeholderInput');
+    if (!input) return;
+    const email = input.value.trim().toLowerCase();
+    if (!email || !email.includes('@')) { toast('Enter a valid email address'); return; }
+    const ews = S.ewsList.find(e => e.id === S.currentEwsId);
+    if (!ews) return;
+    if ((ews.stakeholders||[]).includes(email)) { toast('Already added'); input.value = ''; return; }
+    const r = await api('PUT', `/api/ews/${S.currentEwsId}`, { stakeholders: [...(ews.stakeholders||[]), email] });
+    if (!r.ok) { toast('Failed to add stakeholder'); return; }
+    input.value = '';
+    await loadList();
+    const refreshed = S.ewsList.find(e => e.id === S.currentEwsId);
+    if (refreshed) _renderDrawerBody(refreshed);
+  }
+
+  async function _removeDrawerStakeholder(email) {
+    if (!S.currentEwsId) return;
+    const ews = S.ewsList.find(e => e.id === S.currentEwsId);
+    if (!ews) return;
+    const r = await api('PUT', `/api/ews/${S.currentEwsId}`, {
+      stakeholders: (ews.stakeholders||[]).filter(e => e !== email)
+    });
+    if (!r.ok) { toast('Failed to remove stakeholder'); return; }
+    await loadList();
+    const refreshed = S.ewsList.find(e => e.id === S.currentEwsId);
+    if (refreshed) _renderDrawerBody(refreshed);
+  }
+
+  async function _saveMeetLink() {
+    if (!S.currentEwsId) return;
+    const link = el('ewsDrawerMeetLink')?.value?.trim();
+    if (!link) { toast('Enter a meeting link'); return; }
+    const r = await api('PUT', `/api/ews/${S.currentEwsId}`, { meetLink: link });
+    if (!r.ok) { toast('Failed to save link'); return; }
+    await loadList();
+    const refreshed = S.ewsList.find(e => e.id === S.currentEwsId);
+    if (refreshed) _renderDrawerBody(refreshed);
+    toast('Meet link saved');
+  }
+
+  async function _clearMeetLink() {
+    if (!S.currentEwsId) return;
+    const r = await api('PUT', `/api/ews/${S.currentEwsId}`, { meetLink: '' });
+    if (!r.ok) { toast('Failed to clear link'); return; }
+    await loadList();
+    const refreshed = S.ewsList.find(e => e.id === S.currentEwsId);
+    if (refreshed) _renderDrawerBody(refreshed);
+  }
+
+  // ── Schedule calendar invite ──────────────────────────────────────────────
+  async function scheduleReviews() {
+    if (!S.currentEwsId) return;
+    const ews = S.ewsList.find(e => e.id === S.currentEwsId);
+    if (!ews) return;
+    if (!ews.stakeholders || !ews.stakeholders.length) { toast('Add stakeholder emails first'); return; }
+    if (ews.reviewFrequency === 'adhoc') { toast('Set a recurring review frequency first'); return; }
+    const btn = el('ewsScheduleBtn');
+    if (btn) { btn.textContent = 'Sending…'; btn.disabled = true; }
+    const r = await api('POST', `/api/ews/${S.currentEwsId}/schedule`);
+    if (btn) { btn.textContent = '📅 Send Calendar Invite'; btn.disabled = false; }
+    if (!r.ok) { toast(`Failed: ${r.error || 'Could not send invite'}`); return; }
+    await loadList();
+    const refreshed = S.ewsList.find(e => e.id === S.currentEwsId);
+    if (refreshed) _renderDrawerBody(refreshed);
+    toast(`✓ Calendar invite sent to ${ews.stakeholders.length} stakeholder(s)`);
+  }
+
+  // ── Business impact inline edit ───────────────────────────────────────────
+  function _editBusinessImpact() {
+    const f = el('ewsBusinessImpactEdit');
+    if (!f) return;
+    const ews = S.ewsList.find(e => e.id === S.currentEwsId);
+    const inp = el('ewsBusinessImpactText');
+    if (inp && ews) inp.value = ews.businessImpact || '';
+    f.classList.add('open');
+    inp?.focus();
+  }
+
+  function _cancelBusinessImpact() {
+    const f = el('ewsBusinessImpactEdit');
+    if (f) f.classList.remove('open');
+  }
+
+  async function _saveBusinessImpact() {
+    if (!S.currentEwsId) return;
+    const text = el('ewsBusinessImpactText')?.value?.trim() || '';
+    const r = await api('PUT', `/api/ews/${S.currentEwsId}`, { businessImpact: text });
+    if (!r.ok) { toast('Failed to save'); return; }
+    _cancelBusinessImpact();
+    await loadList();
+    const refreshed = S.ewsList.find(e => e.id === S.currentEwsId);
+    if (refreshed) _renderDrawerBody(refreshed);
+    toast('Business impact saved');
+  }
+
   // ── New EWS Modal ─────────────────────────────────────────────────────────
   function showNewModal() {
     _selTrigger = '';
+    _formStakeholders = [];
 
-    // Build trigger grid
     const grid = el('ewsTriggerGrid');
     if (grid) {
       grid.innerHTML = Object.entries(TRIGGER_TYPES).map(([k, v]) =>
@@ -914,10 +986,7 @@ const EWS = (() => {
       ).join('');
     }
 
-    // Populate client/project
-    _populateClientSelect('ewsFClient', '');
-    _populateFormProjectSelect('');
-
+    _renderFormStakeholders();
     el('ewsModalBg').style.display = 'flex';
     el('ewsFTitle')?.focus();
   }
@@ -926,12 +995,15 @@ const EWS = (() => {
     const m = el('ewsModalBg');
     if (m) m.style.display = 'none';
     _selTrigger = '';
-    // Reset form
-    ['ewsFTitle','ewsFOwner','ewsFClientContact'].forEach(id => { const i=el(id); if(i) i.value=''; });
+    _formStakeholders = [];
+    ['ewsFTitle','ewsFClient','ewsFProject','ewsFOwner','ewsFClientContact','ewsFStakeholderInput'].forEach(id => {
+      const i = el(id); if (i) i.value = '';
+    });
     ['ewsFDesc','ewsFRootCause','ewsFImpact','ewsFPlan'].forEach(id => { const i=el(id); if(i) i.value=''; });
     const sev = el('ewsFSeverity'); if (sev) sev.value = 'medium';
     const lik = el('ewsFLikelihood'); if (lik) lik.value = 'possible';
     const rf  = el('ewsFReviewFreq'); if (rf)  rf.value = 'biweekly';
+    _renderFormStakeholders();
   }
 
   function _selectTrigger(key) {
@@ -941,35 +1013,55 @@ const EWS = (() => {
     });
   }
 
+  // ── Form stakeholder management ───────────────────────────────────────────
+  function _addFormStakeholder() {
+    const input = el('ewsFStakeholderInput');
+    if (!input) return;
+    const email = input.value.trim().toLowerCase();
+    if (!email || !email.includes('@') || !email.includes('.')) { toast('Enter a valid email address'); return; }
+    if (_formStakeholders.includes(email)) { toast('Already added'); input.value = ''; return; }
+    _formStakeholders.push(email);
+    _renderFormStakeholders();
+    input.value = '';
+    input.focus();
+  }
+
+  function _removeFormStakeholder(email) {
+    _formStakeholders = _formStakeholders.filter(e => e !== email);
+    _renderFormStakeholders();
+  }
+
+  function _renderFormStakeholders() {
+    const c = el('ewsFormStakeholderList');
+    if (!c) return;
+    c.innerHTML = _formStakeholders.map(em =>
+      `<span class="ews-stakeholder-chip">${escHtml(em)}<button onclick="EWS._removeFormStakeholder('${escHtml(em)}')" type="button" title="Remove">×</button></span>`
+    ).join('');
+  }
+
   async function submitNewEws() {
     const title = el('ewsFTitle')?.value?.trim();
     if (!title) { toast('Please enter a title'); el('ewsFTitle')?.focus(); return; }
     if (!_selTrigger) { toast('Please select a trigger type'); return; }
-
-    const projectId = el('ewsFProject')?.value || '';
-    const clientId  = el('ewsFClient')?.value  || '';
-    const proj = S.projects.find(p => p.id === projectId);
-    const client = S.clients.find(c => c.id === clientId);
     const u = currentUser();
 
     const payload = {
       title,
-      triggerType:         _selTrigger,
-      projectId,
-      clientId,
-      projectName:         proj?.name || '',
-      clientName:          client?.name || '',
-      severity:            el('ewsFSeverity')?.value    || 'medium',
-      likelihood:          el('ewsFLikelihood')?.value  || 'possible',
-      description:         el('ewsFDesc')?.value?.trim()         || '',
-      rootCause:           el('ewsFRootCause')?.value?.trim()    || '',
-      currentImpact:       el('ewsFImpact')?.value?.trim()       || '',
-      correctivePlan:      el('ewsFPlan')?.value?.trim()         || '',
-      internalOwner:       el('ewsFOwner')?.value?.trim()        || '',
-      clientContact:       el('ewsFClientContact')?.value?.trim()|| '',
-      targetResolutionDate:el('ewsFTargetDate')?.value           || '',
-      reviewFrequency:     el('ewsFReviewFreq')?.value           || 'biweekly',
-      raisedBy:            u.name || u.email || 'Team',
+      triggerType:          _selTrigger,
+      clientName:           el('ewsFClient')?.value?.trim()        || '',
+      projectName:          el('ewsFProject')?.value?.trim()       || '',
+      severity:             el('ewsFSeverity')?.value              || 'medium',
+      likelihood:           el('ewsFLikelihood')?.value            || 'possible',
+      description:          el('ewsFDesc')?.value?.trim()          || '',
+      rootCause:            el('ewsFRootCause')?.value?.trim()     || '',
+      currentImpact:        el('ewsFImpact')?.value?.trim()        || '',
+      correctivePlan:       el('ewsFPlan')?.value?.trim()          || '',
+      internalOwner:        el('ewsFOwner')?.value?.trim()         || '',
+      clientContact:        el('ewsFClientContact')?.value?.trim() || '',
+      targetResolutionDate: el('ewsFTargetDate')?.value            || '',
+      reviewFrequency:      el('ewsFReviewFreq')?.value            || 'biweekly',
+      stakeholders:         _formStakeholders.slice(),
+      raisedBy:             u.name || u.email || 'Team',
     };
 
     const btn = document.querySelector('.ews-modal [onclick="EWS.submitNewEws()"]');
@@ -982,36 +1074,24 @@ const EWS = (() => {
     hideNewModal();
     await loadList();
     toast(`✓ ${r.data?.ref || 'EWS'} raised successfully`);
-    // Open the drawer for the new item
     if (r.data?.id) setTimeout(() => openDrawer(r.data.id), 300);
   }
 
   // ── Public API ────────────────────────────────────────────────────────────
   return {
-    open,
-    close,
-    setView,
-    openDrawer,
-    closeDrawer,
-    showNewModal,
-    hideNewModal,
-    submitNewEws,
-    showAddUpdate,
-    hideAddUpdate,
-    submitAddUpdate,
-    showAddAction,
-    hideAddAction,
-    submitAddAction,
-    toggleActionItem,
-    advanceStatus,
-    applyDashFilters,
-    resetDashFilters,
-    onDashClientChange,
-    onDashProjectChange,
-    applyListFilters,
-    resetListFilters,
-    onListClientChange,
-    onFormClientChange,
+    open, close, setView,
+    openDrawer, closeDrawer,
+    showNewModal, hideNewModal, submitNewEws,
+    showAddUpdate, hideAddUpdate, submitAddUpdate,
+    showAddAction, hideAddAction, submitAddAction,
+    toggleActionItem, advanceStatus,
+    applyDashFilters, resetDashFilters, onDashClientChange, onDashProjectChange,
+    applyListFilters, resetListFilters, onListClientChange,
     _selectTrigger,
+    _addFormStakeholder, _removeFormStakeholder,
+    _addDrawerStakeholder, _removeDrawerStakeholder,
+    _saveMeetLink, _clearMeetLink,
+    scheduleReviews,
+    _editBusinessImpact, _cancelBusinessImpact, _saveBusinessImpact,
   };
 })();

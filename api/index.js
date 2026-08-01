@@ -17,7 +17,7 @@ const mailer = nodemailer.createTransport({
   },
 });
 
-async function sendEmail({ to, subject, html, text }) {
+async function sendEmail({ to, subject, html, text, attachments }) {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.warn('[email] SMTP not configured — skipping send');
     return;
@@ -29,6 +29,7 @@ async function sendEmail({ to, subject, html, text }) {
       subject,
       html,
       text,
+      ...(attachments ? { attachments } : {}),
     });
     console.log('[email] sent →', to, '|', info.messageId);
     return info;
@@ -1909,6 +1910,7 @@ function ewsDB() {
 }
 
 function ewsUid() { return 'ews_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+function escHtmlServer(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function ewsLog(type, msg, meta={}) {
   const u = ewsDB();
@@ -1940,11 +1942,12 @@ app.get('/api/ews/:id', async (req, res) => {
 app.post('/api/ews', async (req, res) => {
   await _dbReady;
   const u = ewsDB();
-  const { title, projectId='', clientId='', projectName='', clientName='',
+  const { title, projectName='', clientName='',
     triggerType='emerging_risk', severity='medium', likelihood='possible',
     description='', rootCause='', currentImpact='', potentialImpact='',
-    correctivePlan='', internalOwner='', clientContact='',
-    targetResolutionDate='', reviewFrequency='biweekly', raisedBy='' } = req.body;
+    businessImpact='', correctivePlan='', internalOwner='', clientContact='',
+    targetResolutionDate='', reviewFrequency='biweekly', raisedBy='',
+    stakeholders=[], meetLink='' } = req.body;
   if (!title || !title.trim()) return res.status(400).json({ ok:false, error:'title required' });
   const now = new Date().toISOString();
   const svMap = { critical:4, high:3, medium:2, low:1 };
@@ -1952,28 +1955,37 @@ app.post('/api/ews', async (req, res) => {
   const rs = (svMap[severity]||2) * (lkMap[likelihood]||2);
   const seq = u.nextEwsId++;
   const ews = {
-    id: ewsUid(),
-    ref: `EWS-${String(seq).padStart(3,'0')}`,
-    title: title.trim(),
-    projectId, clientId, projectName, clientName,
+    id: ewsUid(), ref: `EWS-${String(seq).padStart(3,'0')}`,
+    title: title.trim(), projectName, clientName,
     triggerType, severity, likelihood, riskScore: rs,
     description, rootCause, currentImpact, potentialImpact,
-    correctivePlan, internalOwner, clientContact,
+    businessImpact, correctivePlan, internalOwner, clientContact,
     targetResolutionDate, reviewFrequency,
-    status: 'ews_raised', escalationLevel: 'team',
-    raisedBy,
-    actionItems: [],
-    updates: [],
-    detectedAt: now, raisedAt: now,
-    resolvedAt: null, closedAt: null,
-    nextReviewDate: '', lastReviewDate: '',
-    createdAt: now, updatedAt: now,
+    stakeholders: Array.isArray(stakeholders) ? stakeholders : [],
+    meetLink,
+    status: 'ews_raised', escalationLevel: 'team', raisedBy,
+    actionItems: [], updates: [],
+    calendarInviteSent: false, calendarInviteSentAt: null,
+    detectedAt: now, raisedAt: now, resolvedAt: null, closedAt: null,
+    nextReviewDate: '', lastReviewDate: '', createdAt: now, updatedAt: now,
   };
   ews.updates.push({ id:ewsUid(), text:`EWS raised${description?' — '+description.slice(0,80):''}`, author:raisedBy||'System', type:'created', at:now });
   u.ewsList.unshift(ews);
-  ewsLog('ews_raised', `EWS "${title}" raised`, { ewsId:ews.id, projectId, clientId });
+  ewsLog('ews_raised', `EWS "${title}" raised`, { ewsId:ews.id, projectName, clientName });
   await saveDB(db);
   res.json({ ok:true, data:ews });
+  if (ews.stakeholders.length) {
+    setImmediate(async () => {
+      try {
+        await sendEmail({
+          to: ews.stakeholders.join(', '),
+          subject: `[EWS Raised] ${ews.ref}: ${ews.title}`,
+          html: `<div style="font-family:sans-serif;max-width:600px"><h2 style="color:#dc2626">⚠️ Early Warning Raised</h2><p><strong>${escHtmlServer(ews.ref)} — ${escHtmlServer(ews.title)}</strong></p><p>Severity: ${escHtmlServer(ews.severity)} | Project: ${escHtmlServer(ews.projectName||'N/A')} | Client: ${escHtmlServer(ews.clientName||'N/A')}</p>${ews.description?`<p>${escHtmlServer(ews.description)}</p>`:''}<p style="color:#6b7280;font-size:12px">Sent by Bluecopa Early Warning System</p></div>`,
+          text: `EWS Raised: ${ews.ref} — ${ews.title}\nSeverity: ${ews.severity}\nProject: ${ews.projectName}\nClient: ${ews.clientName}`,
+        });
+      } catch(e) { console.warn('[EWS notify]', e.message); }
+    });
+  }
 });
 
 // PUT update EWS (status, fields, and/or inline update)
@@ -2060,6 +2072,74 @@ app.put('/api/ews/:ewsId/actions/:actionId', async (req, res) => {
   ews.updatedAt = now;
   await saveDB(db);
   res.json({ ok:true, data:action });
+});
+
+// ── EWS: send calendar invite ─────────────────────────────────────────────────
+function generateEWSICS(ews) {
+  const freqMap = { weekly:'WEEKLY', biweekly:'WEEKLY;INTERVAL=2', monthly:'MONTHLY' };
+  const rruleFreq = freqMap[ews.reviewFrequency];
+  const now  = new Date();
+  const start = new Date(now);
+  const daysUntilMonday = (1 + 7 - start.getDay()) % 7 || 7;
+  start.setDate(start.getDate() + daysUntilMonday);
+  start.setUTCHours(10, 0, 0, 0);
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
+  const fmt = d => d.toISOString().replace(/[-:]/g,'').replace('.000Z','Z');
+  const desc = [
+    `EWS Reference: ${ews.ref}`, `Project: ${ews.projectName||'N/A'}`,
+    `Client: ${ews.clientName||'N/A'}`, `Severity: ${ews.severity}`,
+    `Status: ${ews.status.replace(/_/g,' ')}`, '',
+    ews.description || '', ews.meetLink ? `Video: ${ews.meetLink}` : 'Video link to be shared by organiser.',
+  ].filter(Boolean).join('\\n');
+  const attendees = (ews.stakeholders||[])
+    .map(e => `ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${e}`)
+    .join('\r\n');
+  const lines = [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Bluecopa//EWS//EN',
+    'CALSCALE:GREGORIAN','METHOD:REQUEST','BEGIN:VEVENT',
+    `UID:${ews.id}-review@bluecopa.com`,`DTSTAMP:${fmt(now)}`,
+    `DTSTART:${fmt(start)}`,`DTEND:${fmt(end)}`,
+    ...(rruleFreq ? [`RRULE:FREQ=${rruleFreq}`] : []),
+    `SUMMARY:EWS Review — ${ews.title}`,`DESCRIPTION:${desc}`,
+    `ORGANIZER;CN=Bluecopa Delivery:mailto:delivery.wiki@bluecopa.com`,
+    ...(attendees ? [attendees] : []),
+    'STATUS:CONFIRMED','SEQUENCE:0',
+    'BEGIN:VALARM','TRIGGER:-PT15M','ACTION:DISPLAY',
+    `DESCRIPTION:Reminder: EWS Review in 15 min — ${ews.title}`,'END:VALARM',
+    'END:VEVENT','END:VCALENDAR',
+  ];
+  return lines.join('\r\n');
+}
+
+app.post('/api/ews/:id/schedule', async (req, res) => {
+  await _dbReady;
+  const ews = ewsDB().ewsList.find(x => x.id === req.params.id);
+  if (!ews) return res.status(404).json({ ok:false, error:'not found' });
+  if (!ews.stakeholders || !ews.stakeholders.length)
+    return res.status(400).json({ ok:false, error:'no stakeholders to invite' });
+  if (ews.reviewFrequency === 'adhoc')
+    return res.status(400).json({ ok:false, error:'adhoc frequency cannot be scheduled' });
+  try {
+    const ics = generateEWSICS(ews);
+    const freqLabel = { weekly:'Weekly', biweekly:'Bi-weekly', monthly:'Monthly' }[ews.reviewFrequency] || ews.reviewFrequency;
+    await sendEmail({
+      to: ews.stakeholders.join(', '),
+      subject: `[EWS Calendar] ${freqLabel} review — ${ews.ref}: ${ews.title}`,
+      html: `<div style="font-family:sans-serif;max-width:600px"><h2 style="color:#3548FF">📅 EWS Review Invitation</h2><p>You are invited to a <strong>${freqLabel}</strong> review for <strong>${escHtmlServer(ews.ref)} — ${escHtmlServer(ews.title)}</strong></p><p>Project: ${escHtmlServer(ews.projectName||'N/A')} | Client: ${escHtmlServer(ews.clientName||'N/A')} | Severity: ${escHtmlServer(ews.severity)}</p>${ews.meetLink?`<p>🎥 <a href="${escHtmlServer(ews.meetLink)}">Join Google Meet</a></p>`:'<p style="color:#6b7280">A video link will be shared by the organiser.</p>'}<p>Please accept the calendar invitation attached.</p><p style="color:#6b7280;font-size:12px">Sent by Bluecopa Early Warning System</p></div>`,
+      text: `EWS Review Invite: ${ews.ref} — ${ews.title}\nFrequency: ${freqLabel}`,
+      attachments: [{ filename:`EWS-Review-${ews.ref}.ics`, content:ics, contentType:'text/calendar; method=REQUEST' }],
+    });
+    const now = new Date().toISOString();
+    ews.calendarInviteSent   = true;
+    ews.calendarInviteSentAt = now;
+    ews.updates.unshift({ id:ewsUid(), text:`Calendar invite sent to ${ews.stakeholders.length} stakeholder(s)`, author:'System', type:'action', at:now });
+    ews.updatedAt = now;
+    await saveDB(db);
+    res.json({ ok:true, message:`Invite sent to ${ews.stakeholders.length} stakeholder(s)` });
+  } catch(e) {
+    console.error('[EWS schedule]', e.message);
+    res.status(500).json({ ok:false, error:'Failed to send invite: ' + e.message });
+  }
 });
 
 // ── Upload (disabled on Vercel) ───────────────────────────────────────────────

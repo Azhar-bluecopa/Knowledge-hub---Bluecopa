@@ -753,3 +753,63 @@
 .ews-body::-webkit-scrollbar-track { background: transparent; }
 .ews-drawer-body::-webkit-scrollbar-thumb,
 .ews-body::-webkit-scrollbar-thumb { background: #DADADA; border-radius: 99px; }
+
+/* ── Stakeholders ──────────────────────────────────────────────────────── */
+.ews-stakeholder-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ews-stakeholder-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ews-stakeholder-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 10px;
+  background: #eef0ff;
+  border: 1px solid #c7ccff;
+  border-radius: 99px;
+  font-size: 11px;
+  color: #3548FF;
+  font-weight: 500;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ews-stakeholder-chip button {
+  background: none;
+  border: none;
+  padding: 0 0 0 2px;
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ews-stakeholder-chip button:hover { color: #dc2626; }
+
+/* ── Inline edit button ────────────────────────────────────────────────── */
+.ews-inline-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #3548FF;
+  font-size: 12px;
+  text-decoration: underline;
+  font-family: inherit;
+}
+.ews-inline-btn:hover { color: #2134EB; }
+
+/* ── Timeline — decision / review dot types ────────────────────────────── */
+.ews-timeline-dot.decision { background: #8b5cf6; }
+.ews-timeline-dot.review   { background: #14b8a6; }
