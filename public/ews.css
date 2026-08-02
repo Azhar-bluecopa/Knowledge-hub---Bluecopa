@@ -813,3 +813,29 @@
 /* ── Timeline — decision / review dot types ────────────────────────────── */
 .ews-timeline-dot.decision { background: #8b5cf6; }
 .ews-timeline-dot.review   { background: #14b8a6; }
+
+/* ── Drawer maximize ───────────────────────────────────────────────────── */
+.ews-drawer {
+  transition: transform .25s ease, width .25s ease;
+}
+.ews-drawer.maximized {
+  width: 100vw;
+  max-width: 100vw;
+  border-radius: 0;
+}
+.ews-max-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #9ca3af;
+  padding: 4px 6px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  transition: background .15s, color .15s;
+}
+.ews-max-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}

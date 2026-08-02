@@ -20,7 +20,7 @@
   </noscript>
   <link rel="stylesheet" href="/style.css?v=80">
   <link rel="stylesheet" href="/uat.css?v=21">
-  <link rel="stylesheet" href="/ews.css?v=1">
+  <link rel="stylesheet" href="/ews.css?v=2">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -6677,7 +6677,7 @@ async function updateFeedbackStatus(id) {
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
   <script src="/uat.js?v=43" defer></script>
-  <script src="/ews.js?v=2" defer></script>
+  <script src="/ews.js?v=3" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -7606,6 +7606,7 @@ async function updateFeedbackStatus(id) {
     </div>
     <div style="display:flex;gap:8px;align-items:flex-start;flex-shrink:0">
       <div id="ewsDrRiskScore" class="ews-risk-score" style="width:40px;height:40px;font-size:16px"></div>
+      <button id="ewsMaxBtn" class="ews-max-btn" onclick="EWS.toggleMaximize()" title="Maximize"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,1.5 12.5,1.5 12.5,6"/><polyline points="6,12.5 1.5,12.5 1.5,8"/><line x1="12.5" y1="1.5" x2="7.5" y2="6.5"/><line x1="1.5" y1="12.5" x2="6.5" y2="7.5"/></svg></button>
       <button onclick="EWS.closeDrawer()" style="border:none;background:transparent;font-size:22px;cursor:pointer;color:#9ca3af;padding:2px;line-height:1">×</button>
     </div>
   </div>

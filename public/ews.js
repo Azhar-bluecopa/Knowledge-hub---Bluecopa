@@ -20,6 +20,10 @@ const EWS = (() => {
   const _ec = {};
   let _selTrigger = '';
   let _formStakeholders = [];
+  let _drawerMaximized = false;
+
+  const _SVG_MAXIMIZE = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,1.5 12.5,1.5 12.5,6"/><polyline points="6,12.5 1.5,12.5 1.5,8"/><line x1="12.5" y1="1.5" x2="7.5" y2="6.5"/><line x1="1.5" y1="12.5" x2="6.5" y2="7.5"/></svg>`;
+  const _SVG_RESTORE  = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="12.5,6 8,6 8,1.5"/><polyline points="1.5,8 6,8 6,12.5"/><line x1="8" y1="6" x2="12.5" y2="1.5"/><line x1="6" y1="8" x2="1.5" y2="12.5"/></svg>`;
 
   // ── Constants ─────────────────────────────────────────────────────────────
   const TRIGGER_TYPES = {
@@ -588,8 +592,19 @@ const EWS = (() => {
 
   function closeDrawer() {
     S.currentEwsId = null;
+    _drawerMaximized = false;
     el('ewsDrawerOverlay')?.classList.remove('open');
-    el('ewsDrawer')?.classList.remove('open');
+    el('ewsDrawer')?.classList.remove('open', 'maximized');
+  }
+
+  function toggleMaximize() {
+    _drawerMaximized = !_drawerMaximized;
+    el('ewsDrawer')?.classList.toggle('maximized', _drawerMaximized);
+    const btn = el('ewsMaxBtn');
+    if (btn) {
+      btn.innerHTML = _drawerMaximized ? _SVG_RESTORE : _SVG_MAXIMIZE;
+      btn.title = _drawerMaximized ? 'Restore' : 'Maximize';
+    }
   }
 
   function _renderDrawer(ews) {
@@ -1093,5 +1108,6 @@ const EWS = (() => {
     _saveMeetLink, _clearMeetLink,
     scheduleReviews,
     _editBusinessImpact, _cancelBusinessImpact, _saveBusinessImpact,
+    toggleMaximize,
   };
 })();
