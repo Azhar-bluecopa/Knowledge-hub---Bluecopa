@@ -1912,6 +1912,64 @@ function ewsDB() {
 function ewsUid() { return 'ews_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
 function escHtmlServer(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+// ── EWS email helpers ─────────────────────────────────────────────────────
+const EWS_DEFAULT_RECIPIENT = 'azhar.m@bluecopa.com';
+function ewsRecipients(ews) {
+  return [...new Set([...(ews.stakeholders||[]), EWS_DEFAULT_RECIPIENT].filter(Boolean))].join(', ');
+}
+function _ewsStatusMeta(s) {
+  const m = { ews_raised:{label:'EWS Raised',bg:'#fef2f2',color:'#dc2626'}, plan_defined:{label:'Plan Defined',bg:'#fffbeb',color:'#d97706'}, leadership_engaged:{label:'Leadership Engaged',bg:'#faf5ff',color:'#7c3aed'}, in_review:{label:'In Review',bg:'#eff6ff',color:'#2563eb'}, resolved:{label:'Resolved',bg:'#f0fdf4',color:'#16a34a'}, closed:{label:'Closed',bg:'#f9fafb',color:'#6b7280'} };
+  return m[s] || { label:s, bg:'#f9fafb', color:'#6b7280' };
+}
+const _EWS_EVENT_CFG = {
+  created:            { subj:'[EWS Raised]',    banner:'#fef2f2', bdr:'#dc2626', title:'⚠ New Early Warning Raised',       msg:'This EWS requires immediate attention. Please review the details and ensure the right people are engaged.' },
+  plan_defined:       { subj:'[EWS Update]',     banner:'#fffbeb', bdr:'#d97706', title:'📋 Mitigation Plan Defined',        msg:'A mitigation plan has been defined. Please review, provide feedback, and support the owner in executing it.' },
+  leadership_engaged: { subj:'[EWS Escalated]',  banner:'#faf5ff', bdr:'#7c3aed', title:'🔺 Escalated to Leadership',        msg:'This issue has been escalated for leadership oversight. Senior stakeholders should review and provide direction.' },
+  in_review:          { subj:'[EWS In Review]',  banner:'#eff6ff', bdr:'#2563eb', title:'🔍 Under Active Review',            msg:'This EWS is under active review. Please ensure action items are progressing and share any relevant updates.' },
+  resolved:           { subj:'[EWS Resolved]',   banner:'#f0fdf4', bdr:'#16a34a', title:'✅ EWS Resolved',                  msg:'The risk has been successfully mitigated. Please review the resolution details and confirm closure criteria are met.' },
+  closed:             { subj:'[EWS Closed]',     banner:'#f9fafb', bdr:'#6b7280', title:'✓ EWS Closed',                    msg:'This EWS has been formally closed. No further action is required. Thank you for your contribution.' },
+  update:             { subj:'[EWS Update]',     banner:'#f0f9ff', bdr:'#0ea5e9', title:'💬 Progress Update',               msg:'A new update has been posted. Please review and respond if any action is needed from your side.' },
+  decision:           { subj:'[EWS Decision]',   banner:'#faf5ff', bdr:'#7c3aed', title:'⚖ Decision Recorded',             msg:'A key decision has been made on this EWS. Please review and align your actions accordingly.' },
+  review:             { subj:'[EWS Review]',     banner:'#f0fdf4', bdr:'#14b8a6', title:'📋 Review Notes Added',            msg:'Review notes have been posted. Please read through and provide any feedback or follow-up actions.' },
+  action_assigned:    { subj:'[EWS Action]',     banner:'#fffbeb', bdr:'#d97706', title:'✅ Action Item Assigned',          msg:'An action item has been assigned. Timely completion of action items is critical to resolving this EWS.' },
+};
+function buildEwsEmail(ews, event, details) {
+  const h = escHtmlServer, sm = _ewsStatusMeta(ews.status), cfg = _EWS_EVENT_CFG[event] || _EWS_EVENT_CFG.update;
+  const raisedDate = ews.raisedAt ? new Date(ews.raisedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+  const triggerLabel = (ews.triggerType||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  const sevColor = {critical:'#dc2626',high:'#d97706',medium:'#2563eb',low:'#16a34a'}[ews.severity]||'#6b7280';
+  let detailHtml = '';
+  if (event === 'created') {
+    if (ews.description)    detailHtml += `<div style="margin-top:20px"><div style="font-weight:700;color:#374151;font-size:11px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Risk Description</div><div style="color:#374151;font-size:13px;line-height:1.7">${h(ews.description)}</div></div>`;
+    if (ews.rootCause)      detailHtml += `<div style="margin-top:12px"><div style="font-weight:700;color:#374151;font-size:11px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Root Cause</div><div style="color:#374151;font-size:13px;line-height:1.7">${h(ews.rootCause)}</div></div>`;
+    if (ews.correctivePlan) detailHtml += `<div style="margin-top:12px"><div style="font-weight:700;color:#374151;font-size:11px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Corrective Plan</div><div style="color:#374151;font-size:13px;line-height:1.7">${h(ews.correctivePlan)}</div></div>`;
+  } else if (details.oldStatus) {
+    const om = _ewsStatusMeta(details.oldStatus), nm = _ewsStatusMeta(details.newStatus);
+    detailHtml = `<div style="margin-top:20px;padding:14px 16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px"><div style="font-weight:700;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Status Progression</div><span style="background:${om.bg};color:${om.color};padding:4px 12px;border-radius:99px;font-size:12px;font-weight:700">${h(om.label)}</span><span style="color:#9ca3af;margin:0 10px;font-size:15px">→</span><span style="background:${nm.bg};color:${nm.color};padding:4px 12px;border-radius:99px;font-size:12px;font-weight:700">${h(nm.label)}</span></div>`;
+  } else if (details.updateText) {
+    detailHtml = `<div style="margin-top:20px;padding:16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px"><div style="font-weight:700;color:#374151;font-size:11px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Update</div><div style="color:#0d1117;font-size:14px;line-height:1.7">${h(details.updateText)}</div>${details.author?`<div style="color:#9ca3af;font-size:11px;margin-top:6px">— ${h(details.author)}</div>`:''}</div>`;
+  } else if (details.actionTitle) {
+    detailHtml = `<div style="margin-top:20px;padding:16px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px"><div style="font-weight:700;color:#92400e;font-size:11px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Action Item</div><div style="color:#0d1117;font-size:14px;font-weight:600">${h(details.actionTitle)}</div>${details.actionAssignee?`<div style="color:#6b7280;font-size:13px;margin-top:4px">Assigned to: <strong>${h(details.actionAssignee)}</strong></div>`:''} ${details.actionDue?`<div style="color:#6b7280;font-size:13px;margin-top:2px">Due: <strong>${h(details.actionDue)}</strong></div>`:''}</div>`;
+  }
+  const recent = (ews.updates||[]).slice(0,3);
+  let activityHtml = '';
+  if (recent.length) {
+    const rows = recent.map(u => { const icon={decision:'⚖',review:'📋',status_change:'🔄',created:'🚀'}[u.type]||'💬'; const dt=new Date(u.at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); return `<tr><td style="padding:6px 0;vertical-align:top;width:20px;color:#9ca3af">${icon}</td><td style="padding:6px 0 6px 10px;vertical-align:top"><span style="color:#374151;font-size:13px">${h(u.text)}</span><br><span style="color:#9ca3af;font-size:11px">${h(u.author||'System')} · ${dt}</span></td></tr>`; }).join('');
+    activityHtml = `<div style="margin-top:24px"><div style="font-weight:700;color:#374151;font-size:11px;text-transform:uppercase;letter-spacing:.8px;padding-bottom:8px;border-bottom:1px solid #e5e7eb;margin-bottom:4px">Recent Activity</div><table style="width:100%;border-collapse:collapse">${rows}</table></div>`;
+  }
+  const subject = `${cfg.subj} ${ews.ref}: ${ews.title}`;
+  const html = `<div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden"><div style="background:#1a1d27;padding:20px 32px"><div style="color:#c9a227;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">Bluecopa · Delivery Wikipedia</div><div style="color:#f0f0f6;font-size:17px;font-weight:700">Early Warning System</div></div><div style="background:${cfg.banner};border-left:4px solid ${cfg.bdr};padding:14px 32px"><div style="color:${cfg.bdr};font-weight:700;font-size:13px">${cfg.title}</div><div style="color:#374151;font-size:13px;margin-top:3px">${cfg.msg}</div></div><div style="padding:24px 32px;background:#ffffff"><div style="color:#9ca3af;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase">${h(ews.ref)} · ${h(triggerLabel)}</div><div style="color:#0d1117;font-size:19px;font-weight:700;margin-top:6px;line-height:1.35">${h(ews.title)}</div><div style="color:#6b7280;font-size:13px;margin-top:4px">${h(ews.projectName||'—')} · ${h(ews.clientName||'—')}</div><div style="margin-top:10px"><span style="background:${sm.bg};color:${sm.color};padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700">${sm.label}</span><span style="background:${sevColor}22;color:${sevColor};padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700;margin-left:6px;text-transform:capitalize">${h(ews.severity)}</span></div><table style="width:100%;border-collapse:collapse;margin-top:18px;border:1px solid #e5e7eb"><tr><td style="padding:9px 14px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-weight:700;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;width:105px">Project</td><td style="padding:9px 14px;border-bottom:1px solid #e5e7eb;color:#0d1117;font-size:13px;border-left:1px solid #e5e7eb">${h(ews.projectName||'—')}</td><td style="padding:9px 14px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-weight:700;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-left:1px solid #e5e7eb;width:105px">Client</td><td style="padding:9px 14px;border-bottom:1px solid #e5e7eb;color:#0d1117;font-size:13px;border-left:1px solid #e5e7eb">${h(ews.clientName||'—')}</td></tr><tr><td style="padding:9px 14px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-weight:700;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Owner</td><td style="padding:9px 14px;border-bottom:1px solid #e5e7eb;color:#0d1117;font-size:13px;border-left:1px solid #e5e7eb">${h(ews.internalOwner||'—')}</td><td style="padding:9px 14px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-weight:700;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-left:1px solid #e5e7eb">Due Date</td><td style="padding:9px 14px;border-bottom:1px solid #e5e7eb;color:#0d1117;font-size:13px;border-left:1px solid #e5e7eb">${h(ews.targetResolutionDate||'Not set')}</td></tr><tr><td style="padding:9px 14px;background:#f9fafb;font-weight:700;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Raised By</td><td style="padding:9px 14px;color:#0d1117;font-size:13px;border-left:1px solid #e5e7eb">${h(ews.raisedBy||'—')}</td><td style="padding:9px 14px;background:#f9fafb;font-weight:700;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-left:1px solid #e5e7eb">Raised On</td><td style="padding:9px 14px;color:#0d1117;font-size:13px;border-left:1px solid #e5e7eb">${h(raisedDate)}</td></tr></table>${detailHtml}${activityHtml}</div><div style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:14px 32px"><div style="color:#9ca3af;font-size:11px">Automated notification from <strong>Delivery Wikipedia · EWS</strong> &nbsp;·&nbsp; delivery.wiki@bluecopa.com &nbsp;·&nbsp; Do not reply.</div></div></div>`;
+  const text = `${cfg.title}\n${ews.ref}: ${ews.title}\nStatus: ${sm.label} | Severity: ${ews.severity}\nProject: ${ews.projectName||'—'} · Client: ${ews.clientName||'—'}\nOwner: ${ews.internalOwner||'—'} | Due: ${ews.targetResolutionDate||'Not set'}\n\n${cfg.msg}\n${details.updateText||details.actionTitle||''}\n\n— Delivery Wikipedia EWS · delivery.wiki@bluecopa.com`;
+  return { subject, html, text };
+}
+function notifyEws(ews, event, details={}) {
+  const to = ewsRecipients(ews);
+  if (!to) return;
+  const { subject, html, text } = buildEwsEmail(ews, event, details);
+  setImmediate(async () => { try { await sendEmail({ to, subject, html, text }); } catch(e) { console.warn('[EWS notify]', event, e.message); } });
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function ewsLog(type, msg, meta={}) {
   const u = ewsDB();
   u.activity.unshift({ type, msg, at:new Date().toISOString(), ...meta });
@@ -1974,18 +2032,7 @@ app.post('/api/ews', async (req, res) => {
   ewsLog('ews_raised', `EWS "${title}" raised`, { ewsId:ews.id, projectName, clientName });
   await saveDB(db);
   res.json({ ok:true, data:ews });
-  if (ews.stakeholders.length) {
-    setImmediate(async () => {
-      try {
-        await sendEmail({
-          to: ews.stakeholders.join(', '),
-          subject: `[EWS Raised] ${ews.ref}: ${ews.title}`,
-          html: `<div style="font-family:sans-serif;max-width:600px"><h2 style="color:#dc2626">⚠️ Early Warning Raised</h2><p><strong>${escHtmlServer(ews.ref)} — ${escHtmlServer(ews.title)}</strong></p><p>Severity: ${escHtmlServer(ews.severity)} | Project: ${escHtmlServer(ews.projectName||'N/A')} | Client: ${escHtmlServer(ews.clientName||'N/A')}</p>${ews.description?`<p>${escHtmlServer(ews.description)}</p>`:''}<p style="color:#6b7280;font-size:12px">Sent by Bluecopa Early Warning System</p></div>`,
-          text: `EWS Raised: ${ews.ref} — ${ews.title}\nSeverity: ${ews.severity}\nProject: ${ews.projectName}\nClient: ${ews.clientName}`,
-        });
-      } catch(e) { console.warn('[EWS notify]', e.message); }
-    });
-  }
+  notifyEws(ews, 'created', {});
 });
 
 // PUT update EWS (status, fields, and/or inline update)
@@ -2015,9 +2062,13 @@ app.put('/api/ews/:id', async (req, res) => {
     const lkMap = { certain:4, likely:3, possible:2, unlikely:1 };
     rest.riskScore = (svMap[rest.severity||ews.severity]||2) * (lkMap[rest.likelihood||ews.likelihood]||2);
   }
+  const _prevStatus = ews.status;
   Object.assign(ews, rest, { id:ews.id, ref:ews.ref, updatedAt:now });
   await saveDB(db);
   res.json({ ok:true, data:ews });
+  if (rest.status && rest.status !== _prevStatus) {
+    notifyEws(ews, rest.status, { oldStatus: _prevStatus, newStatus: rest.status });
+  }
 });
 
 // DELETE EWS
@@ -2042,6 +2093,7 @@ app.post('/api/ews/:id/updates', async (req, res) => {
   ewsLog('update', `Update on "${ews.title}"`, { ewsId:ews.id });
   await saveDB(db);
   res.json({ ok:true, data:update });
+  notifyEws(ews, update.type === 'decision' ? 'decision' : update.type === 'review' ? 'review' : 'update', { updateText: update.text, author: update.author });
 });
 
 // POST add action item
@@ -2056,6 +2108,7 @@ app.post('/api/ews/:id/actions', async (req, res) => {
   ews.updatedAt = now;
   await saveDB(db);
   res.json({ ok:true, data:action });
+  notifyEws(ews, 'action_assigned', { actionTitle: action.title, actionAssignee: action.assignee, actionDue: action.dueDate });
 });
 
 // PUT toggle/update action item
