@@ -1955,6 +1955,63 @@ html{scroll-behavior:smooth;}
         @keyframes eswTravelDot{0%{transform:translateY(0) scale(1);opacity:.9;}50%{transform:translateY(6px) scale(1.3);opacity:.5;}100%{transform:translateY(0) scale(1);opacity:.9;}}
         .esw-travel-dot{width:8px;height:8px;border-radius:50%;position:absolute;left:24px;top:28px;z-index:10;background:rgba(20,184,166,1);box-shadow:0 0 10px rgba(20,184,166,.7);animation:eswTravelDot 1.4s ease-in-out infinite;transition:top 0.45s cubic-bezier(.16,1,.3,1),background .3s;}
 
+/* ── Who Does What — Stakeholder Roles ────────────────────────────── */
+.esw-roles-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:8px;}
+@media(max-width:900px){.esw-roles-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:540px){.esw-roles-grid{grid-template-columns:1fr;}}
+.esw-role-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:24px 20px;transition:all .25s;position:relative;overflow:hidden;}
+.esw-role-card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.05);}
+.esw-role-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:16px 16px 0 0;}
+.esw-role-card.role-teal::before{background:linear-gradient(90deg,#14b8a6,#0e9488);}
+.esw-role-card.role-gold::before{background:linear-gradient(90deg,#f59e0b,#d97706);}
+.esw-role-card.role-blue::before{background:linear-gradient(90deg,#3548ff,#818cff);}
+.esw-role-card.role-green::before{background:linear-gradient(90deg,#34d399,#10b981);}
+.esw-role-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:14px;}
+.role-teal .esw-role-icon{background:rgba(20,184,166,.1);}
+.role-gold .esw-role-icon{background:rgba(245,158,11,.1);}
+.role-blue .esw-role-icon{background:rgba(53,72,255,.1);}
+.role-green .esw-role-icon{background:rgba(52,211,153,.1);}
+.esw-role-name{font-size:13px;font-weight:800;color:#fff;margin-bottom:12px;letter-spacing:-.01em;}
+.esw-role-tag{display:inline-block;font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:99px;margin-bottom:12px;}
+.role-teal .esw-role-tag{background:rgba(20,184,166,.1);color:rgba(20,184,166,.8);border:1px solid rgba(20,184,166,.2);}
+.role-gold .esw-role-tag{background:rgba(245,158,11,.1);color:rgba(245,158,11,.8);border:1px solid rgba(245,158,11,.2);}
+.role-blue .esw-role-tag{background:rgba(53,72,255,.1);color:rgba(129,140,255,.9);border:1px solid rgba(53,72,255,.25);}
+.role-green .esw-role-tag{background:rgba(52,211,153,.1);color:rgba(52,211,153,.8);border:1px solid rgba(52,211,153,.2);}
+.esw-role-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;}
+.esw-role-list li{font-size:12px;color:rgba(255,255,255,.45);padding-left:14px;position:relative;line-height:1.45;}
+.esw-role-list li::before{content:'→';position:absolute;left:0;font-size:10px;}
+.role-teal .esw-role-list li::before{color:rgba(20,184,166,.6);}
+.role-gold .esw-role-list li::before{color:rgba(245,158,11,.6);}
+.role-blue .esw-role-list li::before{color:rgba(129,140,255,.7);}
+.role-green .esw-role-list li::before{color:rgba(52,211,153,.6);}
+
+/* ── What Happens Next ──────────────────────────────────────────────── */
+.esw-next-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;}
+@media(max-width:640px){.esw-next-grid{grid-template-columns:1fr;}}
+.esw-next-step{display:flex;gap:16px;align-items:flex-start;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:18px 20px;transition:all .2s;}
+.esw-next-step:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1);}
+.esw-next-badge{font-size:9px;font-family:'DM Mono',monospace;font-weight:700;letter-spacing:.06em;padding:4px 10px;border-radius:99px;flex-shrink:0;margin-top:3px;white-space:nowrap;}
+.esw-next-badge.instant{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2);}
+.esw-next-badge.day1{background:rgba(245,158,11,.1);color:#fbbf24;border:1px solid rgba(245,158,11,.2);}
+.esw-next-badge.day2{background:rgba(20,184,166,.1);color:#2dd4bf;border:1px solid rgba(20,184,166,.2);}
+.esw-next-badge.day3{background:rgba(99,102,241,.1);color:#818cff;border:1px solid rgba(99,102,241,.2);}
+.esw-next-badge.weekly{background:rgba(232,201,122,.1);color:#e8c97a;border:1px solid rgba(232,201,122,.2);}
+.esw-next-badge.closed{background:rgba(52,211,153,.1);color:#34d399;border:1px solid rgba(52,211,153,.2);}
+.esw-next-content{}
+.esw-next-title{font-size:13.5px;font-weight:700;color:rgba(255,255,255,.9);margin-bottom:4px;}
+.esw-next-desc{font-size:12px;color:rgba(255,255,255,.38);line-height:1.55;}
+
+/* ── Benefits ────────────────────────────────────────────────────────── */
+.esw-benefits-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:8px;}
+@media(max-width:900px){.esw-benefits-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:540px){.esw-benefits-grid{grid-template-columns:1fr;}}
+.esw-benefit-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:24px 20px;transition:all .25s;display:flex;flex-direction:column;gap:10px;}
+.esw-benefit-card:hover{transform:translateY(-2px);background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);}
+.esw-benefit-icon{font-size:26px;line-height:1;}
+.esw-benefit-title{font-size:13.5px;font-weight:700;color:rgba(255,255,255,.9);letter-spacing:-.01em;}
+.esw-benefit-desc{font-size:12px;color:rgba(255,255,255,.4);line-height:1.6;margin:0;}
+.esw-benefit-card.b-wide{grid-column:span 1;}
+
 .ilc-track{position:relative;padding:0 0 48px;}
         /* Horizontal connecting line */
         .ilc-line-bg{position:absolute;top:32px;left:32px;right:32px;height:2px;background:rgba(255,255,255,.06);border-radius:99px;}
