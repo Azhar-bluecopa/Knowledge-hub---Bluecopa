@@ -4568,7 +4568,41 @@ async function updateFeedbackStatus(id) {
         <div class="dw-card-spin"></div>
         <div class="dw-card-orb"></div>
         <div class="dw-card-badge" style="background:rgba(220,38,38,.15);color:#dc2626;border:1px solid rgba(220,38,38,.2)">● New</div>
-        <span class="dw-card-icon">⚠️</span>
+        <span class="dw-card-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" width="56" height="56" style="display:block">
+            <!-- base plate -->
+            <circle cx="28" cy="28" r="26" fill="rgba(8,8,13,.9)" stroke="rgba(220,38,38,.35)" stroke-width="1.2"/>
+            <!-- concentric rings -->
+            <circle cx="28" cy="28" r="8"  fill="none" stroke="rgba(220,38,38,.25)" stroke-width=".8"/>
+            <circle cx="28" cy="28" r="16" fill="none" stroke="rgba(220,38,38,.18)" stroke-width=".8"/>
+            <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(220,38,38,.12)" stroke-width=".8"/>
+            <!-- crosshairs -->
+            <line x1="28" y1="4"  x2="28" y2="52" stroke="rgba(220,38,38,.09)" stroke-width=".6"/>
+            <line x1="4"  y1="28" x2="52" y2="28" stroke="rgba(220,38,38,.09)" stroke-width=".6"/>
+            <!-- center dot -->
+            <circle cx="28" cy="28" r="2" fill="rgba(220,38,38,.6)"/>
+            <!-- rotating sweep arm + trail -->
+            <g>
+              <path d="M28,28 L28,4 A24,24 0 0,1 48.8,16 Z" fill="rgba(220,38,38,.16)"/>
+              <line x1="28" y1="28" x2="28" y2="4" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/>
+              <animateTransform attributeName="transform" type="rotate" from="0 28 28" to="360 28 28" dur="3s" repeatCount="indefinite"/>
+            </g>
+            <!-- blip 1: upper-right (~52° from north) -->
+            <circle cx="42" cy="17" r="2.2" fill="#ef4444">
+              <animate attributeName="opacity" values="0;0;1;0.4;0" keyTimes="0;0.04;0.1;0.25;1" dur="3s" begin="0.43s" repeatCount="indefinite"/>
+              <animate attributeName="r" values="1;1;2.8;2;1" keyTimes="0;0.04;0.1;0.25;1" dur="3s" begin="0.43s" repeatCount="indefinite"/>
+            </circle>
+            <!-- blip glow 1 -->
+            <circle cx="42" cy="17" r="5" fill="rgba(239,68,68,.12)">
+              <animate attributeName="opacity" values="0;0;0.8;0;0" keyTimes="0;0.04;0.1;0.22;1" dur="3s" begin="0.43s" repeatCount="indefinite"/>
+            </circle>
+            <!-- blip 2: lower-right (~146° from north) -->
+            <circle cx="34" cy="37" r="1.8" fill="#f97316">
+              <animate attributeName="opacity" values="0;0;1;0.3;0" keyTimes="0;0.04;0.1;0.25;1" dur="3s" begin="1.22s" repeatCount="indefinite"/>
+              <animate attributeName="r" values="1;1;2.5;1.8;1" keyTimes="0;0.04;0.1;0.25;1" dur="3s" begin="1.22s" repeatCount="indefinite"/>
+            </circle>
+          </svg>
+        </span>
         <div class="dw-card-num">09</div>
         <div class="dw-card-name">Early Warning System</div>
         <div class="dw-card-desc">Proactive risk detection for delivery teams — surface issues before they become escalations.</div>
