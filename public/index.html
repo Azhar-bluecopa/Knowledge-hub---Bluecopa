@@ -6872,7 +6872,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=13" defer></script>
   <script src="/app.js?v=69" defer></script>
-  <script src="/uat.js?v=46" defer></script>
+  <script src="/uat.js?v=48" defer></script>
   <script src="/ews.js?v=8" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
@@ -6996,8 +6996,8 @@ async function updateFeedbackStatus(id) {
         <!-- Charts Row 1: Entity progress + Severity donut + Status donut -->
         <div class="uat-charts-row uat-charts-3col">
           <div class="uat-chart-card">
-            <div class="uat-chart-title">Testing Progress by Entity</div>
-            <div class="uat-chart-sub">Client status breakdown per entity / project</div>
+            <div class="uat-chart-title" id="uatEntityChartTitle">Testing Progress by Client</div>
+            <div class="uat-chart-sub" id="uatEntityChartSub">Consolidated progress across all clients</div>
             <div class="uat-chart-wrap" style="height:220px"><canvas id="chartEntityProgress"></canvas></div>
           </div>
           <div class="uat-chart-card">
