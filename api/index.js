@@ -1090,7 +1090,7 @@ app.post('/api/uat/issues', async (req, res) => {
   const { testCaseId, projectId, clientId, title, description='', severity='medium', assignedTo='', entity='' } = req.body;
   if (!title) return res.status(400).json({ ok:false, error:'title required' });
   const cnt=u.issues.filter(i=>i.projectId===projectId).length+1;
-  const issue={ id:uatId(), testCaseId, projectId, clientId, ref:`ISS-${String(cnt).padStart(3,'0')}`, title, description, severity, status:'open', assignedTo, entity, resolution:'', createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
+  const issue={ id:uatId(), testCaseId, projectId, clientId, ref:`ISS-${String(cnt).padStart(3,'0')}`, title, description, severity:(severity||'medium').toLowerCase(), status:'open', assignedTo, entity, resolution:'', createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
   u.issues.push(issue);
   if (testCaseId) { const tc=u.testcases.find(x=>x.id===testCaseId); if(tc){tc.bluecopaStatus='blocked';tc.updatedAt=new Date().toISOString();} }
   uatLog('issue_opened', `Issue "${title}" raised`, {projectId, clientId});
@@ -1105,7 +1105,8 @@ app.put('/api/uat/issues/:id', async (req, res) => {
     if (!issue.updates) issue.updates = [];
     issue.updates.push({ text: addUpdate.text, author: addUpdate.author || 'Bluecopa', at: now });
   }
-  if (rest.status === 'resolved' && issue.status !== 'resolved') rest.resolvedAt = now;
+  if ((rest.status === 'resolved' || rest.status === 'solved') && !issue.resolvedAt) rest.resolvedAt = now;
+  if (rest.severity) rest.severity = rest.severity.toLowerCase();
   Object.assign(issue, rest, { id:issue.id, updatedAt:now });
   await saveDB(db); res.json({ ok:true, data:issue });
 });
