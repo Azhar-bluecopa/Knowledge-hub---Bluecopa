@@ -1109,5 +1109,19 @@ const EWS = (() => {
     scheduleReviews,
     _editBusinessImpact, _cancelBusinessImpact, _saveBusinessImpact,
     toggleMaximize,
+    showHowItWorks, hideHowItWorks,
   };
+
+  function showHowItWorks() {
+    const d = el('ewsHowItWorksDrawer');
+    if (!d) return;
+    d.style.display = 'flex';
+    requestAnimationFrame(() => d.classList.add('open'));
+  }
+  function hideHowItWorks() {
+    const d = el('ewsHowItWorksDrawer');
+    if (!d) return;
+    d.classList.remove('open');
+    setTimeout(() => { d.style.display = 'none'; }, 260);
+  }
 })();

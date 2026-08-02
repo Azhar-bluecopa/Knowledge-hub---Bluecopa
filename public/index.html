@@ -20,7 +20,7 @@
   </noscript>
   <link rel="stylesheet" href="/style.css?v=80">
   <link rel="stylesheet" href="/uat.css?v=22">
-  <link rel="stylesheet" href="/ews.css?v=5">
+  <link rel="stylesheet" href="/ews.css?v=6">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -6873,7 +6873,7 @@ async function updateFeedbackStatus(id) {
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
   <script src="/uat.js?v=45" defer></script>
-  <script src="/ews.js?v=5" defer></script>
+  <script src="/ews.js?v=6" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -7605,6 +7605,9 @@ async function updateFeedbackStatus(id) {
     </div>
     <span class="ews-breadcrumb" id="ewsBreadcrumb">EWS</span>
     <div style="flex:1"></div>
+    <button class="ews-btn-secondary ews-btn-sm ews-hiw-trigger-btn" onclick="EWS.showHowItWorks()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="vertical-align:-2px;margin-right:5px"><circle cx="7" cy="7" r="6.25" stroke="currentColor" stroke-width="1.5"/><path d="M7 6v4M7 4.5v-.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>How it Works
+    </button>
     <button class="ews-btn-primary" onclick="EWS.showNewModal()">+ Raise EWS</button>
   </div>
 
@@ -7725,48 +7728,6 @@ async function updateFeedbackStatus(id) {
           </table>
         </div>
 
-        <!-- How EWS Works -->
-        <div class="ews-chart-card ews-hiw-card">
-          <div class="ews-chart-title">How EWS Works</div>
-          <div class="ews-chart-sub">A simple 5-step process to catch and fix risks early — before they become problems</div>
-          <div class="ews-hiw-steps">
-            <div class="ews-hiw-step">
-              <div class="ews-hiw-num">1</div>
-              <div class="ews-hiw-icon">🔍</div>
-              <div class="ews-hiw-title">Spot the Risk</div>
-              <div class="ews-hiw-desc">The delivery team notices a concern — a timeline slip, scope change, or budget pressure on a project</div>
-            </div>
-            <div class="ews-hiw-arrow">→</div>
-            <div class="ews-hiw-step">
-              <div class="ews-hiw-num">2</div>
-              <div class="ews-hiw-icon">📋</div>
-              <div class="ews-hiw-title">Raise an EWS</div>
-              <div class="ews-hiw-desc">Log the risk with severity level, trigger type, and the business impact so everyone has the full picture</div>
-            </div>
-            <div class="ews-hiw-arrow">→</div>
-            <div class="ews-hiw-step">
-              <div class="ews-hiw-num">3</div>
-              <div class="ews-hiw-icon">🗂️</div>
-              <div class="ews-hiw-title">Define a Plan</div>
-              <div class="ews-hiw-desc">Capture corrective actions, assign clear owners, and set target dates to address the risk</div>
-            </div>
-            <div class="ews-hiw-arrow">→</div>
-            <div class="ews-hiw-step">
-              <div class="ews-hiw-num">4</div>
-              <div class="ews-hiw-icon">🤝</div>
-              <div class="ews-hiw-title">Engage Leadership</div>
-              <div class="ews-hiw-desc">Escalate to leadership for visibility, guidance, and the resources needed to resolve the issue quickly</div>
-            </div>
-            <div class="ews-hiw-arrow">→</div>
-            <div class="ews-hiw-step">
-              <div class="ews-hiw-num">5</div>
-              <div class="ews-hiw-icon">✅</div>
-              <div class="ews-hiw-title">Resolve &amp; Close</div>
-              <div class="ews-hiw-desc">Track progress in weekly reviews until the risk is fully addressed, then close the EWS with a summary</div>
-            </div>
-          </div>
-        </div>
-
       </div><!-- /ews-dash-body -->
     </div><!-- /ewsView_dashboard -->
 
@@ -7827,6 +7788,172 @@ async function updateFeedbackStatus(id) {
     </div><!-- /ewsView_list -->
 
   </div><!-- /ews-body -->
+  <!-- How it Works drawer -->
+  <div id="ewsHowItWorksDrawer" class="ews-hiw-drawer" style="display:none" onclick="if(event.target===this)EWS.hideHowItWorks()">
+    <div class="ews-hiw-panel">
+
+      <div class="ews-hiw-panel-header">
+        <div>
+          <div class="ews-hiw-panel-title">How EWS Works</div>
+          <div class="ews-hiw-panel-sub">Your complete guide to the Early Warning System</div>
+        </div>
+        <button class="ews-hiw-close" onclick="EWS.hideHowItWorks()">✕</button>
+      </div>
+
+      <div class="ews-hiw-panel-body">
+
+        <!-- Intro -->
+        <div class="ews-hiw-intro">
+          <span class="ews-hiw-intro-icon">📡</span>
+          <div>
+            <div class="ews-hiw-intro-heading">What is the Early Warning System?</div>
+            <div class="ews-hiw-intro-text">EWS is a structured way to surface project risks <strong>early</strong> — before they turn into escalations or client issues. Raising an EWS is a sign of good delivery practice, not a problem. The earlier a risk is flagged, the more options the team has to address it.</div>
+          </div>
+        </div>
+
+        <!-- 5-step lifecycle -->
+        <div class="ews-hiw-section-label">THE 5-STEP LIFECYCLE</div>
+        <div class="ews-hiw-lifecycle">
+          <div class="ews-hiw-lc-step">
+            <div class="ews-hiw-lc-left">
+              <div class="ews-hiw-lc-num">1</div>
+              <div class="ews-hiw-lc-line"></div>
+            </div>
+            <div class="ews-hiw-lc-right">
+              <div class="ews-hiw-lc-icon">🔍</div>
+              <div class="ews-hiw-lc-title">Spot the Risk</div>
+              <div class="ews-hiw-lc-desc">A team member notices something that could affect delivery — a delayed dependency, unexpected scope expansion, capacity gap, or an early client concern. Trust your instincts. If it feels like a risk, it probably is.</div>
+            </div>
+          </div>
+          <div class="ews-hiw-lc-step">
+            <div class="ews-hiw-lc-left">
+              <div class="ews-hiw-lc-num">2</div>
+              <div class="ews-hiw-lc-line"></div>
+            </div>
+            <div class="ews-hiw-lc-right">
+              <div class="ews-hiw-lc-icon">📋</div>
+              <div class="ews-hiw-lc-title">Raise an EWS</div>
+              <div class="ews-hiw-lc-desc">Log the risk using the <strong>+ Raise EWS</strong> button. You'll capture the severity level, trigger type, a clear description of the risk, and the potential business impact if left unaddressed. Be specific — vague risks are hard to act on.</div>
+            </div>
+          </div>
+          <div class="ews-hiw-lc-step">
+            <div class="ews-hiw-lc-left">
+              <div class="ews-hiw-lc-num">3</div>
+              <div class="ews-hiw-lc-line"></div>
+            </div>
+            <div class="ews-hiw-lc-right">
+              <div class="ews-hiw-lc-icon">🗂️</div>
+              <div class="ews-hiw-lc-title">Define the Plan</div>
+              <div class="ews-hiw-lc-desc">Within 24–48 hours, the delivery team captures specific corrective actions, assigns a clear owner to each one, and sets target completion dates. The plan must be concrete — "monitor the situation" is not a corrective action.</div>
+            </div>
+          </div>
+          <div class="ews-hiw-lc-step">
+            <div class="ews-hiw-lc-left">
+              <div class="ews-hiw-lc-num">4</div>
+              <div class="ews-hiw-lc-line"></div>
+            </div>
+            <div class="ews-hiw-lc-right">
+              <div class="ews-hiw-lc-icon">🤝</div>
+              <div class="ews-hiw-lc-title">Engage Leadership</div>
+              <div class="ews-hiw-lc-desc">Leadership reviews the EWS in the next cadence meeting — or immediately for Critical items. They provide guidance, unblock resources, and track progress weekly. Leadership supports the team; they don't take over ownership of the risk.</div>
+            </div>
+          </div>
+          <div class="ews-hiw-lc-step ews-hiw-lc-last">
+            <div class="ews-hiw-lc-left">
+              <div class="ews-hiw-lc-num">5</div>
+            </div>
+            <div class="ews-hiw-lc-right">
+              <div class="ews-hiw-lc-icon">✅</div>
+              <div class="ews-hiw-lc-title">Resolve &amp; Close</div>
+              <div class="ews-hiw-lc-desc">Once all corrective actions are complete and the risk is fully mitigated, the EWS is closed with a resolution summary and a brief lessons-learned note to help the team improve in the future.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trigger guide -->
+        <div class="ews-hiw-section-label">WHEN TO RAISE AN EWS — TRIGGER GUIDE</div>
+        <div class="ews-hiw-triggers">
+          <div class="ews-hiw-trigger-row">
+            <span class="ews-hiw-trigger-icon">⏱️</span>
+            <div><div class="ews-hiw-trigger-name">Timeline Delay</div><div class="ews-hiw-trigger-when">A milestone will slip by 5+ business days</div></div>
+          </div>
+          <div class="ews-hiw-trigger-row">
+            <span class="ews-hiw-trigger-icon">📐</span>
+            <div><div class="ews-hiw-trigger-name">Scope Creep</div><div class="ews-hiw-trigger-when">Requirements expand beyond the agreed statement of work</div></div>
+          </div>
+          <div class="ews-hiw-trigger-row">
+            <span class="ews-hiw-trigger-icon">💰</span>
+            <div><div class="ews-hiw-trigger-name">Budget Overrun</div><div class="ews-hiw-trigger-when">Forecast exceeds approved budget by 10% or more</div></div>
+          </div>
+          <div class="ews-hiw-trigger-row">
+            <span class="ews-hiw-trigger-icon">👥</span>
+            <div><div class="ews-hiw-trigger-name">Resource Gap</div><div class="ews-hiw-trigger-when">A key resource is unavailable, understaffed, or leaving</div></div>
+          </div>
+          <div class="ews-hiw-trigger-row">
+            <span class="ews-hiw-trigger-icon">📣</span>
+            <div><div class="ews-hiw-trigger-name">Client Escalation</div><div class="ews-hiw-trigger-when">Client raises formal dissatisfaction or executive concern</div></div>
+          </div>
+          <div class="ews-hiw-trigger-row">
+            <span class="ews-hiw-trigger-icon">⚙️</span>
+            <div><div class="ews-hiw-trigger-name">Technical Blocker</div><div class="ews-hiw-trigger-when">A technical issue is blocking meaningful progress</div></div>
+          </div>
+          <div class="ews-hiw-trigger-row">
+            <span class="ews-hiw-trigger-icon">🔎</span>
+            <div><div class="ews-hiw-trigger-name">Quality Issue</div><div class="ews-hiw-trigger-when">Defect rates or rework exceed acceptable thresholds</div></div>
+          </div>
+        </div>
+
+        <!-- Severity guide -->
+        <div class="ews-hiw-section-label">SEVERITY LEVELS</div>
+        <div class="ews-hiw-severity-grid">
+          <div class="ews-hiw-sev-card sev-critical">
+            <div class="ews-hiw-sev-badge">Critical</div>
+            <div class="ews-hiw-sev-desc">Delivery or contract is at immediate risk. Same-day leadership engagement required.</div>
+          </div>
+          <div class="ews-hiw-sev-card sev-high">
+            <div class="ews-hiw-sev-badge">High</div>
+            <div class="ews-hiw-sev-desc">Significant risk requiring leadership attention within 24 hours and an immediate corrective plan.</div>
+          </div>
+          <div class="ews-hiw-sev-card sev-medium">
+            <div class="ews-hiw-sev-badge">Medium</div>
+            <div class="ews-hiw-sev-desc">Notable risk. Define a corrective plan within 48 hours and review in the weekly cadence.</div>
+          </div>
+          <div class="ews-hiw-sev-card sev-low">
+            <div class="ews-hiw-sev-badge">Low</div>
+            <div class="ews-hiw-sev-desc">Early signal. Log it, assign an owner, and review in the next weekly check-in.</div>
+          </div>
+        </div>
+
+        <!-- Golden rules -->
+        <div class="ews-hiw-section-label">THREE GOLDEN RULES</div>
+        <div class="ews-hiw-rules">
+          <div class="ews-hiw-rule">
+            <div class="ews-hiw-rule-num">01</div>
+            <div>
+              <div class="ews-hiw-rule-title">Raise early, not late</div>
+              <div class="ews-hiw-rule-desc">EWS is most effective at first signal. Don't wait for certainty — raise it when you see the pattern forming, not when it's already a crisis.</div>
+            </div>
+          </div>
+          <div class="ews-hiw-rule">
+            <div class="ews-hiw-rule-num">02</div>
+            <div>
+              <div class="ews-hiw-rule-title">Be specific, not vague</div>
+              <div class="ews-hiw-rule-desc">"Project is delayed" is not actionable. Name the exact blocker, which milestone is at risk, by how many days, and what the downstream impact is.</div>
+            </div>
+          </div>
+          <div class="ews-hiw-rule">
+            <div class="ews-hiw-rule-num">03</div>
+            <div>
+              <div class="ews-hiw-rule-title">Own the plan</div>
+              <div class="ews-hiw-rule-desc">The team raising the EWS owns the corrective actions. Leadership provides support and removes blockers — they don't take over. Ownership stays with delivery.</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /ews-hiw-panel-body -->
+    </div><!-- /ews-hiw-panel -->
+  </div><!-- /ewsHowItWorksDrawer -->
+
 </div><!-- /ewsOverlay -->
 
 <!-- EWS Drawer overlay + drawer -->
