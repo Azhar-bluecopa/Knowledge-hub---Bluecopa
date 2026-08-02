@@ -271,10 +271,10 @@ function getWeekNumber(d) {
   return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
 }
 
-// ── Helper: read fresh from MongoDB with a 2s cache to avoid per-request hammering
+// ── Helper: read fresh from MongoDB with a 30s cache — reduces round-trips on warm lambdas
 let dbCacheTs = 0;
 async function freshDB() {
-  if (mongoCol && (Date.now() - dbCacheTs > 2000)) {
+  if (mongoCol && (Date.now() - dbCacheTs > 30000)) {
     try {
       const doc = await mongoCol.findOne({ _id: 'main' });
       if (doc) { const { _id, ...data } = doc; Object.assign(db, data); }
