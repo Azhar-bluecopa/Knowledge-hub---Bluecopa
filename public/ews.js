@@ -174,7 +174,7 @@ const EWS = (() => {
     document.body.style.overflow = '';
     closeDrawer();
     hideNewModal();
-    if (typeof dwGoKnowledge === 'function') dwGoKnowledge();
+    if (typeof showLanding === 'function') showLanding();
   }
 
   function setView(v) {
