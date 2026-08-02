@@ -954,3 +954,65 @@
 .ews-inline-btn:hover { color: #a5adff; }
 
 .ews-max-btn:hover { background: rgba(255,255,255,.07); color: #f0f0f6; }
+
+/* ── How EWS Works ── */
+.ews-hiw-card { padding: 24px 28px 28px; }
+.ews-hiw-steps {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 24px;
+  gap: 0;
+}
+.ews-hiw-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 12px;
+  position: relative;
+}
+.ews-hiw-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(201,162,39,.12);
+  border: 1px solid rgba(201,162,39,.3);
+  color: #c9a227;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'DM Mono', monospace;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.ews-hiw-icon {
+  font-size: 30px;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+.ews-hiw-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f0f0f6;
+  margin-bottom: 8px;
+}
+.ews-hiw-desc {
+  font-size: 12px;
+  color: #8a92a0;
+  line-height: 1.6;
+}
+.ews-hiw-arrow {
+  color: rgba(255,255,255,.18);
+  font-size: 22px;
+  padding-top: 42px;
+  flex-shrink: 0;
+  line-height: 1;
+  user-select: none;
+}
+@media (max-width: 760px) {
+  .ews-hiw-steps { flex-direction: column; align-items: center; gap: 4px; }
+  .ews-hiw-step { padding: 8px 0; max-width: 240px; }
+  .ews-hiw-arrow { transform: rotate(90deg); padding-top: 0; }
+}
