@@ -19,8 +19,8 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
   <link rel="stylesheet" href="/style.css?v=80">
-  <link rel="stylesheet" href="/uat.css?v=21">
-  <link rel="stylesheet" href="/ews.css?v=2">
+  <link rel="stylesheet" href="/uat.css?v=22">
+  <link rel="stylesheet" href="/ews.css?v=3">
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -6676,8 +6676,8 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=12" defer></script>
   <script src="/app.js?v=68" defer></script>
-  <script src="/uat.js?v=43" defer></script>
-  <script src="/ews.js?v=4" defer></script>
+  <script src="/uat.js?v=45" defer></script>
+  <script src="/ews.js?v=5" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
@@ -6917,12 +6917,12 @@ async function updateFeedbackStatus(id) {
 
       <!-- TC Summary Bar -->
       <div id="uatTcSummaryBar" style="display:none;padding:12px 16px 0">
-        <div style="display:flex;align-items:center;gap:28px;padding:14px 20px;background:#fff;border:1px solid #e4e6ea;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.05)">
+        <div style="display:flex;align-items:center;gap:28px;padding:14px 20px;background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:12px;box-shadow:none">
           <div style="text-align:center;min-width:36px">
-            <div id="uatSumTotal" style="font-size:22px;font-weight:800;color:#0d1117;line-height:1">—</div>
+            <div id="uatSumTotal" style="font-size:22px;font-weight:800;color:#f0f0f6;line-height:1">—</div>
             <div style="font-size:10px;color:#8a92a0;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-top:2px">Total</div>
           </div>
-          <div style="width:1px;height:32px;background:#e4e6ea"></div>
+          <div style="width:1px;height:32px;background:rgba(255,255,255,.07)"></div>
           <div style="text-align:center;min-width:36px">
             <div id="uatSumPass" style="font-size:22px;font-weight:800;color:#22c55e;line-height:1">—</div>
             <div style="font-size:10px;color:#8a92a0;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-top:2px">Pass</div>
@@ -6936,15 +6936,15 @@ async function updateFeedbackStatus(id) {
             <div style="font-size:10px;color:#8a92a0;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-top:2px">Blocked</div>
           </div>
           <div style="text-align:center;min-width:36px">
-            <div id="uatSumPending" style="font-size:22px;font-weight:800;color:#6b7280;line-height:1">—</div>
+            <div id="uatSumPending" style="font-size:22px;font-weight:800;color:#8a92a0;line-height:1">—</div>
             <div style="font-size:10px;color:#8a92a0;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-top:2px">Pending</div>
           </div>
           <div style="flex:1;min-width:0">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <span style="font-size:13px;font-weight:600;color:#0d1117">Overall Progress</span>
+              <span style="font-size:13px;font-weight:600;color:#c9d0d8">Overall Progress</span>
               <span id="uatSumPct" style="font-size:13px;font-weight:700;color:#22c55e">0%</span>
             </div>
-            <div style="background:#f1f2f5;border-radius:99px;height:10px;overflow:hidden">
+            <div style="background:rgba(255,255,255,.07);border-radius:99px;height:10px;overflow:hidden">
               <div id="uatSumBar" style="height:100%;background:#22c55e;border-radius:99px;transition:width .4s ease;width:0%"></div>
             </div>
           </div>

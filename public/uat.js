@@ -115,7 +115,7 @@ const UAT = (() => {
     const imgIcon = hasImg ? '<span style="color:#c9a227;font-size:10px;margin-left:3px" title="Contains screenshot">🖼</span>' : '';
     return `<td onclick="event.stopPropagation()">
       <div style="display:flex;align-items:center;gap:6px;max-width:180px">
-        <span style="font-size:11px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${escHtml(preview)}${imgIcon}</span>
+        <span style="font-size:11px;color:#c9d0d8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${escHtml(preview)}${imgIcon}</span>
         <button class="uat-btn uat-btn-ghost" style="padding:2px 8px;font-size:10px;white-space:nowrap;flex-shrink:0"
           onclick="event.stopPropagation();UAT.openClientNoteModal('${tc.id}')">View</button>
       </div>
@@ -132,7 +132,7 @@ const UAT = (() => {
     const safeEntity = entity.replace(/'/g, "\\'");
     return `<td onclick="event.stopPropagation()">
       <div style="display:flex;align-items:center;gap:6px;max-width:180px">
-        <span style="font-size:11px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${escHtml(preview)}${imgIcon}</span>
+        <span style="font-size:11px;color:#c9d0d8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${escHtml(preview)}${imgIcon}</span>
         <button class="uat-btn uat-btn-ghost" style="padding:2px 8px;font-size:10px;white-space:nowrap;flex-shrink:0"
           onclick="event.stopPropagation();UAT.viewEntityNote('${safeEntity}','${tc.id}')">View</button>
       </div>
@@ -643,18 +643,18 @@ const UAT = (() => {
       const cl    = S.clients.find(c => c.id === p.clientId);
       const hasSignoff = (p.signoff && p.signoff.status === 'signed') || (p.portalSignoff && p.portalSignoff.name);
       return `<tr onclick="UAT.openProject('${p.id}')" style="cursor:pointer">
-        <td><div style="font-weight:700;color:#090909;font-size:13px">${escHtml(p.name)}</div></td>
-        <td style="color:#6b7280;font-size:12px">${escHtml(cl ? cl.name : (p.clientName || '—'))}</td>
+        <td><div style="font-weight:700;color:#f0f0f6;font-size:13px">${escHtml(p.name)}</div></td>
+        <td style="color:#8a92a0;font-size:12px">${escHtml(cl ? cl.name : (p.clientName || '—'))}</td>
         <td style="font-size:13px">${ptcs.length}</td>
         <td><div style="display:flex;align-items:center;gap:7px">
-          <div style="flex:1;height:6px;background:#f0f1f5;border-radius:99px;overflow:hidden;min-width:48px">
+          <div style="flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;min-width:48px">
             <div style="height:100%;border-radius:99px;background:${barColor(pct)};width:${pct}%"></div>
           </div>
-          <span style="font-size:12px;font-weight:700;color:#374151;white-space:nowrap">${pct}%</span>
+          <span style="font-size:12px;font-weight:700;color:#c9d0d8;white-space:nowrap">${pct}%</span>
         </div></td>
-        <td>${open ? `<span style="font-size:11px;font-weight:700;background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:99px">${open} open</span>` : '<span style="color:#9ca3af;font-size:12px">—</span>'}</td>
+        <td>${open ? `<span style="font-size:11px;font-weight:700;background:rgba(220,38,38,.12);color:#f87171;padding:2px 8px;border-radius:99px">${open} open</span>` : '<span style="color:#9ca3af;font-size:12px">—</span>'}</td>
         <td><span style="font-size:14px;font-weight:800;color:${sc}">${score}%</span></td>
-        <td>${hasSignoff ? '<span style="font-size:11px;font-weight:700;background:#f0fdf4;color:#15803d;padding:2px 8px;border-radius:99px">✓ Signed</span>' : '<span style="font-size:11px;font-weight:700;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:99px">Pending</span>'}</td>
+        <td>${hasSignoff ? '<span style="font-size:11px;font-weight:700;background:rgba(34,197,94,.12);color:#4ade80;padding:2px 8px;border-radius:99px">✓ Signed</span>' : '<span style="font-size:11px;font-weight:700;background:rgba(245,158,11,.12);color:#fbbf24;padding:2px 8px;border-radius:99px">Pending</span>'}</td>
       </tr>`;
     }).join('');
   }
@@ -985,7 +985,7 @@ const UAT = (() => {
               <td>${priorityBadge(tc.priority)}</td>
               <td><span class="uat-status-pill ${bStatus}" style="pointer-events:none">${STATUS_LABELS[bStatus]||bStatus}</span></td>
               <td><span class="uat-status-pill ${cStatus}" style="pointer-events:none">${STATUS_LABELS[cStatus]||cStatus}</span></td>
-              <td style="font-size:11px;color:#6b7280">${es.bluecopaComments||'—'}</td>
+              <td style="font-size:11px;color:#8a92a0">${es.bluecopaComments||'—'}</td>
               ${entityNoteCell(tc, entity, es)}
             </tr>`;
         })
@@ -1009,7 +1009,7 @@ const UAT = (() => {
           <td class="uat-status-cell" onclick="event.stopPropagation()">
             ${statusPill(getEntityStatus(tc,'c'), 'c', tc.id)}
           </td>
-          <td style="font-size:11px;color:#6b7280;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tc.bluecopaComments||'—'}</td>
+          <td style="font-size:11px;color:#8a92a0;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tc.bluecopaComments||'—'}</td>
           ${clientNoteCell(tc)}
           <td onclick="event.stopPropagation()" style="text-align:center;padding:0 8px">
             <button class="uat-del-btn" title="Delete test case" onclick="event.stopPropagation();UAT.deleteTest('${tc.id}')">&#128465;</button>
@@ -1596,12 +1596,12 @@ const UAT = (() => {
       const proj = showProjectCol ? S.projects.find(p => p.id === i.projectId) : null;
       return `
       <tr style="cursor:pointer" onclick="UAT.openIssueDetail('${i.id}')" title="Click to view details">
-        <td><span style="font-size:11px;font-family:monospace;font-weight:700;color:#6b7280">${i.ref}</span></td>
+        <td><span style="font-size:11px;font-family:monospace;font-weight:700;color:#8a92a0">${i.ref}</span></td>
         <td>
-          <div style="font-weight:600;font-size:13px;color:#0d1117">${escHtml(i.title)}</div>
+          <div style="font-weight:600;font-size:13px;color:#f0f0f6">${escHtml(i.title)}</div>
           ${i.source==='client_portal'?'<span style="font-size:10px;font-weight:700;color:#c9a227;background:rgba(201,162,39,.1);border-radius:4px;padding:1px 6px">Client Portal</span>':''}
         </td>
-        ${showProjectCol ? `<td><span style="font-size:12px;color:#374151">${escHtml(proj ? proj.name : '—')}</span></td>` : ''}
+        ${showProjectCol ? `<td><span style="font-size:12px;color:#c9d0d8">${escHtml(proj ? proj.name : '—')}</span></td>` : ''}
         <td><span class="uat-priority ${SEV[(i.severity||'').toLowerCase()]||'pri-low'}">${i.severity||'Med'}</span></td>
         <td><span class="uat-status-pill ${i.status==='open'?'fail':i.status==='resolved'?'pass':'in_progress'}" style="pointer-events:none">${i.status}</span></td>
         <td>${escHtml(i.assignedTo || '—')}</td>
@@ -1701,12 +1701,12 @@ const UAT = (() => {
     const wrap = el('uatEntityList');
     if (!wrap) return;
     if (!entities.length) {
-      wrap.innerHTML = `<div style="color:#6b7280;font-size:13px;padding:8px 0">No entities yet. Add one below.</div>`;
+      wrap.innerHTML = `<div style="color:#8a92a0;font-size:13px;padding:8px 0">No entities yet. Add one below.</div>`;
       return;
     }
     wrap.innerHTML = entities.map((e, i) => `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f2f5">
-        <span style="font-size:13px;font-weight:600;color:#0d1117">${e}</span>
+        <span style="font-size:13px;font-weight:600;color:#f0f0f6">${e}</span>
         <div style="display:flex;gap:6px">
           <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.renameEntity('${e.replace(/'/g,"\\'")}')">✎ Rename</button>
           <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.removeEntity(${i})" style="color:#dc2626">✕ Delete</button>
@@ -1759,7 +1759,7 @@ const UAT = (() => {
         entityWrap.style.display = '';
         entityWrap.innerHTML = entities.map(e => `
           <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
-            <span style="font-size:12px;font-weight:700;color:#374151;min-width:72px;flex-shrink:0">${e}</span>
+            <span style="font-size:12px;font-weight:700;color:#c9d0d8;min-width:72px;flex-shrink:0">${e}</span>
             <input class="uat-form-input" readonly value="${base}/portal/${token}?entity=${encodeURIComponent(e)}" style="font-size:12px" onclick="this.select()">
             <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.copyLink(this.previousElementSibling.value)">Copy</button>
           </div>`).join('');
@@ -1806,7 +1806,7 @@ const UAT = (() => {
         // Single entity view
         const raw = ((tc.entityStatuses || {})[S.filterEntity] || {}).clientComments || tc.clientComments || '';
         bodyEl.innerHTML = raw
-          ? `<div style="font-size:13px;line-height:1.7;color:#0d1117;word-break:break-word">${raw}</div>`
+          ? `<div style="font-size:13px;line-height:1.7;color:#f0f0f6;word-break:break-word">${raw}</div>`
           : '<p style="color:#9ca3af;font-size:13px">No note recorded for this entity.</p>';
       } else {
         // All Entities: show per-entity notes grouped
@@ -1816,8 +1816,8 @@ const UAT = (() => {
         } else {
           bodyEl.innerHTML = parts.map(p => `
             <div style="margin-bottom:${parts.length > 1 ? 20 : 0}px">
-              ${parts.length > 1 ? `<div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:3px 10px;background:#f4f5f7;border-radius:6px;display:inline-block">${escHtml(p.label)}</div>` : ''}
-              <div style="font-size:13px;line-height:1.7;color:#0d1117;word-break:break-word">${p.content}</div>
+              ${parts.length > 1 ? `<div style="font-size:10px;font-weight:700;color:#8a92a0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:3px 10px;background:rgba(255,255,255,.06);border-radius:6px;display:inline-block">${escHtml(p.label)}</div>` : ''}
+              <div style="font-size:13px;line-height:1.7;color:#f0f0f6;word-break:break-word">${p.content}</div>
             </div>`).join('<hr style="border:none;border-top:1px solid #f1f2f5;margin:0 0 16px">');
         }
       }
@@ -1883,10 +1883,10 @@ const UAT = (() => {
         <div style="width:28px;height:28px;border-radius:50%;background:${upd.author==='Client'?'#e0f2fe':'#f0fdf4'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${upd.author==='Client'?'#0369a1':'#15803d'};flex-shrink:0">${upd.author==='Client'?'C':'B'}</div>
         <div style="flex:1">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
-            <span style="font-size:12px;font-weight:700;color:#374151">${escHtml(upd.author)}</span>
+            <span style="font-size:12px;font-weight:700;color:#c9d0d8">${escHtml(upd.author)}</span>
             <span style="font-size:11px;color:#9ca3af">${_issueDate(upd.at)}</span>
           </div>
-          <div style="font-size:13px;color:#0d1117;line-height:1.5;background:#f8f9fa;border-radius:6px;padding:8px 12px">${escHtml(upd.text)}</div>
+          <div style="font-size:13px;color:#f0f0f6;line-height:1.5;background:rgba(255,255,255,.05);border-radius:6px;padding:8px 12px">${escHtml(upd.text)}</div>
         </div>
       </div>`).join('') : `<div style="font-size:12px;color:#9ca3af;font-style:italic">No updates yet.</div>`;
 
@@ -1902,46 +1902,46 @@ const UAT = (() => {
     bodyEl.innerHTML = `
       <!-- Header badges -->
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-        <span style="font-size:12px;font-family:monospace;font-weight:700;color:#6b7280;background:#f4f5f7;border-radius:6px;padding:3px 10px">${escHtml(i.ref)}</span>
+        <span style="font-size:12px;font-family:monospace;font-weight:700;color:#8a92a0;background:rgba(255,255,255,.06);border-radius:6px;padding:3px 10px">${escHtml(i.ref)}</span>
         <span class="uat-priority ${SEV_CLS[(i.severity||'').toLowerCase()]||'pri-low'}">${escHtml(i.severity||'Med')}</span>
         ${statusBadge}
         ${i.source==='client_portal'?'<span style="font-size:11px;font-weight:700;color:#c9a227;background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.2);border-radius:6px;padding:3px 10px">Client Portal</span>':''}
       </div>
       <!-- Title -->
-      <div style="font-size:16px;font-weight:800;color:#0d1117;margin-bottom:16px;line-height:1.4">${escHtml(i.title)}</div>
+      <div style="font-size:16px;font-weight:800;color:#f0f0f6;margin-bottom:16px;line-height:1.4">${escHtml(i.title)}</div>
       <!-- Meta grid -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;background:#f8f9fa;border-radius:8px;padding:14px">
         <div><div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Test Case</div>
-          <div style="font-size:12px;font-weight:600;color:#374151">${tc ? `TC-${tc.seq}: ${tc.testDescription?.slice(0,50)||''}…` : i.testCaseId||'—'}</div></div>
+          <div style="font-size:12px;font-weight:600;color:#c9d0d8">${tc ? `TC-${tc.seq}: ${tc.testDescription?.slice(0,50)||''}…` : i.testCaseId||'—'}</div></div>
         <div><div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Raised</div>
-          <div style="font-size:12px;font-weight:600;color:#374151">${_issueDate(i.createdAt)}</div></div>
+          <div style="font-size:12px;font-weight:600;color:#c9d0d8">${_issueDate(i.createdAt)}</div></div>
         <div>
           <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Assigned To</div>
           <input id="issueAssignedTo_${id}" type="text" value="${escHtml(i.assignedTo||'')}" placeholder="Unassigned"
-            style="font-size:12px;font-weight:600;color:#374151;border:1px solid #e4e6ea;border-radius:6px;padding:4px 8px;width:100%;font-family:inherit"
+            style="font-size:12px;font-weight:600;color:#c9d0d8;border:1px solid #e4e6ea;border-radius:6px;padding:4px 8px;width:100%;font-family:inherit"
             onchange="UAT.saveIssueField('${id}','assignedTo',this.value)">
         </div>
         <div>
           <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">ETA (Expected Fix Date)</div>
           <input id="issueETA_${id}" type="date" value="${i.eta||''}"
-            style="font-size:12px;font-weight:600;color:#374151;border:1px solid #e4e6ea;border-radius:6px;padding:4px 8px;width:100%;font-family:inherit"
+            style="font-size:12px;font-weight:600;color:#c9d0d8;border:1px solid #e4e6ea;border-radius:6px;padding:4px 8px;width:100%;font-family:inherit"
             onchange="UAT.saveIssueField('${id}','eta',this.value)">
         </div>
       </div>
       <!-- Description -->
       ${i.description ? `<div style="margin-bottom:16px">
-        <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Client Description</div>
-        <div class="uat-issue-desc-html" style="font-size:13px;line-height:1.7;color:#0d1117;border:1px solid #e4e6ea;border-radius:8px;padding:12px;word-break:break-word;overflow:hidden"></div>
+        <div style="font-size:11px;font-weight:700;color:#8a92a0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Client Description</div>
+        <div class="uat-issue-desc-html" style="font-size:13px;line-height:1.7;color:#f0f0f6;border:1px solid #e4e6ea;border-radius:8px;padding:12px;word-break:break-word;overflow:hidden"></div>
       </div>` : ''}
       <!-- Timeline -->
       <div style="margin-bottom:16px">
-        <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Updates &amp; Timeline</div>
+        <div style="font-size:11px;font-weight:700;color:#8a92a0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Updates &amp; Timeline</div>
         <div id="issueTimeline_${id}">${timelineHtml}</div>
       </div>
       <!-- Add update -->
       ${i.status !== 'solved' ? `
       <div style="border:1px solid #e4e6ea;border-radius:8px;padding:12px;background:#fafafa;margin-bottom:16px">
-        <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Add Update / Note</div>
+        <div style="font-size:11px;font-weight:700;color:#8a92a0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Add Update / Note</div>
         <textarea id="issueUpdateText_${id}" rows="2" placeholder="Describe the progress, action taken, or resolution steps…"
           style="width:100%;font-size:13px;border:1px solid #e4e6ea;border-radius:6px;padding:8px 10px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>
         <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
@@ -2073,29 +2073,29 @@ const UAT = (() => {
     if (bluecopaSignoff) {
       const dateStr = bluecopaSignoff.date ? new Date(bluecopaSignoff.date + 'T00:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' }) : bluecopaSignoff.date;
       primaryHtml =
-        `<div style="background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:28px 32px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.04)">` +
+        `<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:28px 32px;text-align:center;box-shadow:none">` +
           `<div style="font-size:40px;margin-bottom:12px">✅</div>` +
           `<div style="font-size:15px;font-weight:800;color:#15803d;margin-bottom:4px">UAT Signed Off — Bluecopa Team</div>` +
-          `<div style="font-size:22px;font-weight:800;color:#0d1117;margin-bottom:4px">${escHtml(bluecopaSignoff.name)}</div>` +
-          (bluecopaSignoff.role ? `<div style="font-size:13px;color:#6b7280;margin-bottom:8px">${escHtml(bluecopaSignoff.role)}</div>` : '') +
+          `<div style="font-size:22px;font-weight:800;color:#f0f0f6;margin-bottom:4px">${escHtml(bluecopaSignoff.name)}</div>` +
+          (bluecopaSignoff.role ? `<div style="font-size:13px;color:#8a92a0;margin-bottom:8px">${escHtml(bluecopaSignoff.role)}</div>` : '') +
           `<div style="font-size:12px;color:#9ca3af;font-weight:600">Signed on ${escHtml(dateStr)}</div>` +
-          `<div style="display:inline-flex;align-items:center;gap:6px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:99px;padding:6px 16px;font-size:11px;font-weight:700;color:#15803d;margin-top:16px">✓ Bluecopa UAT sign-off complete${isEntityTab ? ' — ' + escHtml(label) : ''}</div>` +
+          `<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);border-radius:99px;padding:6px 16px;font-size:11px;font-weight:700;color:#4ade80;margin-top:16px">✓ Bluecopa UAT sign-off complete${isEntityTab ? ' — ' + escHtml(label) : ''}</div>` +
         `</div>`;
     } else {
       primaryHtml =
-        `<div style="background:#fff;border:1px solid #e4e6ea;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">` +
+        `<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden;box-shadow:none">` +
           `<div style="background:#0d1117;padding:22px 28px;display:flex;align-items:center;gap:16px">` +
             `<div style="width:44px;height:44px;background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.25);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">✍️</div>` +
             `<div>` +
               `<div style="font-size:16px;font-weight:800;color:#fff">Bluecopa UAT Sign-off Certificate</div>` +
-              `<div style="font-size:12px;color:#6b7280;margin-top:3px">Submit the Bluecopa team sign-off${isEntityTab ? ' for ' + escHtml(label) : ''}.</div>` +
+              `<div style="font-size:12px;color:#8a92a0;margin-top:3px">Submit the Bluecopa team sign-off${isEntityTab ? ' for ' + escHtml(label) : ''}.</div>` +
             `</div>` +
           `</div>` +
           `<div style="padding:24px 28px">` +
             `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">` +
-              `<div><label style="display:block;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Full Name *</label><input class="uat-form-control" id="uatSoName_${eId}" placeholder="e.g. Rahul Mehta"></div>` +
-              `<div><label style="display:block;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Designation / Role</label><input class="uat-form-control" id="uatSoRole_${eId}" placeholder="e.g. UAT Consultant"></div>` +
-              `<div><label style="display:block;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Sign-off Date *</label><input class="uat-form-control" id="uatSoDate_${eId}" type="date" value="${today}"></div>` +
+              `<div><label style="display:block;font-size:11px;font-weight:700;color:#8a92a0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Full Name *</label><input class="uat-form-control" id="uatSoName_${eId}" placeholder="e.g. Rahul Mehta"></div>` +
+              `<div><label style="display:block;font-size:11px;font-weight:700;color:#8a92a0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Designation / Role</label><input class="uat-form-control" id="uatSoRole_${eId}" placeholder="e.g. UAT Consultant"></div>` +
+              `<div><label style="display:block;font-size:11px;font-weight:700;color:#8a92a0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Sign-off Date *</label><input class="uat-form-control" id="uatSoDate_${eId}" type="date" value="${today}"></div>` +
             `</div>` +
             `<div style="font-size:12px;color:#9ca3af;margin-bottom:18px;line-height:1.6;display:flex;align-items:flex-start;gap:8px"><span style="flex-shrink:0">ℹ️</span><span>By submitting, you confirm that the Bluecopa team has completed UAT review${isEntityTab ? ' for ' + escHtml(label) : ''}.</span></div>` +
             `<button class="uat-btn uat-btn-primary" id="uatSoBtn_${eId}" onclick="UAT.submitEntitySignoff('${signoffKey.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">Submit Bluecopa Sign-off →</button>` +
@@ -2112,8 +2112,8 @@ const UAT = (() => {
           `<div style="font-size:18px;flex-shrink:0">✅</div>` +
           `<div style="flex:1;min-width:0">` +
             `<div style="font-size:11px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Client Sign-off Received</div>` +
-            `<div style="font-size:13px;font-weight:700;color:#0d1117">${escHtml(clientSignoff.name)}${clientSignoff.role ? ' · ' + escHtml(clientSignoff.role) : ''}</div>` +
-            `<div style="font-size:11px;color:#6b7280;margin-top:2px">Signed by ${escHtml(clientName)} on ${escHtml(cDateStr)}</div>` +
+            `<div style="font-size:13px;font-weight:700;color:#f0f0f6">${escHtml(clientSignoff.name)}${clientSignoff.role ? ' · ' + escHtml(clientSignoff.role) : ''}</div>` +
+            `<div style="font-size:11px;color:#8a92a0;margin-top:2px">Signed by ${escHtml(clientName)} on ${escHtml(cDateStr)}</div>` +
           `</div>` +
         `</div>`;
     } else {

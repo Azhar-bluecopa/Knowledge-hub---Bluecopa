@@ -377,10 +377,10 @@ const EWS = (() => {
       const healthCol  = healthPct >= 70 ? '#22c55e' : healthPct >= 40 ? '#f59e0b' : '#dc2626';
       return `<tr>
         <td><strong>${escHtml(row.name)}</strong></td>
-        <td style="color:#6b7280">${escHtml(row.clientName)}</td>
+        <td style="color:#8a92a0">${escHtml(row.clientName)}</td>
         <td>${riskBubble(row.items.length)}</td>
         <td>${critCount > 0 ? `<span style="color:#dc2626;font-weight:700">${critCount}</span>` : '<span style="color:#9ca3af">0</span>'}</td>
-        <td style="color:#6b7280;font-size:12px">${fmtDate(lastRaised)}</td>
+        <td style="color:#8a92a0;font-size:12px">${fmtDate(lastRaised)}</td>
         <td>
           <div style="display:flex;align-items:center;gap:6px">
             <div class="ews-health-bar" style="width:60px"><div class="ews-health-fill" style="width:${healthPct}%;background:${healthCol}"></div></div>
@@ -555,7 +555,7 @@ const EWS = (() => {
     if (!list.length) {
       tbody.innerHTML = `<tr><td colspan="10"><div class="ews-table-empty">
         <div style="font-size:32px;margin-bottom:8px">📋</div>
-        <div style="font-weight:700;color:#374151;margin-bottom:4px">No EWS items found</div>
+        <div style="font-weight:700;color:#c9d0d8;margin-bottom:4px">No EWS items found</div>
         <div>Try adjusting filters or raise the first early warning</div>
       </div></td></tr>`;
       return;
@@ -565,15 +565,15 @@ const EWS = (() => {
       return `<tr>
         <td><span class="ews-ref-chip">${escHtml(e.ref||'—')}</span></td>
         <td>
-          <div style="font-weight:600;color:#090909;font-size:13px;cursor:pointer" onclick="EWS.openDrawer('${escHtml(e.id)}')">${escHtml(e.title)}</div>
+          <div style="font-weight:600;color:#f0f0f6;font-size:13px;cursor:pointer" onclick="EWS.openDrawer('${escHtml(e.id)}')">${escHtml(e.title)}</div>
           <div style="font-size:11px;color:#9ca3af;margin-top:2px">${escHtml(e.projectName||'—')} · ${escHtml(e.clientName||'—')}</div>
         </td>
-        <td><span style="font-size:12px">${triggerIcon(e.triggerType)}</span> <span style="font-size:12px;color:#374151">${escHtml(triggerLabel(e.triggerType))}</span></td>
+        <td><span style="font-size:12px">${triggerIcon(e.triggerType)}</span> <span style="font-size:12px;color:#c9d0d8">${escHtml(triggerLabel(e.triggerType))}</span></td>
         <td>${severityBadge(e.severity)}</td>
         <td>${statusPill(e.status)}</td>
         <td>${riskBubble(score)}</td>
-        <td style="font-size:12px;color:#374151">${escHtml(e.internalOwner||'—')}</td>
-        <td style="font-size:12px;color:#6b7280">${fmtDate(e.raisedAt)}</td>
+        <td style="font-size:12px;color:#c9d0d8">${escHtml(e.internalOwner||'—')}</td>
+        <td style="font-size:12px;color:#8a92a0">${fmtDate(e.raisedAt)}</td>
         <td style="font-size:12px;color:${e.targetResolutionDate && new Date(e.targetResolutionDate)<new Date() && !['resolved','closed'].includes(e.status)?'#dc2626':'#6b7280'}">${fmtDate(e.targetResolutionDate)}</td>
         <td><button class="ews-btn-secondary ews-btn-sm" onclick="EWS.openDrawer('${escHtml(e.id)}')" style="padding:4px 10px;font-size:11px">View →</button></td>
       </tr>`;
@@ -686,13 +686,13 @@ const EWS = (() => {
       <!-- Risk Description -->
       <div class="ews-drawer-section">
         <div class="ews-drawer-section-title">Risk Description</div>
-        <div style="font-size:13px;color:#090909;line-height:1.6">${escHtml(ews.description || '—')}</div>
-        ${ews.rootCause ? `<div style="margin-top:10px"><span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px">Root Cause</span><div style="font-size:13px;color:#374151;margin-top:4px;line-height:1.5">${escHtml(ews.rootCause)}</div></div>` : ''}
-        ${ews.currentImpact ? `<div style="margin-top:10px"><span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px">Current Impact</span><div style="font-size:13px;color:#374151;margin-top:4px;line-height:1.5">${escHtml(ews.currentImpact)}</div></div>` : ''}
+        <div style="font-size:13px;color:#f0f0f6;line-height:1.6">${escHtml(ews.description || '—')}</div>
+        ${ews.rootCause ? `<div style="margin-top:10px"><span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px">Root Cause</span><div style="font-size:13px;color:#c9d0d8;margin-top:4px;line-height:1.5">${escHtml(ews.rootCause)}</div></div>` : ''}
+        ${ews.currentImpact ? `<div style="margin-top:10px"><span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px">Current Impact</span><div style="font-size:13px;color:#c9d0d8;margin-top:4px;line-height:1.5">${escHtml(ews.currentImpact)}</div></div>` : ''}
         <div style="margin-top:10px">
           <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px">Business Impact</span>
           ${ews.businessImpact
-            ? `<div style="font-size:13px;color:#374151;margin-top:4px;line-height:1.5">${escHtml(ews.businessImpact)}</div>`
+            ? `<div style="font-size:13px;color:#c9d0d8;margin-top:4px;line-height:1.5">${escHtml(ews.businessImpact)}</div>`
             : `<div style="font-size:12px;color:#9ca3af;margin-top:4px">Not specified — <button class="ews-inline-btn" onclick="EWS._editBusinessImpact()">Add impact</button></div>`}
           <div id="ewsBusinessImpactEdit" class="ews-add-update-form" style="margin-top:8px">
             <textarea class="ews-textarea" id="ewsBusinessImpactText" placeholder="Describe financial, operational or reputational impact..." style="min-height:64px;margin-bottom:8px">${escHtml(ews.businessImpact||'')}</textarea>
@@ -708,10 +708,10 @@ const EWS = (() => {
       <div class="ews-drawer-section">
         <div class="ews-drawer-section-title">Corrective Plan</div>
         ${ews.correctivePlan
-          ? `<div style="font-size:13px;color:#090909;line-height:1.6;margin-bottom:14px">${escHtml(ews.correctivePlan)}</div>`
+          ? `<div style="font-size:13px;color:#f0f0f6;line-height:1.6;margin-bottom:14px">${escHtml(ews.correctivePlan)}</div>`
           : `<div style="color:#9ca3af;font-size:13px;margin-bottom:14px">No corrective plan defined</div>`}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <span style="font-size:12px;font-weight:700;color:#374151">Action Items (${(ews.actionItems||[]).length})</span>
+          <span style="font-size:12px;font-weight:700;color:#c9d0d8">Action Items (${(ews.actionItems||[]).length})</span>
           <button class="ews-btn-secondary ews-btn-sm" onclick="EWS.showAddAction()" style="font-size:11px;padding:4px 10px">+ Add</button>
         </div>
         ${actionItemsHtml}
