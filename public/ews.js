@@ -1109,7 +1109,7 @@ const EWS = (() => {
     scheduleReviews,
     _editBusinessImpact, _cancelBusinessImpact, _saveBusinessImpact,
     toggleMaximize,
-    showHowItWorks, hideHowItWorks,
+    showHowItWorks, hideHowItWorks, toggleHowItWorksMax,
   };
 
   function showHowItWorks() {
@@ -1122,6 +1122,22 @@ const EWS = (() => {
     const d = el('ewsHowItWorksDrawer');
     if (!d) return;
     d.classList.remove('open');
+    const panel = d.querySelector('.ews-hiw-panel');
+    if (panel) panel.classList.remove('maximized');
+    _updateMaxIcon(false);
     setTimeout(() => { d.style.display = 'none'; }, 260);
+  }
+  function toggleHowItWorksMax() {
+    const panel = document.querySelector('.ews-hiw-panel');
+    if (!panel) return;
+    const isMax = panel.classList.toggle('maximized');
+    _updateMaxIcon(isMax);
+  }
+  function _updateMaxIcon(isMax) {
+    const icon = el('ewsHiwMaxIcon');
+    if (!icon) return;
+    icon.innerHTML = isMax
+      ? '<path d="M5 2H2v3M2 9v3h3M9 12h3V9M12 5V2H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'
+      : '<path d="M2 5V2h3M9 2h3v3M12 9v3H9M5 12H2V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>';
   }
 })();
