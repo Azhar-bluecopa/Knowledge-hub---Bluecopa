@@ -890,12 +890,12 @@
 .ews-drawer { background: #0f0f16; }
 .ews-drawer-header { border-bottom-color: rgba(255,255,255,.07); }
 .ews-drawer-section { border-bottom-color: rgba(255,255,255,.05); }
-.ews-drawer-section-title { color: #4a5162; }
+.ews-drawer-section-title { color: #c9a227; }
 
 .ews-progress-step::before { background: rgba(255,255,255,.08); }
-.ews-progress-dot { background: rgba(255,255,255,.08); }
+.ews-progress-dot { background: rgba(255,255,255,.1); color: #8a92a0; }
 .ews-progress-step.active::before { background: linear-gradient(90deg, #22c55e, rgba(255,255,255,.08)); }
-.ews-progress-label { color: #4a5162; }
+.ews-progress-label { color: #8a92a0; }
 
 .ews-action-item { border-bottom-color: rgba(255,255,255,.05); }
 .ews-action-check { border-color: rgba(255,255,255,.15); }
