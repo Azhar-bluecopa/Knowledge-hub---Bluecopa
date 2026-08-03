@@ -6872,7 +6872,7 @@ async function updateFeedbackStatus(id) {
 
   <script src="/courses.js?v=13" defer></script>
   <script src="/app.js?v=69" defer></script>
-  <script src="/uat.js?v=51" defer></script>
+  <script src="/uat.js?v=52" defer></script>
   <script src="/ews.js?v=8" defer></script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
@@ -7337,17 +7337,9 @@ async function updateFeedbackStatus(id) {
           <div class="uat-drawer-section-title" style="margin-bottom:0">Test Procedure</div>
           <button class="uat-proc-maximize-btn" onclick="UAT.openProcFullscreen()" title="Open fullscreen editor">⛶ Fullscreen</button>
         </div>
-        <div class="uat-proc-editor" id="uatTCDrawer_procedure" contenteditable="true"
-          data-placeholder="Step 1: Navigate to…&#10;Step 2: Click on…&#10;Step 3: Verify result&#10;&#10;Ctrl+V to paste a screenshot inline at the cursor"></div>
-        <div class="uat-proc-drop"
-          ondragover="event.preventDefault();this.classList.add('drag-over')"
-          ondragleave="this.classList.remove('drag-over')"
-          ondrop="event.preventDefault();this.classList.remove('drag-over');UAT.handleProcDrop(event.dataTransfer.files,'uatTCDrawer_procedure')"
-          onclick="document.getElementById('uatProcFileInput').click()">
-          <input type="file" id="uatProcFileInput" accept="image/*" multiple style="display:none"
-            onchange="UAT.handleProcDrop(this.files,'uatTCDrawer_procedure')">
-          <div>📷 Drop image or <span class="uat-proc-upload-link">click to upload</span> — images appear inline with your text</div>
-        </div>
+        <div id="uatProcStepsList" class="uat-proc-steps-list"></div>
+        <div class="uat-proc-add-step-row"><button class="uat-proc-add-step" onclick="UAT.addProcStep()">+ Add Step</button></div>
+        <div id="uatTCDrawer_procedure" style="display:none"></div>
         <button class="uat-btn uat-btn-primary uat-drawer-save" onclick="UAT.saveProcedure()" style="margin-top:12px">Save Procedure</button>
       </div>
     </div>
