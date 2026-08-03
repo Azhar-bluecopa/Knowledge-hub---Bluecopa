@@ -8,6 +8,8 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>KnowledgeHub — Team Wiki</title>
+<script>if(sessionStorage.getItem('dw_screen'))document.documentElement.classList.add('dw-restoring');</script>
+<style>html.dw-restoring body{visibility:hidden!important}</style>
   <!-- Preconnect to font origins so DNS+TLS is done before the stylesheet fires -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -9756,7 +9758,8 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
       };
       var fn = map[s.screen];
       if(fn) fn();
-    }, 300);
+      document.documentElement.classList.remove('dw-restoring');
+    }, 50);
   });
 })();
 </script>
