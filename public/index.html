@@ -9672,5 +9672,44 @@ function ipRenderDashboard() {
 
 function ipRenderAnalytics(d) { ipRenderDashboard(); }
 </script>
+
+<script>
+(function(){
+  var orig = history.pushState.bind(history);
+  history.pushState = function(state, title, url){
+    orig(state, title, url);
+    if(!state || !state.screen) return;
+    if(state.screen === 'landing') sessionStorage.removeItem('dw_screen');
+    else sessionStorage.setItem('dw_screen', JSON.stringify(state));
+  };
+  window.addEventListener('load', function(){
+    var saved = sessionStorage.getItem('dw_screen');
+    if(!saved) return;
+    var s;
+    try { s = JSON.parse(saved); } catch(e){ return; }
+    setTimeout(function(){
+      var map = {
+        'articles':      function(){ if(typeof dwGoKnowledge==='function') dwGoKnowledge(); },
+        'my-learning':   function(){ if(typeof dwGoLearning==='function') dwGoLearning(); },
+        'skillmatrix':   function(){ if(typeof dwGoSkillMatrix==='function') dwGoSkillMatrix(); },
+        'engagement':    function(){ if(typeof dwGoEngagement==='function') dwGoEngagement(); },
+        'processpuzzle': function(){ if(typeof dwGoProcessPuzzle==='function') dwGoProcessPuzzle(); },
+        'dw-roadmap':    function(){ if(typeof dwGoRoadmap==='function') dwGoRoadmap(); },
+        'certificates':  function(){ if(typeof dwGoCertificates==='function') dwGoCertificates(); },
+        'pd-dashboard':  function(){ if(typeof pdShowDashboard==='function') pdShowDashboard(); },
+        'leadership':    function(){ if(typeof liOpen==='function') liOpen(); },
+        'dashboard':     function(){ if(typeof showDashboard==='function') showDashboard(); },
+        'roadmap':       function(){ if(typeof showRoadmap==='function') showRoadmap(); },
+        'admin':         function(){ if(typeof openAdminPanel==='function') openAdminPanel(); },
+        'about':         function(){ if(typeof openAbout==='function') openAbout(); },
+        'article-detail':function(){ if(typeof dwGoKnowledge==='function') dwGoKnowledge(); },
+        'new-article':   function(){ if(typeof dwGoKnowledge==='function') dwGoKnowledge(); }
+      };
+      var fn = map[s.screen];
+      if(fn) fn();
+    }, 300);
+  });
+})();
+</script>
 </body>
 </html>
