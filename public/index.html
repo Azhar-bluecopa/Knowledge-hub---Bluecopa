@@ -9763,6 +9763,9 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
         'article-detail':function(){ if(typeof dwGoKnowledge==='function') dwGoKnowledge(); },
         'new-article':   function(){ if(typeof dwGoKnowledge==='function') dwGoKnowledge(); }
       };
+      // Hide landing overlay before restoring any screen — functions like showDashboard(),
+      // showRoadmap(), pdShowDashboard() don't call hideLanding() themselves
+      if(typeof hideLanding==='function') hideLanding();
       var fn=map[s.screen]; if(fn) fn();
       document.documentElement.classList.remove('dw-restoring');
     }, 50);
