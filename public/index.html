@@ -9677,63 +9677,70 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
 
 <script>
 (function(){
-  // ── Top-level screen tracking via history.pushState ──────────────────────
-  var orig = history.pushState.bind(history);
-  history.pushState = function(state, title, url){
-    orig(state, title, url);
-    if(!state || !state.screen) return;
-    if(state.screen === 'landing'){
+  // Save screen state to sessionStorage
+  function _save(state){
+    if(!state || !state.screen) { sessionStorage.removeItem('dw_screen'); return; }
+    if(state.screen==='landing' || state.screen==='comingsoon'){
       sessionStorage.removeItem('dw_screen');
       sessionStorage.removeItem('dw_course');
     } else {
       sessionStorage.setItem('dw_screen', JSON.stringify(state));
-      // leaving My Learning entirely clears the course sub-state
       if(state.screen !== 'my-learning') sessionStorage.removeItem('dw_course');
     }
-  };
+  }
 
-  // ── Course/lesson sub-state tracking ─────────────────────────────────────
+  // Track screen on every pushState (forward navigation)
+  var orig = history.pushState.bind(history);
+  history.pushState = function(state, title, url){ orig(state, title, url); _save(state); };
+
+  // Track screen on popstate (browser back/forward) — capture fires before app's handler
+  // which runs with _dwNavFlag=true and skips pushState calls, so we must listen here
+  window.addEventListener('popstate', function(e){ _save(e.state); }, true);
+
   window.addEventListener('load', function(){
-    // Wrap mlOpenCourse to save which course is open
+    // Patch mlOpenCourse to save active course
     var origOpen = window.mlOpenCourse;
-    if(typeof origOpen === 'function'){
+    if(typeof origOpen==='function'){
       window.mlOpenCourse = function(courseId){
         origOpen.call(this, courseId);
         sessionStorage.setItem('dw_course', JSON.stringify({courseId:courseId, modIdx:0, lesIdx:0}));
       };
     }
-    // Wrap mlShowLesson to save which lesson is open
+    // Patch mlShowLesson to save active lesson
     var origLesson = window.mlShowLesson;
-    if(typeof origLesson === 'function'){
+    if(typeof origLesson==='function'){
       window.mlShowLesson = function(modIdx, lesIdx){
         origLesson.call(this, modIdx, lesIdx);
         var cur = sessionStorage.getItem('dw_course');
         var cs = cur ? JSON.parse(cur) : {};
-        sessionStorage.setItem('dw_course', JSON.stringify({courseId: cs.courseId || (typeof mlVS!=='undefined'?mlVS.courseId:null), modIdx:modIdx, lesIdx:lesIdx}));
+        sessionStorage.setItem('dw_course', JSON.stringify({
+          courseId: cs.courseId||(typeof mlVS!=='undefined'?mlVS.courseId:null),
+          modIdx: modIdx, lesIdx: lesIdx
+        }));
       };
     }
-    // Wrap mlCloseCourse + mlHide to clear course sub-state
+    // Patch mlCloseCourse to clear course sub-state only
     var origClose = window.mlCloseCourse;
-    if(typeof origClose === 'function'){
+    if(typeof origClose==='function'){
       window.mlCloseCourse = function(){ origClose.call(this); sessionStorage.removeItem('dw_course'); };
     }
+    // Patch mlHide — clear course only, NOT dw_screen (screen is tracked by push/popstate)
     var origHide = window.mlHide;
-    if(typeof origHide === 'function'){
-      window.mlHide = function(){ origHide.call(this); sessionStorage.removeItem('dw_course'); sessionStorage.removeItem('dw_screen'); };
+    if(typeof origHide==='function'){
+      window.mlHide = function(){ origHide.call(this); sessionStorage.removeItem('dw_course'); };
     }
 
-    // ── Restore on refresh ────────────────────────────────────────────────
+    // Restore screen on refresh
     var saved = sessionStorage.getItem('dw_screen');
     if(!saved) return;
-    var s;
-    try { s = JSON.parse(saved); } catch(e){ return; }
+    var s; try{ s=JSON.parse(saved); }catch(e){ return; }
     setTimeout(function(){
       var map = {
         'articles':      function(){ if(typeof dwGoKnowledge==='function') dwGoKnowledge(); },
         'my-learning':   function(){
-          if(typeof dwGoLearning==='function') dwGoLearning();
-          var cs = sessionStorage.getItem('dw_course');
-          if(!cs) return;
+          if(typeof dwGoLearning!=='function') return;
+          dwGoLearning();
+          var cs=sessionStorage.getItem('dw_course'); if(!cs) return;
           var c; try{ c=JSON.parse(cs); }catch(e){ return; }
           if(!c.courseId) return;
           setTimeout(function(){
@@ -9756,8 +9763,7 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
         'article-detail':function(){ if(typeof dwGoKnowledge==='function') dwGoKnowledge(); },
         'new-article':   function(){ if(typeof dwGoKnowledge==='function') dwGoKnowledge(); }
       };
-      var fn = map[s.screen];
-      if(fn) fn();
+      var fn=map[s.screen]; if(fn) fn();
       document.documentElement.classList.remove('dw-restoring');
     }, 50);
   });
