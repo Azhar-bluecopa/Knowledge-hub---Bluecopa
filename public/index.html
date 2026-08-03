@@ -9675,14 +9675,52 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
 
 <script>
 (function(){
+  // ── Top-level screen tracking via history.pushState ──────────────────────
   var orig = history.pushState.bind(history);
   history.pushState = function(state, title, url){
     orig(state, title, url);
     if(!state || !state.screen) return;
-    if(state.screen === 'landing') sessionStorage.removeItem('dw_screen');
-    else sessionStorage.setItem('dw_screen', JSON.stringify(state));
+    if(state.screen === 'landing'){
+      sessionStorage.removeItem('dw_screen');
+      sessionStorage.removeItem('dw_course');
+    } else {
+      sessionStorage.setItem('dw_screen', JSON.stringify(state));
+      // leaving My Learning entirely clears the course sub-state
+      if(state.screen !== 'my-learning') sessionStorage.removeItem('dw_course');
+    }
   };
+
+  // ── Course/lesson sub-state tracking ─────────────────────────────────────
   window.addEventListener('load', function(){
+    // Wrap mlOpenCourse to save which course is open
+    var origOpen = window.mlOpenCourse;
+    if(typeof origOpen === 'function'){
+      window.mlOpenCourse = function(courseId){
+        origOpen.call(this, courseId);
+        sessionStorage.setItem('dw_course', JSON.stringify({courseId:courseId, modIdx:0, lesIdx:0}));
+      };
+    }
+    // Wrap mlShowLesson to save which lesson is open
+    var origLesson = window.mlShowLesson;
+    if(typeof origLesson === 'function'){
+      window.mlShowLesson = function(modIdx, lesIdx){
+        origLesson.call(this, modIdx, lesIdx);
+        var cur = sessionStorage.getItem('dw_course');
+        var cs = cur ? JSON.parse(cur) : {};
+        sessionStorage.setItem('dw_course', JSON.stringify({courseId: cs.courseId || (typeof mlVS!=='undefined'?mlVS.courseId:null), modIdx:modIdx, lesIdx:lesIdx}));
+      };
+    }
+    // Wrap mlCloseCourse + mlHide to clear course sub-state
+    var origClose = window.mlCloseCourse;
+    if(typeof origClose === 'function'){
+      window.mlCloseCourse = function(){ origClose.call(this); sessionStorage.removeItem('dw_course'); };
+    }
+    var origHide = window.mlHide;
+    if(typeof origHide === 'function'){
+      window.mlHide = function(){ origHide.call(this); sessionStorage.removeItem('dw_course'); sessionStorage.removeItem('dw_screen'); };
+    }
+
+    // ── Restore on refresh ────────────────────────────────────────────────
     var saved = sessionStorage.getItem('dw_screen');
     if(!saved) return;
     var s;
@@ -9690,7 +9728,18 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
     setTimeout(function(){
       var map = {
         'articles':      function(){ if(typeof dwGoKnowledge==='function') dwGoKnowledge(); },
-        'my-learning':   function(){ if(typeof dwGoLearning==='function') dwGoLearning(); },
+        'my-learning':   function(){
+          if(typeof dwGoLearning==='function') dwGoLearning();
+          var cs = sessionStorage.getItem('dw_course');
+          if(!cs) return;
+          var c; try{ c=JSON.parse(cs); }catch(e){ return; }
+          if(!c.courseId) return;
+          setTimeout(function(){
+            if(typeof mlOpenCourse==='function') mlOpenCourse(c.courseId);
+            if(typeof mlShowLesson==='function' && (c.modIdx||c.lesIdx))
+              setTimeout(function(){ mlShowLesson(c.modIdx||0, c.lesIdx||0); }, 50);
+          }, 100);
+        },
         'skillmatrix':   function(){ if(typeof dwGoSkillMatrix==='function') dwGoSkillMatrix(); },
         'engagement':    function(){ if(typeof dwGoEngagement==='function') dwGoEngagement(); },
         'processpuzzle': function(){ if(typeof dwGoProcessPuzzle==='function') dwGoProcessPuzzle(); },
