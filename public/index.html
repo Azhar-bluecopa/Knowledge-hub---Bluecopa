@@ -9738,6 +9738,23 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
       window.mlHide = function(){ origHide.call(this); sessionStorage.removeItem('dw_course'); };
     }
 
+    // Patch UAT.open to save state (UAT.open() doesn't call pushState itself)
+    if(typeof UAT!=='undefined' && typeof UAT.open==='function'){
+      var _origUatOpen = UAT.open;
+      UAT.open = function(){
+        history.pushState({screen:'uat'}, '');
+        _origUatOpen.apply(this, arguments);
+      };
+    }
+    // Patch EWS.open to save state
+    if(typeof EWS!=='undefined' && typeof EWS.open==='function'){
+      var _origEwsOpen = EWS.open;
+      EWS.open = function(){
+        history.pushState({screen:'ews'}, '');
+        _origEwsOpen.apply(this, arguments);
+      };
+    }
+
     // Restore screen on refresh
     var saved = sessionStorage.getItem('dw_screen');
     if(!saved) return;
@@ -9769,15 +9786,23 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
         'roadmap':       function(){ if(typeof showRoadmap==='function') showRoadmap(); },
         'admin':         function(){ if(typeof openAdminPanel==='function') openAdminPanel(); },
         'about':         function(){ if(typeof openAbout==='function') openAbout(); },
+        'uat':           function(){ if(typeof UAT!=='undefined' && typeof UAT.open==='function') UAT.open(); },
+        'ews':           function(){ if(typeof EWS!=='undefined' && typeof EWS.open==='function') EWS.open(); },
         'article-detail':function(){ if(typeof dwGoKnowledge==='function') dwGoKnowledge(); },
         'new-article':   function(){ if(typeof dwGoKnowledge==='function') dwGoKnowledge(); }
       };
-      // Hide landing overlay before restoring any screen — functions like showDashboard(),
-      // showRoadmap(), pdShowDashboard() don't call hideLanding() themselves
+      // Always hide landing before restoring any screen
       if(typeof hideLanding==='function') hideLanding();
       var fn=map[s.screen]; if(fn) fn();
-      document.documentElement.classList.remove('dw-restoring');
-    }, 50);
+      // Double rAF: wait for the browser to paint the restored state before revealing the body.
+      // This eliminates the flash where the landing page appears for one frame during the
+      // visibility transition.
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){
+          document.documentElement.classList.remove('dw-restoring');
+        });
+      });
+    }, 100);
   });
 })();
 
