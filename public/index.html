@@ -10,15 +10,11 @@
 <title>KnowledgeHub — Team Wiki</title>
 <script>if(sessionStorage.getItem('dw_screen'))document.documentElement.classList.add('dw-restoring');</script>
 <style>
-html.dw-restoring::before{
-  content:'';
-  position:fixed;
-  inset:0;
-  background:#08080d;
-  z-index:999999;
-  display:block;
-}
-html.dw-restoring body{visibility:hidden!important}
+/* Belt-and-suspenders: three independent layers to guarantee no flash */
+html.dw-restoring body{visibility:hidden!important;opacity:0!important}
+html.dw-restoring::before{content:'';position:fixed;inset:0;background:#08080d;z-index:999999;display:block}
+#dwCover{display:none}
+html.dw-restoring #dwCover{display:block;position:fixed;top:0;left:0;right:0;bottom:0;background:#08080d;z-index:999998}
 </style>
   <!-- Preconnect to font origins so DNS+TLS is done before the stylesheet fires -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,6 +32,7 @@ html.dw-restoring body{visibility:hidden!important}
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
+<div id="dwCover"></div>
 
 <!-- ── Sidebar ── -->
 <aside class="sidebar">
