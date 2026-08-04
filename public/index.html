@@ -4255,13 +4255,13 @@ async function updateFeedbackStatus(id) {
       </div>
     </div>
     <div class="mc-nav-right">
-      <button class="mc-nav-btn" onclick="ipShowPortal()" style="border-color:rgba(201,162,39,.4);color:rgba(201,162,39,.9);">⚡ Issues</button>
       <button class="mc-nav-btn mc-dash-btn" id="mcDashBtn" onclick="pdShowDashboard()" style="display:none;">
         My Dashboard
       </button>
+      <button class="mc-nav-btn" onclick="ipShowPortal()" style="border-color:rgba(201,162,39,.4);color:rgba(201,162,39,.9);">⚡ Issues</button>
+      <button class="mc-nav-btn" onclick="ibOpen()">💡 Idea Box</button>
       <button class="mc-nav-btn" id="mcAdminBtn" onclick="openAdminPanel()" style="display:none;">⚙ Admin</button>
     </div>
-    <button class="mc-nav-btn" onclick="dwGoEngagement();eehSwitchTab('ideabox')">💡 Idea Box</button>
   </nav>
 
       <!-- Center/Right: large circular logo -->
@@ -4776,8 +4776,22 @@ async function updateFeedbackStatus(id) {
     <div class="eeh-bottom-pad"></div>
   </div>
 
-  <!-- ── TAB: IDEA BOX ─────────────────────────────────────── -->
-  <div class="eeh-panel" id="eehIdeabox">
+
+</div><!-- /eehOverlay -->
+
+<!-- ── IDEA BOX STANDALONE OVERLAY ────────────────────────────── -->
+<div class="eeh-overlay" id="ibOverlay">
+  <div class="eeh-topbar">
+    <div class="eeh-topbar-left">
+      <span class="eeh-topbar-icon">💡</span>
+      <span class="eeh-topbar-title">Idea Box</span>
+    </div>
+    <div class="eeh-topbar-tabs"></div>
+    <div class="eeh-topbar-right">
+      <button class="eeh-home-btn" onclick="ibClose()">⌂ Home</button>
+    </div>
+  </div>
+  <div style="flex:1;overflow-y:auto;" id="eehIdeabox">
     <div class="eeh-ib-hero">
       <div class="eeh-ib-eyebrow">Bluecopa · Innovation</div>
       <h1 class="eeh-ib-h1">Idea Box 💡</h1>
@@ -4791,7 +4805,6 @@ async function updateFeedbackStatus(id) {
           <div class="eeh-idea-form-title">Share Your Idea</div>
           <div class="eeh-idea-form-hint">Pick a category first</div>
         </div>
-        <!-- Category tiles — replaces dropdown -->
         <div class="eeh-cat-tiles">
           <div class="eeh-cat-tile" data-cat="website" onclick="eehSelectCategory('website',this)">
             <span class="eeh-cat-tile-icon">🖥️</span>
@@ -4838,8 +4851,7 @@ async function updateFeedbackStatus(id) {
     </div>
     <div class="eeh-ideas-list" id="eehIdeasList"><!-- rendered by JS --></div>
   </div>
-
-</div><!-- /eehOverlay -->
+</div><!-- /ibOverlay -->
 
 <!-- Spotlight Edit Modal -->
 <div class="eeh-modal-bg" id="eehSpotlightModalBg" onclick="if(event.target===this)eehCloseSpotlightModal()">
@@ -9747,6 +9759,7 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
         },
         'skillmatrix':   function(){ if(typeof dwGoSkillMatrix==='function') dwGoSkillMatrix(); },
         'engagement':    function(){ if(typeof dwGoEngagement==='function') dwGoEngagement(); },
+        'ideabox':       function(){ if(typeof ibOpen==='function') ibOpen(); },
         'processpuzzle': function(){ if(typeof dwGoProcessPuzzle==='function') dwGoProcessPuzzle(); },
         'dw-roadmap':    function(){ if(typeof dwGoRoadmap==='function') dwGoRoadmap(); },
         'certificates':  function(){ if(typeof dwGoCertificates==='function') dwGoCertificates(); },
@@ -9767,6 +9780,17 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
     }, 50);
   });
 })();
+
+function ibOpen(){
+  if(typeof hideLanding==='function') hideLanding();
+  history.pushState({screen:'ideabox'},'');
+  document.getElementById('ibOverlay').classList.add('active');
+  if(typeof eehLoad==='function') eehLoad();
+}
+function ibClose(){
+  document.getElementById('ibOverlay').classList.remove('active');
+  if(typeof showLanding==='function') showLanding();
+}
 </script>
 </body>
 </html>
