@@ -9,7 +9,17 @@
 <meta http-equiv="Expires" content="0"/>
 <title>KnowledgeHub — Team Wiki</title>
 <script>if(sessionStorage.getItem('dw_screen'))document.documentElement.classList.add('dw-restoring');</script>
-<style>html.dw-restoring body{visibility:hidden!important}</style>
+<style>
+html.dw-restoring::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:#08080d;
+  z-index:999999;
+  display:block;
+}
+html.dw-restoring body{visibility:hidden!important}
+</style>
   <!-- Preconnect to font origins so DNS+TLS is done before the stylesheet fires -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
