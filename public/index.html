@@ -26,10 +26,30 @@ html.dw-restoring #dwCover{display:block;position:fixed;top:0;left:0;right:0;bot
   <noscript>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
-  <link rel="stylesheet" href="/style.css?v=85">
+  <link rel="stylesheet" href="/style.css?v=86">
   <link rel="stylesheet" href="/uat.css?v=25">
   <link rel="stylesheet" href="/ews.css?v=8">
   <script src="https://accounts.google.com/gsi/client" async></script>
+<style>
+.dw-ab-challenges{position:relative;z-index:1}
+.dw-ab-coming-label{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.32em;text-transform:uppercase;color:rgba(255,255,255,.18);padding:28px 64px 20px;border-top:1px solid rgba(255,255,255,.04)}
+.dw-ab-ch-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.04)}
+.dw-ab-ch-item{display:flex;align-items:flex-start;gap:16px;padding:24px 52px;background:#06060e}
+.dw-ab-ch-icon{font-size:22px;flex-shrink:0;margin-top:1px}
+.dw-ab-ch-item strong{display:block;font-size:13px;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:3px}
+.dw-ab-ch-item span{font-size:12px;color:rgba(255,255,255,.32);line-height:1.5;display:block}
+.dw-ab-pillars{position:relative;z-index:1;display:flex;flex-direction:column;gap:1px;background:rgba(255,255,255,.04)}
+.dw-ab-pillar{display:grid;grid-template-columns:160px 1fr;background:#06060e;position:relative;overflow:hidden}
+.dw-ab-pillar::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;background:var(--pc,#818cf8);opacity:.6}
+.dw-ab-pillar-icon{display:flex;align-items:center;justify-content:center;font-size:52px;padding:48px 0;border-right:1px solid rgba(255,255,255,.04)}
+.dw-ab-pillar-body{padding:40px 52px}
+.dw-ab-pillar-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--pc,#818cf8);opacity:.8;margin-bottom:10px}
+.dw-ab-pillar-title{font-family:'Playfair Display',serif;font-size:clamp(18px,1.8vw,24px);font-weight:700;color:#f0f0f6;line-height:1.25;margin-bottom:10px}
+.dw-ab-pillar-sub{font-size:14px;color:rgba(255,255,255,.38);line-height:1.75;margin-bottom:20px;max-width:560px}
+.dw-ab-pillar-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+.dw-ab-pillar-list li{font-size:13px;color:rgba(255,255,255,.48);line-height:1.65;padding-left:22px;position:relative}
+.dw-ab-pillar-list li::before{content:'\2192';position:absolute;left:0;color:var(--pc,#818cf8);opacity:.7;font-family:'DM Mono',monospace;font-size:11px}
+</style>
 </head>
 <body>
 <div id="dwCover"></div>
@@ -5194,20 +5214,34 @@ async function updateFeedbackStatus(id) {
     <div class="dw-ab-glow dw-ab-glow-1"></div>
     <div class="dw-ab-glow dw-ab-glow-2"></div>
 
-    <!-- Opening — split hero: text left, animated orb right -->
+    <!-- Opening hero -->
     <section class="dw-ab-opener">
       <div class="dw-ab-opener-text">
         <div class="dw-ab-kicker dw-ab-anim-1">BLUECOPA · DELIVERY TEAM'S GO-TO PLACE</div>
-        <h1 class="dw-ab-h1 dw-ab-anim-2">The answer existed.<br><em>Finding it was the problem.</em></h1>
-        <p class="dw-ab-lead dw-ab-anim-3">So we built one place where everything the delivery team knows actually lives. Not in scattered docs. Not inside someone's head. Here — searchable, structured, and always current.</p>
+        <h1 class="dw-ab-h1 dw-ab-anim-2">Welcome to<br><em>Delivery Wiki</em></h1>
+        <p class="dw-ab-lead dw-ab-anim-3">Every delivery organization faces the same set of challenges. Knowledge stays locked with individuals. Skills vary across the team. Risks surface too late. Achievements go unnoticed.</p>
         <div class="dw-ab-divider-line dw-ab-anim-4"></div>
+        <p class="dw-ab-lead dw-ab-anim-5" style="margin-bottom:0;">Delivery Wiki was built to solve them — a single platform designed exclusively for the Bluecopa Delivery Organization, bringing together learning, skills, projects, people, and governance in one connected place.</p>
       </div>
       <div class="dw-ab-opener-orb dw-ab-anim-1">
         <canvas id="dwAbOrb"></canvas>
       </div>
     </section>
 
-    <!-- Live stats — full-width, colored -->
+    <!-- What we solve -->
+    <div class="dw-ab-challenges dw-ab-scroll-reveal">
+      <div class="dw-ab-coming-label">WHAT WE SOLVE</div>
+      <div class="dw-ab-ch-grid">
+        <div class="dw-ab-ch-item"><span class="dw-ab-ch-icon">⏱️</span><div><strong>Slow onboarding</strong><span>New members take too long to become productive</span></div></div>
+        <div class="dw-ab-ch-item"><span class="dw-ab-ch-icon">🔒</span><div><strong>Knowledge silos</strong><span>Valuable know-how stays with individuals, not the organization</span></div></div>
+        <div class="dw-ab-ch-item"><span class="dw-ab-ch-icon">🔁</span><div><strong>Repeated problem-solving</strong><span>Teams keep solving the same issues because past fixes are unfindable</span></div></div>
+        <div class="dw-ab-ch-item"><span class="dw-ab-ch-icon">📊</span><div><strong>Uneven expertise</strong><span>Skill gaps are invisible until they surface in a client call</span></div></div>
+        <div class="dw-ab-ch-item"><span class="dw-ab-ch-icon">⚠️</span><div><strong>Late risk visibility</strong><span>Project risks surface too late for leadership to act early</span></div></div>
+        <div class="dw-ab-ch-item"><span class="dw-ab-ch-icon">🏆</span><div><strong>Invisible contributions</strong><span>Achievements go unnoticed despite tremendous effort</span></div></div>
+      </div>
+    </div>
+
+    <!-- Live stats -->
     <div class="dw-ab-numbers dw-ab-anim-5">
       <div class="dw-ab-num" style="--nc:#e8c97a;"><strong id="dwAbN1">—</strong><span>courses</span></div>
       <div class="dw-ab-num-div"></div>
@@ -5220,92 +5254,64 @@ async function updateFeedbackStatus(id) {
       <div class="dw-ab-num" style="--nc:#4ade80;"><strong id="dwAbN5">—</strong><span>process areas</span></div>
     </div>
 
-    <!-- Live features — 2-column card grid -->
-    <div class="dw-ab-feat-grid">
+    <!-- Three Pillars -->
+    <div class="dw-ab-pillars">
 
-      <div class="dw-ab-fcard dw-ab-scroll-reveal" style="--fc:#00c8cc;">
-        <div class="dw-ab-fc-accent"></div>
-        <div class="dw-ab-fc-header">
-          <span class="dw-ab-fc-icon">📚</span>
-          <span class="dw-ab-fc-num">01</span>
-          <span class="dw-ab-live-chip">LIVE</span>
-        </div>
-        <div class="dw-ab-fc-label">Knowledge Articles</div>
-        <div class="dw-ab-fc-hl">Stop rediscovering things that already happened.</div>
-        <p class="dw-ab-fc-p"><strong id="dwAbT3">—</strong> articles written by the people who actually do the work — not documentation created for compliance checkboxes. When a configuration question comes up at 11pm, the answer is here. Not buried somewhere six months ago.</p>
-        <div class="dw-ab-fc-tags"><span>How-Tos</span><span>Deep Dives</span><span>Best Practices</span><span>FAQs</span></div>
-      </div>
-
-      <div class="dw-ab-fcard dw-ab-scroll-reveal" style="--fc:#e8c97a;">
-        <div class="dw-ab-fc-accent"></div>
-        <div class="dw-ab-fc-header">
-          <span class="dw-ab-fc-icon">🎓</span>
-          <span class="dw-ab-fc-num">02</span>
-          <span class="dw-ab-live-chip">LIVE</span>
-        </div>
-        <div class="dw-ab-fc-label">My Learning</div>
-        <div class="dw-ab-fc-hl">Not another mandatory training you'll click through in 20 minutes.</div>
-        <p class="dw-ab-fc-p"><strong id="dwAbT1">—</strong> courses built around what we actually do — AR, AP, MIS, P2P, O2C, R2R and more. <strong id="dwAbT2">—</strong> lessons, each tied to how Bluecopa works in the real world. Self-paced, with quizzes and certificates. Go at your own speed.</p>
-        <div class="dw-ab-fc-tags"><span>AR</span><span>AP</span><span>MIS</span><span>P2P</span><span>O2C</span><span>R2R</span><span>+ more</span></div>
-      </div>
-
-      <div class="dw-ab-fcard dw-ab-scroll-reveal" style="--fc:#818cf8;">
-        <div class="dw-ab-fc-accent"></div>
-        <div class="dw-ab-fc-header">
-          <span class="dw-ab-fc-icon">🧠</span>
-          <span class="dw-ab-fc-num">03</span>
-          <span class="dw-ab-live-chip">LIVE</span>
-        </div>
-        <div class="dw-ab-fc-label">Skill Matrix</div>
-        <div class="dw-ab-fc-hl">No more guessing who knows what.</div>
-        <p class="dw-ab-fc-p"><strong id="dwAbT5">—</strong> process areas, <strong id="dwAbT4">—</strong> people — each rated honestly across Beginner → Intermediate → Advanced → Expert. The org sees where gaps are. Everyone knows exactly where to grow next. No more awkward "who should own this?" in a client call.</p>
-        <div class="dw-ab-fc-tags"><span>Self-Assessments</span><span>Team Dashboard</span><span>Snapshots</span><span>Growth Tracking</span></div>
-      </div>
-
-      <div class="dw-ab-fcard dw-ab-scroll-reveal" style="--fc:#f87171;">
-        <div class="dw-ab-fc-accent"></div>
-        <div class="dw-ab-fc-header">
-          <span class="dw-ab-fc-icon">🧩</span>
-          <span class="dw-ab-fc-num">04</span>
-          <span class="dw-ab-live-chip">LIVE</span>
-        </div>
-        <div class="dw-ab-fc-label">Process Puzzle</div>
-        <div class="dw-ab-fc-hl">Yes, it's a game. Also the most competitive section on the platform.</div>
-        <p class="dw-ab-fc-p">12 questions per session across 6 formats — Scenario Analysis, Deep Dives, Rapid Fire, Mixed Bag, Puzzles, and more. Leaderboards by week, month, quarter, year. Ranks from Bronze to Legend. The friendly rivalry that crept up on everyone.</p>
-        <div class="dw-ab-fc-tags"><span>Weekly Challenges</span><span>Leaderboards</span><span>Ranks</span><span>Badges</span></div>
-      </div>
-
-    </div><!-- /dw-ab-feat-grid -->
-
-    <!-- Coming soon — horizontal strip -->
-    <div class="dw-ab-coming dw-ab-scroll-reveal">
-      <div class="dw-ab-coming-label">IN THE PIPELINE</div>
-      <div class="dw-ab-coming-row">
-        <div class="dw-ab-citem" style="--fc:#f9a74f;">
-          <div class="dw-ab-citem-icon">📊</div>
-          <div>
-            <div class="dw-ab-citem-name">KPIs <span class="dw-ab-soon-chip">COMING SOON</span></div>
-            <div class="dw-ab-citem-hl">Own your performance numbers — don't wait for someone to tell you.</div>
-            <p class="dw-ab-citem-p">Real-time delivery metrics. Velocity, quality, team health. No more quarterly surprises. Just the data, up front.</p>
-          </div>
-        </div>
-        <div class="dw-ab-citem-div"></div>
-        <div class="dw-ab-citem" style="--fc:#34d399;">
-          <div class="dw-ab-citem-icon">🏛️</div>
-          <div>
-            <div class="dw-ab-citem-name">The Delivery Journey <span class="dw-ab-soon-chip">COMING SOON</span></div>
-            <div class="dw-ab-citem-hl">Every project leaves a story worth keeping.</div>
-            <p class="dw-ab-citem-p">A living record of past implementations — what worked, what didn't, and why. Institutional memory that doesn't walk out the door.</p>
-          </div>
+      <!-- Academy -->
+      <div class="dw-ab-pillar dw-ab-scroll-reveal" style="--pc:#e8c97a;">
+        <div class="dw-ab-pillar-icon">🎓</div>
+        <div class="dw-ab-pillar-body">
+          <div class="dw-ab-pillar-label">Academy · Building Knowledge &amp; Expertise</div>
+          <h2 class="dw-ab-pillar-title">Great delivery starts with knowledgeable consultants.</h2>
+          <p class="dw-ab-pillar-sub">The structure to build, share, and scale expertise — so knowledge becomes an organizational asset, not an individual one.</p>
+          <ul class="dw-ab-pillar-list">
+            <li>Structured learning paths across AR, AP, MIS, P2P, O2C, R2R and the Bluecopa platform — <strong id="dwAbT1">—</strong> courses, <strong id="dwAbT2">—</strong> lessons, self-paced with certificates</li>
+            <li>Implementation knowledge captured by experienced consultants — solutions, best practices, and lessons learned that everyone can leverage</li>
+            <li>Skill Matrix across <strong id="dwAbT5">—</strong> process areas to measure competencies from Beginner to Expert and identify exactly where to grow</li>
+            <li>SME mentorship that creates a culture where experienced consultants actively strengthen the whole organization</li>
+          </ul>
         </div>
       </div>
-    </div>
+
+      <!-- Pulse -->
+      <div class="dw-ab-pillar dw-ab-scroll-reveal" style="--pc:#818cf8;">
+        <div class="dw-ab-pillar-icon">💙</div>
+        <div class="dw-ab-pillar-body">
+          <div class="dw-ab-pillar-label">Pulse · Empowering People</div>
+          <h2 class="dw-ab-pillar-title">Successful projects are delivered by motivated people.</h2>
+          <p class="dw-ab-pillar-sub">Every individual deserves to be seen, recognized, and supported — not just evaluated at year-end.</p>
+          <ul class="dw-ab-pillar-list">
+            <li>KPI dashboards that give every employee clear visibility into their own performance and areas for improvement</li>
+            <li>Recognition for every form of contribution — knowledge articles, course completions, challenge wins, and consistent quality delivery</li>
+            <li>Leaderboards and engagement initiatives that build a culture of friendly competition and team identity</li>
+            <li>Built on the belief that great workplaces run on appreciation, collaboration, and shared success — not just project metrics</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Mission Deck -->
+      <div class="dw-ab-pillar dw-ab-scroll-reveal" style="--pc:#4ade80;">
+        <div class="dw-ab-pillar-icon">🚀</div>
+        <div class="dw-ab-pillar-body">
+          <div class="dw-ab-pillar-label">Mission Deck · Delivering Better Projects</div>
+          <h2 class="dw-ab-pillar-title">Every implementation teaches valuable lessons.</h2>
+          <p class="dw-ab-pillar-sub">Delivery Wiki preserves those lessons — so every team builds on proven experience rather than starting from scratch.</p>
+          <ul class="dw-ab-pillar-list">
+            <li>Delivery Journeys document scope, architecture, decisions, challenges, and outcomes from every past project</li>
+            <li>Standardized UAT ensures thorough validation before go-live, with transparent collaboration between delivery teams and customers</li>
+            <li>Early Warning System lets consultants proactively raise scope creep, delays, and stakeholder risks before they escalate</li>
+            <li>Leadership gains early visibility — enabling faster decisions and timely corrective actions at every stage of delivery</li>
+          </ul>
+        </div>
+      </div>
+
+    </div><!-- /dw-ab-pillars -->
 
     <!-- Footer -->
     <section class="dw-ab-footer dw-ab-scroll-reveal">
-      <div class="dw-ab-footer-q">ONE LAST THING</div>
-      <p class="dw-ab-footer-p">This isn't a finished product. It evolves as the team grows, adds knowledge, and finds new gaps. The numbers above are live — they change as the platform does. If something's missing, it's probably because no one wrote it yet.</p>
-      <p class="dw-ab-footer-accent">That someone could be you.</p>
+      <div class="dw-ab-footer-q">MORE THAN A WEBSITE</div>
+      <p class="dw-ab-footer-p">Delivery Wiki isn't simply a collection of pages or documents. It is the <strong>operating system for the Bluecopa Delivery Organization</strong> — a platform where people learn faster, build stronger skills, share experience, deliver better projects, identify risks early, celebrate success, and continuously improve as one connected team. Whether you're onboarding to your first implementation or leading a complex enterprise project, Delivery Wiki supports you at every stage.</p>
+      <p class="dw-ab-footer-accent">One platform. Every solution. Better deliveries.</p>
       <button class="dw-ab-footer-close" onclick="dwCloseAbout()">Got it — let me explore →</button>
     </section>
   </div><!-- /dw-ab-scroll -->
