@@ -73,6 +73,16 @@ html.dw-restoring #dwCover{display:block;position:fixed;top:0;left:0;right:0;bot
 .dw-ab2-close-accent{font-size:clamp(20px,2vw,26px);font-weight:800;color:#e8c97a;margin-bottom:40px;letter-spacing:-.01em}
 .dw-ab2-close-btn{display:inline-flex;align-items:center;gap:10px;padding:14px 32px;background:rgba(232,201,122,.08);border:1px solid rgba(232,201,122,.22);border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#e8c97a;cursor:pointer;transition:all .2s}
 .dw-ab2-close-btn:hover{background:rgba(232,201,122,.15);border-color:rgba(232,201,122,.38);transform:translateY(-1px)}
+.dw-ab2-hero-em{font-size:clamp(17px,1.8vw,21px);font-weight:700;color:#e8c97a;margin-bottom:14px;letter-spacing:-.01em}
+.dw-ab2-ch-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.05);margin-top:20px}
+.dw-ab2-ch-card{display:flex;align-items:flex-start;gap:14px;padding:20px 52px;background:#06060e;transition:background .18s}
+.dw-ab2-ch-card:hover{background:rgba(255,255,255,.015)}
+.dw-ab2-ch-icon{font-size:18px;flex-shrink:0;margin-top:2px}
+.dw-ab2-ch-title{font-size:12.5px;font-weight:600;color:rgba(255,255,255,.65);margin-bottom:2px}
+.dw-ab2-ch-desc{font-size:11.5px;color:rgba(255,255,255,.28);line-height:1.5}
+.dw-ab2-bridge{padding:36px 80px;border-top:1px solid rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.05);background:rgba(232,201,122,.03);text-align:center}
+.dw-ab2-bridge p{font-size:14px;color:rgba(255,255,255,.42);line-height:1.78;max-width:660px;margin:0 auto}
+.dw-ab2-bridge strong{color:rgba(255,255,255,.72);font-weight:600}
 </style>
 </head>
 <body>
@@ -5239,35 +5249,28 @@ async function updateFeedbackStatus(id) {
 
     <!-- Hero -->
     <section class="dw-ab2-hero dw-ab-anim-1">
-      <div class="dw-ab2-eyebrow">Bluecopa Delivery Organization</div>
-      <h1 class="dw-ab2-headline">Where the team's knowledge<br><em>lives, grows, and delivers.</em></h1>
-      <p class="dw-ab2-sub">A platform built for one purpose: making every Bluecopa consultant more capable today than they were yesterday.</p>
+      <div class="dw-ab2-eyebrow">Welcome to Delivery Wiki</div>
+      <h1 class="dw-ab2-headline">Every delivery team faces<br>common challenges.</h1>
+      <p class="dw-ab2-hero-em">Delivery Wiki was built to solve them.</p>
+      <p class="dw-ab2-sub">One platform for learning, skill development, project execution, quality assurance, and continuous growth — designed exclusively for the Bluecopa Delivery Organization.</p>
     </section>
 
-    <!-- Why it exists -->
+    <!-- Challenges grid -->
     <div class="dw-ab2-why dw-ab-scroll-reveal">
-      <div class="dw-ab2-section-label">Why it exists</div>
-      <div class="dw-ab2-why-item">
-        <span class="dw-ab2-why-num">01</span>
-        <div>
-          <div class="dw-ab2-why-bold">Knowledge is the organization's most valuable asset — and the most poorly managed.</div>
-          <div class="dw-ab2-why-desc">It lives in people's heads. When consultants move on, their expertise moves with them. Delivery Wiki changes that.</div>
-        </div>
+      <div class="dw-ab2-section-label">The challenges every delivery org faces</div>
+      <div class="dw-ab2-ch-grid">
+        <div class="dw-ab2-ch-card"><span class="dw-ab2-ch-icon">⏱</span><div><div class="dw-ab2-ch-title">Slow onboarding</div><div class="dw-ab2-ch-desc">New members take too long to become productive on the ground</div></div></div>
+        <div class="dw-ab2-ch-card"><span class="dw-ab2-ch-icon">🔒</span><div><div class="dw-ab2-ch-title">Knowledge stays with individuals</div><div class="dw-ab2-ch-desc">Valuable expertise is never documented — and leaves when people do</div></div></div>
+        <div class="dw-ab2-ch-card"><span class="dw-ab2-ch-icon">🔁</span><div><div class="dw-ab2-ch-title">Repeated problem-solving</div><div class="dw-ab2-ch-desc">Teams keep solving the same issues because past fixes are unfindable</div></div></div>
+        <div class="dw-ab2-ch-card"><span class="dw-ab2-ch-icon">📊</span><div><div class="dw-ab2-ch-title">Uneven skills across the team</div><div class="dw-ab2-ch-desc">Expertise varies widely, making consistent delivery quality hard to maintain</div></div></div>
+        <div class="dw-ab2-ch-card"><span class="dw-ab2-ch-icon">⚠️</span><div><div class="dw-ab2-ch-title">Risks surface too late</div><div class="dw-ab2-ch-desc">Project issues escalate before leadership even knows they exist</div></div></div>
+        <div class="dw-ab2-ch-card"><span class="dw-ab2-ch-icon">🏆</span><div><div class="dw-ab2-ch-title">Achievements go unnoticed</div><div class="dw-ab2-ch-desc">Tremendous effort and contributions are rarely recognized or celebrated</div></div></div>
       </div>
-      <div class="dw-ab2-why-item">
-        <span class="dw-ab2-why-num">02</span>
-        <div>
-          <div class="dw-ab2-why-bold">Every implementation should make the next one smarter. It rarely does.</div>
-          <div class="dw-ab2-why-desc">Teams solve the same problems repeatedly because past solutions are undocumented and unfindable.</div>
-        </div>
-      </div>
-      <div class="dw-ab2-why-item">
-        <span class="dw-ab2-why-num">03</span>
-        <div>
-          <div class="dw-ab2-why-bold">Project risks surface when it's already too late to do much about them.</div>
-          <div class="dw-ab2-why-desc">Leadership visibility into delivery health has always been reactive. We're changing that with proactive, structured early signals.</div>
-        </div>
-      </div>
+    </div>
+
+    <!-- Bridge -->
+    <div class="dw-ab2-bridge dw-ab-scroll-reveal">
+      <p>Instead of navigating multiple tools, scattered documents, and spreadsheets — Delivery Wiki gives every consultant <strong>one place</strong> to learn faster, solve problems quicker, deliver projects with confidence, and grow continuously throughout their journey.</p>
     </div>
 
     <!-- Stats -->
@@ -5285,7 +5288,7 @@ async function updateFeedbackStatus(id) {
 
     <!-- Platform tabs -->
     <div class="dw-ab2-platform dw-ab-scroll-reveal">
-      <div class="dw-ab2-section-label">The Platform</div>
+      <div class="dw-ab2-section-label">Why Delivery Wiki?</div>
       <div class="dw-ab2-tabs">
         <div class="dw-ab2-tab active" data-tab="academy" style="--tc:#e8c97a;" onclick="dwAbTab('academy')">🎓 &nbsp;Academy</div>
         <div class="dw-ab2-tab" data-tab="pulse" style="--tc:#818cf8;" onclick="dwAbTab('pulse')">💙 &nbsp;Pulse</div>
@@ -5296,16 +5299,16 @@ async function updateFeedbackStatus(id) {
       <div class="dw-ab2-panel active" data-tab="academy">
         <div class="dw-ab2-panel-inner">
           <div class="dw-ab2-panel-left" style="--pc2:#e8c97a;">
-            <div class="dw-ab2-panel-tag">Academy · Building Knowledge &amp; Expertise</div>
-            <h2 class="dw-ab2-panel-title">Learn it. Own it.<br>Build expertise that stays.</h2>
-            <p class="dw-ab2-panel-sub">A curated curriculum designed by consultants who've been in the trenches — not generic e-learning. Real scenarios, real process knowledge, real certification.</p>
+            <div class="dw-ab2-panel-tag">Building Knowledge &amp; Expertise</div>
+            <h2 class="dw-ab2-panel-title">Great delivery starts with knowledgeable consultants.</h2>
+            <p class="dw-ab2-panel-sub">Structured learning paths, captured implementation knowledge, and skill measurement — so expertise becomes an organizational asset, not an individual one.</p>
           </div>
           <div class="dw-ab2-panel-right">
             <ul class="dw-ab2-feat-list" style="--pc2:#e8c97a;">
-              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Structured Learning Paths</strong><span>AR, AP, MIS, P2P, O2C, R2R and Bluecopa platform — <strong id="dwAbT1">—</strong> courses, <strong id="dwAbT2">—</strong> lessons, self-paced with certificates</span></span></li>
-              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Implementation Knowledge Base</strong><span>Solutions, best practices, and lessons learned captured by experienced consultants — available to everyone</span></span></li>
-              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Skill Matrix</strong><span><strong id="dwAbT5">—</strong> process areas, 5 proficiency levels — know exactly where you stand and what to grow next</span></span></li>
-              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>SME Mentorship</strong><span>A culture where experienced consultants actively strengthen the whole team, not just their own projects</span></span></li>
+              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Learning Paths</strong><span>Bluecopa platform + finance concepts (AR, AP, MIS, P2P, O2C, R2R) — <strong id="dwAbT1">—</strong> courses, <strong id="dwAbT2">—</strong> lessons, self-paced with certificates</span></span></li>
+              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Implementation Knowledge Base</strong><span>Solutions, best practices, and lessons learned contributed by experienced consultants — available to everyone, always</span></span></li>
+              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Skill Matrix</strong><span>Measure competencies across <strong id="dwAbT5">—</strong> process areas, identify gaps, and track upskilling progress from Beginner to Expert</span></span></li>
+              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>SME Mentorship</strong><span>Experienced consultants actively help others grow — building a culture of shared expertise across the whole organization</span></span></li>
             </ul>
           </div>
         </div>
@@ -5315,16 +5318,16 @@ async function updateFeedbackStatus(id) {
       <div class="dw-ab2-panel" data-tab="pulse">
         <div class="dw-ab2-panel-inner">
           <div class="dw-ab2-panel-left" style="--pc2:#818cf8;">
-            <div class="dw-ab2-panel-tag">Pulse · Empowering People</div>
-            <h2 class="dw-ab2-panel-title">Great work deserves<br>to be seen. Always.</h2>
-            <p class="dw-ab2-panel-sub">Recognition shouldn't require waiting for an annual review. Pulse makes contributions visible — every day, for everyone.</p>
+            <div class="dw-ab2-panel-tag">Empowering People</div>
+            <h2 class="dw-ab2-panel-title">Successful projects are delivered by motivated people.</h2>
+            <p class="dw-ab2-panel-sub">Every contribution deserves to be seen and celebrated — not just at year-end, but every single day.</p>
           </div>
           <div class="dw-ab2-panel-right">
             <ul class="dw-ab2-feat-list" style="--pc2:#818cf8;">
-              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Personal KPI Dashboard</strong><span>Your numbers, your progress — clear visibility into performance and where to improve, without guesswork</span></span></li>
-              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Contribution Points</strong><span>Recognition for what actually matters — articles written, courses completed, challenges won, quality delivered</span></span></li>
-              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Leaderboards &amp; Challenges</strong><span>Friendly competition and team identity initiatives that make growth feel like a game worth playing</span></span></li>
-              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Built on Appreciation</strong><span>Great workplaces run on recognition and shared success — not just project metrics and annual reviews</span></span></li>
+              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>KPI Dashboards</strong><span>Every employee understands their performance through meaningful metrics — not guesswork at review time</span></span></li>
+              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Contribution Recognition</strong><span>Articles written, courses completed, challenges won, quality delivered — every form of contribution is recognized</span></span></li>
+              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Leaderboards &amp; Engagement</strong><span>Friendly competition and team initiatives that celebrate achievements and build a shared identity</span></span></li>
+              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Built on Appreciation</strong><span>Great workplaces are built on recognition and shared success — not just project metrics</span></span></li>
             </ul>
           </div>
         </div>
@@ -5334,16 +5337,16 @@ async function updateFeedbackStatus(id) {
       <div class="dw-ab2-panel" data-tab="missiondeck">
         <div class="dw-ab2-panel-inner">
           <div class="dw-ab2-panel-left" style="--pc2:#4ade80;">
-            <div class="dw-ab2-panel-tag">Mission Deck · Delivering Better Projects</div>
-            <h2 class="dw-ab2-panel-title">Every project teaches<br>a lesson. We capture them.</h2>
-            <p class="dw-ab2-panel-sub">Delivery Wiki preserves the hard-won wisdom of every implementation — so the next team builds on proven experience, not on guesswork.</p>
+            <div class="dw-ab2-panel-tag">Delivering Better Projects</div>
+            <h2 class="dw-ab2-panel-title">Every implementation teaches valuable lessons.</h2>
+            <p class="dw-ab2-panel-sub">Delivery Wiki preserves those lessons — so every team builds on proven experience rather than starting from scratch.</p>
           </div>
           <div class="dw-ab2-panel-right">
             <ul class="dw-ab2-feat-list" style="--pc2:#4ade80;">
-              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Delivery Journeys</strong><span>Full project stories — scope, architecture, decisions, risks, outcomes. Searchable, shareable, learnable.</span></span></li>
-              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Early Warning System</strong><span>Consultants flag scope creep, delays, and stakeholder risks before they escalate — leadership gets visibility early</span></span></li>
-              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>UAT Tracker</strong><span>Standardized go-live validation with transparent collaboration between delivery teams and customers</span></span></li>
-              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Project Intelligence</strong><span>Leadership gains real-time delivery health visibility — enabling faster decisions at every stage</span></span></li>
+              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Delivery Journeys</strong><span>Detailed project documentation — scope, architecture, decisions, challenges, and outcomes — searchable and reusable</span></span></li>
+              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Early Warning System</strong><span>Consultants proactively raise scope creep, delays, and stakeholder risks before they become escalations</span></span></li>
+              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>UAT Standardization</strong><span>Structured go-live validation ensuring thorough testing and transparent collaboration with customers</span></span></li>
+              <li class="dw-ab2-feat-item"><span class="dw-ab2-feat-dot"></span><span class="dw-ab2-feat-text"><strong>Leadership Visibility</strong><span>Early signals reach leadership fast — enabling timely decisions before small issues become major problems</span></span></li>
             </ul>
           </div>
         </div>
@@ -5352,9 +5355,9 @@ async function updateFeedbackStatus(id) {
 
     <!-- Closing -->
     <section class="dw-ab2-close-section dw-ab-scroll-reveal">
-      <div class="dw-ab2-close-label">The Bottom Line</div>
-      <div class="dw-ab2-close-headline">Not a wiki. Not an intranet. Not a dashboard.<br>All three — built for the Bluecopa way of delivering.</div>
-      <div class="dw-ab2-close-accent">Build knowledge. Empower people. Deliver better.</div>
+      <div class="dw-ab2-close-label">More Than a Website</div>
+      <div class="dw-ab2-close-headline">It is the operating system for the<br>Bluecopa Delivery Organization.</div>
+      <div class="dw-ab2-close-accent">One platform. Every solution. Better deliveries.</div>
       <button class="dw-ab2-close-btn" onclick="dwCloseAbout()">Got it — let me explore →</button>
     </section>
 
