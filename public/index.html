@@ -4261,15 +4261,7 @@ async function updateFeedbackStatus(id) {
       </button>
       <button class="mc-nav-btn" id="mcAdminBtn" onclick="openAdminPanel()" style="display:none;">⚙ Admin</button>
     </div>
-    <div class="mc-search-wrap">
-      <span class="mc-search-icon">🔍</span>
-      <input class="mc-search-input" id="mcSearchInput" type="text"
-        placeholder="What do you want to find today?"
-        oninput="mcHandleSearch(this.value)"
-        onkeydown="if(event.key==='Escape'){mcClearSearch();}"
-        autocomplete="off">
-      <div class="mc-search-results" id="mcSearchResults"></div>
-    </div>
+    <button class="mc-nav-btn" onclick="dwGoEngagement();eehSwitchTab('ideabox')">💡 Idea Box</button>
   </nav>
 
       <!-- Center/Right: large circular logo -->
@@ -4689,7 +4681,6 @@ async function updateFeedbackStatus(id) {
     <div class="eeh-topbar-tabs">
       <button class="eeh-tab active" data-tab="leaderboard" onclick="eehSwitchTab('leaderboard')">🏆 Leaderboard</button>
       <button class="eeh-tab" data-tab="sweetplace" onclick="eehSwitchTab('sweetplace')">🌸 Sweet Place to Work</button>
-      <button class="eeh-tab" data-tab="ideabox" onclick="eehSwitchTab('ideabox')">💡 Idea Box</button>
     </div>
     <div class="eeh-topbar-right">
       <button class="eeh-home-btn" onclick="eehClose()">⌂ Home</button>
