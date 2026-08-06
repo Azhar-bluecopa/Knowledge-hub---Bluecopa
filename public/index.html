@@ -9842,6 +9842,40 @@ function ibClose(){
   document.getElementById('ibOverlay').classList.remove('active');
   if(typeof showLanding==='function') showLanding();
 }
+
+// Override navBack after all deferred scripts (app.js etc.) have loaded.
+// history.back() is unreliable — it can navigate to pre-auth browser history
+// entries. Instead, close the current overlay explicitly and return to home.
+document.addEventListener('DOMContentLoaded', function() {
+  window.navBack = function() {
+    var s = history.state && history.state.screen || '';
+    if (s === 'my-learning') {
+      if (typeof mlHide === 'function') mlHide();
+      if (typeof showLanding === 'function') showLanding();
+    } else if (s === 'skillmatrix') {
+      if (typeof hideSkillMatrix === 'function') hideSkillMatrix();
+      if (typeof showLanding === 'function') showLanding();
+    } else if (s === 'processpuzzle') {
+      if (typeof hidePP === 'function') hidePP();
+    } else if (s === 'leadership') {
+      if (typeof liHide === 'function') liHide();
+    } else if (s === 'dw-roadmap') {
+      var ro = document.getElementById('dwRoadmapOverlay');
+      if (ro) ro.classList.remove('active');
+      if (typeof showLanding === 'function') showLanding();
+    } else if (s === 'certificates') {
+      if (typeof closeCertificates === 'function') closeCertificates();
+    } else if (s === 'pd-dashboard') {
+      if (typeof pdHideDashboard === 'function') pdHideDashboard();
+    } else if (s === 'engagement') {
+      var eo = document.getElementById('eehOverlay');
+      if (eo) eo.classList.remove('active');
+      if (typeof showLanding === 'function') showLanding();
+    } else {
+      if (typeof showLanding === 'function') showLanding();
+    }
+  };
+});
 </script>
 </body>
 </html>
