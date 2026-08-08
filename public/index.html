@@ -9741,6 +9741,20 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
   window.addEventListener('popstate', function(e){ _save(e.state); }, true);
 
   window.addEventListener('load', function(){
+    // Deep-link: ?course=COURSEID opens My Learning directly on that course
+    (function(){
+      var params = new URLSearchParams(window.location.search);
+      var courseId = params.get('course');
+      if (courseId) {
+        setTimeout(function(){
+          if (typeof dwGoLearning === 'function') dwGoLearning();
+          setTimeout(function(){
+            if (typeof mlOpenCourse === 'function') mlOpenCourse(courseId);
+          }, 500);
+        }, 800);
+      }
+    })();
+
     // Patch mlOpenCourse to save active course
     var origOpen = window.mlOpenCourse;
     if(typeof origOpen==='function'){

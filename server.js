@@ -2771,6 +2771,12 @@ const ENROLLMENT_COURSE_INFO = {
 
 function _emailEscape(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function _fmtDate(d)    { return d ? new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : null; }
+function _emailPreview(text) {
+  // Hidden preview text prevents Gmail threading/collapsing repeated emails
+  const pad = '‌ '.repeat(60);
+  return `<div style="display:none;max-height:0;overflow:hidden;font-size:1px;color:#f1f2f5">${text} · ${new Date().toISOString()}${pad}</div>`;
+}
+function _courseUrl(portalUrl, courseId) { return `${portalUrl}?course=${courseId}`; }
 
 function _emailHeader(subtitle, badgeIcon, badgeLabel, badgeColor) {
   return `<tr><td style="background:#1a1d27;padding:22px 28px">
@@ -2815,12 +2821,14 @@ function buildEnrollmentEmail({ memberName, courseIds, dueDate, enrolledBy, path
   function courseRow(id) {
     const c = ENROLLMENT_COURSE_INFO[id]; if (!c) return '';
     num++;
+    const cUrl = _courseUrl(url, id);
     return `<tr>
 <td style="padding:11px 14px;vertical-align:top;width:38px;border-bottom:1px solid #f3f4f6"><div style="width:26px;height:26px;background:#1a1d27;color:#c9a227;border-radius:50%;text-align:center;font-size:11px;font-weight:800;line-height:26px">${num}</div></td>
 <td style="padding:11px 14px 11px 4px;border-bottom:1px solid #f3f4f6">
-  <table cellpadding="0" cellspacing="0"><tr>
+  <table cellpadding="0" cellspacing="0" width="100%"><tr>
     <td style="padding-right:8px;font-size:17px;vertical-align:top;line-height:1.4;width:24px">${c.icon}</td>
-    <td><div style="font-weight:700;color:#0d1117;font-size:13px">${eh(c.title)}</div><div style="color:#6b7280;font-size:12px;margin-top:2px">${eh(c.desc)}</div></td>
+    <td><a href="${cUrl}" style="font-weight:700;color:#0d1117;font-size:13px;text-decoration:none">${eh(c.title)}</a><div style="color:#6b7280;font-size:12px;margin-top:2px">${eh(c.desc)}</div></td>
+    <td style="padding-left:10px;white-space:nowrap;vertical-align:middle"><a href="${cUrl}" style="font-size:11px;color:#c9a227;font-weight:700;text-decoration:none;border:1px solid #c9a227;border-radius:4px;padding:3px 8px">Open →</a></td>
   </tr></table>
 </td></tr>`;
   }
@@ -2844,6 +2852,7 @@ function buildEnrollmentEmail({ memberName, courseIds, dueDate, enrolledBy, path
   const subject = `You've been enrolled: ${path} — Delivery Wikipedia`;
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${eh(subject)}</title></head>
 <body style="margin:0;padding:0;background:#f1f2f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
+${_emailPreview(`New Joiner Learning Path · ${ids.length} modules · enrolled ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`)}
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:28px 12px"><tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">
 ${_emailHeader('Learning &amp; Development','🎓','Enrolled','201,162,39')}
@@ -2906,20 +2915,21 @@ function buildProgressEmail({ memberName, allCourseIds, completedCourseIds, dueD
   const courseRows = allCourseIds.map(id => {
     const c = ENROLLMENT_COURSE_INFO[id] || { title: id, icon: '📚', desc: '' };
     const ok = completedSet.has(id);
+    const cUrl = _courseUrl(url, id);
     return `<tr>
 <td style="padding:9px 14px;vertical-align:middle;width:30px;border-bottom:1px solid #f3f4f6">
   ${ok ? '<div style="width:22px;height:22px;background:#22c55e;border-radius:50%;text-align:center;line-height:22px;font-size:12px;color:#fff;font-weight:700">&#10003;</div>'
        : '<div style="width:22px;height:22px;border:2px solid #d1d5db;border-radius:50%;"></div>'}
 </td>
 <td style="padding:9px 14px 9px 4px;border-bottom:1px solid #f3f4f6;vertical-align:middle">
-  <table cellpadding="0" cellspacing="0"><tr>
+  <table cellpadding="0" cellspacing="0" width="100%"><tr>
     <td style="padding-right:8px;font-size:16px;line-height:1.4;width:22px">${c.icon}</td>
-    <td><div style="font-weight:700;color:${ok?'#9ca3af':'#0d1117'};font-size:13px;${ok?'text-decoration:line-through':''}">${eh(c.title)}</div></td>
+    <td><a href="${cUrl}" style="font-weight:700;color:${ok?'#9ca3af':'#0d1117'};font-size:13px;text-decoration:none;${ok?'text-decoration:line-through':''}">${eh(c.title)}</a></td>
+    <td style="padding-left:10px;white-space:nowrap">
+      ${ok ? '<span style="background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:99px;font-size:10px;font-weight:700;padding:2px 9px">Done</span>'
+           : `<a href="${cUrl}" style="font-size:10px;color:#c9a227;font-weight:700;text-decoration:none;border:1px solid #c9a227;border-radius:99px;padding:2px 9px">Start →</a>`}
+    </td>
   </tr></table>
-</td>
-<td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;text-align:right;white-space:nowrap">
-  ${ok ? '<span style="background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:99px;font-size:10px;font-weight:700;padding:2px 9px">Done</span>'
-       : '<span style="background:#f4f5f7;color:#6b7280;border:1px solid #e4e6ea;border-radius:99px;font-size:10px;font-weight:700;padding:2px 9px">Pending</span>'}
 </td></tr>`;
   }).join('');
 
@@ -2938,6 +2948,7 @@ function buildProgressEmail({ memberName, allCourseIds, completedCourseIds, dueD
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${eh(subject)}</title></head>
 <body style="margin:0;padding:0;background:#f1f2f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
+${_emailPreview(`${done} of ${total} modules completed · ${eh(path)}`)}
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:28px 12px"><tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">
 ${_emailHeader('Learning Progress', isFinished?'🏆':'📈', isFinished?'Complete!':'In Progress', isFinished?'34,197,94':'201,162,39')}
@@ -2982,12 +2993,14 @@ function buildReminderEmail({ memberName, daysLeft, allCourseIds, completedCours
 
   const remRows = remaining.map(id => {
     const c = ENROLLMENT_COURSE_INFO[id] || { title: id, icon: '📚' };
+    const cUrl = _courseUrl(url, id);
     return `<tr>
 <td style="padding:9px 14px;vertical-align:middle;width:28px;border-bottom:1px solid #f3f4f6"><div style="width:20px;height:20px;border:2px solid #d1d5db;border-radius:50%;"></div></td>
 <td style="padding:9px 14px 9px 4px;border-bottom:1px solid #f3f4f6">
-  <table cellpadding="0" cellspacing="0"><tr>
+  <table cellpadding="0" cellspacing="0" width="100%"><tr>
     <td style="padding-right:8px;font-size:16px;width:22px">${c.icon}</td>
-    <td><div style="font-weight:700;color:#0d1117;font-size:13px">${eh(c.title)}</div></td>
+    <td><a href="${cUrl}" style="font-weight:700;color:#0d1117;font-size:13px;text-decoration:none">${eh(c.title)}</a></td>
+    <td style="padding-left:10px;white-space:nowrap"><a href="${cUrl}" style="font-size:10px;color:${uc};font-weight:700;text-decoration:none;border:1px solid ${uc};border-radius:99px;padding:2px 9px">Start →</a></td>
   </tr></table>
 </td></tr>`;
   }).join('');
@@ -2998,6 +3011,7 @@ function buildReminderEmail({ memberName, daysLeft, allCourseIds, completedCours
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${eh(subject)}</title></head>
 <body style="margin:0;padding:0;background:#f1f2f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
+${_emailPreview(`${remaining.length} modules remaining · ${daysLeft} day${daysLeft===1?'':'s'} left · Due ${eh(dueFmt)}`)}
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:28px 12px"><tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">
 ${_emailHeader('Learning Reminder', isCritical?'⚠️':'🔔', `${daysLeft} Day${daysLeft===1?'':'s'} Left`, isCritical?'220,38,38':'201,162,39')}
