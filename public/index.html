@@ -6459,18 +6459,24 @@ async function updateFeedbackStatus(id) {
           <div class="lm-path-icon">🎓</div>
           <div>
             <div class="lm-path-name">New Joiner Learning Path</div>
-            <div class="lm-path-sub">Mandatory onboarding curriculum — all 7 modules</div>
+            <div class="lm-path-sub">Mandatory onboarding curriculum — all 13 modules</div>
           </div>
           <div class="lm-path-badge">Recommended</div>
         </div>
         <div class="lm-path-modules">
-          <span class="lm-path-mod">🔵 About Bluecopa</span>
           <span class="lm-path-mod">📑 Account Payable</span>
           <span class="lm-path-mod">💰 Account Receivable</span>
           <span class="lm-path-mod">📊 MIS Reports</span>
           <span class="lm-path-mod">📦 Order-to-Cash</span>
           <span class="lm-path-mod">🛒 Procure-to-Pay</span>
           <span class="lm-path-mod">📋 Record-to-Report</span>
+          <span class="lm-path-mod">🔵 About Bluecopa</span>
+          <span class="lm-path-mod">📥 Data Ingestion</span>
+          <span class="lm-path-mod">✅ Approval Workflows</span>
+          <span class="lm-path-mod">⚡ Workflows</span>
+          <span class="lm-path-mod">🔁 Reconciliation</span>
+          <span class="lm-path-mod">📤 Export &amp; Reports</span>
+          <span class="lm-path-mod">🔗 Connectors &amp; Integrations</span>
         </div>
         <div class="lm-enroll-form">
           <div class="lm-form-section-title" style="margin-top:0">Enroll Team Member</div>
@@ -6478,6 +6484,9 @@ async function updateFeedbackStatus(id) {
             <select class="lm-select" id="lmEnrollUser"><option value="">— select member —</option></select>
             <input class="lm-input" type="date" id="lmEnrollDue" placeholder="Due date">
             <button class="lm-btn-primary" onclick="lmEnrollNewJoiner()">Enroll</button>
+          </div>
+          <div class="lm-form-row" style="margin-top:8px">
+            <input class="lm-input" type="email" id="lmEnrollEmail" placeholder="Member email (for notification)" style="flex:1">
           </div>
           <div class="lm-form-msg" id="lmEnrollMsg"></div>
           <div class="lm-enroll-divider">or</div>

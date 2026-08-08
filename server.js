@@ -2654,20 +2654,32 @@ app.get('/api/proxy/logs', (req, res) => {
 });
 
 // ── Learning Management ────────────────────────────────────────────────────────
+const NJ_PHASE1   = ['ap','ar','mis','o2c','p2p','r2r'];
+const NJ_PHASE2   = ['bc','di','aw','wf','rc','er','ci'];
+const NJ_ALL      = [...NJ_PHASE1, ...NJ_PHASE2];
+const PORTAL_URL  = 'https://deliverywiki.bluecopa.com';
+const BC_LOGO_URL = 'https://deliverywiki.bluecopa.com/bluecopa-icon.png';
+
 function ensureLearning() {
-  if (!db.learning) db.learning = {
-    assignments: [],
-    nextAssignmentId: 1,
-    paths: [
-      {
-        id: 'new-joiner',
-        name: 'New Joiner Learning Path',
-        description: 'Mandatory onboarding curriculum for all new team members',
-        courseIds: ['bc', 'ap', 'ar', 'mis', 'o2c', 'p2p', 'r2r'],
-        durationDays: 30
-      }
-    ]
+  if (!db.learning) db.learning = { assignments: [], nextAssignmentId: 1, paths: [], memberEmails: {}, remindersSent: [] };
+  if (!db.learning.memberEmails)  db.learning.memberEmails  = {};
+  if (!db.learning.remindersSent) db.learning.remindersSent = [];
+  // Always upsert the canonical New Joiner path with all 13 courses in phase order
+  const njDef = {
+    id: 'new-joiner',
+    name: 'New Joiner Learning Path',
+    description: 'Complete onboarding — Phase 1: Finance Studio + Phase 2: Platform Mastery',
+    courseIds: NJ_ALL,
+    durationDays: 30,
+    phases: [
+      { label: 'Finance Studio',   courseIds: NJ_PHASE1 },
+      { label: 'Platform Mastery', courseIds: NJ_PHASE2 },
+    ],
   };
+  if (!db.learning.paths) db.learning.paths = [];
+  const njIdx = db.learning.paths.findIndex(p => p.id === 'new-joiner');
+  if (njIdx === -1) db.learning.paths.push(njDef);
+  else              db.learning.paths[njIdx] = { ...db.learning.paths[njIdx], ...njDef };
 }
 
 // Get assignments — user gets their own, admin gets all
@@ -2737,13 +2749,337 @@ app.delete('/api/learning/assignments/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Enrollment Email ──────────────────────────────────────────────────────────
+// Phase 1 — Finance Studio (finance process knowledge)
+// Phase 2 — Platform Mastery (Bluecopa features)
+const ENROLLMENT_COURSE_INFO = {
+  ap:  { title: 'Account Payable Deep Dive',          icon: '📑', desc: 'End-to-end AP lifecycle, three-way matching & payment approvals' },
+  ar:  { title: 'Account Receivable Process Mastery', icon: '💰', desc: 'Invoicing, collections, aging reports & cash application' },
+  mis: { title: 'MIS Reports & Analytics',            icon: '📊', desc: 'Management dashboards, KPIs and data-driven decision reporting' },
+  o2c: { title: 'Order-to-Cash Complete Guide',       icon: '📦', desc: 'Full O2C cycle — order intake through revenue recognition' },
+  p2p: { title: 'Procure-to-Pay End-to-End',         icon: '🛒', desc: 'Procurement workflow, PO management & vendor payments' },
+  r2r: { title: 'Record-to-Report Fundamentals',      icon: '📋', desc: 'Period-end close, journal entries & financial statements' },
+  bc:  { title: 'About Bluecopa',                     icon: '🔵', desc: 'Platform architecture, four-layer design, Samyx AI & core capabilities' },
+  di:  { title: 'Data Ingestion Mastery',             icon: '📥', desc: 'Cloud connectors, ZIP workflows, portal uploads & pipeline design' },
+  aw:  { title: 'Approval Workflows Mastery',         icon: '✅', desc: 'Multi-level approvals, OTP, SLA handling & conditional routing' },
+  wf:  { title: 'Workflows Mastery',                  icon: '⚡', desc: '9 trigger types, 16 transformation nodes & real-world pipeline builds' },
+  rc:  { title: 'Reconciliation Mastery',             icon: '🔁', desc: 'Dataset setup, match rules, incremental runs & exception handling' },
+  er:  { title: 'Exports & Reports Mastery',          icon: '📤', desc: 'Scheduled delivery, multi-sheet Excel workbooks & email exports' },
+  ci:  { title: 'Connectors & Integrations Mastery',  icon: '🔌', desc: 'GCS connectors, REST APIs, HTTP triggers & BigQuery integration' },
+};
+
+function _emailEscape(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function _fmtDate(d)    { return d ? new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : null; }
+
+function _emailHeader(subtitle, badgeIcon, badgeLabel, badgeColor) {
+  return `<tr><td style="background:#1a1d27;padding:22px 28px">
+  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td><table cellpadding="0" cellspacing="0"><tr>
+      <td style="padding-right:12px;vertical-align:middle"><img src="${BC_LOGO_URL}" width="36" height="36" alt="Bluecopa" style="border-radius:8px;display:block"></td>
+      <td style="vertical-align:middle">
+        <div style="color:#c9a227;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Bluecopa &middot; Delivery Wikipedia</div>
+        <div style="color:#f0f0f6;font-size:17px;font-weight:800;margin-top:2px">${subtitle}</div>
+      </td>
+    </tr></table></td>
+    <td align="right" valign="middle">
+      <div style="background:rgba(${badgeColor},.15);border:1px solid rgba(${badgeColor},.3);border-radius:8px;padding:7px 12px;text-align:center">
+        <div style="font-size:19px">${badgeIcon}</div>
+        <div style="color:rgba(${badgeColor},1);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:2px">${badgeLabel}</div>
+      </div>
+    </td>
+  </tr></table>
+</td></tr>`;
+}
+
+function _emailFooter(url) {
+  return `<tr><td style="background:#f9fafb;border-top:1px solid #e4e6ea;padding:16px 28px">
+  <div style="color:#6b7280;font-size:12px;line-height:1.6">Automated notification from <strong>Delivery Wikipedia</strong> · Bluecopa's internal learning platform.<br>
+  Questions? Visit <a href="${url}" style="color:#c9a227;text-decoration:none">deliverywiki.bluecopa.com</a> or reach your learning manager.</div>
+  <div style="color:#9ca3af;font-size:11px;margin-top:5px">&copy; Bluecopa &middot; delivery.wiki@bluecopa.com &middot; Do not reply.</div>
+</td></tr>`;
+}
+
+function buildEnrollmentEmail({ memberName, courseIds, dueDate, enrolledBy, pathName, portalUrl }) {
+  const eh  = _emailEscape;
+  const url = portalUrl || PORTAL_URL;
+  const firstName = (memberName || 'Team Member').split(' ')[0];
+  const path   = pathName  || 'New Joiner Learning Path';
+  const by     = enrolledBy || 'Your Learning Manager';
+  const dueFmt = _fmtDate(dueDate) || 'As directed by your manager';
+
+  const ids = courseIds || NJ_ALL;
+  const p1  = ids.filter(id => NJ_PHASE1.includes(id));
+  const p2  = ids.filter(id => NJ_PHASE2.includes(id));
+  let num = 0;
+
+  function courseRow(id) {
+    const c = ENROLLMENT_COURSE_INFO[id]; if (!c) return '';
+    num++;
+    return `<tr>
+<td style="padding:11px 14px;vertical-align:top;width:38px;border-bottom:1px solid #f3f4f6"><div style="width:26px;height:26px;background:#1a1d27;color:#c9a227;border-radius:50%;text-align:center;font-size:11px;font-weight:800;line-height:26px">${num}</div></td>
+<td style="padding:11px 14px 11px 4px;border-bottom:1px solid #f3f4f6">
+  <table cellpadding="0" cellspacing="0"><tr>
+    <td style="padding-right:8px;font-size:17px;vertical-align:top;line-height:1.4;width:24px">${c.icon}</td>
+    <td><div style="font-weight:700;color:#0d1117;font-size:13px">${eh(c.title)}</div><div style="color:#6b7280;font-size:12px;margin-top:2px">${eh(c.desc)}</div></td>
+  </tr></table>
+</td></tr>`;
+  }
+
+  function phaseSection(label, sublabel, color, phaseIds) {
+    if (!phaseIds.length) return '';
+    return `<tr><td colspan="2" style="padding:0">
+  <div style="background:#f9fafb;border-left:3px solid ${color};border-radius:0 6px 6px 0;padding:9px 14px;margin-bottom:1px">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${color}">${label}</div>
+    <div style="font-size:12px;color:#6b7280;margin-top:2px">${sublabel}</div>
+  </div>
+</td></tr>${phaseIds.map(id => courseRow(id)).join('')}`;
+  }
+
+  const coursesBlock = (p1.length || p2.length)
+    ? phaseSection('Phase 1 · Finance Studio',   `${p1.length} modules — core finance process knowledge`, '#7c3aed', p1) +
+      (p1.length && p2.length ? '<tr><td colspan="2" style="padding:6px 0;text-align:center;color:#9ca3af;font-size:13px;background:#fff">↓&nbsp; then move to</td></tr>' : '') +
+      phaseSection('Phase 2 · Platform Mastery', `${p2.length} modules — Bluecopa features &amp; integrations`, '#0891b2', p2)
+    : ids.map(id => courseRow(id)).join('');
+
+  const subject = `You've been enrolled: ${path} — Delivery Wikipedia`;
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${eh(subject)}</title></head>
+<body style="margin:0;padding:0;background:#f1f2f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:28px 12px"><tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">
+${_emailHeader('Learning &amp; Development','🎓','Enrolled','201,162,39')}
+<tr><td style="background:#c9a227;padding:11px 28px"><div style="color:#1a1d27;font-size:13px;font-weight:700">🎉&nbsp; Congratulations — you've been enrolled in a new learning path!</div></td></tr>
+<tr><td style="background:#ffffff;padding:28px 28px 22px">
+  <div style="font-size:22px;font-weight:800;color:#0d1117;letter-spacing:-.3px;margin-bottom:6px">Hi ${eh(firstName)}!</div>
+  <div style="color:#374151;font-size:14px;line-height:1.7;margin-bottom:20px">
+    <strong>${eh(by)}</strong> has enrolled you in the <strong>${eh(path)}</strong>.
+    This ${ids.length}-module curriculum covers finance process knowledge and Bluecopa platform mastery —
+    complete all modules by your due date to earn your onboarding certificate.
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fefce8;border:1px solid #fde68a;border-radius:10px;margin-bottom:20px">
+    <tr><td style="padding:15px 18px"><table cellpadding="0" cellspacing="0"><tr>
+      <td style="font-size:20px;padding-right:10px;vertical-align:middle">📅</td>
+      <td><div style="color:#92400e;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px">Completion Due By</div>
+      <div style="color:#78350f;font-size:18px;font-weight:800;margin-top:2px">${eh(dueFmt)}</div></td>
+    </tr></table></td></tr>
+  </table>
+  <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px">Your Learning Journey — ${ids.length} Modules</div>
+  <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e4e6ea;border-radius:10px;overflow:hidden"><tbody>${coursesBlock}</tbody></table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;margin-bottom:20px"><tr>
+    <td align="center"><a href="${url}" style="display:inline-block;background:#c9a227;color:#1a1d27;text-decoration:none;font-weight:800;font-size:14px;padding:14px 40px;border-radius:8px">Start Learning &rarr;</a></td>
+  </tr></table>
+  <div style="background:#f9fafb;border:1px solid #e4e6ea;border-radius:10px;padding:16px 20px">
+    <div style="font-size:13px;font-weight:700;color:#0d1117;margin-bottom:8px">What to expect</div>
+    <table cellpadding="0" cellspacing="0"><tbody>
+      <tr><td style="color:#22c55e;font-weight:700;width:18px;padding:2px 0">&#10003;</td><td style="padding:2px 0 2px 8px;color:#374151;font-size:13px">Self-paced modules — learn at your own schedule</td></tr>
+      <tr><td style="color:#22c55e;font-weight:700;width:18px;padding:2px 0">&#10003;</td><td style="padding:2px 0 2px 8px;color:#374151;font-size:13px">Interactive quizzes after each module</td></tr>
+      <tr><td style="color:#22c55e;font-weight:700;width:18px;padding:2px 0">&#10003;</td><td style="padding:2px 0 2px 8px;color:#374151;font-size:13px">Certificate of completion issued for all ${ids.length} modules</td></tr>
+      <tr><td style="color:#22c55e;font-weight:700;width:18px;padding:2px 0">&#10003;</td><td style="padding:2px 0 2px 8px;color:#374151;font-size:13px">Progress visible to your learning manager in real time</td></tr>
+    </tbody></table>
+  </div>
+</td></tr>
+${_emailFooter(url)}
+</table></td></tr></table></body></html>`;
+
+  const text = `Hi ${firstName},\n\nEnrolled in: ${path}\nBy: ${by} · Due: ${dueFmt}\n\n` +
+    (p1.length ? `Phase 1 — Finance Studio:\n${p1.map((id,i)=>`  ${i+1}. ${(ENROLLMENT_COURSE_INFO[id]||{}).title||id}`).join('\n')}\n\n` : '') +
+    (p2.length ? `Phase 2 — Platform Mastery:\n${p2.map((id,i)=>`  ${p1.length+i+1}. ${(ENROLLMENT_COURSE_INFO[id]||{}).title||id}`).join('\n')}\n\n` : '') +
+    `Start at: ${url}\n\n— Delivery Wikipedia · delivery.wiki@bluecopa.com`;
+
+  return { subject, html, text };
+}
+
+function buildProgressEmail({ memberName, allCourseIds, completedCourseIds, dueDate, pathName, portalUrl }) {
+  const eh  = _emailEscape;
+  const url = portalUrl || PORTAL_URL;
+  const firstName   = (memberName || 'Team Member').split(' ')[0];
+  const path        = pathName || 'New Joiner Learning Path';
+  const completedSet = new Set(completedCourseIds || []);
+  const total = allCourseIds.length;
+  const done  = completedCourseIds.length;
+  const dueFmt    = _fmtDate(dueDate);
+  const isFinished = done >= total;
+  const pctWidth   = Math.max(Math.round((done / total) * 100), 4);
+
+  const latestId   = completedCourseIds[completedCourseIds.length - 1];
+  const latestInfo = ENROLLMENT_COURSE_INFO[latestId] || { title: latestId, icon: '📚' };
+
+  const courseRows = allCourseIds.map(id => {
+    const c = ENROLLMENT_COURSE_INFO[id] || { title: id, icon: '📚', desc: '' };
+    const ok = completedSet.has(id);
+    return `<tr>
+<td style="padding:9px 14px;vertical-align:middle;width:30px;border-bottom:1px solid #f3f4f6">
+  ${ok ? '<div style="width:22px;height:22px;background:#22c55e;border-radius:50%;text-align:center;line-height:22px;font-size:12px;color:#fff;font-weight:700">&#10003;</div>'
+       : '<div style="width:22px;height:22px;border:2px solid #d1d5db;border-radius:50%;"></div>'}
+</td>
+<td style="padding:9px 14px 9px 4px;border-bottom:1px solid #f3f4f6;vertical-align:middle">
+  <table cellpadding="0" cellspacing="0"><tr>
+    <td style="padding-right:8px;font-size:16px;line-height:1.4;width:22px">${c.icon}</td>
+    <td><div style="font-weight:700;color:${ok?'#9ca3af':'#0d1117'};font-size:13px;${ok?'text-decoration:line-through':''}">${eh(c.title)}</div></td>
+  </tr></table>
+</td>
+<td style="padding:9px 14px;border-bottom:1px solid #f3f4f6;text-align:right;white-space:nowrap">
+  ${ok ? '<span style="background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:99px;font-size:10px;font-weight:700;padding:2px 9px">Done</span>'
+       : '<span style="background:#f4f5f7;color:#6b7280;border:1px solid #e4e6ea;border-radius:99px;font-size:10px;font-weight:700;padding:2px 9px">Pending</span>'}
+</td></tr>`;
+  }).join('');
+
+  const bannerBg  = isFinished ? '#22c55e' : '#c9a227';
+  const bannerTxt = isFinished ? '#fff'    : '#1a1d27';
+  const heroMsg   = isFinished
+    ? `🏆 Outstanding! You've completed all ${total} modules in <strong>${eh(path)}</strong>. Your certificate is ready!`
+    : `Great work! You completed <strong>${latestInfo.icon} ${eh(latestInfo.title)}</strong> — ${done} of ${total} modules done so far.`;
+  const ctaStyle  = isFinished
+    ? 'background:#22c55e;color:#fff'
+    : 'background:#c9a227;color:#1a1d27';
+  const ctaLabel  = isFinished ? 'View Your Certificate 🏆' : 'Continue Learning &rarr;';
+  const subject   = isFinished
+    ? `🎉 You've completed ${path} — Delivery Wikipedia`
+    : `Progress: ${done} of ${total} modules done — Delivery Wikipedia`;
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${eh(subject)}</title></head>
+<body style="margin:0;padding:0;background:#f1f2f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:28px 12px"><tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">
+${_emailHeader('Learning Progress', isFinished?'🏆':'📈', isFinished?'Complete!':'In Progress', isFinished?'34,197,94':'201,162,39')}
+<tr><td style="background:${bannerBg};padding:11px 28px"><div style="color:${bannerTxt};font-size:13px;font-weight:700">${isFinished?'🎉  All modules complete — certificate incoming!':'⭐  Great progress! Keep going!'}</div></td></tr>
+<tr><td style="background:#ffffff;padding:28px 28px 22px">
+  <div style="font-size:22px;font-weight:800;color:#0d1117;letter-spacing:-.3px;margin-bottom:6px">Hi ${eh(firstName)}!</div>
+  <div style="color:#374151;font-size:14px;line-height:1.7;margin-bottom:18px">${heroMsg}</div>
+  <div style="background:#f3f4f6;border-radius:99px;height:10px;overflow:hidden;margin-bottom:5px">
+    <div style="background:${isFinished?'#22c55e':'#c9a227'};height:10px;border-radius:99px;width:${pctWidth}%"></div>
+  </div>
+  <div style="font-size:12px;color:#6b7280;margin-bottom:20px">${done} of ${total} modules (${pctWidth}%)${dueFmt?' · Due '+eh(dueFmt):''}</div>
+  <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px">Progress — ${eh(path)}</div>
+  <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e4e6ea;border-radius:10px;overflow:hidden;margin-bottom:24px"><tbody>${courseRows}</tbody></table>
+  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td align="center"><a href="${url}" style="display:inline-block;${ctaStyle};text-decoration:none;font-weight:800;font-size:14px;padding:14px 40px;border-radius:8px">${ctaLabel}</a></td>
+  </tr></table>
+</td></tr>
+${_emailFooter(url)}
+</table></td></tr></table></body></html>`;
+
+  const text = `Hi ${firstName},\n\n${isFinished?`You completed all ${total} modules!`:`Progress: ${done}/${total} modules done.`}\n\n` +
+    allCourseIds.map((id,i)=>`${completedSet.has(id)?'✓':'○'} ${i+1}. ${(ENROLLMENT_COURSE_INFO[id]||{}).title||id}`).join('\n') +
+    `\n\n${url}\n\n— Delivery Wikipedia · delivery.wiki@bluecopa.com`;
+
+  return { subject, html, text };
+}
+
+function buildReminderEmail({ memberName, daysLeft, allCourseIds, completedCourseIds, dueDate, pathName, portalUrl }) {
+  const eh  = _emailEscape;
+  const url = portalUrl || PORTAL_URL;
+  const firstName    = (memberName || 'Team Member').split(' ')[0];
+  const path         = pathName || 'New Joiner Learning Path';
+  const completedSet = new Set(completedCourseIds || []);
+  const remaining    = allCourseIds.filter(id => !completedSet.has(id));
+  const total        = allCourseIds.length;
+  const done         = completedCourseIds.length;
+  const dueFmt       = _fmtDate(dueDate) || '';
+  const isCritical   = daysLeft <= 1;
+  const uc = isCritical ? '#dc2626' : daysLeft <= 3 ? '#d97706' : '#0891b2';
+  const ub = isCritical ? '#fef2f2' : daysLeft <= 3 ? '#fffbeb' : '#f0f9ff';
+  const ubr= isCritical ? '#fecaca' : daysLeft <= 3 ? '#fde68a' : '#bae6fd';
+
+  const remRows = remaining.map(id => {
+    const c = ENROLLMENT_COURSE_INFO[id] || { title: id, icon: '📚' };
+    return `<tr>
+<td style="padding:9px 14px;vertical-align:middle;width:28px;border-bottom:1px solid #f3f4f6"><div style="width:20px;height:20px;border:2px solid #d1d5db;border-radius:50%;"></div></td>
+<td style="padding:9px 14px 9px 4px;border-bottom:1px solid #f3f4f6">
+  <table cellpadding="0" cellspacing="0"><tr>
+    <td style="padding-right:8px;font-size:16px;width:22px">${c.icon}</td>
+    <td><div style="font-weight:700;color:#0d1117;font-size:13px">${eh(c.title)}</div></td>
+  </tr></table>
+</td></tr>`;
+  }).join('');
+
+  const subject = isCritical
+    ? `⚠️ Final reminder: Learning deadline is tomorrow — Delivery Wikipedia`
+    : `Reminder: ${daysLeft} days until your learning deadline — Delivery Wikipedia`;
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${eh(subject)}</title></head>
+<body style="margin:0;padding:0;background:#f1f2f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:28px 12px"><tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">
+${_emailHeader('Learning Reminder', isCritical?'⚠️':'🔔', `${daysLeft} Day${daysLeft===1?'':'s'} Left`, isCritical?'220,38,38':'201,162,39')}
+<tr><td style="background:${isCritical?'#dc2626':'#c9a227'};padding:11px 28px"><div style="color:#fff;font-size:13px;font-weight:700">${isCritical?'⚠️  Deadline tomorrow — complete your remaining modules now!':'🔔  Heads up — your learning deadline is approaching!'}</div></td></tr>
+<tr><td style="background:#ffffff;padding:28px 28px 22px">
+  <div style="font-size:22px;font-weight:800;color:#0d1117;letter-spacing:-.3px;margin-bottom:6px">Hi ${eh(firstName)}!</div>
+  <div style="color:#374151;font-size:14px;line-height:1.7;margin-bottom:18px">
+    You have <strong>${daysLeft} day${daysLeft===1?'':'s'}</strong> left to complete the <strong>${eh(path)}</strong>.
+    You've finished ${done} of ${total} modules — ${remaining.length} still to go. ${isCritical?'Please complete them today.':'Keep it up!'}
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:${ub};border:1px solid ${ubr};border-radius:10px;margin-bottom:20px">
+    <tr><td style="padding:15px 18px"><table cellpadding="0" cellspacing="0"><tr>
+      <td style="font-size:20px;padding-right:10px">${isCritical?'⏰':'📅'}</td>
+      <td><div style="color:${uc};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px">Due Date</div>
+      <div style="color:${uc};font-size:18px;font-weight:800;margin-top:2px">${eh(dueFmt)}</div></td>
+    </tr></table></td></tr>
+  </table>
+  ${remaining.length ? `<div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px">Remaining (${remaining.length})</div>
+  <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e4e6ea;border-radius:10px;overflow:hidden;margin-bottom:24px"><tbody>${remRows}</tbody></table>` : ''}
+  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td align="center"><a href="${url}" style="display:inline-block;background:${isCritical?'#dc2626':'#c9a227'};color:#fff;text-decoration:none;font-weight:800;font-size:14px;padding:14px 40px;border-radius:8px">Continue Learning Now &rarr;</a></td>
+  </tr></table>
+</td></tr>
+${_emailFooter(url)}
+</table></td></tr></table></body></html>`;
+
+  const text = `Hi ${firstName},\n\nReminder: ${daysLeft} day${daysLeft===1?'':'s'} left · Due: ${dueFmt}\n\nRemaining (${remaining.length}):\n${remaining.map(id=>`  - ${(ENROLLMENT_COURSE_INFO[id]||{}).title||id}`).join('\n')}\n\nContinue at: ${url}\n\n— Delivery Wikipedia · delivery.wiki@bluecopa.com`;
+
+  return { subject, html, text };
+}
+
+// Helper: shared email HTML wrapper
+function _wrapEmail(rows, url) {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f1f2f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:28px 12px"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">${rows}</table></td></tr></table></body></html>`;
+}
+
+// Preview / test — sends a sample enrollment email to the given address
+app.post('/api/learning/preview-email', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureLearning();
+  const {
+    to         = 'azhar.m@bluecopa.com',
+    memberName  = 'Azhar M',
+    courseIds   = NJ_ALL,
+    dueDate,
+    pathName    = 'New Joiner Learning Path',
+    enrolledBy  = 'Azhar M (Admin)',
+    type        = 'enrollment',
+  } = req.body || {};
+  try {
+    let payload;
+    if (type === 'progress') {
+      const completed = req.body.completedCourseIds || courseIds.slice(0, 4);
+      payload = buildProgressEmail({ memberName, allCourseIds: courseIds, completedCourseIds: completed, dueDate, pathName, portalUrl: PORTAL_URL });
+    } else if (type === 'reminder') {
+      const completed = req.body.completedCourseIds || courseIds.slice(0, 6);
+      payload = buildReminderEmail({ memberName, daysLeft: req.body.daysLeft || 3, allCourseIds: courseIds, completedCourseIds: completed, dueDate, pathName, portalUrl: PORTAL_URL });
+    } else {
+      payload = buildEnrollmentEmail({ memberName, courseIds, dueDate, enrolledBy, pathName, portalUrl: PORTAL_URL });
+    }
+    await sendEmail({ to, subject: payload.subject, html: payload.html, text: payload.text });
+    res.json({ ok: true, to, subject: payload.subject });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // Bulk assign — a learning path to one or many users
 app.post('/api/learning/bulk-assign', (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
   ensureLearning();
-  const { userNames, courseIds, pathId, type, dueDate } = req.body;
+  const { userNames, courseIds, pathId, type, dueDate, enrolleeEmails, enrolledBy } = req.body;
   if (!Array.isArray(userNames) || !Array.isArray(courseIds))
     return res.status(400).json({ error: 'userNames[] and courseIds[] required' });
+
+  // Store member emails for reminder/completion lookup
+  if (enrolleeEmails && typeof enrolleeEmails === 'object') {
+    for (const [name, email] of Object.entries(enrolleeEmails)) {
+      if (email) db.learning.memberEmails[name] = email;
+    }
+  }
+
   let created = 0;
   for (const userName of userNames) {
     for (const courseId of courseIds) {
@@ -2760,7 +3096,9 @@ app.post('/api/learning/bulk-assign', (req, res) => {
           type:       type    || 'mandatory',
           dueDate:    dueDate || null,
           assignedAt: new Date().toISOString(),
-          pathId:     pathId  || null
+          pathId:     pathId  || null,
+          status:     'pending',
+          completedAt: null,
         });
         created++;
       }
@@ -2768,7 +3106,114 @@ app.post('/api/learning/bulk-assign', (req, res) => {
   }
   saveDB(db);
   res.json({ ok: true, created });
+
+  // Send enrollment notification emails
+  if (created > 0 && enrolleeEmails && typeof enrolleeEmails === 'object') {
+    const savedNames    = [...userNames];
+    const savedCourses  = [...courseIds];
+    const savedDue      = dueDate;
+    const savedBy       = enrolledBy || 'Your Learning Manager';
+    const savedPathId   = pathId;
+    const savedEmailMap = { ...enrolleeEmails };
+    setImmediate(async () => {
+      ensureLearning();
+      const pathObj = (db.learning.paths || []).find(p => p.id === savedPathId);
+      for (const userName of savedNames) {
+        const to = savedEmailMap[userName];
+        if (!to) continue;
+        try {
+          const { subject, html, text } = buildEnrollmentEmail({
+            memberName: userName, courseIds: savedCourses, dueDate: savedDue,
+            enrolledBy: savedBy, pathName: pathObj ? pathObj.name : 'Learning Path', portalUrl: PORTAL_URL,
+          });
+          await sendEmail({ to, subject, html, text });
+        } catch(e) { console.warn('[enrollment email]', userName, e.message); }
+      }
+    });
+  }
 });
+
+// Mark a course assignment as complete and fire progress email
+app.post('/api/learning/assignments/:id/complete', async (req, res) => {
+  ensureLearning();
+  const id = parseInt(req.params.id, 10);
+  const assignment = db.learning.assignments.find(a => a.id === id);
+  if (!assignment) return res.status(404).json({ error: 'Assignment not found' });
+  if (assignment.completedAt) return res.json({ ok: true, alreadyCompleted: true, assignment });
+
+  assignment.completedAt = new Date().toISOString();
+  assignment.status = 'completed';
+  saveDB(db);
+  res.json({ ok: true, assignment });
+
+  // Fire progress email
+  setImmediate(async () => {
+    ensureLearning();
+    const { userName, pathId, dueDate } = assignment;
+    const email = db.learning.memberEmails[userName];
+    if (!email) return;
+    const pathObj     = (db.learning.paths || []).find(p => p.id === pathId);
+    const allCourses  = pathObj ? pathObj.courseIds : NJ_ALL;
+    const userAssigns = db.learning.assignments.filter(
+      a => a.userName.toLowerCase() === userName.toLowerCase() && a.pathId === pathId
+    );
+    const completedIds = userAssigns.filter(a => a.completedAt).map(a => a.courseId);
+    try {
+      const { subject, html, text } = buildProgressEmail({
+        memberName: userName, allCourseIds: allCourses, completedCourseIds: completedIds,
+        dueDate, pathName: pathObj ? pathObj.name : 'Learning Path', portalUrl: PORTAL_URL,
+      });
+      await sendEmail({ to: email, subject, html, text });
+    } catch(e) { console.warn('[progress email]', userName, e.message); }
+  });
+});
+
+// ── Learning Reminder Scheduler ───────────────────────────────────────────────
+function runLearningReminders() {
+  try {
+    ensureLearning();
+    const now  = new Date();
+    const sent = new Set((db.learning.remindersSent || []).map(r => r.key));
+    const groups = {};
+    for (const a of db.learning.assignments) {
+      if (!a.dueDate || !a.pathId || a.completedAt) continue;
+      const key = `${a.userName}::${a.pathId}`;
+      if (!groups[key]) groups[key] = { userName: a.userName, pathId: a.pathId, dueDate: a.dueDate, assignments: [] };
+      groups[key].assignments.push(a);
+    }
+    let dirty = false;
+    for (const g of Object.values(groups)) {
+      const daysLeft = Math.ceil((new Date(g.dueDate) - now) / (1000*60*60*24));
+      const email    = db.learning.memberEmails[g.userName];
+      if (!email || daysLeft < 0) continue;
+      const completedIds = g.assignments.filter(a => a.completedAt).map(a => a.courseId);
+      if (completedIds.length >= g.assignments.length) continue;
+      for (const threshold of [7, 3, 1]) {
+        if (daysLeft !== threshold) continue;
+        const rKey = `${g.userName}::${g.pathId}::${g.dueDate}::${threshold}d`;
+        if (sent.has(rKey)) continue;
+        const pathObj    = (db.learning.paths || []).find(p => p.id === g.pathId);
+        const allCourses = pathObj ? pathObj.courseIds : g.assignments.map(a => a.courseId);
+        setImmediate(async () => {
+          try {
+            const { subject, html, text } = buildReminderEmail({
+              memberName: g.userName, daysLeft: threshold, allCourseIds: allCourses,
+              completedCourseIds: completedIds, dueDate: g.dueDate,
+              pathName: pathObj ? pathObj.name : 'Learning Path', portalUrl: PORTAL_URL,
+            });
+            await sendEmail({ to: email, subject, html, text });
+            console.log('[reminder]', threshold + 'd ->', g.userName);
+          } catch(e) { console.warn('[reminder]', g.userName, e.message); }
+        });
+        db.learning.remindersSent.push({ key: rKey, sentAt: now.toISOString() });
+        dirty = true;
+      }
+    }
+    if (dirty) saveDB(db);
+  } catch(e) { console.warn('[reminder scheduler]', e.message); }
+}
+setTimeout(runLearningReminders, 15000);
+setInterval(runLearningReminders, 24 * 60 * 60 * 1000);
 
 // Admin: full team view with employee roster
 app.get('/api/learning/team', (req, res) => {
