@@ -9898,7 +9898,7 @@ function rlOpen(){
   var li=document.getElementById('liOverlay');
   if(li && li.style.display!=='none') li.style.display='none';
   history.state&&history.state.screen==='rocketlane-dashboard'||history.pushState({screen:'rocketlane-dashboard'},'');
-  setTimeout(function(){ if(typeof liInitRocketlane==='function') liInitRocketlane(); },120);
+  setTimeout(function(){ if(typeof rlInitDashboard==='function') rlInitDashboard(); },120);
 }
 
 function rlClose(){
@@ -10332,6 +10332,672 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof _orig === 'function') _orig.apply(this, arguments);
   };
 });
+</script>
+
+<!-- ═══ ROCKETLANE DASHBOARD — COMPLETE REBUILD ═══ -->
+<script>
+(function() {
+'use strict';
+
+var _rlData = null;
+var _rlTab = 'executive';
+var _rlLoading = false;
+var _rlDrillProject = null;
+var _rlFilter = 'all';
+
+var RL_PHASES = {
+  engage:  { label: 'Engage',  color: '#22c55e', light: 'rgba(34,197,94,.15)' },
+  drive:   { label: 'Drive',   color: '#60a5fa', light: 'rgba(96,165,250,.15)' },
+  enable:  { label: 'Enable',  color: '#a78bfa', light: 'rgba(167,139,250,.15)' },
+  convert: { label: 'Convert', color: '#f97316', light: 'rgba(249,115,22,.15)' }
+};
+
+var RL_TABS = [
+  { id: 'executive',  label: 'Executive Overview' },
+  { id: 'progress',   label: 'Project Progress' },
+  { id: 'compliance', label: 'Project Compliance' },
+  { id: 'timeline',   label: 'Timeline Changes' },
+  { id: 'trends',     label: 'Historical Trends' },
+  { id: 'findings',   label: 'Compliance Findings' }
+];
+
+function rlInitDashboard() {
+  var el = document.getElementById('rlContent');
+  if (!el) return;
+  _rlData = null; _rlDrillProject = null; _rlTab = 'executive'; _rlFilter = 'all';
+  _rlLoading = true;
+  el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px;gap:16px;"><div class="rl-spin"></div><div style="font-size:13px;color:rgba(255,255,255,.3);">Loading Rocketlane data…</div></div>';
+  fetch('/api/rocketlane/projects-full')
+    .then(function(r){ return r.json(); })
+    .then(function(data){ _rlData = data; _rlLoading = false; rlRenderShell(); })
+    .catch(function(e){ el.innerHTML = '<div style="text-align:center;padding:80px;color:#dc2626;font-size:13px;">Failed to load: '+(e.message||'Unknown error')+'</div>'; _rlLoading = false; });
+}
+
+function rlRenderShell() {
+  var el = document.getElementById('rlContent');
+  if (!el || !_rlData) return;
+  var s = _rlData.summary;
+  var tabsHTML = RL_TABS.map(function(t) {
+    var a = t.id === _rlTab;
+    return '<button onclick="rlSwitchTab(\''+t.id+'\')" style="background:none;border:none;cursor:pointer;padding:12px 16px;font-family:\'DM Sans\',sans-serif;font-size:13px;font-weight:'+(a?'600':'400')+';color:'+(a?'#c9a227':'rgba(255,255,255,.4)')+';border-bottom:2px solid '+(a?'#c9a227':'transparent')+';transition:all .15s;white-space:nowrap;min-height:44px;">'+t.label+'</button>';
+  }).join('');
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'+
+      '<div>'+
+        '<div style="font-size:20px;font-weight:700;color:#f0f0f6;letter-spacing:-.3px;">Rocketlane Dashboard</div>'+
+        '<div style="font-size:12px;color:#8a92a0;margin-top:2px;font-family:\'DM Mono\',monospace;">'+s.total+' projects · '+s.standard+' standard · '+s.nonStandard+' non-standard</div>'+
+      '</div>'+
+      '<button onclick="rlRefreshDashboard()" style="background:rgba(201,162,39,.08);border:1px solid rgba(201,162,39,.2);color:#c9a227;border-radius:8px;padding:8px 14px;font-family:\'DM Sans\',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">↻ Refresh</button>'+
+    '</div>'+
+    '<div id="rlTabBar" style="display:flex;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:24px;overflow-x:auto;">'+tabsHTML+'</div>'+
+    '<div id="rlTabBody"></div>';
+  rlRenderActiveTab();
+}
+
+function rlSwitchTab(tabId) {
+  _rlTab = tabId; _rlDrillProject = null;
+  var bar = document.getElementById('rlTabBar');
+  if (bar) RL_TABS.forEach(function(t, i) {
+    var btn = bar.children[i]; if (!btn) return;
+    var a = t.id === tabId;
+    btn.style.fontWeight = a ? '600' : '400';
+    btn.style.color = a ? '#c9a227' : 'rgba(255,255,255,.4)';
+    btn.style.borderBottom = '2px solid ' + (a ? '#c9a227' : 'transparent');
+  });
+  rlRenderActiveTab();
+}
+window.rlSwitchTab = rlSwitchTab;
+
+function rlRenderActiveTab() {
+  var body = document.getElementById('rlTabBody');
+  if (!body || !_rlData) return;
+  ({ executive: rlTabExecutive, progress: rlTabProgress, compliance: rlTabCompliance, timeline: rlTabTimeline, trends: rlTabTrends, findings: rlTabFindings })[_rlTab](body);
+}
+
+function rlRefreshDashboard() {
+  if (_rlLoading) return;
+  _rlLoading = true;
+  var btn = document.querySelector('[onclick="rlRefreshDashboard()"]');
+  if (btn) btn.textContent = '↻ Refreshing…';
+  fetch('/api/rocketlane/projects-full?refresh=1')
+    .then(function(r){ return r.json(); })
+    .then(function(data){ _rlData = data; _rlLoading = false; rlRenderShell(); })
+    .catch(function(){ _rlLoading = false; });
+}
+window.rlRefreshDashboard = rlRefreshDashboard;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function rlCard(inner, es) {
+  return '<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:12px;'+(es||'')+'">'+inner+'</div>';
+}
+function rlStatus(st) {
+  var m = {'Completed':'rgba(34,197,94,.12);color:#22c55e','In progress':'rgba(96,165,250,.12);color:#60a5fa','Blocked':'rgba(220,38,38,.12);color:#dc2626','On Hold':'rgba(245,158,11,.12);color:#f59e0b','Proposed':'rgba(139,92,246,.12);color:#8b5cf6'};
+  var s = m[st]||'rgba(138,146,160,.12);color:#8a92a0';
+  return '<span style="background:'+s+';border-radius:6px;padding:2px 8px;font-size:11px;font-family:\'DM Mono\',monospace;white-space:nowrap;">'+st+'</span>';
+}
+function rlSev(sev) {
+  var m = {high:'rgba(220,38,38,.15);color:#dc2626',medium:'rgba(245,158,11,.15);color:#f59e0b',low:'rgba(96,165,250,.15);color:#60a5fa'};
+  return '<span style="background:'+(m[sev]||m.low)+';border-radius:6px;padding:1px 7px;font-size:10px;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;">'+sev+'</span>';
+}
+function rlPhaseBar(phases, pct) {
+  if (!phases) return '<span style="font-size:11px;color:#8a92a0;font-style:italic;">Non-standard</span>';
+  var segs = ['engage','drive','enable','convert'].map(function(ph){
+    var w = (phases[ph]?phases[ph].pct:0)/4;
+    return '<div style="height:100%;width:'+w+'%;background:'+RL_PHASES[ph].color+';transition:width .3s;" title="'+RL_PHASES[ph].label+': '+(phases[ph]?phases[ph].pct:0)+'%"></div>';
+  }).join('');
+  return '<div style="position:relative;padding-top:18px;">'+
+    '<div style="position:absolute;top:0;right:0;font-size:11px;font-family:\'DM Mono\',monospace;color:#c9a227;font-weight:600;">'+(pct||0)+'%</div>'+
+    '<div style="height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;display:flex;">'+segs+'</div>'+
+    '<div style="display:flex;gap:8px;margin-top:5px;">'+
+      ['engage','drive','enable','convert'].map(function(ph){
+        var c=RL_PHASES[ph]; var p=phases[ph]?phases[ph].pct:0;
+        return '<span style="font-size:10px;color:'+c.color+';font-family:\'DM Mono\',monospace;">'+c.label[0]+':'+p+'%</span>';
+      }).join('')+
+    '</div>'+
+  '</div>';
+}
+
+// ─── Tab 1: Executive Overview ────────────────────────────────────────────────
+function rlTabExecutive(body) {
+  var d = _rlData, s = d.summary;
+  var totalIssues = d.projects.reduce(function(a,p){ return a+(p.compliance.issueCount||0); },0);
+  var compScore = Math.max(0, Math.round(100 - (d.projects.length ? totalIssues/d.projects.length*10 : 0)));
+  var activeCount = (s.byStatus['In progress']||0);
+
+  var kpisHTML = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">' +
+    [
+      { label:'Total Projects', val:s.total, sub:activeCount+' active', color:'#60a5fa' },
+      { label:'Standard Projects', val:s.standard, sub:'of '+s.total+' projects', color:'#22c55e' },
+      { label:'Avg. Progress', val:s.avgProgress+'%', sub:'standard only', color:'#c9a227' },
+      { label:'Compliance Score', val:compScore+'%', sub:totalIssues+' open issues', color:compScore>=80?'#22c55e':compScore>=50?'#f59e0b':'#dc2626' }
+    ].map(function(k){
+      return rlCard('<div style="padding:20px;"><div style="font-size:10px;color:#8a92a0;letter-spacing:.08em;text-transform:uppercase;font-family:\'DM Mono\',monospace;margin-bottom:10px;">'+k.label+'</div><div style="font-size:28px;font-weight:800;color:'+k.color+';letter-spacing:-.5px;line-height:1;">'+k.val+'</div><div style="font-size:11px;color:#8a92a0;margin-top:6px;">'+k.sub+'</div></div>');
+    }).join('')+
+  '</div>';
+
+  var phaseHTML = rlCard(
+    '<div style="padding:20px;">'+
+      '<div style="font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;margin-bottom:16px;">Phase Progress — Standard Projects Only</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;">'+
+        ['engage','drive','enable','convert'].map(function(ph){
+          var cfg=RL_PHASES[ph], pct=s.phaseAvg[ph]||0;
+          return '<div>'+
+            '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">'+
+              '<span style="font-size:12px;font-weight:700;color:'+cfg.color+';">'+cfg.label+'</span>'+
+              '<span style="font-size:11px;font-family:\'DM Mono\',monospace;color:#8a92a0;">'+pct+'%</span>'+
+            '</div>'+
+            '<div style="height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;">'+
+              '<div style="height:100%;width:'+pct+'%;background:'+cfg.color+';border-radius:4px;"></div>'+
+            '</div>'+
+          '</div>';
+        }).join('')+
+      '</div>'+
+    '</div>',
+    'margin-bottom:24px;'
+  );
+
+  var rows = d.projects.map(function(p){
+    var iss = p.compliance.issueCount||0;
+    var issColor = iss===0?'#22c55e':iss>=3?'#dc2626':'#f59e0b';
+    return '<tr style="border-top:1px solid rgba(255,255,255,.04);cursor:pointer;" onmouseenter="this.style.background=\'rgba(255,255,255,.02)\'" onmouseleave="this.style.background=\'transparent\'" onclick="rlSwitchTab(\'progress\');setTimeout(function(){rlDrillTo('+p.projectId+')},60);">'+
+      '<td style="padding:10px 16px;font-size:13px;font-weight:500;color:#f0f0f6;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+p.projectName+'</td>'+
+      '<td style="padding:10px 8px;">'+rlStatus(p.status)+'</td>'+
+      '<td style="padding:10px 16px;min-width:160px;">'+rlPhaseBar(p.phases,p.overallPct)+'</td>'+
+      '<td style="padding:10px 8px;text-align:center;"><span style="font-size:13px;font-weight:700;color:'+issColor+';font-family:\'DM Mono\',monospace;">'+iss+'</span></td>'+
+    '</tr>';
+  }).join('');
+
+  body.innerHTML = kpisHTML + phaseHTML + rlCard(
+    '<div style="padding:12px 16px 4px;font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Project Health Matrix</div>'+
+    '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">'+
+      '<thead><tr>'+
+        '<th style="padding:8px 16px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Project</th>'+
+        '<th style="padding:8px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Status</th>'+
+        '<th style="padding:8px 16px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Progress</th>'+
+        '<th style="padding:8px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:center;font-family:\'DM Mono\',monospace;">Issues</th>'+
+      '</tr></thead>'+
+      '<tbody>'+rows+'</tbody>'+
+    '</table></div>'+
+    '<div style="padding:10px 16px;font-size:11px;color:#8a92a0;">Click any row for project details</div>'
+  );
+}
+
+// ─── Tab 2: Project Progress ──────────────────────────────────────────────────
+function rlTabProgress(body) {
+  var d = _rlData;
+  body.innerHTML =
+    '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">'+
+      '<span style="font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-family:\'DM Mono\',monospace;">Filter:</span>'+
+      ['all','standard','nonstandard'].map(function(f){
+        var labels={all:'All ('+d.projects.length+')',standard:'Standard ('+d.summary.standard+')',nonstandard:'Non-Standard ('+d.summary.nonStandard+')'};
+        var a = f===_rlFilter;
+        return '<button id="rlf-'+f+'" onclick="rlFilterProj(\''+f+'\')" style="border:1px solid '+(a?'rgba(201,162,39,.3)':'rgba(255,255,255,.07)')+';background:'+(a?'rgba(201,162,39,.1)':'transparent')+';color:'+(a?'#c9a227':'rgba(255,255,255,.5)')+';border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:\'DM Sans\',sans-serif;">'+labels[f]+'</button>';
+      }).join('')+
+    '</div>'+
+    '<div id="rlProgressTable"></div>'+
+    '<div id="rlDrillPanel" style="display:none;margin-top:16px;"></div>';
+  rlRenderProgressTable();
+  if (_rlDrillProject) setTimeout(function(){ rlDrillTo(_rlDrillProject); }, 60);
+}
+
+function rlFilterProj(f) {
+  _rlFilter = f;
+  ['all','standard','nonstandard'].forEach(function(id){
+    var b=document.getElementById('rlf-'+id); if(!b) return;
+    var a=id===f;
+    b.style.background=a?'rgba(201,162,39,.1)':'transparent';
+    b.style.color=a?'#c9a227':'rgba(255,255,255,.5)';
+    b.style.borderColor=a?'rgba(201,162,39,.3)':'rgba(255,255,255,.07)';
+  });
+  rlRenderProgressTable();
+  var dp=document.getElementById('rlDrillPanel'); if(dp) dp.style.display='none';
+}
+window.rlFilterProj = rlFilterProj;
+
+function rlRenderProgressTable() {
+  var el=document.getElementById('rlProgressTable'); if(!el||!_rlData) return;
+  var projs = _rlFilter==='standard'?_rlData.projects.filter(function(p){return p.isStandard;}):
+              _rlFilter==='nonstandard'?_rlData.projects.filter(function(p){return !p.isStandard;}):
+              _rlData.projects;
+  var rows = projs.map(function(p){
+    var barHTML = p.isStandard ? rlPhaseBar(p.phases, p.overallPct) : '<span style="font-size:11px;color:#8a92a0;font-style:italic;">Non-Standard Structure / Mapping Required</span>';
+    return '<tr style="border-top:1px solid rgba(255,255,255,.04);cursor:pointer;" onmouseenter="this.style.background=\'rgba(255,255,255,.02)\'" onmouseleave="this.style.background=\'transparent\'" onclick="rlDrillTo('+p.projectId+')">'+
+      '<td style="padding:10px 16px;font-size:13px;font-weight:500;color:#f0f0f6;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+p.projectName+'</td>'+
+      '<td style="padding:10px 8px;">'+rlStatus(p.status)+'</td>'+
+      '<td style="padding:6px 16px;min-width:220px;">'+barHTML+'</td>'+
+      '<td style="padding:10px 8px;text-align:center;font-size:12px;color:#8a92a0;font-family:\'DM Mono\',monospace;">'+p.totalTasks+'</td>'+
+      '<td style="padding:10px 12px;font-size:13px;color:#c9a227;text-align:center;">▶</td>'+
+    '</tr>';
+  }).join('');
+  el.innerHTML = rlCard(
+    '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">'+
+      '<thead><tr>'+
+        '<th style="padding:10px 16px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Project</th>'+
+        '<th style="padding:10px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Status</th>'+
+        '<th style="padding:10px 16px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Phase Progress</th>'+
+        '<th style="padding:10px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:center;font-family:\'DM Mono\',monospace;">Tasks</th>'+
+        '<th></th>'+
+      '</tr></thead>'+
+      '<tbody>'+rows+'</tbody>'+
+    '</table></div>'
+  );
+}
+
+function rlDrillTo(projectId) {
+  _rlDrillProject = projectId;
+  var p=_rlData&&_rlData.projects.find(function(x){return x.projectId===projectId;}); if(!p) return;
+  var dp=document.getElementById('rlDrillPanel'); if(!dp) return;
+  dp.style.display='block';
+  var closeBtn='<button onclick="rlCloseDrill()" style="background:transparent;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.4);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">✕ Close</button>';
+  var dueStr=p.dueDate?new Date(p.dueDate).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'No due date';
+  var overduePrj=p.dueDate&&p.status!=='Completed'&&new Date(p.dueDate)<new Date();
+
+  if (!p.isStandard) {
+    dp.innerHTML = rlCard(
+      '<div style="padding:20px;">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">'+
+          '<div><div style="font-size:15px;font-weight:700;color:#f0f0f6;margin-bottom:4px;">'+p.projectName+'</div><div style="display:flex;gap:8px;align-items:center;">'+rlStatus(p.status)+'</div></div>'+
+          closeBtn+
+        '</div>'+
+        '<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:16px;font-size:13px;color:#f59e0b;margin-bottom:16px;">⚠️ Non-Standard Structure — This project does not follow the Bluecopa Delivery Methodology (Engage → Drive → Enable → Convert). Migrate it to the standard template to enable progress tracking.</div>'+
+        '<div style="font-size:11px;color:#8a92a0;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">All Tasks ('+p.totalTasks+')</div>'+
+        (p.subtasks||[]).slice(0,25).map(function(t){
+          return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid rgba(255,255,255,.04);">'+
+            '<span style="width:6px;height:6px;border-radius:50%;flex-shrink:0;background:'+(t.completed?'#22c55e':'rgba(255,255,255,.2)')+'"></span>'+
+            '<span style="font-size:12px;color:'+(t.completed?'rgba(255,255,255,.4)':'#f0f0f6')+';'+(t.completed?'text-decoration:line-through;':'')+';flex:1;">'+t.taskName+'</span>'+
+            '<span style="font-size:10px;color:#8a92a0;font-family:\'DM Mono\',monospace;">'+t.status+'</span>'+
+          '</div>';
+        }).join('')+
+        ((p.subtasks||[]).length>25?'<div style="padding:8px 0;font-size:11px;color:#8a92a0;text-align:center;">…and '+((p.subtasks||[]).length-25)+' more</div>':'')+
+      '</div>',
+      'border-color:rgba(245,158,11,.2);'
+    );
+    dp.scrollIntoView({behavior:'smooth',block:'start'}); return;
+  }
+
+  var phaseBlocks = ['engage','drive','enable','convert'].map(function(ph){
+    var cfg=RL_PHASES[ph], phD=p.phases&&p.phases[ph];
+    if(!phD||!phD.tasks||!phD.tasks.length) return '';
+    var phasePct=phD.pct||0;
+    var sortedTasks=phD.tasks.slice().sort(function(a,b){return a.order-b.order;});
+    return '<div style="margin-bottom:20px;">'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'+
+        '<div style="width:4px;height:28px;background:'+cfg.color+';border-radius:2px;flex-shrink:0;"></div>'+
+        '<div style="flex:1;">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;">'+
+            '<span style="font-size:13px;font-weight:700;color:'+cfg.color+';">'+cfg.label+'</span>'+
+            '<span style="font-size:11px;color:#8a92a0;font-family:\'DM Mono\',monospace;">'+phasePct+'% complete</span>'+
+          '</div>'+
+          '<div style="height:3px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:5px;overflow:hidden;">'+
+            '<div style="height:100%;width:'+phasePct+'%;background:'+cfg.color+'"></div>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      sortedTasks.map(function(t){
+        var done=t.completed, dd=t.dueDate?new Date(t.dueDate):null;
+        var od=dd&&!done&&dd<new Date();
+        return '<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-radius:8px;background:rgba(255,255,255,.015);margin-bottom:4px;border:1px solid rgba(255,255,255,.04);">'+
+          '<div style="width:16px;height:16px;min-width:16px;border-radius:50%;border:2px solid '+(done?cfg.color:'rgba(255,255,255,.2)')+';background:'+(done?cfg.color:'transparent')+';display:flex;align-items:center;justify-content:center;margin-top:1px;">'+
+            (done?'<div style="width:5px;height:5px;background:#fff;border-radius:50%;"></div>':'')+
+          '</div>'+
+          '<div style="flex:1;">'+
+            '<div style="font-size:12px;font-weight:500;color:'+(done?'rgba(255,255,255,.35)':'#f0f0f6')+';'+(done?'text-decoration:line-through;':'')+'">' + t.taskName+'</div>'+
+            (dd?'<div style="font-size:10px;color:'+(od?'#dc2626':'#8a92a0')+';font-family:\'DM Mono\',monospace;margin-top:2px;">'+(od?'⚠ OVERDUE · ':'')+'Due: '+dd.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'</div>':'')+'</div>'+
+          '<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:#8a92a0;white-space:nowrap;margin-top:2px;">'+t.status+'</span>'+
+        '</div>';
+      }).join('')+
+    '</div>';
+  }).join('');
+
+  dp.innerHTML = rlCard(
+    '<div style="padding:20px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">'+
+        '<div>'+
+          '<div style="font-size:15px;font-weight:700;color:#f0f0f6;margin-bottom:6px;">'+p.projectName+'</div>'+
+          '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'+
+            rlStatus(p.status)+
+            '<span style="font-size:11px;color:'+(overduePrj?'#dc2626':'#8a92a0')+';font-family:\'DM Mono\',monospace;">'+(overduePrj?'⚠ ':'')+'Due: '+dueStr+'</span>'+
+            (p.owner?'<span style="font-size:11px;color:#8a92a0;">Owner: '+p.owner.name+'</span>':'')+
+          '</div>'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:16px;">'+
+          '<div style="text-align:center;">'+
+            '<div style="font-size:28px;font-weight:800;color:#c9a227;line-height:1;">'+(p.overallPct||0)+'%</div>'+
+            '<div style="font-size:10px;color:#8a92a0;font-family:\'DM Mono\',monospace;letter-spacing:.06em;">OVERALL</div>'+
+          '</div>'+
+          closeBtn+
+        '</div>'+
+      '</div>'+
+      phaseBlocks+
+    '</div>',
+    'border-color:rgba(201,162,39,.15);'
+  );
+  dp.scrollIntoView({behavior:'smooth',block:'start'});
+}
+window.rlDrillTo = rlDrillTo;
+
+function rlCloseDrill() {
+  _rlDrillProject=null;
+  var dp=document.getElementById('rlDrillPanel'); if(dp) dp.style.display='none';
+}
+window.rlCloseDrill = rlCloseDrill;
+
+// ─── Tab 3: Project Compliance ────────────────────────────────────────────────
+function rlTabCompliance(body) {
+  var d=_rlData, allIssues=[];
+  d.projects.forEach(function(p){
+    (p.compliance.issues||[]).forEach(function(iss){
+      allIssues.push({project:p.projectName,status:p.status,severity:iss.severity,category:iss.category,phase:iss.phase,task:iss.task,issue:iss.issue,projectId:p.projectId});
+    });
+  });
+  var high=allIssues.filter(function(i){return i.severity==='high';}),
+      med=allIssues.filter(function(i){return i.severity==='medium';}),
+      low=allIssues.filter(function(i){return i.severity==='low';});
+
+  var CATEGORIES=[
+    {key:'structure',  label:'Phase & Task Structure',  color:'#f59e0b', icon:'⚠️'},
+    {key:'ownership',  label:'Task Ownership',          color:'#60a5fa', icon:'👤'},
+    {key:'overdue',    label:'Overdue Tasks',           color:'#dc2626', icon:'🔴'},
+    {key:'blocked',    label:'Blocked Tasks',           color:'#ef4444', icon:'🚫'},
+    {key:'dates',      label:'Missing / Invalid Dates', color:'#8b5cf6', icon:'📅'},
+    {key:'stale',      label:'Stale Progress',          color:'#f97316', icon:'⏸️'},
+    {key:'completion', label:'Premature Completion',    color:'#dc2626', icon:'⚡'},
+    {key:'closure',    label:'Project Closure Pending', color:'#c9a227', icon:'🔒'}
+  ];
+
+  function catSection(cat){
+    var issues=allIssues.filter(function(i){return i.category===cat.key;});
+    if(!issues.length) return '';
+    var byProject={};
+    issues.forEach(function(i){
+      if(!byProject[i.project]) byProject[i.project]={status:i.status,items:[]};
+      byProject[i.project].items.push(i);
+    });
+    return rlCard(
+      '<div style="padding:12px 16px 0;">'+
+        '<div style="font-size:12px;font-weight:700;color:'+cat.color+';text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">'+cat.icon+' '+cat.label+' ('+issues.length+')</div>'+
+        Object.keys(byProject).map(function(projName){
+          var proj=byProject[projName];
+          return '<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,.04);">'+
+            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">'+
+              '<div style="font-size:12px;font-weight:500;color:#f0f0f6;flex:1;">'+projName+'</div>'+
+              rlStatus(proj.status)+
+            '</div>'+
+            proj.items.map(function(i){
+              var meta=[i.phase&&('Phase: '+i.phase),i.task&&('Task: '+i.task)].filter(Boolean).join(' / ');
+              return '<div style="font-size:11px;color:'+cat.color+';padding:2px 0 2px 10px;border-left:2px solid rgba(255,255,255,.1);margin:1px 0;">'+
+                (meta?'<span style="color:#8a92a0;">'+meta+'</span> — ':'')+i.issue+
+              '</div>';
+            }).join('')+
+          '</div>';
+        }).join('')+
+      '</div><div style="height:12px;"></div>',
+      'margin-bottom:16px;'
+    );
+  }
+
+  var activeCats=CATEGORIES.filter(function(cat){return allIssues.some(function(i){return i.category===cat.key;});});
+
+  body.innerHTML=
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">'+
+      [{label:'Critical Issues',count:high.length,color:'#dc2626',bg:'rgba(220,38,38,.08)',bc:'rgba(220,38,38,.2)'},
+       {label:'Warnings',count:med.length,color:'#f59e0b',bg:'rgba(245,158,11,.08)',bc:'rgba(245,158,11,.2)'},
+       {label:'Info',count:low.length,color:'#60a5fa',bg:'rgba(96,165,250,.08)',bc:'rgba(96,165,250,.2)'}
+      ].map(function(k){
+        return '<div style="background:'+k.bg+';border:1px solid '+k.bc+';border-radius:12px;padding:20px;text-align:center;">'+
+          '<div style="font-size:32px;font-weight:800;color:'+k.color+';line-height:1;">'+k.count+'</div>'+
+          '<div style="font-size:11px;color:#8a92a0;margin-top:6px;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">'+k.label+'</div>'+
+        '</div>';
+      }).join('')+
+    '</div>'+
+    (activeCats.length?
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">'+
+        activeCats.map(function(cat){
+          var cnt=allIssues.filter(function(i){return i.category===cat.key;}).length;
+          return '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:4px 12px;font-size:11px;color:'+cat.color+';display:flex;align-items:center;gap:5px;">'+
+            cat.icon+' '+cat.label+' <span style="font-weight:700;font-family:\'DM Mono\',monospace;">('+cnt+')</span></div>';
+        }).join('')+
+      '</div>'
+    :'')+
+    CATEGORIES.map(function(cat){return catSection(cat);}).join('')+
+    (!allIssues.length?rlCard('<div style="padding:48px;text-align:center;font-size:13px;color:#22c55e;">✅ No compliance issues found across all projects</div>'):'');
+}
+
+// ─── Tab 4: Timeline Changes ──────────────────────────────────────────────────
+function rlTabTimeline(body) {
+  var d=_rlData, now=new Date(), in30=new Date(now.getTime()+30*24*60*60*1000);
+  var overdue=d.projects.filter(function(p){return p.dueDate&&p.status!=='Completed'&&new Date(p.dueDate)<now;}).sort(function(a,b){return new Date(a.dueDate)-new Date(b.dueDate);});
+  var upcoming=d.projects.filter(function(p){var dd=p.dueDate&&new Date(p.dueDate);return dd&&p.status!=='Completed'&&dd>=now&&dd<=in30;}).sort(function(a,b){return new Date(a.dueDate)-new Date(b.dueDate);});
+  var active=d.projects.filter(function(p){return p.status==='In progress'&&(!p.dueDate||new Date(p.dueDate)>in30);});
+
+  function pRows(projs, empty) {
+    if(!projs.length) return '<div style="padding:14px 16px;font-size:12px;color:#8a92a0;text-align:center;">'+empty+'</div>';
+    return projs.map(function(p){
+      var dd=p.dueDate?new Date(p.dueDate):null, dl=dd?Math.round((dd-now)/(864e5)):null;
+      var dlTxt=!dd?'No due date':dl<0?Math.abs(dl)+' days overdue':dl+' days left';
+      var dlCol=!dd?'#8a92a0':dl<0?'#dc2626':dl<7?'#f59e0b':'#22c55e';
+      return '<div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-top:1px solid rgba(255,255,255,.04);">'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-size:13px;font-weight:500;color:#f0f0f6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+p.projectName+'</div>'+
+          (p.owner?'<div style="font-size:11px;color:#8a92a0;">'+p.owner.name+'</div>':'')+
+        '</div>'+
+        '<span style="font-size:12px;font-weight:600;color:'+dlCol+';font-family:\'DM Mono\',monospace;white-space:nowrap;">'+dlTxt+'</span>'+
+        rlStatus(p.status)+
+      '</div>';
+    }).join('');
+  }
+
+  body.innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">'+
+      [{label:'Overdue',count:overdue.length,color:'#dc2626',bg:'rgba(220,38,38,.08)',bc:'rgba(220,38,38,.2)'},
+       {label:'Due in 30 Days',count:upcoming.length,color:'#f59e0b',bg:'rgba(245,158,11,.08)',bc:'rgba(245,158,11,.2)'},
+       {label:'On Track',count:active.length,color:'#22c55e',bg:'rgba(34,197,94,.08)',bc:'rgba(34,197,94,.2)'}
+      ].map(function(k){
+        return '<div style="background:'+k.bg+';border:1px solid '+k.bc+';border-radius:12px;padding:20px;text-align:center;">'+
+          '<div style="font-size:32px;font-weight:800;color:'+k.color+';line-height:1;">'+k.count+'</div>'+
+          '<div style="font-size:11px;color:#8a92a0;margin-top:6px;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">'+k.label+'</div>'+
+        '</div>';
+      }).join('')+
+    '</div>'+
+    rlCard('<div style="padding:12px 16px 0;"><div style="font-size:12px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">🔴 Overdue Projects</div></div>'+pRows(overdue,'✅ No overdue projects'),'margin-bottom:16px;')+
+    rlCard('<div style="padding:12px 16px 0;"><div style="font-size:12px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">🟡 Due in Next 30 Days</div></div>'+pRows(upcoming,'No projects due soon'),'margin-bottom:16px;')+
+    rlCard('<div style="padding:12px 16px 0;"><div style="font-size:12px;font-weight:700;color:#22c55e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">✅ Active Projects (on track)</div></div>'+pRows(active,'No active on-track projects'));
+}
+
+// ─── Tab 5: Historical Trends ─────────────────────────────────────────────────
+function rlTabTrends(body) {
+  body.innerHTML='<div style="text-align:center;padding:40px;"><div class="rl-spin" style="margin:0 auto;"></div></div>';
+  fetch('/api/rocketlane/snapshots').then(function(r){return r.json();}).then(function(d){
+    var allSnaps=(d.snapshots||[]);
+    if(!allSnaps.length){body.innerHTML=rlCard('<div style="padding:48px;text-align:center;font-size:13px;color:#8a92a0;">No snapshots yet. Snapshots auto-capture every Monday at 9:50 AM IST.</div>');return;}
+
+    var _period='weekly', _view='portfolio';
+
+    function avg(s){if(!s||!s.projects||!s.projects.length)return 0;var std=s.projects.filter(function(p){return p.completionPct!=null;});if(!std.length)return 0;return Math.round(std.reduce(function(a,p){return a+p.completionPct;},0)/std.length);}
+    function delta(a,b){if(b===null)return '<span style="color:#8a92a0">—</span>';var dv=a-b,c=dv>0?'#22c55e':dv<0?'#dc2626':'#8a92a0';return '<span style="color:'+c+';font-weight:700;">'+(dv>0?'+':'')+dv+'%</span>';}
+
+    function periodSnaps(period){
+      if(period==='weekly') return allSnaps;
+      var map={};
+      allSnaps.forEach(function(s){
+        var dt=new Date(s.capturedAt);
+        var key=period==='monthly'
+          ? dt.getUTCFullYear()+'-'+('0'+(dt.getUTCMonth()+1)).slice(-2)
+          : dt.getUTCFullYear()+'-Q'+(Math.floor(dt.getUTCMonth()/3)+1);
+        if(!map[key]) map[key]=s;
+      });
+      return Object.values(map);
+    }
+
+    function buildChart(pts, view){
+      if(pts.length<2) return '<div style="padding:20px;text-align:center;font-size:12px;color:#8a92a0;">Need at least 2 snapshots to show trend chart.</div>';
+      var W=720, H=160, ML=36, MR=12, MT=12, MB=24;
+      var plotW=W-ML-MR, plotH=H-MT-MB;
+      var COLORS=['#c9a227','#60a5fa','#22c55e','#a78bfa','#f97316','#34d399','#f59e0b','#e879f9'];
+      function xP(i){return ML+(pts.length<2?plotW/2:(i/(pts.length-1))*plotW);}
+      function yP(v){return MT+plotH-(v/100)*plotH;}
+      var parts=[];
+      [0,25,50,75,100].forEach(function(v){
+        var y=yP(v);
+        parts.push('<line x1="'+ML+'" y1="'+y+'" x2="'+(W-MR)+'" y2="'+y+'" stroke="rgba(255,255,255,.06)"/>');
+        parts.push('<text x="'+(ML-4)+'" y="'+(y+4)+'" text-anchor="end" font-size="9" fill="#5a6270" font-family="monospace">'+v+'</text>');
+      });
+      var legendItems=[];
+      if(view==='portfolio'){
+        var avgs=pts.map(function(s){var std=(s.projects||[]).filter(function(p){return p.completionPct!=null;});return std.length?Math.round(std.reduce(function(a,p){return a+p.completionPct;},0)/std.length):null;});
+        var valid=[];
+        avgs.forEach(function(v,i){if(v!=null)valid.push({x:xP(i),y:yP(v),v:v,s:pts[i]});});
+        if(valid.length>=2){
+          var botY=MT+plotH;
+          var area='M'+valid[0].x+','+botY+' '+valid.map(function(p){return 'L'+p.x+','+p.y;}).join(' ')+' L'+valid[valid.length-1].x+','+botY+' Z';
+          parts.push('<path d="'+area+'" fill="rgba(201,162,39,.12)"/>');
+          parts.push('<polyline points="'+valid.map(function(p){return p.x+','+p.y;}).join(' ')+'" fill="none" stroke="#c9a227" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>');
+          valid.forEach(function(p){
+            var lbl=new Date(p.s.capturedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+            parts.push('<circle cx="'+p.x+'" cy="'+p.y+'" r="3.5" fill="#c9a227" stroke="#0f0f16" stroke-width="1.5"><title>'+lbl+': '+p.v+'%</title></circle>');
+          });
+        }
+      } else {
+        var projMap={};
+        pts.forEach(function(s,si){
+          (s.projects||[]).filter(function(p){return p.completionPct!=null;}).forEach(function(p){
+            if(!projMap[p.projectId]) projMap[p.projectId]={name:p.projectName,vals:new Array(pts.length).fill(null)};
+          });
+        });
+        pts.forEach(function(s,si){
+          Object.keys(projMap).forEach(function(id){
+            var match=(s.projects||[]).find(function(x){return String(x.projectId)===String(id);});
+            if(match&&match.completionPct!=null) projMap[id].vals[si]=match.completionPct;
+          });
+        });
+        Object.values(projMap).slice(0,8).forEach(function(proj,ci){
+          var col=COLORS[ci%COLORS.length];
+          var seg=[];
+          proj.vals.forEach(function(v,i){
+            if(v!=null) seg.push({x:xP(i),y:yP(v),v:v});
+            else if(seg.length>1){parts.push('<polyline points="'+seg.map(function(p){return p.x+','+p.y;}).join(' ')+'" fill="none" stroke="'+col+'" stroke-width="1.8" stroke-linejoin="round" opacity="0.85"/>');seg=[];}
+            else seg=[];
+          });
+          if(seg.length>1) parts.push('<polyline points="'+seg.map(function(p){return p.x+','+p.y;}).join(' ')+'" fill="none" stroke="'+col+'" stroke-width="1.8" stroke-linejoin="round" opacity="0.85"/>');
+          proj.vals.forEach(function(v,i){
+            if(v==null)return;
+            parts.push('<circle cx="'+xP(i)+'" cy="'+yP(v)+'" r="3" fill="'+col+'" stroke="#0f0f16" stroke-width="1.5"><title>'+proj.name+': '+v+'%</title></circle>');
+          });
+          legendItems.push('<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#8a92a0;max-width:180px;overflow:hidden;">'+
+            '<div style="width:14px;height:2px;background:'+col+';flex-shrink:0;border-radius:1px;"></div>'+
+            '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+proj.name+'">'+proj.name+'</span></div>');
+        });
+      }
+      var step=Math.max(1,Math.ceil(pts.length/6));
+      for(var i=0;i<pts.length;i+=step){
+        var lbl2=new Date(pts[i].capturedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+        parts.push('<text x="'+xP(i)+'" y="'+(H-4)+'" text-anchor="middle" font-size="9" fill="#5a6270" font-family="monospace">'+lbl2+'</text>');
+      }
+      return '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;overflow:visible;">'+parts.join('')+'</svg>'+
+        (legendItems.length?'<div style="display:flex;flex-wrap:wrap;gap:10px;padding:6px 0 4px;">'+legendItems.join('')+'</div>':'');
+    }
+
+    function render(period, view){
+      var snaps=periodSnaps(period).slice(0,20);
+      var chron=snaps.slice().reverse();
+      var l=snaps[0], p1=snaps[1]||null;
+      var p2=period==='weekly'
+        ? (allSnaps.find(function(s){return new Date(s.capturedAt)<new Date(Date.now()-28*864e5);})||null)
+        : period==='monthly'?(snaps[3]||null):(snaps[4]||null);
+      var la=avg(l), p1a=p1?avg(p1):null, p2a=p2?avg(p2):null;
+      var kpi1=period==='weekly'?'Week over Week':period==='monthly'?'Month over Month':'Quarter over Quarter';
+      var kpi2=period==='weekly'?'Month over Month':period==='monthly'?'Quarter over Quarter':'Year over Year';
+      var p1sub=p1?'vs '+new Date(p1.capturedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'No prior snapshot';
+      var p2sub=p2?'vs '+new Date(p2.capturedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'No prior snapshot';
+
+      function periodBtn(p,label){
+        var a=p===period;
+        return '<button onclick="rlTrendPeriod(\''+p+'\')" style="background:'+(a?'rgba(201,162,39,.15)':'transparent')+';border:1px solid '+(a?'rgba(201,162,39,.4)':'rgba(255,255,255,.1)')+';color:'+(a?'#c9a227':'rgba(255,255,255,.4)')+';border-radius:6px;padding:5px 16px;font-size:12px;font-family:\'DM Sans\',sans-serif;font-weight:'+(a?'600':'400')+';cursor:pointer;transition:all .15s;">'+label+'</button>';
+      }
+      function viewBtn(v,label){
+        var a=v===view;
+        return '<button onclick="rlTrendView(\''+v+'\')" style="background:'+(a?'rgba(255,255,255,.1)':'transparent')+';border:1px solid '+(a?'rgba(255,255,255,.2)':'rgba(255,255,255,.07)')+';color:'+(a?'#f0f0f6':'#8a92a0')+';border-radius:6px;padding:4px 12px;font-size:11px;font-family:\'DM Sans\',sans-serif;font-weight:'+(a?'600':'400')+';cursor:pointer;transition:all .15s;">'+label+'</button>';
+      }
+
+      body.innerHTML=
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">'+
+          '<div style="font-size:11px;color:#8a92a0;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">View by period</div>'+
+          '<div style="display:flex;gap:6px;">'+periodBtn('weekly','Weekly')+periodBtn('monthly','Monthly')+periodBtn('quarterly','Quarterly')+'</div>'+
+        '</div>'+
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">'+
+          [{label:'Latest Avg Progress',val:la+'%',sub:new Date(l.capturedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'})},
+           {label:kpi1,val:delta(la,p1a),sub:p1sub},
+           {label:kpi2,val:delta(la,p2a),sub:p2sub}
+          ].map(function(k){return rlCard('<div style="padding:20px;"><div style="font-size:10px;color:#8a92a0;letter-spacing:.08em;text-transform:uppercase;font-family:\'DM Mono\',monospace;margin-bottom:10px;">'+k.label+'</div><div style="font-size:28px;font-weight:800;color:#f0f0f6;letter-spacing:-.5px;">'+k.val+'</div><div style="font-size:11px;color:#8a92a0;margin-top:6px;">'+k.sub+'</div></div>');}).join('')+
+        '</div>'+
+        rlCard(
+          '<div style="padding:12px 16px 8px;display:flex;align-items:center;justify-content:space-between;">'+
+            '<div style="font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Progress Trend</div>'+
+            '<div style="display:flex;gap:6px;">'+viewBtn('portfolio','Portfolio')+viewBtn('client','Client')+'</div>'+
+          '</div>'+
+          '<div style="padding:0 16px 16px;">'+buildChart(chron,view)+'</div>',
+          'margin-bottom:16px;'
+        )+
+        rlCard(
+          '<div style="padding:12px 16px 4px;font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Snapshot History — '+period.charAt(0).toUpperCase()+period.slice(1)+' View ('+(snaps.length)+' entries)</div>'+
+          '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">'+
+            '<thead><tr>'+
+              '<th style="padding:8px 16px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Date</th>'+
+              '<th style="padding:8px 16px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Label</th>'+
+              '<th style="padding:8px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:center;font-family:\'DM Mono\',monospace;">Avg %</th>'+
+              '<th style="padding:8px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:center;font-family:\'DM Mono\',monospace;">Change</th>'+
+              '<th style="padding:8px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:center;font-family:\'DM Mono\',monospace;">Projects</th>'+
+            '</tr></thead>'+
+            '<tbody>'+snaps.map(function(s,i){
+              var a=avg(s),pa=snaps[i+1]?avg(snaps[i+1]):null,dt=new Date(s.capturedAt);
+              return '<tr style="border-top:1px solid rgba(255,255,255,.04);">'+
+                '<td style="padding:10px 16px;font-size:12px;color:#f0f0f6;">'+dt.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+'</td>'+
+                '<td style="padding:10px 16px;font-size:12px;color:#f0f0f6;">'+s.label+'</td>'+
+                '<td style="padding:10px 8px;text-align:center;font-size:12px;font-family:\'DM Mono\',monospace;color:#c9a227;font-weight:600;">'+a+'%</td>'+
+                '<td style="padding:10px 8px;text-align:center;font-size:12px;font-family:\'DM Mono\',monospace;">'+delta(a,pa)+'</td>'+
+                '<td style="padding:10px 8px;text-align:center;font-size:12px;color:#8a92a0;font-family:\'DM Mono\',monospace;">'+(s.projects||[]).length+'</td>'+
+              '</tr>';
+            }).join('')+'</tbody>'+
+          '</table></div>'
+        );
+    }
+
+    window.rlTrendPeriod=function(p){_period=p;render(_period,_view);};
+    window.rlTrendView=function(v){_view=v;render(_period,_view);};
+    render(_period,_view);
+  }).catch(function(e){body.innerHTML='<div style="text-align:center;padding:32px;color:#dc2626;font-size:13px;">'+e.message+'</div>';});
+}
+
+// ─── Tab 6: Compliance Findings ───────────────────────────────────────────────
+function rlTabFindings(body) {
+  body.innerHTML='<div style="text-align:center;padding:40px;"><div class="rl-spin" style="margin:0 auto;"></div></div>';
+  fetch('/api/rocketlane/findings').then(function(r){return r.json();}).then(function(d){
+    var findings=d.findings||[];
+    var open=findings.filter(function(f){return f.status!=='resolved';}),
+        closed=findings.filter(function(f){return f.status==='resolved';});
+    function fCard(f){
+      return '<div style="padding:12px 16px;border-top:1px solid rgba(255,255,255,.04);">'+
+        '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;">'+
+          rlSev(f.severity)+
+          '<span style="font-size:13px;font-weight:500;color:#f0f0f6;flex:1;">'+f.title+'</span>'+
+          (f.status==='resolved'?'<span style="font-size:10px;color:#22c55e;font-family:\'DM Mono\',monospace;">RESOLVED</span>':'')+
+        '</div>'+
+        (f.projectName?'<div style="font-size:11px;color:#8a92a0;">Project: '+f.projectName+'</div>':'')+
+        (f.description?'<div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:3px;">'+f.description+'</div>':'')+
+      '</div>';
+    }
+    body.innerHTML=
+      (open.length?rlCard('<div style="padding:12px 16px 0;font-size:12px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Open Findings ('+open.length+')</div>'+open.map(fCard).join('')+'<div style="height:12px;"></div>','margin-bottom:16px;'):'') +
+      (closed.length?rlCard('<div style="padding:12px 16px 0;font-size:12px;font-weight:700;color:#22c55e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Resolved ('+closed.length+')</div>'+closed.map(fCard).join('')+'<div style="height:12px;"></div>'):'') +
+      (!findings.length?rlCard('<div style="padding:48px;text-align:center;font-size:13px;color:#8a92a0;">No compliance findings recorded yet.</div>'):'');
+  }).catch(function(e){body.innerHTML='<div style="text-align:center;padding:32px;color:#dc2626;font-size:13px;">'+e.message+'</div>';});
+}
+
+// Expose globals
+window.rlInitDashboard = rlInitDashboard;
+window.rlInitDashboard = rlInitDashboard;
+
+})();
 </script>
 </body>
 </html>

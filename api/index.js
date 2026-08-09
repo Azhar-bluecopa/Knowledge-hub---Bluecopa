@@ -2772,6 +2772,163 @@ let rlAllTasksCache = null;
 let rlAllTasksCacheAt = 0;
 const RL_TASKS_CACHE_TTL = 5 * 60 * 1000;
 
+// ── Bluecopa Delivery Methodology engine ──────────────────────────────────────
+const RL_METHODOLOGY = [
+  { key: 'personalization',        phase: 'engage',  order: 1,  weight: 10 },
+  { key: 'data management',        phase: 'engage',  order: 2,  weight: 10 },
+  { key: 'configurations',         phase: 'drive',   order: 3,  weight: 10 },
+  { key: 'process walkthrough',    phase: 'drive',   order: 4,  weight: 10 },
+  { key: 'user and role alignment',phase: 'drive',   order: 5,  weight: 10 },
+  { key: 'teach back',             phase: 'enable',  order: 6,  weight: 10 },
+  { key: 'system validation',      phase: 'enable',  order: 7,  weight: 10 },
+  { key: 'user acceptance testing',phase: 'enable',  order: 8,  weight: 10 },
+  { key: 'go-live',                phase: 'convert', order: 9,  weight: 10, aliases: ['go live', 'golive'] },
+  { key: 'hypercare',              phase: 'convert', order: 10, weight: 10, aliases: ['hypercare period'] },
+];
+
+function rlMatchMainTask(taskName) {
+  const n = (taskName || '').toLowerCase().trim();
+  if (n === 'project closure' || n.startsWith('project closure')) return { excluded: true };
+  for (const mt of RL_METHODOLOGY) {
+    const toCheck = [mt.key, ...(mt.aliases || [])];
+    for (const variant of toCheck) {
+      if (n === variant || n.startsWith(variant)) return mt;
+    }
+  }
+  return null;
+}
+
+function rlBuildProjectProgress(projectTasks) {
+  const mainFound = [];
+  projectTasks.forEach(t => {
+    const match = rlMatchMainTask(t.taskName);
+    if (match && !match.excluded) mainFound.push({ ...t, _mt: match });
+  });
+  const matchedOrders = new Set(mainFound.map(t => t._mt.order));
+  const isStandard = matchedOrders.size >= 7;
+  const phases = { engage:{tasks:[],pct:0}, drive:{tasks:[],pct:0}, enable:{tasks:[],pct:0}, convert:{tasks:[],pct:0} };
+  let overallCompleted = 0;
+  if (isStandard) {
+    mainFound.forEach(t => {
+      const phase = t._mt.phase;
+      const isDone = t.status?.label === 'Completed';
+      if (isDone) overallCompleted += t._mt.weight;
+      phases[phase].tasks.push({
+        taskId: t.taskId, taskName: t.taskName, order: t._mt.order,
+        status: t.status?.label || 'Unknown',
+        dueDate: t.dueDate || null, startDate: t.startDate || null,
+        completed: isDone,
+        owner: (t.assignees||[]).map(a => a.name||a.emailId||'').filter(Boolean).join(', ') || null
+      });
+    });
+    Object.keys(phases).forEach(ph => {
+      const pt = phases[ph].tasks;
+      if (pt.length) phases[ph].pct = Math.round(pt.filter(t => t.completed).length / pt.length * 100);
+    });
+  }
+  return {
+    isStandard,
+    overallPct: isStandard ? overallCompleted : null,
+    phases: isStandard ? phases : null,
+    mainTaskCount: mainFound.length,
+    totalTasks: projectTasks.length,
+    _mainFound: mainFound
+  };
+}
+
+function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) {
+  const issues = [];
+  const today = new Date(); today.setHours(0,0,0,0);
+  const projectStatus = (project.status?.label || '').toLowerCase();
+  const mainFound = progress._mainFound || [];
+  const allMainTasks = Object.entries(progress.phases || {})
+    .flatMap(([ph, obj]) => obj.tasks.map(t => ({ ...t, _phase: ph })));
+
+  if (!progress.isStandard) {
+    const matchedOrders = new Set(mainFound.map(t => t._mt?.order).filter(Boolean));
+    const matchedPhases = new Set(mainFound.map(t => t._mt?.phase).filter(Boolean));
+    ['engage','drive','enable','convert'].forEach(ph => {
+      if (!matchedPhases.has(ph))
+        issues.push({ severity:'high', category:'structure', task:null, phase:ph, issue:`Phase missing: ${ph}` });
+    });
+    RL_METHODOLOGY.forEach(mt => {
+      if (!matchedOrders.has(mt.order))
+        issues.push({ severity:'high', category:'structure', task:null, phase:mt.phase, issue:`Standard task missing: "${mt.key}"` });
+    });
+    const orderCounts = {};
+    mainFound.forEach(t => { const o = t._mt?.order; if (o) orderCounts[o] = (orderCounts[o]||0)+1; });
+    Object.entries(orderCounts).filter(([,c])=>c>1).forEach(([o]) => {
+      const mt = RL_METHODOLOGY.find(m => m.order === parseInt(o));
+      if (mt) issues.push({ severity:'medium', category:'structure', task:null, phase:mt.phase, issue:`Duplicate task slot: "${mt.key}"` });
+    });
+    if (!issues.length)
+      issues.push({ severity:'medium', category:'structure', task:null, phase:null, issue:'Non-standard structure — fewer than 7 methodology tasks found' });
+    return issues;
+  }
+
+  allMainTasks.filter(t => !t.owner && !t.completed).forEach(t =>
+    issues.push({ severity:'medium', category:'ownership', task:t.taskName, phase:t._phase, issue:'No owner assigned' })
+  );
+
+  allProjectTasks.forEach(t => {
+    const lbl = t.status?.label || '';
+    if ((lbl === 'In Progress' || lbl === 'In progress') && t.dueDate) {
+      const due = new Date(t.dueDate * 1000);
+      if (due < today) {
+        const days = Math.floor((today - due) / 86400000);
+        issues.push({ severity:'high', category:'overdue', task:t.taskName, phase:null, issue:`In-progress, ${days}d overdue` });
+      }
+    }
+  });
+
+  allProjectTasks.forEach(t => {
+    if ((t.status?.label||'') === 'Blocked')
+      issues.push({ severity:'high', category:'blocked', task:t.taskName, phase:null, issue:'Task is blocked' });
+  });
+
+  allMainTasks.filter(t => !t.completed).forEach(t => {
+    if (!t.dueDate)
+      issues.push({ severity:'medium', category:'dates', task:t.taskName, phase:t._phase, issue:'No due date set' });
+    else if (!t.startDate)
+      issues.push({ severity:'low', category:'dates', task:t.taskName, phase:t._phase, issue:'No start date set' });
+  });
+
+  if (project.dueDate) {
+    const projDue = new Date(project.dueDate * 1000);
+    allMainTasks.filter(t => !t.completed && t.dueDate).forEach(t => {
+      if (new Date(t.dueDate * 1000) > projDue)
+        issues.push({ severity:'medium', category:'dates', task:t.taskName, phase:t._phase, issue:'Due after project deadline' });
+    });
+  }
+
+  if (prevSnapProject && prevSnapProject.completionPct != null && progress.overallPct != null
+      && prevSnapProject.completionPct === progress.overallPct && progress.overallPct < 100)
+    issues.push({ severity:'medium', category:'stale', task:null, phase:null, issue:'No methodology progress since last snapshot' });
+
+  if (projectStatus.includes('complet') || projectStatus.includes('done')) {
+    const openMain = allMainTasks.filter(t => !t.completed);
+    if (openMain.length)
+      issues.push({ severity:'high', category:'completion', task:null, phase:null, issue:`Project marked complete — ${openMain.length} standard task(s) still open` });
+  }
+
+  if (progress.overallPct === 100) {
+    const cTask = allProjectTasks.find(t => {
+      const n = (t.taskName||'').toLowerCase().trim();
+      return n === 'project closure' || n.startsWith('project closure');
+    });
+    if (!cTask)
+      issues.push({ severity:'low', category:'closure', task:null, phase:null, issue:'All delivery tasks complete — Project Closure task not found' });
+    else if ((cTask.status?.label||'') !== 'Completed')
+      issues.push({ severity:'medium', category:'closure', task:'Project Closure', phase:null, issue:`Delivery complete but Project Closure is ${cTask.status?.label||'open'}` });
+  }
+
+  return issues;
+}
+
+let rlFullCache = null;
+let rlFullCacheAt = 0;
+const RL_FULL_CACHE_TTL = 5 * 60 * 1000;
+
 async function rlFetchAllTasks(apiKey) {
   const now = Date.now();
   if (rlAllTasksCache && (now - rlAllTasksCacheAt) < RL_TASKS_CACHE_TTL) return rlAllTasksCache;
@@ -2784,7 +2941,8 @@ async function rlFetchAllTasks(apiKey) {
       const r = await fetch(url, { headers: { 'api-key': apiKey, 'Accept': 'application/json' } });
       if (!r.ok) break;
       const d = await r.json();
-      (d.data || []).forEach(t => tasks.push(t));
+      const chunk = Array.isArray(d.data) ? d.data : Object.values(d.data || {});
+      chunk.forEach(t => { if (t && t.taskId) tasks.push(t); });
       hasMore = d.pagination?.hasMore || false;
       pageToken = d.pagination?.nextPageToken || null;
     } catch { break; }
@@ -3001,7 +3159,9 @@ app.put('/api/feedback/:id', async (req, res) => {
 
 // ── Rocketlane Snapshots ──────────────────────────────────────────────────────
 function ensureRL() {
-  if (!db.rocketlane) db.rocketlane = { snapshots: [], nextSnapshotId: 1 };
+  if (!db.rocketlane) db.rocketlane = { snapshots: [], nextSnapshotId: 1, findings: [], nextFindingId: 1 };
+  if (!db.rocketlane.findings) db.rocketlane.findings = [];
+  if (!db.rocketlane.nextFindingId) db.rocketlane.nextFindingId = 1;
 }
 
 app.get('/api/rocketlane/snapshots', (req, res) => {
@@ -3030,6 +3190,121 @@ app.delete('/api/rocketlane/snapshots/:id', async (req, res) => {
   db.rocketlane.snapshots = db.rocketlane.snapshots.filter(s => s.id !== id);
   await saveDB(db);
   res.json({ ok: true });
+});
+
+// ── Rocketlane Findings ───────────────────────────────────────────────────────
+app.get('/api/rocketlane/findings', (req, res) => {
+  ensureRL();
+  res.json({ findings: db.rocketlane.findings });
+});
+
+app.post('/api/rocketlane/findings', async (req, res) => {
+  ensureRL();
+  const { projectId, projectName, checkId, title, severity, description } = req.body;
+  const finding = {
+    id: db.rocketlane.nextFindingId++,
+    projectId, projectName, checkId,
+    title: title || 'Untitled', severity: severity || 'medium',
+    description: description || '',
+    status: 'open', createdAt: new Date().toISOString()
+  };
+  db.rocketlane.findings.push(finding);
+  await saveDB(db);
+  res.status(201).json({ ok: true, finding });
+});
+
+app.put('/api/rocketlane/findings/:id', async (req, res) => {
+  ensureRL();
+  const id = parseInt(req.params.id);
+  const idx = db.rocketlane.findings.findIndex(f => f.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'not_found' });
+  db.rocketlane.findings[idx] = { ...db.rocketlane.findings[idx], ...req.body, id };
+  await saveDB(db);
+  res.json({ ok: true, finding: db.rocketlane.findings[idx] });
+});
+
+app.delete('/api/rocketlane/findings/:id', async (req, res) => {
+  ensureRL();
+  const id = parseInt(req.params.id);
+  db.rocketlane.findings = db.rocketlane.findings.filter(f => f.id !== id);
+  await saveDB(db);
+  res.json({ ok: true });
+});
+
+// ── Rocketlane Projects Full (methodology-based) ──────────────────────────────
+app.get('/api/rocketlane/projects-full', async (req, res) => {
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) return res.status(503).json({ error: 'not_configured', message: 'ROCKETLANE_API_KEY not set.' });
+  const now = Date.now();
+  if (rlFullCache && !req.query.refresh && (now - rlFullCacheAt) < RL_FULL_CACHE_TTL)
+    return res.json({ ...rlFullCache, cached: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
+  try {
+    const [projResp, allTasks] = await Promise.all([
+      fetch('https://api.rocketlane.com/api/1.0/projects?pageSize=100', { headers: { 'api-key': apiKey, 'Accept': 'application/json' } }),
+      rlFetchAllTasks(apiKey)
+    ]);
+    if (!projResp.ok) return res.status(projResp.status).json({ error: 'api_error', status: projResp.status });
+    const projData = await projResp.json();
+    const allProjects = Array.isArray(projData.data) ? projData.data : Object.values(projData.data || {});
+
+    // Group tasks by project
+    const tasksByProject = {};
+    allTasks.forEach(t => {
+      const pid = t.project?.projectId;
+      if (!pid) return;
+      if (!tasksByProject[pid]) tasksByProject[pid] = [];
+      tasksByProject[pid].push(t);
+    });
+
+    await getDbInitPromise();
+    ensureRL();
+    const prevSnap = db.rocketlane.snapshots.length > 0
+      ? db.rocketlane.snapshots[db.rocketlane.snapshots.length - 1]
+      : null;
+
+    const projects = allProjects.map(p => {
+      const progress = rlBuildProjectProgress(tasksByProject[p.projectId] || []);
+      const prevSnapProject = prevSnap?.projects?.find(proj => proj.projectId === p.projectId) || null;
+      const issues = rlBuildCompliance(p, progress, tasksByProject[p.projectId] || [], prevSnapProject);
+      return {
+        projectId: p.projectId, projectName: p.projectName,
+        status: p.status?.label || 'Unknown',
+        customer: p.customer?.companyName || null,
+        dueDate: p.dueDate || null,
+        isStandard: progress.isStandard,
+        overallPct: progress.overallPct,
+        phases: progress.phases,
+        mainTaskCount: progress.mainTaskCount,
+        totalTasks: progress.totalTasks,
+        compliance: { issues, issueCount: issues.length }
+      };
+    });
+
+    const standard = projects.filter(p => p.isStandard);
+    const avgProgress = standard.length ? Math.round(standard.reduce((s, p) => s + (p.overallPct || 0), 0) / standard.length) : 0;
+    const phaseAvg = { engage: 0, drive: 0, enable: 0, convert: 0 };
+    if (standard.length) {
+      ['engage','drive','enable','convert'].forEach(ph => {
+        const vals = standard.map(p => p.phases?.[ph]?.pct || 0);
+        phaseAvg[ph] = Math.round(vals.reduce((a, v) => a + v, 0) / vals.length);
+      });
+    }
+
+    const result = {
+      projects,
+      summary: {
+        total: projects.length, standard: standard.length, nonStandard: projects.length - standard.length,
+        avgProgress, phaseAvg,
+        byStatus: projects.reduce((m, p) => { m[p.status] = (m[p.status] || 0) + 1; return m; }, {})
+      },
+      fetchedAt: now
+    };
+    rlFullCache = result;
+    rlFullCacheAt = now;
+    res.json({ ...result, cached: false });
+  } catch (e) {
+    res.status(500).json({ error: 'fetch_failed', message: e.message });
+  }
 });
 
 // ── Proxy Login ───────────────────────────────────────────────────────────────
@@ -3757,6 +4032,79 @@ app.get('/api/debug/db', async (req, res) => {
     learning:           ((db.learning && db.learning.assignments) || []).length,
     mongoConnected:     !!mongoCol,
   });
+});
+
+// ── Rocketlane Weekly Auto-Snapshot (triggered by Vercel Cron) ───────────────
+async function rlAutoSnapshot() {
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) return { ok: false, reason: 'no_api_key' };
+  await getDbInitPromise();
+  ensureRL();
+
+  const now = new Date();
+  const dayOfWeek = now.getUTCDay();
+  const mondayUTC = new Date(now);
+  mondayUTC.setUTCDate(now.getUTCDate() - ((dayOfWeek + 6) % 7));
+  mondayUTC.setUTCHours(0, 0, 0, 0);
+  const thisWeekKey = mondayUTC.toISOString().slice(0, 10);
+
+  const alreadyDone = db.rocketlane.snapshots.some(s =>
+    s.type === 'weekly' && s.capturedAt && s.capturedAt.startsWith(thisWeekKey)
+  );
+  if (alreadyDone) return { ok: true, skipped: true, reason: 'already_captured_this_week' };
+
+  try {
+    const [projResp, allTasks] = await Promise.all([
+      fetch('https://api.rocketlane.com/api/1.0/projects?pageSize=100', { headers: { 'api-key': apiKey, 'Accept': 'application/json' } }),
+      rlFetchAllTasks(apiKey)
+    ]);
+    if (!projResp.ok) return { ok: false, reason: 'api_error', status: projResp.status };
+    const data = await projResp.json();
+    const allProjects = Array.isArray(data.data) ? data.data : Object.values(data.data || {});
+
+    const tasksByProject = {};
+    allTasks.forEach(t => {
+      const pid = t.project?.projectId;
+      if (!pid) return;
+      if (!tasksByProject[pid]) tasksByProject[pid] = [];
+      tasksByProject[pid].push(t);
+    });
+
+    const projects = allProjects.map(p => {
+      const progress = rlBuildProjectProgress(tasksByProject[p.projectId] || []);
+      return {
+        projectId: p.projectId, projectName: p.projectName,
+        status: p.status?.label || 'Unknown',
+        isStandard: progress.isStandard,
+        completionPct: progress.overallPct,
+        dueDate: p.dueDate || null,
+        customer: p.customer?.companyName || null
+      };
+    });
+
+    const label = `Week of ${mondayUTC.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} (auto)`;
+    const snap = {
+      id: db.rocketlane.nextSnapshotId++,
+      type: 'weekly', label,
+      capturedAt: now.toISOString(),
+      projects, auto: true
+    };
+    db.rocketlane.snapshots.push(snap);
+    await saveDB(db);
+    return { ok: true, label, projectCount: projects.length };
+  } catch (e) {
+    return { ok: false, reason: 'exception', message: e.message };
+  }
+}
+
+// Vercel Cron: every Monday at 4:20 AM UTC (9:50 AM IST)
+// Schedule defined in vercel.json: "20 4 * * 1"
+app.get('/api/cron/rl-snapshot', async (req, res) => {
+  const secret = process.env.CRON_SECRET;
+  if (secret && req.headers.authorization !== `Bearer ${secret}`)
+    return res.status(401).json({ error: 'Unauthorized' });
+  const result = await rlAutoSnapshot();
+  res.json(result);
 });
 
 module.exports = app;
