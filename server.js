@@ -2823,13 +2823,14 @@ function buildEnrollmentEmail({ memberName, courseIds, dueDate, enrolledBy, path
     num++;
     const cUrl = _courseUrl(url, id);
     return `<tr>
-<td style="padding:11px 14px;vertical-align:top;width:38px;border-bottom:1px solid #f3f4f6"><div style="width:26px;height:26px;background:#1a1d27;color:#c9a227;border-radius:50%;text-align:center;font-size:11px;font-weight:800;line-height:26px">${num}</div></td>
-<td style="padding:11px 14px 11px 4px;border-bottom:1px solid #f3f4f6">
-  <table cellpadding="0" cellspacing="0" width="100%"><tr>
-    <td style="padding-right:8px;font-size:17px;vertical-align:top;line-height:1.4;width:24px">${c.icon}</td>
-    <td><a href="${cUrl}" style="font-weight:700;color:#0d1117;font-size:13px;text-decoration:none">${eh(c.title)}</a><div style="color:#6b7280;font-size:12px;margin-top:2px">${eh(c.desc)}</div></td>
-    <td style="padding-left:10px;white-space:nowrap;vertical-align:middle"><a href="${cUrl}" style="font-size:11px;color:#c9a227;font-weight:700;text-decoration:none;border:1px solid #c9a227;border-radius:4px;padding:3px 8px">Open →</a></td>
-  </tr></table>
+<td style="padding:12px 14px;vertical-align:middle;width:42px;border-bottom:1px solid #f3f4f6"><div style="width:26px;height:26px;background:#1a1d27;color:#c9a227;border-radius:50%;text-align:center;font-size:11px;font-weight:800;line-height:26px">${num}</div></td>
+<td style="padding:12px 8px 12px 4px;border-bottom:1px solid #f3f4f6;width:28px;vertical-align:middle;font-size:18px">${c.icon}</td>
+<td style="padding:12px 8px;border-bottom:1px solid #f3f4f6;vertical-align:middle">
+  <div style="font-weight:700;color:#0d1117;font-size:13px;margin-bottom:2px"><a href="${cUrl}" style="color:#0d1117;text-decoration:none">${eh(c.title)}</a></div>
+  <div style="color:#6b7280;font-size:12px">${eh(c.desc)}</div>
+</td>
+<td style="padding:12px 14px 12px 8px;border-bottom:1px solid #f3f4f6;vertical-align:middle;white-space:nowrap;text-align:right;width:80px">
+  <a href="${cUrl}" style="display:inline-block;font-size:11px;color:#c9a227;font-weight:700;text-decoration:none;border:1px solid #c9a227;border-radius:4px;padding:5px 10px">Open →</a>
 </td></tr>`;
   }
 
@@ -2853,8 +2854,8 @@ function buildEnrollmentEmail({ memberName, courseIds, dueDate, enrolledBy, path
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${eh(subject)}</title></head>
 <body style="margin:0;padding:0;background:#f1f2f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
 ${_emailPreview(`New Joiner Learning Path · ${ids.length} modules · enrolled ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`)}
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:28px 12px"><tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:20px 0"><tr><td>
+<table width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-radius:0;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">
 ${_emailHeader('Learning &amp; Development','🎓','Enrolled','201,162,39')}
 <tr><td style="background:#c9a227;padding:11px 28px"><div style="color:#1a1d27;font-size:13px;font-weight:700">🎉&nbsp; Congratulations — you've been enrolled in a new learning path!</div></td></tr>
 <tr><td style="background:#ffffff;padding:28px 28px 22px">
@@ -2917,19 +2918,17 @@ function buildProgressEmail({ memberName, allCourseIds, completedCourseIds, dueD
     const ok = completedSet.has(id);
     const cUrl = _courseUrl(url, id);
     return `<tr>
-<td style="padding:9px 14px;vertical-align:middle;width:30px;border-bottom:1px solid #f3f4f6">
+<td style="padding:10px 14px;vertical-align:middle;width:36px;border-bottom:1px solid #f3f4f6">
   ${ok ? '<div style="width:22px;height:22px;background:#22c55e;border-radius:50%;text-align:center;line-height:22px;font-size:12px;color:#fff;font-weight:700">&#10003;</div>'
        : '<div style="width:22px;height:22px;border:2px solid #d1d5db;border-radius:50%;"></div>'}
 </td>
-<td style="padding:9px 14px 9px 4px;border-bottom:1px solid #f3f4f6;vertical-align:middle">
-  <table cellpadding="0" cellspacing="0" width="100%"><tr>
-    <td style="padding-right:8px;font-size:16px;line-height:1.4;width:22px">${c.icon}</td>
-    <td><a href="${cUrl}" style="font-weight:700;color:${ok?'#9ca3af':'#0d1117'};font-size:13px;text-decoration:none;${ok?'text-decoration:line-through':''}">${eh(c.title)}</a></td>
-    <td style="padding-left:10px;white-space:nowrap">
-      ${ok ? '<span style="background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:99px;font-size:10px;font-weight:700;padding:2px 9px">Done</span>'
-           : `<a href="${cUrl}" style="font-size:10px;color:#c9a227;font-weight:700;text-decoration:none;border:1px solid #c9a227;border-radius:99px;padding:2px 9px">Start →</a>`}
-    </td>
-  </tr></table>
+<td style="padding:10px 8px;border-bottom:1px solid #f3f4f6;width:28px;vertical-align:middle;font-size:17px">${c.icon}</td>
+<td style="padding:10px 8px;border-bottom:1px solid #f3f4f6;vertical-align:middle">
+  <a href="${cUrl}" style="display:block;font-weight:700;color:${ok?'#9ca3af':'#0d1117'};font-size:13px;text-decoration:none;${ok?'text-decoration:line-through':''}">${eh(c.title)}</a>
+</td>
+<td style="padding:10px 14px 10px 8px;border-bottom:1px solid #f3f4f6;vertical-align:middle;white-space:nowrap;text-align:right;width:80px">
+  ${ok ? '<span style="display:inline-block;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:99px;font-size:10px;font-weight:700;padding:3px 10px">Done ✓</span>'
+       : `<a href="${cUrl}" style="display:inline-block;font-size:11px;color:#c9a227;font-weight:700;text-decoration:none;border:1px solid #c9a227;border-radius:4px;padding:5px 10px">Start →</a>`}
 </td></tr>`;
   }).join('');
 
@@ -2949,8 +2948,8 @@ function buildProgressEmail({ memberName, allCourseIds, completedCourseIds, dueD
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${eh(subject)}</title></head>
 <body style="margin:0;padding:0;background:#f1f2f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
 ${_emailPreview(`${done} of ${total} modules completed · ${eh(path)}`)}
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:28px 12px"><tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:20px 0"><tr><td>
+<table width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-radius:0;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">
 ${_emailHeader('Learning Progress', isFinished?'🏆':'📈', isFinished?'Complete!':'In Progress', isFinished?'34,197,94':'201,162,39')}
 <tr><td style="background:${bannerBg};padding:11px 28px"><div style="color:${bannerTxt};font-size:13px;font-weight:700">${isFinished?'🎉  All modules complete — certificate incoming!':'⭐  Great progress! Keep going!'}</div></td></tr>
 <tr><td style="background:#ffffff;padding:28px 28px 22px">
@@ -2995,13 +2994,13 @@ function buildReminderEmail({ memberName, daysLeft, allCourseIds, completedCours
     const c = ENROLLMENT_COURSE_INFO[id] || { title: id, icon: '📚' };
     const cUrl = _courseUrl(url, id);
     return `<tr>
-<td style="padding:9px 14px;vertical-align:middle;width:28px;border-bottom:1px solid #f3f4f6"><div style="width:20px;height:20px;border:2px solid #d1d5db;border-radius:50%;"></div></td>
-<td style="padding:9px 14px 9px 4px;border-bottom:1px solid #f3f4f6">
-  <table cellpadding="0" cellspacing="0" width="100%"><tr>
-    <td style="padding-right:8px;font-size:16px;width:22px">${c.icon}</td>
-    <td><a href="${cUrl}" style="font-weight:700;color:#0d1117;font-size:13px;text-decoration:none">${eh(c.title)}</a></td>
-    <td style="padding-left:10px;white-space:nowrap"><a href="${cUrl}" style="font-size:10px;color:${uc};font-weight:700;text-decoration:none;border:1px solid ${uc};border-radius:99px;padding:2px 9px">Start →</a></td>
-  </tr></table>
+<td style="padding:10px 14px;vertical-align:middle;width:36px;border-bottom:1px solid #f3f4f6"><div style="width:20px;height:20px;border:2px solid #d1d5db;border-radius:50%;"></div></td>
+<td style="padding:10px 8px;border-bottom:1px solid #f3f4f6;width:28px;vertical-align:middle;font-size:17px">${c.icon}</td>
+<td style="padding:10px 8px;border-bottom:1px solid #f3f4f6;vertical-align:middle">
+  <a href="${cUrl}" style="font-weight:700;color:#0d1117;font-size:13px;text-decoration:none">${eh(c.title)}</a>
+</td>
+<td style="padding:10px 14px 10px 8px;border-bottom:1px solid #f3f4f6;vertical-align:middle;white-space:nowrap;text-align:right;width:80px">
+  <a href="${cUrl}" style="display:inline-block;font-size:11px;color:${uc};font-weight:700;text-decoration:none;border:1px solid ${uc};border-radius:4px;padding:5px 10px">Start →</a>
 </td></tr>`;
   }).join('');
 
@@ -3012,8 +3011,8 @@ function buildReminderEmail({ memberName, daysLeft, allCourseIds, completedCours
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${eh(subject)}</title></head>
 <body style="margin:0;padding:0;background:#f1f2f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
 ${_emailPreview(`${remaining.length} modules remaining · ${daysLeft} day${daysLeft===1?'':'s'} left · Due ${eh(dueFmt)}`)}
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:28px 12px"><tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:20px 0"><tr><td>
+<table width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-radius:0;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">
 ${_emailHeader('Learning Reminder', isCritical?'⚠️':'🔔', `${daysLeft} Day${daysLeft===1?'':'s'} Left`, isCritical?'220,38,38':'201,162,39')}
 <tr><td style="background:${isCritical?'#dc2626':'#c9a227'};padding:11px 28px"><div style="color:#fff;font-size:13px;font-weight:700">${isCritical?'⚠️  Deadline tomorrow — complete your remaining modules now!':'🔔  Heads up — your learning deadline is approaching!'}</div></td></tr>
 <tr><td style="background:#ffffff;padding:28px 28px 22px">
@@ -3045,7 +3044,7 @@ ${_emailFooter(url)}
 
 // Helper: shared email HTML wrapper
 function _wrapEmail(rows, url) {
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f1f2f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:28px 12px"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">${rows}</table></td></tr></table></body></html>`;
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f1f2f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:20px 0"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="width:100%;border-radius:0;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">${rows}</table></td></tr></table></body></html>`;
 }
 
 // Preview / test — sends a sample enrollment email to the given address
@@ -3213,8 +3212,8 @@ function buildOverdueEmail({ memberName, allCourseIds, completedCourseIds, dueDa
   const subject = `Action Required: Your learning deadline has passed — ${path}`;
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${eh(subject)}</title></head>
 <body style="margin:0;padding:0;background:#f1f2f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:28px 12px"><tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:20px 0"><tr><td>
+<table width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-radius:0;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">
 ${_emailHeader('Learning &amp; Development','⚠️','Overdue','220,38,38')}
 <tr><td style="background:#dc2626;padding:11px 28px"><div style="color:#fff;font-size:13px;font-weight:700">⚠️&nbsp; Your learning deadline has passed — immediate action required</div></td></tr>
 <tr><td style="background:#ffffff;padding:28px 28px 22px">
