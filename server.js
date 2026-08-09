@@ -326,6 +326,18 @@ function broadcast(data) {
   const msg = JSON.stringify(data);
   wss.clients.forEach(c => { if (c.readyState === 1) c.send(msg); });
 }
+function cleanExcerpt(text, len = 160) {
+  const cleaned = (text || '')
+    .replace(/\[html\]/gi, '')
+    .replace(/<[^>]*>?/g, ' ')   // handles both complete and truncated tags
+    .replace(/&[a-z#0-9]+;/gi, ' ')
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
+    .replace(/\[video:[^\]]+\]/g, '')
+    .replace(/[#*`\[\]]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned.slice(0, len) + (cleaned.length > len ? '…' : '');
+}
 function isAdmin(req) {
   const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
   if (!email) return false;
@@ -338,6 +350,11 @@ app.get('/api/articles', (req, res) => {
   const { category, q } = req.query;
   let list = [...db.articles];
   if (category && category !== 'All') list = list.filter(a => a.category === category);
+  // Regenerate excerpts from content so stored HTML excerpts are cleaned
+  list = list.map(a => {
+    const ex = cleanExcerpt(a.excerpt || '');
+    return { ...a, excerpt: ex.length > 10 ? ex : cleanExcerpt(a.content || '') };
+  });
   if (q) {
     const lq = q.toLowerCase();
     list = list.filter(a =>
@@ -370,7 +387,7 @@ app.post('/api/articles', (req, res) => {
     category,
     author:     (author || 'Anonymous').trim(),
     initials:   (initials || 'AN').trim().toUpperCase().slice(0, 2),
-    excerpt:    content.replace(/!\[[^\]]*\]\([^)]+\)|\[video:[^\]]+\]/g, '').substring(0, 160).trimEnd() + (content.length > 160 ? '…' : ''),
+    excerpt:    cleanExcerpt(content),
     content,
     tags:       tags?.length ? tags : ['general'],
     created_at: new Date().toISOString(),
@@ -423,6 +440,66 @@ app.get('/api/analytics', (req, res) => {
   articles.forEach(a => (a.tags||[]).forEach(t => { tagFreq[t] = (tagFreq[t]||0)+1; }));
   const topTags = Object.entries(tagFreq).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([tag,count])=>({tag,count}));
 
+  // audit-based reader analytics
+  const auditLog = readAuditLog();
+  const articleViewEvents = auditLog.filter(e => e.action === 'view_article' && e.articleId);
+
+  // daily views (last 14 days)
+  const dailyViews = {};
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    dailyViews[d.toISOString().slice(0,10)] = 0;
+  }
+  articleViewEvents.forEach(e => {
+    const day = new Date(e.ts).toISOString().slice(0,10);
+    if (dailyViews[day] !== undefined) dailyViews[day]++;
+  });
+
+  // viewer detail
+  const viewerMap = {};
+  articleViewEvents.forEach(e => {
+    const key = e.user || 'unknown';
+    if (!viewerMap[key]) viewerMap[key] = { viewer: key, initials: key.slice(0,2).toUpperCase(), totalViews: 0, articleMap: {} };
+    viewerMap[key].totalViews++;
+    const artId = e.articleId;
+    const artTitle = articles.find(a => a.id === artId)?.title || `Article #${artId}`;
+    viewerMap[key].articleMap[artId] = viewerMap[key].articleMap[artId] || { id: artId, title: artTitle, count: 0 };
+    viewerMap[key].articleMap[artId].count++;
+  });
+  const viewerDetail = Object.values(viewerMap)
+    .sort((a,b) => b.totalViews - a.totalViews)
+    .map(v => ({ ...v, articles: Object.values(v.articleMap).sort((a,b) => b.count-a.count) }));
+
+  // article viewer breakdown
+  const artViewerMap = {};
+  articleViewEvents.forEach(e => {
+    const artId = e.articleId;
+    const art = articles.find(a => a.id === artId);
+    if (!artViewerMap[artId]) artViewerMap[artId] = { id: artId, title: art?.title || `Article #${artId}`, totalViews: 0, viewerMap: {} };
+    artViewerMap[artId].totalViews++;
+    const name = e.user || 'unknown';
+    artViewerMap[artId].viewerMap[name] = (artViewerMap[artId].viewerMap[name] || 0) + 1;
+  });
+  const articleViewerDetail = Object.values(artViewerMap)
+    .sort((a,b) => b.totalViews - a.totalViews)
+    .map(a => ({ ...a, uniqueViewers: Object.keys(a.viewerMap).length, viewers: Object.entries(a.viewerMap).sort((x,y)=>y[1]-x[1]).map(([name,count])=>({name,count})) }));
+
+  // recent activity (last 20 article view events)
+  const recentActivity = articleViewEvents.slice(-20).reverse().map(e => {
+    const art = articles.find(a => a.id === e.articleId);
+    const viewer = e.user || 'unknown';
+    return { ts: e.ts, viewer, viewerInitials: viewer.slice(0,2).toUpperCase(), articleId: e.articleId, articleTitle: art?.title || `Article #${e.articleId}` };
+  });
+
+  // zero-view articles
+  const zeroViewArticles = articles.filter(a => !a.views || a.views === 0)
+    .map(a => ({ id: a.id, title: a.title, author: a.author, category: a.category, created_at: a.created_at }));
+
+  // viewer leaderboard (top readers by total views)
+  const viewerLeaderboard = viewerDetail
+    .slice(0, 10)
+    .map(v => ({ name: v.viewer, initials: v.initials, views: v.totalViews }));
+
   res.json({
     totals: { articles: articles.length, categories: db.categories.length, authors: Object.keys(byAuthor).length, views: articles.reduce((s,a)=>s+(a.views||0),0) },
     byCategory: Object.entries(byCat).map(([name,count])=>({ name, count, color: db.categories.find(c=>c.name===name)?.color||'#7a7a96' })),
@@ -430,6 +507,12 @@ app.get('/api/analytics', (req, res) => {
     topViewed,
     monthly,
     topTags,
+    dailyViews,
+    viewerDetail,
+    articleViewerDetail,
+    recentActivity,
+    zeroViewArticles,
+    viewerLeaderboard,
   });
 });
 
@@ -447,7 +530,7 @@ app.put('/api/articles/:id', (req, res) => {
     category,
     tags: Array.isArray(tags) ? tags : [],
     content: content.trim(),
-    excerpt: content.trim().replace(/[#*`!\[\]]/g,'').slice(0,140),
+    excerpt: cleanExcerpt(content),
     updated_at: new Date().toISOString(),
   };
   saveDB(db);
@@ -4291,6 +4374,49 @@ ${ews.meetLink ? `<p style="margin-top:16px">🎥 <a href="${escHtmlServer(ews.m
     console.error('[EWS schedule]', e.message);
     res.status(500).json({ ok:false, error:'Failed to send invite: ' + e.message });
   }
+});
+
+// ── Audit log ────────────────────────────────────────────────────────────────
+const AUDIT_FILE = path.join(__dirname, 'audit.json');
+
+function readAuditLog() {
+  try {
+    if (fs.existsSync(AUDIT_FILE)) return JSON.parse(fs.readFileSync(AUDIT_FILE, 'utf8'));
+  } catch {}
+  return [];
+}
+
+function writeAuditLog(log) {
+  try { fs.writeFileSync(AUDIT_FILE, JSON.stringify(log, null, 2), 'utf8'); } catch {}
+}
+
+app.post('/api/audit', (req, res) => {
+  try {
+    const { action, page, pageTitle, duration, user } = req.body || {};
+    const event = { ts: Date.now(), action, page, pageTitle, duration: duration || 0, user: user || req.headers['x-user-email'] || 'unknown' };
+    const log = readAuditLog();
+    log.push(event);
+    // Keep only last 10,000 events
+    if (log.length > 10000) log.splice(0, log.length - 10000);
+    writeAuditLog(log);
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ ok: false });
+  }
+});
+
+app.get('/api/audit', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  const days = parseInt(req.query.days, 10) || 30;
+  const cutoff = Date.now() - days * 86400000;
+  const log = readAuditLog().filter(e => e.ts >= cutoff);
+  res.json(log);
+});
+
+app.delete('/api/audit', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  writeAuditLog([]);
+  res.json({ ok: true });
 });
 
 // ── Debug: inspect live DB state (admin only) ────────────────────────────────

@@ -4705,6 +4705,29 @@ async function updateFeedbackStatus(id) {
         <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
 
+      <!-- 10 Rocketlane Dashboard -->
+      <div class="dw-card" style="--cr:251,146,60;--fdur:4.6s;--fdel:3.8s;" onclick="rlOpen()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-card-badge" style="background:rgba(251,146,60,.15);color:#fb923c;border:1px solid rgba(251,146,60,.25)">● Live</div>
+        <span class="dw-card-icon">🚀</span>
+        <div class="dw-card-num">10</div>
+        <div class="dw-card-name">Rocketlane Dashboard</div>
+        <div class="dw-card-desc">Live sync of all active delivery projects — track status, compliance and weekly progress.</div>
+        <div class="dw-card-tags"><span class="dw-card-tag">Projects</span><span class="dw-card-tag">Compliance</span><span class="dw-card-tag">Snapshots</span></div>
+        <div class="dw-card-features">
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Real-time project status & completion</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>20-check compliance scoring</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Weekly auto-snapshots & findings tracker</div>
+        </div>
+        <div class="dw-card-stat-row">
+          <div class="dw-card-stat"><div class="dw-card-stat-n">33</div><div class="dw-card-stat-l">Projects</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">📊</div><div class="dw-card-stat-l">Compliance</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">📸</div><div class="dw-card-stat-l">Snapshots</div></div>
+        </div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
     </div><!-- /dw-cards-grid -->
 
 
@@ -5382,7 +5405,7 @@ async function updateFeedbackStatus(id) {
       </div>
 
       <!-- Rocketlane Dashboard -->
-      <div onclick="liShowPanel('rocketlane')" style="background:linear-gradient(140deg,rgba(120,60,20,.18) 0%,rgba(255,255,255,.03) 100%);border:1px solid rgba(251,146,60,.2);border-radius:18px;padding:32px 28px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;"
+      <div onclick="rlOpen()" style="background:linear-gradient(140deg,rgba(120,60,20,.18) 0%,rgba(255,255,255,.03) 100%);border:1px solid rgba(251,146,60,.2);border-radius:18px;padding:32px 28px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;"
         onmouseover="this.style.borderColor='rgba(251,146,60,.45)';this.style.transform='translateY(-4px)';this.style.boxShadow='0 20px 60px rgba(120,60,20,.25)'"
         onmouseout="this.style.borderColor='rgba(251,146,60,.2)';this.style.transform='';this.style.boxShadow=''">
         <div style="position:absolute;top:-20px;right:-20px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(251,146,60,.15),transparent 70%);pointer-events:none;"></div>
@@ -6034,27 +6057,11 @@ async function updateFeedbackStatus(id) {
 </div><!-- /liPanelEsw -->
 
   <!-- ═══ ROCKETLANE DASHBOARD ═══ -->
-  <div id="liPanelRocketlane" style="display:none;position:relative;z-index:1;padding:40px 40px 80px;">
-
-    <div style="max-width:1100px;margin:0 auto;">
-      <!-- Back -->
-      <button class="rl-back" onclick="liShowPanel('landing')" style="margin-bottom:24px;">← Leadership Insights</button>
-
-      <!-- Header -->
-      <div style="margin-bottom:24px;">
-        <div class="rl-label">Module 03</div>
-        <div class="rl-h2">Rocketlane Dashboard</div>
-        <div class="rl-sub">Weekly project connect · Live sync from Rocketlane</div>
-      </div>
-
-      <!-- Dynamic content (KPIs, tabs, project list all rendered here) -->
-      <div id="rlContent">
-        <div class="rl-loader">
-          <div class="rl-spin"></div>
-          <div style="font-size:13px;color:rgba(255,255,255,.3);">Connecting to Rocketlane…</div>
-        </div>
-      </div>
-    </div>
+  <div id="liPanelRocketlane" style="display:none;position:relative;z-index:1;padding:80px 40px;text-align:center;">
+    <div style="font-size:48px;margin-bottom:20px;">🚀</div>
+    <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:10px;">Rocketlane Dashboard</div>
+    <div style="font-size:14px;color:rgba(255,255,255,.4);margin-bottom:28px;">Opening the Rocketlane Dashboard…</div>
+    <button onclick="rlOpen()" style="background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.35);color:#fb923c;border-radius:8px;padding:11px 28px;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">Open Dashboard →</button>
   </div><!-- /liPanelRocketlane -->
 
   <!-- Access Denied screen -->
@@ -8205,6 +8212,31 @@ async function updateFeedbackStatus(id) {
 <!-- EWS Toast -->
 <div id="ewsToast" class="ews-toast"></div>
 
+<!-- ════════════════════════════════════════════════════════════════════════════
+     ROCKETLANE DASHBOARD — STANDALONE OVERLAY  (Mission Deck #10)
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="rlOverlay" style="display:none;position:fixed;inset:0;z-index:160;background:#06070f;font-family:'DM Sans',sans-serif;overflow-y:auto;">
+
+  <!-- Topbar -->
+  <div style="position:sticky;top:0;z-index:10;background:#0b0b12;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:16px;padding:0 32px;height:56px;">
+    <button onclick="rlClose()" style="background:transparent;border:none;color:rgba(255,255,255,.5);font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;display:flex;align-items:center;gap:5px;padding:10px 8px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;min-height:44px;">← Back</button>
+    <div style="width:1px;height:20px;background:rgba(255,255,255,.1);flex-shrink:0;"></div>
+    <span style="font-size:14px;font-weight:600;color:rgba(255,255,255,.8);">🚀 Rocketlane Dashboard</span>
+    <span style="margin-left:auto;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:rgba(251,146,60,.55);white-space:nowrap;">Mission Deck · 10</span>
+  </div>
+
+  <!-- Main content area -->
+  <div style="max-width:1100px;margin:0 auto;padding:40px 40px 80px;">
+    <div id="rlContent">
+      <div class="rl-loader">
+        <div class="rl-spin"></div>
+        <div style="font-size:13px;color:rgba(255,255,255,.3);">Connecting to Rocketlane…</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /rlOverlay -->
+
 <!-- ── MODALS ── -->
 
 <!-- Client modal -->
@@ -9811,18 +9843,7 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
     setTimeout(function(){
       var map = {
         'articles':      function(){ if(typeof dwGoKnowledge==='function') dwGoKnowledge(); },
-        'my-learning':   function(){
-          if(typeof dwGoLearning!=='function') return;
-          dwGoLearning();
-          var cs=sessionStorage.getItem('dw_course'); if(!cs) return;
-          var c; try{ c=JSON.parse(cs); }catch(e){ return; }
-          if(!c.courseId) return;
-          setTimeout(function(){
-            if(typeof mlOpenCourse==='function') mlOpenCourse(c.courseId);
-            if(typeof mlShowLesson==='function' && (c.modIdx||c.lesIdx))
-              setTimeout(function(){ mlShowLesson(c.modIdx||0, c.lesIdx||0); }, 50);
-          }, 100);
-        },
+        'my-learning':   function(){ if(typeof dwGoLearning==='function') dwGoLearning(); },
         'skillmatrix':   function(){ if(typeof dwGoSkillMatrix==='function') dwGoSkillMatrix(); },
         'engagement':    function(){ if(typeof dwGoEngagement==='function') dwGoEngagement(); },
         'ideabox':       function(){ if(typeof ibOpen==='function') ibOpen(); },
@@ -9837,6 +9858,7 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
         'about':         function(){ if(typeof openAbout==='function') openAbout(); },
         'uat':           function(){ if(typeof UAT!=='undefined' && typeof UAT.open==='function') UAT.open(); },
         'ews':           function(){ if(typeof EWS!=='undefined' && typeof EWS.open==='function') EWS.open(); },
+        'rocketlane-dashboard': function(){ if(typeof rlOpen==='function') rlOpen(); },
         'article-detail':function(){ if(typeof dwGoKnowledge==='function') dwGoKnowledge(); },
         'new-article':   function(){ if(typeof dwGoKnowledge==='function') dwGoKnowledge(); }
       };
@@ -9866,6 +9888,26 @@ function ibClose(){
   if(typeof showLanding==='function') showLanding();
 }
 
+function rlOpen(){
+  var overlay=document.getElementById('rlOverlay');
+  if(!overlay) return;
+  overlay.style.display='block';
+  var main=document.querySelector('.main');
+  if(main) main.style.display='none';
+  // If Leadership Insights is open, hide it without polluting history
+  var li=document.getElementById('liOverlay');
+  if(li && li.style.display!=='none') li.style.display='none';
+  history.state&&history.state.screen==='rocketlane-dashboard'||history.pushState({screen:'rocketlane-dashboard'},'');
+  setTimeout(function(){ if(typeof liInitRocketlane==='function') liInitRocketlane(); },120);
+}
+
+function rlClose(){
+  var overlay=document.getElementById('rlOverlay');
+  if(overlay) overlay.style.display='none';
+  if(typeof showLanding==='function') showLanding();
+  else{ var main=document.querySelector('.main'); if(main) main.style.display=''; }
+}
+
 // Override navBack after all deferred scripts (app.js etc.) have loaded.
 // history.back() is unreliable — it can navigate to pre-auth browser history
 // entries. Instead, close the current overlay explicitly and return to home.
@@ -9890,6 +9932,8 @@ document.addEventListener('DOMContentLoaded', function() {
       if (typeof closeCertificates === 'function') closeCertificates();
     } else if (s === 'pd-dashboard') {
       if (typeof pdHideDashboard === 'function') pdHideDashboard();
+    } else if (s === 'rocketlane-dashboard') {
+      if (typeof rlClose === 'function') rlClose();
     } else if (s === 'engagement') {
       var eo = document.getElementById('eehOverlay');
       if (eo) eo.classList.remove('active');
@@ -10279,6 +10323,15 @@ function rlRenderFindings() {
     summaryHtml +
     '<div class="rlc-find-grid">' + rows + '</div>';
 }
+
+// Patch mcClearSearch to guard against null #mcSearchInput (app.js fires on every click)
+document.addEventListener('DOMContentLoaded', function() {
+  var _orig = window.mcClearSearch;
+  window.mcClearSearch = function() {
+    if (!document.getElementById('mcSearchInput')) return;
+    if (typeof _orig === 'function') _orig.apply(this, arguments);
+  };
+});
 </script>
 </body>
 </html>

@@ -1,0 +1,106 @@
+[
+  {
+    "ts": 1786292324455,
+    "action": "test",
+    "page": "home",
+    "pageTitle": "Home",
+    "duration": 0,
+    "user": "unknown"
+  },
+  {
+    "ts": 1786292329260,
+    "action": "page_exit",
+    "page": "landing",
+    "pageTitle": "Home",
+    "duration": 100,
+    "user": "unknown"
+  },
+  {
+    "ts": 1786292355092,
+    "action": "page_view",
+    "page": "landing",
+    "pageTitle": "Home",
+    "duration": 0,
+    "user": "unknown"
+  },
+  {
+    "ts": 1786292436805,
+    "action": "page_exit",
+    "page": "landing",
+    "pageTitle": "Home",
+    "duration": 82,
+    "user": "unknown"
+  },
+  {
+    "ts": 1786292504062,
+    "action": "page_view",
+    "page": "dashboard",
+    "pageTitle": "Dashboard",
+    "duration": 0,
+    "user": "unknown"
+  },
+  {
+    "ts": 1786292877299,
+    "action": "page_exit",
+    "page": "dashboard",
+    "pageTitle": "Dashboard",
+    "duration": 373,
+    "user": "unknown"
+  },
+  {
+    "ts": 1786292878084,
+    "action": "page_view",
+    "page": "dashboard",
+    "pageTitle": "Dashboard",
+    "duration": 0,
+    "user": "unknown"
+  },
+  {
+    "ts": 1786292882100,
+    "action": "page_exit",
+    "page": "dashboard",
+    "pageTitle": "Dashboard",
+    "duration": 4,
+    "user": "unknown"
+  },
+  {
+    "ts": 1786292882101,
+    "action": "page_view",
+    "page": "dashboard",
+    "pageTitle": "Dashboard",
+    "duration": 0,
+    "user": "unknown"
+  },
+  {
+    "ts": 1786293066214,
+    "action": "page_exit",
+    "page": "dashboard",
+    "pageTitle": "Dashboard",
+    "duration": 184,
+    "user": "unknown"
+  },
+  {
+    "ts": 1786293067286,
+    "action": "page_view",
+    "page": "dashboard",
+    "pageTitle": "Dashboard",
+    "duration": 0,
+    "user": "unknown"
+  },
+  {
+    "ts": 1786293070956,
+    "action": "page_exit",
+    "page": "dashboard",
+    "pageTitle": "Dashboard",
+    "duration": 4,
+    "user": "unknown"
+  },
+  {
+    "ts": 1786293070979,
+    "action": "page_view",
+    "page": "dashboard",
+    "pageTitle": "Dashboard",
+    "duration": 0,
+    "user": "unknown"
+  }
+]

@@ -1189,19 +1189,52 @@
       {
         "id": "new-joiner",
         "name": "New Joiner Learning Path",
-        "description": "Mandatory onboarding curriculum for all new team members",
+        "description": "Complete onboarding — Phase 1: Finance Studio + Phase 2: Platform Mastery",
         "courseIds": [
-          "bc",
           "ap",
           "ar",
           "mis",
           "o2c",
           "p2p",
-          "r2r"
+          "r2r",
+          "bc",
+          "di",
+          "aw",
+          "wf",
+          "rc",
+          "er",
+          "ci"
         ],
-        "durationDays": 30
+        "durationDays": 30,
+        "phases": [
+          {
+            "label": "Finance Studio",
+            "courseIds": [
+              "ap",
+              "ar",
+              "mis",
+              "o2c",
+              "p2p",
+              "r2r"
+            ]
+          },
+          {
+            "label": "Platform Mastery",
+            "courseIds": [
+              "bc",
+              "di",
+              "aw",
+              "wf",
+              "rc",
+              "er",
+              "ci"
+            ]
+          }
+        ]
       }
-    ]
+    ],
+    "memberEmails": {},
+    "remindersSent": []
   },
   "issues": [
     {
@@ -1317,5 +1350,3252 @@
       }
     ],
     "nextIdeaId": 7
+  },
+  "uat": {
+    "clients": [
+      {
+        "id": "c_1784630952999_g0pa",
+        "name": "Accenture India",
+        "shortCode": "ACC",
+        "primaryContact": {
+          "name": "Rajesh Kumar",
+          "email": "rajesh@acc.com"
+        },
+        "internalLead": "Azhar",
+        "entities": [
+          "Default"
+        ],
+        "status": "active",
+        "portalToken": "1cd8ed679bb3372d4ffdb4b4b3335b2f929a8748",
+        "createdAt": "2026-07-21T10:49:12.999Z",
+        "updatedAt": "2026-07-21T10:49:12.999Z"
+      },
+      {
+        "id": "1785498442913_795k",
+        "name": "Navi Mumbai",
+        "shortCode": "NAVIM",
+        "primaryContact": {},
+        "internalLead": "",
+        "entities": [
+          "Default"
+        ],
+        "status": "active",
+        "portalToken": "58e1e1dcbc9c226b777c6e1cba932a3ee55349a9e53d8427",
+        "createdAt": "2026-07-31T11:47:22.913Z",
+        "updatedAt": "2026-07-31T11:47:22.913Z"
+      },
+      {
+        "id": "1785499410834_ytov",
+        "name": "Navi Mumbai",
+        "shortCode": "NAVIM",
+        "primaryContact": {},
+        "internalLead": "",
+        "entities": [
+          "Entity 1",
+          "Entity 2"
+        ],
+        "status": "active",
+        "portalToken": "00035157cd5572c42690912fbb710ee37935d7c29d98a3e9",
+        "createdAt": "2026-07-31T12:03:30.834Z",
+        "updatedAt": "2026-07-31T12:03:30.834Z"
+      },
+      {
+        "id": "1785499542166_k5fv",
+        "name": "Navi Mumbai",
+        "shortCode": "NAVIM",
+        "primaryContact": {},
+        "internalLead": "",
+        "entities": [
+          "Entity 1",
+          "Entity 2"
+        ],
+        "status": "active",
+        "portalToken": "6d0d5516b066b5d52af1e45478bd630e27de69ac3b7656f3",
+        "createdAt": "2026-07-31T12:05:42.166Z",
+        "updatedAt": "2026-07-31T12:05:42.167Z"
+      },
+      {
+        "id": "1785499722694_ikyq",
+        "name": "Navi Mumbai",
+        "shortCode": "NAVIM",
+        "primaryContact": {},
+        "internalLead": "",
+        "entities": [
+          "Entity 1",
+          "Entity 2"
+        ],
+        "status": "active",
+        "portalToken": "4a0e55ab261758813d70e3c8e894c64887ce2de9daac7415",
+        "createdAt": "2026-07-31T12:08:42.694Z",
+        "updatedAt": "2026-07-31T12:08:42.695Z"
+      },
+      {
+        "id": "1785501228272_vun6",
+        "name": "Navi",
+        "shortCode": "NAV",
+        "primaryContact": {},
+        "internalLead": "",
+        "entities": [
+          "Entity 1",
+          "Entity 2",
+          "Entity 3"
+        ],
+        "status": "active",
+        "portalToken": "b9e5df2a8c36ac86313c1695ed267ba558f40508c0ac72f0",
+        "createdAt": "2026-07-31T12:33:48.272Z",
+        "updatedAt": "2026-07-31T12:33:48.272Z"
+      }
+    ],
+    "projects": [
+      {
+        "id": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "name": "Q3 ERP Go-Live UAT",
+        "entity": "India Entity",
+        "businessUnit": "Finance",
+        "goLiveDate": "2026-08-15",
+        "description": "",
+        "phase": "uat",
+        "status": "active",
+        "uatRound": 1,
+        "signoff": null,
+        "createdAt": "2026-07-21T10:49:23.392Z",
+        "updatedAt": "2026-07-27T09:43:22.055Z",
+        "portalToken": "c78858c6f1f25472227342da62471aeeae59524882805e4e"
+      },
+      {
+        "id": "1785498450593_7wfj",
+        "clientId": "1785498442913_795k",
+        "clientName": "Navi Mumbai",
+        "clientWebsite": "",
+        "name": "Demo Project",
+        "entity": "",
+        "businessUnit": "",
+        "goLiveDate": "",
+        "description": "Test project",
+        "phase": "uat",
+        "status": "active",
+        "uatRound": 1,
+        "signoff": null,
+        "createdAt": "2026-07-31T11:47:30.593Z",
+        "updatedAt": "2026-07-31T11:47:30.593Z"
+      },
+      {
+        "id": "1785499410863_80re",
+        "clientId": "1785499410834_ytov",
+        "clientName": "Navi Mumbai",
+        "clientWebsite": "",
+        "name": "Demo Project",
+        "entity": "",
+        "businessUnit": "",
+        "goLiveDate": "",
+        "description": "",
+        "phase": "uat",
+        "status": "active",
+        "uatRound": 1,
+        "signoff": null,
+        "createdAt": "2026-07-31T12:03:30.863Z",
+        "updatedAt": "2026-07-31T12:03:30.863Z"
+      },
+      {
+        "id": "1785499542186_t8j9",
+        "clientId": "1785499542166_k5fv",
+        "clientName": "Navi Mumbai",
+        "clientWebsite": "",
+        "name": "Demo Project",
+        "entity": "",
+        "businessUnit": "",
+        "goLiveDate": "",
+        "description": "",
+        "phase": "uat",
+        "status": "active",
+        "uatRound": 1,
+        "signoff": null,
+        "createdAt": "2026-07-31T12:05:42.186Z",
+        "updatedAt": "2026-07-31T12:05:42.186Z"
+      },
+      {
+        "id": "1785499722716_uds5",
+        "clientId": "1785499722694_ikyq",
+        "clientName": "Navi Mumbai",
+        "clientWebsite": "",
+        "name": "Demo Project",
+        "entity": "",
+        "businessUnit": "",
+        "goLiveDate": "",
+        "description": "",
+        "phase": "uat",
+        "status": "active",
+        "uatRound": 1,
+        "signoff": null,
+        "createdAt": "2026-07-31T12:08:42.716Z",
+        "updatedAt": "2026-07-31T12:08:42.716Z"
+      },
+      {
+        "id": "1785501228312_fv43",
+        "clientId": "1785501228272_vun6",
+        "clientName": "Navi",
+        "clientWebsite": "",
+        "name": "Navi",
+        "entity": "",
+        "businessUnit": "",
+        "goLiveDate": "",
+        "description": "",
+        "phase": "uat",
+        "status": "active",
+        "uatRound": 1,
+        "signoff": null,
+        "createdAt": "2026-07-31T12:33:48.312Z",
+        "updatedAt": "2026-07-31T12:48:58.413Z",
+        "entities": [
+          "Entity 1",
+          "Entity 2",
+          "Entity 3"
+        ],
+        "portalToken": "9f82c44bced4ad7f57ca4ccdf479fb07aa20552eb46c2028"
+      }
+    ],
+    "testcases": [
+      {
+        "id": "t_1784630971009_tvxy",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "round": 1,
+        "seq": 1,
+        "processArea": "AR",
+        "module": "Invoice Processing",
+        "testScenario": "Verify invoice 1 can be created and posted successfully",
+        "steps": "",
+        "expectedResult": "Invoice is saved and status changes to Posted",
+        "actualResult": "",
+        "status": "not_started",
+        "priority": "high",
+        "assignee": "Azhar",
+        "testedBy": "",
+        "executionDate": "",
+        "comments": [],
+        "attachments": [],
+        "issueRef": "",
+        "tags": [],
+        "createdAt": "2026-07-21T10:49:31.010Z",
+        "updatedAt": "2026-07-21T10:49:31.010Z"
+      },
+      {
+        "id": "t_1784630971021_605a",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "round": 1,
+        "seq": 2,
+        "processArea": "AR",
+        "module": "Invoice Processing",
+        "testScenario": "Verify invoice 2 can be created and posted successfully",
+        "steps": "",
+        "expectedResult": "Invoice is saved and status changes to Posted",
+        "actualResult": "",
+        "status": "not_started",
+        "priority": "high",
+        "assignee": "Azhar",
+        "testedBy": "",
+        "executionDate": "",
+        "comments": [],
+        "attachments": [],
+        "issueRef": "",
+        "tags": [],
+        "createdAt": "2026-07-21T10:49:31.021Z",
+        "updatedAt": "2026-07-21T10:49:31.021Z"
+      },
+      {
+        "id": "t_1784630971031_ye10",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "round": 1,
+        "seq": 3,
+        "processArea": "AR",
+        "module": "Invoice Processing",
+        "testScenario": "Verify invoice 3 can be created and posted successfully",
+        "steps": "",
+        "expectedResult": "Invoice is saved and status changes to Posted",
+        "actualResult": "",
+        "status": "not_started",
+        "priority": "high",
+        "assignee": "Azhar",
+        "testedBy": "",
+        "executionDate": "",
+        "comments": [],
+        "attachments": [],
+        "issueRef": "",
+        "tags": [],
+        "createdAt": "2026-07-21T10:49:31.031Z",
+        "updatedAt": "2026-07-21T10:49:31.031Z"
+      },
+      {
+        "id": "1784646144458_rc9k",
+        "category": "R2R",
+        "subCategory": "Chart of Accounts",
+        "testDescription": "Create and activate a new GL account with correct account type, group, and currency",
+        "expectedResult": "Account created, appears in CoA with correct type, currency, and group assignment; available for posting in correct periods",
+        "priority": "critical",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 4
+      },
+      {
+        "id": "1784646144458_zkfe",
+        "category": "R2R",
+        "subCategory": "Opening Balances",
+        "testDescription": "Upload opening balances for all GL accounts and verify trial balance totals",
+        "expectedResult": "All accounts show correct opening debit/credit; trial balance total debits = total credits; no posting errors",
+        "priority": "critical",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 5
+      },
+      {
+        "id": "1784646144458_0ga5",
+        "category": "R2R",
+        "subCategory": "Journal Entries",
+        "testDescription": "Post a manual journal entry with multiple debit/credit lines across two entities",
+        "expectedResult": "Journal posts without error, debit=credit, appears in GL with correct date, period, and user stamp; reversible",
+        "priority": "critical",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 6
+      },
+      {
+        "id": "1784646144458_34l0",
+        "category": "R2R",
+        "subCategory": "Period Close",
+        "testDescription": "Execute month-end period close: run depreciation, post accruals, lock period for prior entries",
+        "expectedResult": "Depreciation posts correctly to asset and expense accounts; period locks after close; prior-period posting blocked",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 7
+      },
+      {
+        "id": "1784646144458_m3gq",
+        "category": "R2R",
+        "subCategory": "Bank Reconciliation",
+        "testDescription": "Reconcile bank statement with GL cash account for a given month",
+        "expectedResult": "Matched items reconciled, unmatched items flagged with reason, reconciliation report exportable, closing balance matches bank statement",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 8
+      },
+      {
+        "id": "1784646144458_de93",
+        "category": "R2R",
+        "subCategory": "Intercompany",
+        "testDescription": "Post an intercompany transaction and verify automatic elimination entries",
+        "expectedResult": "IC payable and receivable created in respective entities; elimination journal generated; IC balances net to zero in consolidated view",
+        "priority": "medium",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 9
+      },
+      {
+        "id": "1784646144458_iwxy",
+        "category": "R2R",
+        "subCategory": "Financial Statements",
+        "testDescription": "Generate P&L, Balance Sheet, and Cash Flow statements for a closed period",
+        "expectedResult": "All three statements balance, figures agree with trial balance, period/entity filters functional, export to PDF and Excel works",
+        "priority": "critical",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 10
+      },
+      {
+        "id": "1784646144458_p9gw",
+        "category": "R2R",
+        "subCategory": "Audit Trail",
+        "testDescription": "Modify a posted journal and verify the system creates an audit log entry",
+        "expectedResult": "Original entry preserved; modification logged with user, timestamp, old value, new value; immutable log exportable",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 11
+      },
+      {
+        "id": "1784646144458_6u9k",
+        "category": "P2P",
+        "subCategory": "Vendor Master",
+        "testDescription": "Create a new vendor with bank details, payment terms, and tax classification",
+        "expectedResult": "Vendor saved with all fields; bank details encrypted; payment terms applied to invoices; vendor searchable by name and code",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 12
+      },
+      {
+        "id": "1784646144458_xiu2",
+        "category": "P2P",
+        "subCategory": "Purchase Orders",
+        "testDescription": "Raise a 3-way match PO (PO → GRN → Invoice) and verify matching rules",
+        "expectedResult": "PO created with approval workflow; GRN posts inventory; invoice matched within tolerance; mismatches flagged for review",
+        "priority": "critical",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 13
+      },
+      {
+        "id": "1784646144458_be3f",
+        "category": "P2P",
+        "subCategory": "Invoice Processing",
+        "testDescription": "Process a vendor invoice against a PO and handle a quantity variance",
+        "expectedResult": "Invoice matched to PO; quantity variance creates exception; approver notified; variance approved or rejected with comment",
+        "priority": "critical",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 14
+      },
+      {
+        "id": "1784646144458_h9hz",
+        "category": "P2P",
+        "subCategory": "Payments",
+        "testDescription": "Run a payment batch for due invoices and generate bank payment file",
+        "expectedResult": "Correct invoices selected by due date and vendor; bank file generated in correct format; payment posted and reconciled to bank",
+        "priority": "critical",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 15
+      },
+      {
+        "id": "1784646144458_kehz",
+        "category": "P2P",
+        "subCategory": "Payments",
+        "testDescription": "Process a vendor advance payment and apply it against a subsequent invoice",
+        "expectedResult": "Advance posted to vendor account; invoice created later; advance applied reducing invoice balance; net payment correct",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 16
+      },
+      {
+        "id": "1784646144458_n293",
+        "category": "P2P",
+        "subCategory": "Expense Claims",
+        "testDescription": "Submit an employee expense claim with receipts and route through approval",
+        "expectedResult": "Claim submitted with attachment; routed to approver; approved/rejected with comment; reimbursement payment generated",
+        "priority": "medium",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 17
+      },
+      {
+        "id": "1784646144458_ito8",
+        "category": "P2P",
+        "subCategory": "AP Reporting",
+        "testDescription": "Generate AP aging report and reconcile totals with AP control account",
+        "expectedResult": "Aging buckets (current/30/60/90+ days) correct, total matches AP ledger, supplier-wise breakdown available, export works",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 18
+      },
+      {
+        "id": "1784646144458_i7wu",
+        "category": "P2P",
+        "subCategory": "Credit Notes",
+        "testDescription": "Process a vendor credit note and apply it to an open invoice",
+        "expectedResult": "Credit note posted; applied against correct invoice; net vendor balance updated; available for future payment batch",
+        "priority": "medium",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 19
+      },
+      {
+        "id": "1784646144458_2l1g",
+        "category": "O2C",
+        "subCategory": "Customer Master",
+        "testDescription": "Create a new customer with credit limit, payment terms, and tax details",
+        "expectedResult": "Customer created with credit limit enforced on orders; tax applied correctly on invoices; searchable and reportable",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 20
+      },
+      {
+        "id": "1784646144458_vbyd",
+        "category": "O2C",
+        "subCategory": "Sales Orders",
+        "testDescription": "Create a sales order, check inventory availability, and confirm delivery",
+        "expectedResult": "Order created; inventory checked and reserved; delivery schedule confirmed; order status tracked through fulfillment",
+        "priority": "critical",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 21
+      },
+      {
+        "id": "1784646144458_nqum",
+        "category": "O2C",
+        "subCategory": "Invoicing",
+        "testDescription": "Generate a customer invoice from a delivered sales order and email to customer",
+        "expectedResult": "Invoice generated with correct line items, taxes, and totals; PDF generated; email sent with invoice attached; AR updated",
+        "priority": "critical",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 22
+      },
+      {
+        "id": "1784646144458_m2oj",
+        "category": "O2C",
+        "subCategory": "Collections",
+        "testDescription": "Record a partial customer payment and apply it to the oldest open invoices",
+        "expectedResult": "Payment posted to AR; applied to oldest invoices first (FIFO); remaining balance correct; payment visible in customer statement",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 23
+      },
+      {
+        "id": "1784646144458_vbn0",
+        "category": "O2C",
+        "subCategory": "Credit Notes",
+        "testDescription": "Raise a customer credit note for a returned item and apply against AR",
+        "expectedResult": "Credit note posted; linked to original invoice; applied to AR reducing balance; inventory updated for returned goods",
+        "priority": "medium",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 24
+      },
+      {
+        "id": "1784646144458_9qjq",
+        "category": "O2C",
+        "subCategory": "Dunning",
+        "testDescription": "Run the dunning process for overdue invoices and verify reminder letters",
+        "expectedResult": "Overdue invoices identified by aging; dunning letters generated with correct amounts and due dates; sent to customer contacts",
+        "priority": "medium",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 25
+      },
+      {
+        "id": "1784646144458_5ho2",
+        "category": "O2C",
+        "subCategory": "AR Reporting",
+        "testDescription": "Generate AR aging report and reconcile with AR control account",
+        "expectedResult": "Aging buckets correct; total matches AR control account in GL; customer-wise and invoice-wise drill-down available",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 26
+      },
+      {
+        "id": "1784646144458_9qhn",
+        "category": "Planning",
+        "subCategory": "Budget Setup",
+        "testDescription": "Create annual budget by cost center and department with version control",
+        "expectedResult": "Budget entries created for all periods; version saved; budget vs actual comparison available in reporting; locked after approval",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 27
+      },
+      {
+        "id": "1784646144458_46pd",
+        "category": "Planning",
+        "subCategory": "Forecasting",
+        "testDescription": "Generate a rolling 3-month forecast and compare to budget",
+        "expectedResult": "Forecast generated using actuals + forward estimates; variance to budget highlighted; scenario comparison available",
+        "priority": "medium",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 28
+      },
+      {
+        "id": "1784646144458_3cty",
+        "category": "Planning",
+        "subCategory": "Consolidation",
+        "testDescription": "Run multi-entity consolidation and verify elimination of intercompany balances",
+        "expectedResult": "All entities consolidated; IC eliminations applied; minority interest calculated; consolidated financials balance",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 29
+      },
+      {
+        "id": "1784646144458_j9z2",
+        "category": "Planning",
+        "subCategory": "Allocations",
+        "testDescription": "Configure and run a cost allocation from a shared service center to business units",
+        "expectedResult": "Allocation rule configured with correct driver; amounts allocated proportionally; journal created; source account zeroed out",
+        "priority": "medium",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 30
+      },
+      {
+        "id": "1784646144458_ggi2",
+        "category": "Dashboards",
+        "subCategory": "Executive Dashboard",
+        "testDescription": "Load the executive dashboard and verify all KPI cards refresh with live data",
+        "expectedResult": "All KPIs (revenue, cost, margin, AR, AP) load within 5 seconds; data matches source reports; filters by entity and period work",
+        "priority": "critical",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 31
+      },
+      {
+        "id": "1784646144458_1q8p",
+        "category": "Dashboards",
+        "subCategory": "Cash Flow Dashboard",
+        "testDescription": "View cash position dashboard across all bank accounts with drill-down",
+        "expectedResult": "Total cash position correct; bank-wise breakdown available; cash flow trend chart renders; forecast vs actual toggle works",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 32
+      },
+      {
+        "id": "1784646144458_c0xq",
+        "category": "Dashboards",
+        "subCategory": "AP Dashboard",
+        "testDescription": "View AP dashboard showing due payments, aging, and top vendors",
+        "expectedResult": "Due payments for next 7/30 days correct; aging chart matches AP aging report; top 10 vendors by outstanding balance shown",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 33
+      },
+      {
+        "id": "1784646144458_hfli",
+        "category": "Dashboards",
+        "subCategory": "AR Dashboard",
+        "testDescription": "View AR dashboard showing overdue invoices, DSO, and collection trends",
+        "expectedResult": "Overdue amount correct; DSO calculated correctly; collection efficiency trend visible; drill-down to invoice level works",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 34
+      },
+      {
+        "id": "1784646144458_td8v",
+        "category": "Dashboards",
+        "subCategory": "Budgets Dashboard",
+        "testDescription": "View budget vs actual dashboard for current month and YTD",
+        "expectedResult": "Budget vs actual for all cost centers; favorable/unfavorable variance highlighted; YTD toggle works; entity filter functional",
+        "priority": "medium",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 35
+      },
+      {
+        "id": "1784646144458_ifi0",
+        "category": "Reports",
+        "subCategory": "Standard Reports",
+        "testDescription": "Generate trial balance for a closed accounting period",
+        "expectedResult": "Debits equal credits, figures match GL, export to Excel and PDF functional, comparative period toggle works",
+        "priority": "critical",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 36
+      },
+      {
+        "id": "1784646144458_i8h7",
+        "category": "Reports",
+        "subCategory": "Standard Reports",
+        "testDescription": "Generate month-over-month P&L comparison report",
+        "expectedResult": "Current vs prior period columns correct, variance column accurate, export to Excel works with all formatting",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 37
+      },
+      {
+        "id": "1784646144458_sytv",
+        "category": "Reports",
+        "subCategory": "Standard Reports",
+        "testDescription": "Generate balance sheet as of period-end date",
+        "expectedResult": "Assets = Liabilities + Equity, matches GL balances, entity-wise breakdown available, export functional",
+        "priority": "critical",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 38
+      },
+      {
+        "id": "1784646144458_q7uj",
+        "category": "Reports",
+        "subCategory": "Custom Reports",
+        "testDescription": "Build a custom report using report builder with GL, entity, and date range filters",
+        "expectedResult": "Report generates data matching GL, save-report feature works, export to CSV and Excel functional",
+        "priority": "medium",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 39
+      },
+      {
+        "id": "1784646144458_j0dl",
+        "category": "Reports",
+        "subCategory": "Scheduled Reports",
+        "testDescription": "Schedule a monthly trial balance report to email to the finance team",
+        "expectedResult": "Schedule configured with correct recipients, frequency, and format; report delivered on schedule; unsubscribe option works",
+        "priority": "medium",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 40
+      },
+      {
+        "id": "1784646144458_y0jt",
+        "category": "Security",
+        "subCategory": "Role-Based Access",
+        "testDescription": "Verify that a read-only user cannot post journals or approve payments",
+        "expectedResult": "Post and approve buttons hidden or disabled for read-only role; direct API calls return 403; audit log records access attempt",
+        "priority": "critical",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 41
+      },
+      {
+        "id": "1784646144458_49d6",
+        "category": "Security",
+        "subCategory": "Audit Trail",
+        "testDescription": "Make a data change and verify full audit log with user, timestamp, and before/after values",
+        "expectedResult": "Audit log shows user, action type, timestamp, old value, new value. Log is immutable and exportable to Excel",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 42
+      },
+      {
+        "id": "1784646144458_wfg7",
+        "category": "Security",
+        "subCategory": "Data Segregation",
+        "testDescription": "Verify that Entity A users cannot view or post to Entity B data",
+        "expectedResult": "Entity B data not visible in dropdowns or reports for Entity A users; cross-entity API calls return 403",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 43
+      },
+      {
+        "id": "1784646144458_ocbr",
+        "category": "Security",
+        "subCategory": "Password Policy",
+        "testDescription": "Attempt login with weak password and verify enforcement of password policy",
+        "expectedResult": "Weak passwords rejected with specific rule message; lockout after 5 failed attempts; password reset flow works via email",
+        "priority": "medium",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 44
+      },
+      {
+        "id": "1784646144458_raad",
+        "category": "Integrations",
+        "subCategory": "Bank Feed",
+        "testDescription": "Trigger bank feed sync and verify transactions imported and matched",
+        "expectedResult": "Bank transactions imported within 2 minutes; auto-matched to GL entries where possible; unmatched flagged for review",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 45
+      },
+      {
+        "id": "1784646144458_phz0",
+        "category": "Integrations",
+        "subCategory": "ERP Sync",
+        "testDescription": "Sync a vendor invoice from source ERP and verify it appears in AP module",
+        "expectedResult": "Invoice synced within configured interval; data fields mapped correctly; duplicate detection prevents double import; error log available",
+        "priority": "high",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 46
+      },
+      {
+        "id": "1784646144458_ci1l",
+        "category": "Integrations",
+        "subCategory": "Export API",
+        "testDescription": "Call the financial data export API and verify response format and data accuracy",
+        "expectedResult": "API returns correct JSON schema; data matches reports; authentication required; rate limiting active; pagination works for large datasets",
+        "priority": "medium",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-21T15:02:24.458Z",
+        "updatedAt": "2026-07-21T15:02:24.458Z",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "seq": 47
+      },
+      {
+        "id": "1785498459051_b76r",
+        "category": "",
+        "subCategory": "",
+        "testDescription": "",
+        "expectedResult": "",
+        "priority": "medium",
+        "owner": "",
+        "bluecopaStatus": "not_tested",
+        "clientStatus": "not_tested",
+        "bluecopaComments": "",
+        "clientComments": "",
+        "attachments": [],
+        "tags": [],
+        "createdAt": "2026-07-31T11:47:39.051Z",
+        "updatedAt": "2026-07-31T11:47:39.051Z",
+        "projectId": "1785498450593_7wfj",
+        "items": [
+          {
+            "category": "Login",
+            "testDescription": "User can log in",
+            "expectedResult": "Dashboard shown"
+          },
+          {
+            "category": "Payment",
+            "testDescription": "Payment processes",
+            "expectedResult": "Confirmation email sent"
+          }
+        ],
+        "seq": 1
+      }
+    ],
+    "issues": [
+      {
+        "id": "1785498459090_ztys",
+        "projectId": "1785498450593_7wfj",
+        "clientId": "1785498442913_795k",
+        "ref": "ISS-001",
+        "title": "Login page not loading",
+        "description": "Blank screen",
+        "severity": "high",
+        "status": "open",
+        "assignedTo": "",
+        "entity": "Default",
+        "resolution": "",
+        "createdAt": "2026-07-31T11:47:39.090Z",
+        "updatedAt": "2026-07-31T11:47:39.090Z"
+      },
+      {
+        "id": "1785499410891_nvz8",
+        "projectId": "1785499410863_80re",
+        "clientId": "1785499410834_ytov",
+        "ref": "ISS-001",
+        "title": "Login fails on Safari",
+        "description": "",
+        "severity": "high",
+        "status": "open",
+        "assignedTo": "",
+        "entity": "Entity 1",
+        "resolution": "",
+        "createdAt": "2026-07-31T12:03:30.891Z",
+        "updatedAt": "2026-07-31T12:03:30.891Z"
+      },
+      {
+        "id": "1785499410900_i1e3",
+        "projectId": "1785499410863_80re",
+        "clientId": "1785499410834_ytov",
+        "ref": "ISS-002",
+        "title": "Payment timeout",
+        "description": "",
+        "severity": "critical",
+        "status": "open",
+        "assignedTo": "",
+        "entity": "Entity 2",
+        "resolution": "",
+        "createdAt": "2026-07-31T12:03:30.900Z",
+        "updatedAt": "2026-07-31T12:03:30.900Z"
+      },
+      {
+        "id": "1785499542213_cnci",
+        "projectId": "1785499542186_t8j9",
+        "clientId": "1785499542166_k5fv",
+        "ref": "ISS-001",
+        "title": "Login fails on Safari",
+        "description": "",
+        "severity": "high",
+        "status": "open",
+        "assignedTo": "",
+        "entity": "Entity 1",
+        "resolution": "",
+        "createdAt": "2026-07-31T12:05:42.213Z",
+        "updatedAt": "2026-07-31T12:05:42.213Z"
+      },
+      {
+        "id": "1785499542221_19i8",
+        "projectId": "1785499542186_t8j9",
+        "clientId": "1785499542166_k5fv",
+        "ref": "ISS-002",
+        "title": "Payment timeout",
+        "description": "",
+        "severity": "critical",
+        "status": "open",
+        "assignedTo": "",
+        "entity": "Entity 2",
+        "resolution": "",
+        "createdAt": "2026-07-31T12:05:42.221Z",
+        "updatedAt": "2026-07-31T12:05:42.221Z"
+      },
+      {
+        "id": "1785499722741_61qa",
+        "projectId": "1785499722716_uds5",
+        "clientId": "1785499722694_ikyq",
+        "ref": "ISS-001",
+        "title": "Login fails on Safari",
+        "description": "",
+        "severity": "high",
+        "status": "open",
+        "assignedTo": "",
+        "entity": "Entity 1",
+        "resolution": "",
+        "createdAt": "2026-07-31T12:08:42.741Z",
+        "updatedAt": "2026-07-31T12:08:42.741Z"
+      },
+      {
+        "id": "1785499722749_fttq",
+        "projectId": "1785499722716_uds5",
+        "clientId": "1785499722694_ikyq",
+        "ref": "ISS-002",
+        "title": "Payment timeout",
+        "description": "",
+        "severity": "critical",
+        "status": "open",
+        "assignedTo": "",
+        "entity": "Entity 2",
+        "resolution": "",
+        "createdAt": "2026-07-31T12:08:42.749Z",
+        "updatedAt": "2026-07-31T12:08:42.749Z"
+      },
+      {
+        "id": "1785502138454_2ewb",
+        "projectId": "1785501228312_fv43",
+        "clientId": "1785501228272_vun6",
+        "ref": "ISS-001",
+        "title": "Login fails on Safari",
+        "description": "",
+        "severity": "high",
+        "status": "open",
+        "assignedTo": "",
+        "entity": "Entity 1",
+        "resolution": "",
+        "createdAt": "2026-07-31T12:48:58.454Z",
+        "updatedAt": "2026-07-31T12:48:58.454Z"
+      },
+      {
+        "id": "1785502138480_ak7o",
+        "projectId": "1785501228312_fv43",
+        "clientId": "1785501228272_vun6",
+        "ref": "ISS-002",
+        "title": "Payment timeout error",
+        "description": "",
+        "severity": "critical",
+        "status": "open",
+        "assignedTo": "",
+        "entity": "Entity 2",
+        "resolution": "",
+        "createdAt": "2026-07-31T12:48:58.480Z",
+        "updatedAt": "2026-07-31T12:48:58.480Z"
+      },
+      {
+        "id": "1785502138504_4b3x",
+        "projectId": "1785501228312_fv43",
+        "clientId": "1785501228272_vun6",
+        "ref": "ISS-003",
+        "title": "Report generation slow",
+        "description": "",
+        "severity": "medium",
+        "status": "open",
+        "assignedTo": "",
+        "entity": "Entity 3",
+        "resolution": "",
+        "createdAt": "2026-07-31T12:48:58.504Z",
+        "updatedAt": "2026-07-31T12:48:58.504Z"
+      },
+      {
+        "id": "1785502138525_l5k8",
+        "projectId": "1785501228312_fv43",
+        "clientId": "1785501228272_vun6",
+        "ref": "ISS-004",
+        "title": "Dashboard data mismatch",
+        "description": "",
+        "severity": "high",
+        "status": "open",
+        "assignedTo": "",
+        "entity": "Entity 1",
+        "resolution": "",
+        "createdAt": "2026-07-31T12:48:58.525Z",
+        "updatedAt": "2026-07-31T12:48:58.525Z"
+      }
+    ],
+    "templates": [],
+    "activity": [
+      {
+        "id": "1785502138525_bzf8",
+        "type": "issue_opened",
+        "message": "Issue \"Dashboard data mismatch\" raised",
+        "projectId": "1785501228312_fv43",
+        "clientId": "1785501228272_vun6",
+        "createdAt": "2026-07-31T12:48:58.525Z"
+      },
+      {
+        "id": "1785502138504_0qx6",
+        "type": "issue_opened",
+        "message": "Issue \"Report generation slow\" raised",
+        "projectId": "1785501228312_fv43",
+        "clientId": "1785501228272_vun6",
+        "createdAt": "2026-07-31T12:48:58.504Z"
+      },
+      {
+        "id": "1785502138480_cl44",
+        "type": "issue_opened",
+        "message": "Issue \"Payment timeout error\" raised",
+        "projectId": "1785501228312_fv43",
+        "clientId": "1785501228272_vun6",
+        "createdAt": "2026-07-31T12:48:58.480Z"
+      },
+      {
+        "id": "1785502138454_4313",
+        "type": "issue_opened",
+        "message": "Issue \"Login fails on Safari\" raised",
+        "projectId": "1785501228312_fv43",
+        "clientId": "1785501228272_vun6",
+        "createdAt": "2026-07-31T12:48:58.454Z"
+      },
+      {
+        "id": "1785501228312_mdvh",
+        "type": "project_created",
+        "message": "Project \"Navi\" created",
+        "projectId": "1785501228312_fv43",
+        "clientId": "1785501228272_vun6",
+        "createdAt": "2026-07-31T12:33:48.312Z"
+      },
+      {
+        "id": "1785501228272_ovu5",
+        "type": "client_created",
+        "message": "Client \"Navi\" added",
+        "createdAt": "2026-07-31T12:33:48.272Z"
+      },
+      {
+        "id": "1785499722749_naoa",
+        "type": "issue_opened",
+        "message": "Issue \"Payment timeout\" raised",
+        "projectId": "1785499722716_uds5",
+        "clientId": "1785499722694_ikyq",
+        "createdAt": "2026-07-31T12:08:42.749Z"
+      },
+      {
+        "id": "1785499722741_kurh",
+        "type": "issue_opened",
+        "message": "Issue \"Login fails on Safari\" raised",
+        "projectId": "1785499722716_uds5",
+        "clientId": "1785499722694_ikyq",
+        "createdAt": "2026-07-31T12:08:42.741Z"
+      },
+      {
+        "id": "1785499722716_b3g5",
+        "type": "project_created",
+        "message": "Project \"Demo Project\" created",
+        "projectId": "1785499722716_uds5",
+        "clientId": "1785499722694_ikyq",
+        "createdAt": "2026-07-31T12:08:42.716Z"
+      },
+      {
+        "id": "1785499722695_4zs6",
+        "type": "client_created",
+        "message": "Client \"Navi Mumbai\" added",
+        "createdAt": "2026-07-31T12:08:42.695Z"
+      },
+      {
+        "id": "1785499542221_jkqt",
+        "type": "issue_opened",
+        "message": "Issue \"Payment timeout\" raised",
+        "projectId": "1785499542186_t8j9",
+        "clientId": "1785499542166_k5fv",
+        "createdAt": "2026-07-31T12:05:42.221Z"
+      },
+      {
+        "id": "1785499542213_mczd",
+        "type": "issue_opened",
+        "message": "Issue \"Login fails on Safari\" raised",
+        "projectId": "1785499542186_t8j9",
+        "clientId": "1785499542166_k5fv",
+        "createdAt": "2026-07-31T12:05:42.213Z"
+      },
+      {
+        "id": "1785499542186_qoq4",
+        "type": "project_created",
+        "message": "Project \"Demo Project\" created",
+        "projectId": "1785499542186_t8j9",
+        "clientId": "1785499542166_k5fv",
+        "createdAt": "2026-07-31T12:05:42.186Z"
+      },
+      {
+        "id": "1785499542167_4jc5",
+        "type": "client_created",
+        "message": "Client \"Navi Mumbai\" added",
+        "createdAt": "2026-07-31T12:05:42.167Z"
+      },
+      {
+        "id": "1785499410900_c82j",
+        "type": "issue_opened",
+        "message": "Issue \"Payment timeout\" raised",
+        "projectId": "1785499410863_80re",
+        "clientId": "1785499410834_ytov",
+        "createdAt": "2026-07-31T12:03:30.900Z"
+      },
+      {
+        "id": "1785499410891_0x8g",
+        "type": "issue_opened",
+        "message": "Issue \"Login fails on Safari\" raised",
+        "projectId": "1785499410863_80re",
+        "clientId": "1785499410834_ytov",
+        "createdAt": "2026-07-31T12:03:30.891Z"
+      },
+      {
+        "id": "1785499410863_p9o9",
+        "type": "project_created",
+        "message": "Project \"Demo Project\" created",
+        "projectId": "1785499410863_80re",
+        "clientId": "1785499410834_ytov",
+        "createdAt": "2026-07-31T12:03:30.863Z"
+      },
+      {
+        "id": "1785499410834_1qb8",
+        "type": "client_created",
+        "message": "Client \"Navi Mumbai\" added",
+        "createdAt": "2026-07-31T12:03:30.834Z"
+      },
+      {
+        "id": "1785498459090_55f3",
+        "type": "issue_opened",
+        "message": "Issue \"Login page not loading\" raised",
+        "projectId": "1785498450593_7wfj",
+        "clientId": "1785498442913_795k",
+        "createdAt": "2026-07-31T11:47:39.090Z"
+      },
+      {
+        "id": "1785498450593_79tm",
+        "type": "project_created",
+        "message": "Project \"Demo Project\" created",
+        "projectId": "1785498450593_7wfj",
+        "clientId": "1785498442913_795k",
+        "createdAt": "2026-07-31T11:47:30.593Z"
+      },
+      {
+        "id": "1785498442913_7pw7",
+        "type": "client_created",
+        "message": "Client \"Navi Mumbai\" added",
+        "createdAt": "2026-07-31T11:47:22.913Z"
+      },
+      {
+        "id": "1784646144458_kwfj",
+        "type": "project_seeded",
+        "message": "Seeded 44 default test cases into \"Q3 ERP Go-Live UAT\"",
+        "projectId": "p_1784630963392_151g",
+        "createdAt": "2026-07-21T15:02:24.458Z"
+      },
+      {
+        "id": "act_1784630963392_yli6",
+        "type": "project_created",
+        "message": "Project \"Q3 ERP Go-Live UAT\" created",
+        "projectId": "p_1784630963392_151g",
+        "clientId": "c_1784630952999_g0pa",
+        "createdAt": "2026-07-21T10:49:23.392Z"
+      },
+      {
+        "id": "act_1784630952999_a7tu",
+        "type": "client_created",
+        "message": "Client \"Accenture India\" created",
+        "createdAt": "2026-07-21T10:49:12.999Z"
+      }
+    ],
+    "nextClientId": 1,
+    "nextProjectId": 1,
+    "nextTestId": 1,
+    "nextIssueId": 1,
+    "nextTemplateId": 1
+  },
+  "ews": {
+    "ewsList": [
+      {
+        "id": "ews_1785528354551_po8c8",
+        "ref": "EWS-001",
+        "title": "Implementation timeline at risk due to delayed UAT sign-off",
+        "projectId": "",
+        "clientId": "",
+        "projectName": "Navi Implementation",
+        "clientName": "Navi",
+        "triggerType": "timeline_delay",
+        "severity": "high",
+        "likelihood": "likely",
+        "riskScore": 9,
+        "description": "Client sign-off for Phase 1 UAT has been delayed by 3 weeks, pushing the go-live date to risk.",
+        "rootCause": "Client UAT team was deprioritised due to internal Diwali freeze.",
+        "currentImpact": "Phase 1 go-live is now at risk. Downstream Phase 2 planning is blocked.",
+        "potentialImpact": "",
+        "correctivePlan": "Schedule emergency sync with Navi PMO. Seek conditional sign-off for completed modules.",
+        "internalOwner": "Azhar M",
+        "clientContact": "Priya Sharma",
+        "targetResolutionDate": "2026-08-15",
+        "reviewFrequency": "weekly",
+        "status": "ews_raised",
+        "escalationLevel": "team",
+        "raisedBy": "Azhar M",
+        "actionItems": [],
+        "updates": [
+          {
+            "id": "ews_1785528354551_c3dz6",
+            "text": "EWS raised — Client sign-off for Phase 1 UAT has been delayed by 3 weeks, pushing the go-live",
+            "author": "Azhar M",
+            "type": "created",
+            "at": "2026-07-31T20:05:54.551Z"
+          }
+        ],
+        "detectedAt": "2026-07-31T20:05:54.551Z",
+        "raisedAt": "2026-07-31T20:05:54.551Z",
+        "resolvedAt": null,
+        "closedAt": null,
+        "nextReviewDate": "",
+        "lastReviewDate": "",
+        "createdAt": "2026-07-31T20:05:54.551Z",
+        "updatedAt": "2026-07-31T20:05:54.551Z"
+      }
+    ],
+    "nextEwsId": 2,
+    "activity": [
+      {
+        "type": "ews_raised",
+        "msg": "EWS \"Implementation timeline at risk due to delayed UAT sign-off\" raised",
+        "at": "2026-07-31T20:05:54.551Z",
+        "ewsId": "ews_1785528354551_po8c8",
+        "projectId": "",
+        "clientId": ""
+      }
+    ]
+  },
+  "rocketlane": {
+    "snapshots": [
+      {
+        "id": 1,
+        "type": "weekly",
+        "label": "Week of 3 Aug 2026 (auto)",
+        "capturedAt": "2026-08-09T15:00:25.767Z",
+        "projects": [
+          {
+            "projectId": 1253735,
+            "projectName": "Rocketlane - Implementation project",
+            "status": "In progress",
+            "completionPct": 24,
+            "dueDate": "2026-09-30",
+            "customer": "Test - Rocketlane"
+          },
+          {
+            "projectId": 1284572,
+            "projectName": "Ads Cash & Collection",
+            "status": "In progress",
+            "completionPct": 89,
+            "dueDate": "2026-07-31",
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1292320,
+            "projectName": "AR- Jeebly",
+            "status": "In progress",
+            "completionPct": 61,
+            "dueDate": "2026-10-23",
+            "customer": "Jeebly"
+          },
+          {
+            "projectId": 1295975,
+            "projectName": "Giva - Inventory use case",
+            "status": "In progress",
+            "completionPct": 3,
+            "dueDate": "2026-09-22",
+            "customer": "Giva"
+          },
+          {
+            "projectId": 1299073,
+            "projectName": "Allocations MS",
+            "status": "Proposed",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Walmart"
+          },
+          {
+            "projectId": 1299083,
+            "projectName": "RSU IDC",
+            "status": "Proposed",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Walmart"
+          },
+          {
+            "projectId": 1302038,
+            "projectName": "Darwinbox: P1: Collection Ops",
+            "status": "Completed",
+            "completionPct": 76,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302043,
+            "projectName": "Darwinbox: P1: FP&A MIS Pre PROD",
+            "status": "Completed",
+            "completionPct": 18,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302055,
+            "projectName": "Darwinbox: P1: Profit & Loss",
+            "status": "Blocked",
+            "completionPct": 1,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302062,
+            "projectName": "Darwinbox: P1: Migration Of Portals To Dbox APP",
+            "status": "Completed",
+            "completionPct": 10,
+            "dueDate": "2026-06-24",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302105,
+            "projectName": "Darwinbox: P1: MT940 Recon Against Unpaid Invoices",
+            "status": "Blocked",
+            "completionPct": 0,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302113,
+            "projectName": "Darwinbox: P1: Master Data Management (MDM)",
+            "status": "On Hold",
+            "completionPct": 0,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1303155,
+            "projectName": "UC 1 – COD Remittance Reconciliation",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-02-24",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303169,
+            "projectName": "UC 2 & UC 3 – Prepaid Transaction Reconciliation || Prepaid Rate Card Reconciliation",
+            "status": "Blocked",
+            "completionPct": 53,
+            "dueDate": "2025-03-27",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303233,
+            "projectName": "UC 4 – Business Partner Claims Automation",
+            "status": "Blocked",
+            "completionPct": 84,
+            "dueDate": "2026-03-26",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303241,
+            "projectName": "UC 5 – Overall Claims from Delivery Partners",
+            "status": "Blocked",
+            "completionPct": 40,
+            "dueDate": "2026-07-24",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1309700,
+            "projectName": "Flipkart-CFF",
+            "status": "On Hold",
+            "completionPct": 19,
+            "dueDate": "2026-12-16",
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1309874,
+            "projectName": "Migration - to Mumbai Neo Cluster",
+            "status": "In progress",
+            "completionPct": 82,
+            "dueDate": null,
+            "customer": "Neve Jewels"
+          },
+          {
+            "projectId": 1319057,
+            "projectName": "FK TIGER - BAU",
+            "status": "In progress",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1333675,
+            "projectName": "EatFit – Production Migration (Dedicated → Shared)",
+            "status": "In progress",
+            "completionPct": 68,
+            "dueDate": "2026-08-31",
+            "customer": "EatFit"
+          },
+          {
+            "projectId": 1333721,
+            "projectName": "Purplle Enterprise SAP",
+            "status": "In progress",
+            "completionPct": 99,
+            "dueDate": null,
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1335061,
+            "projectName": "NEVE Jewels AR-Dashboard-Compliance",
+            "status": "In progress",
+            "completionPct": 69,
+            "dueDate": null,
+            "customer": "Neve Jewels"
+          },
+          {
+            "projectId": 1342705,
+            "projectName": "Darwinbox: P1: NetSuite & Gainsight Reports",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-01-30",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1342706,
+            "projectName": "Darwinbox: P1: Product Partner",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1342860,
+            "projectName": "Honasa: Incentive Operations-Managed Services",
+            "status": "In progress",
+            "completionPct": 95,
+            "dueDate": "2026-06-11",
+            "customer": "Honasa"
+          },
+          {
+            "projectId": 1344196,
+            "projectName": "AP",
+            "status": "In progress",
+            "completionPct": 20,
+            "dueDate": "2026-12-09",
+            "customer": "Jeebly"
+          },
+          {
+            "projectId": 1346705,
+            "projectName": "Yatra: Invoice Discounting",
+            "status": "In progress",
+            "completionPct": 65,
+            "dueDate": null,
+            "customer": "Yatra"
+          },
+          {
+            "projectId": 1358126,
+            "projectName": "MIS",
+            "status": "In progress",
+            "completionPct": 73,
+            "dueDate": "2026-08-31",
+            "customer": "Bluecopa--internal"
+          },
+          {
+            "projectId": 1368130,
+            "projectName": "Diversey Migration - to Mumbai Neo Cluster",
+            "status": "In progress",
+            "completionPct": 83,
+            "dueDate": null,
+            "customer": "Diversey"
+          },
+          {
+            "projectId": 1380560,
+            "projectName": "Purplle Non Enterprise Migration - to Mumbai Neo Cluster",
+            "status": "Proposed",
+            "completionPct": 41,
+            "dueDate": null,
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1385520,
+            "projectName": "Honasa: Migration Project",
+            "status": "In progress",
+            "completionPct": 69,
+            "dueDate": "2026-08-31",
+            "customer": "Honasa"
+          },
+          {
+            "projectId": 1387267,
+            "projectName": "Jubilant: Reconciliation",
+            "status": "Proposed",
+            "completionPct": 62,
+            "dueDate": "2026-08-21",
+            "customer": "Jubilant"
+          },
+          {
+            "projectId": 1398224,
+            "projectName": "Giva - Inventory",
+            "status": "In progress",
+            "completionPct": 3,
+            "dueDate": "2026-11-06",
+            "customer": "Giva"
+          }
+        ],
+        "auto": true
+      },
+      {
+        "id": 2,
+        "type": "weekly",
+        "label": "Week of 3 Aug 2026 (auto)",
+        "capturedAt": "2026-08-09T15:44:02.053Z",
+        "projects": [
+          {
+            "projectId": 1253735,
+            "projectName": "Rocketlane - Implementation project",
+            "status": "In progress",
+            "completionPct": 24,
+            "dueDate": "2026-09-30",
+            "customer": "Test - Rocketlane"
+          },
+          {
+            "projectId": 1284572,
+            "projectName": "Ads Cash & Collection",
+            "status": "In progress",
+            "completionPct": 89,
+            "dueDate": "2026-07-31",
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1292320,
+            "projectName": "AR- Jeebly",
+            "status": "In progress",
+            "completionPct": 61,
+            "dueDate": "2026-10-23",
+            "customer": "Jeebly"
+          },
+          {
+            "projectId": 1295975,
+            "projectName": "Giva - Inventory use case",
+            "status": "In progress",
+            "completionPct": 3,
+            "dueDate": "2026-09-22",
+            "customer": "Giva"
+          },
+          {
+            "projectId": 1299073,
+            "projectName": "Allocations MS",
+            "status": "Proposed",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Walmart"
+          },
+          {
+            "projectId": 1299083,
+            "projectName": "RSU IDC",
+            "status": "Proposed",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Walmart"
+          },
+          {
+            "projectId": 1302038,
+            "projectName": "Darwinbox: P1: Collection Ops",
+            "status": "Completed",
+            "completionPct": 76,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302043,
+            "projectName": "Darwinbox: P1: FP&A MIS Pre PROD",
+            "status": "Completed",
+            "completionPct": 18,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302055,
+            "projectName": "Darwinbox: P1: Profit & Loss",
+            "status": "Blocked",
+            "completionPct": 1,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302062,
+            "projectName": "Darwinbox: P1: Migration Of Portals To Dbox APP",
+            "status": "Completed",
+            "completionPct": 10,
+            "dueDate": "2026-06-24",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302105,
+            "projectName": "Darwinbox: P1: MT940 Recon Against Unpaid Invoices",
+            "status": "Blocked",
+            "completionPct": 0,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302113,
+            "projectName": "Darwinbox: P1: Master Data Management (MDM)",
+            "status": "On Hold",
+            "completionPct": 0,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1303155,
+            "projectName": "UC 1 – COD Remittance Reconciliation",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-02-24",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303169,
+            "projectName": "UC 2 & UC 3 – Prepaid Transaction Reconciliation || Prepaid Rate Card Reconciliation",
+            "status": "Blocked",
+            "completionPct": 53,
+            "dueDate": "2025-03-27",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303233,
+            "projectName": "UC 4 – Business Partner Claims Automation",
+            "status": "Blocked",
+            "completionPct": 84,
+            "dueDate": "2026-03-26",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303241,
+            "projectName": "UC 5 – Overall Claims from Delivery Partners",
+            "status": "Blocked",
+            "completionPct": 40,
+            "dueDate": "2026-07-24",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1309700,
+            "projectName": "Flipkart-CFF",
+            "status": "On Hold",
+            "completionPct": 19,
+            "dueDate": "2026-12-16",
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1309874,
+            "projectName": "Migration - to Mumbai Neo Cluster",
+            "status": "In progress",
+            "completionPct": 82,
+            "dueDate": null,
+            "customer": "Neve Jewels"
+          },
+          {
+            "projectId": 1319057,
+            "projectName": "FK TIGER - BAU",
+            "status": "In progress",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1333675,
+            "projectName": "EatFit – Production Migration (Dedicated → Shared)",
+            "status": "In progress",
+            "completionPct": 68,
+            "dueDate": "2026-08-31",
+            "customer": "EatFit"
+          },
+          {
+            "projectId": 1333721,
+            "projectName": "Purplle Enterprise SAP",
+            "status": "In progress",
+            "completionPct": 99,
+            "dueDate": null,
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1335061,
+            "projectName": "NEVE Jewels AR-Dashboard-Compliance",
+            "status": "In progress",
+            "completionPct": 69,
+            "dueDate": null,
+            "customer": "Neve Jewels"
+          },
+          {
+            "projectId": 1342705,
+            "projectName": "Darwinbox: P1: NetSuite & Gainsight Reports",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-01-30",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1342706,
+            "projectName": "Darwinbox: P1: Product Partner",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1342860,
+            "projectName": "Honasa: Incentive Operations-Managed Services",
+            "status": "In progress",
+            "completionPct": 95,
+            "dueDate": "2026-06-11",
+            "customer": "Honasa"
+          },
+          {
+            "projectId": 1344196,
+            "projectName": "AP",
+            "status": "In progress",
+            "completionPct": 20,
+            "dueDate": "2026-12-09",
+            "customer": "Jeebly"
+          },
+          {
+            "projectId": 1346705,
+            "projectName": "Yatra: Invoice Discounting",
+            "status": "In progress",
+            "completionPct": 65,
+            "dueDate": null,
+            "customer": "Yatra"
+          },
+          {
+            "projectId": 1358126,
+            "projectName": "MIS",
+            "status": "In progress",
+            "completionPct": 73,
+            "dueDate": "2026-08-31",
+            "customer": "Bluecopa--internal"
+          },
+          {
+            "projectId": 1368130,
+            "projectName": "Diversey Migration - to Mumbai Neo Cluster",
+            "status": "In progress",
+            "completionPct": 83,
+            "dueDate": null,
+            "customer": "Diversey"
+          },
+          {
+            "projectId": 1380560,
+            "projectName": "Purplle Non Enterprise Migration - to Mumbai Neo Cluster",
+            "status": "Proposed",
+            "completionPct": 41,
+            "dueDate": null,
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1385520,
+            "projectName": "Honasa: Migration Project",
+            "status": "In progress",
+            "completionPct": 69,
+            "dueDate": "2026-08-31",
+            "customer": "Honasa"
+          },
+          {
+            "projectId": 1387267,
+            "projectName": "Jubilant: Reconciliation",
+            "status": "Proposed",
+            "completionPct": 62,
+            "dueDate": "2026-08-21",
+            "customer": "Jubilant"
+          },
+          {
+            "projectId": 1398224,
+            "projectName": "Giva - Inventory",
+            "status": "In progress",
+            "completionPct": 3,
+            "dueDate": "2026-11-06",
+            "customer": "Giva"
+          }
+        ],
+        "auto": true
+      },
+      {
+        "id": 3,
+        "type": "weekly",
+        "label": "Week of 3 Aug 2026 (auto)",
+        "capturedAt": "2026-08-09T16:07:58.159Z",
+        "projects": [
+          {
+            "projectId": 1253735,
+            "projectName": "Rocketlane - Implementation project",
+            "status": "In progress",
+            "completionPct": 24,
+            "dueDate": "2026-09-30",
+            "customer": "Test - Rocketlane"
+          },
+          {
+            "projectId": 1284572,
+            "projectName": "Ads Cash & Collection",
+            "status": "In progress",
+            "completionPct": 89,
+            "dueDate": "2026-07-31",
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1292320,
+            "projectName": "AR- Jeebly",
+            "status": "In progress",
+            "completionPct": 61,
+            "dueDate": "2026-10-23",
+            "customer": "Jeebly"
+          },
+          {
+            "projectId": 1295975,
+            "projectName": "Giva - Inventory use case",
+            "status": "In progress",
+            "completionPct": 3,
+            "dueDate": "2026-09-22",
+            "customer": "Giva"
+          },
+          {
+            "projectId": 1299073,
+            "projectName": "Allocations MS",
+            "status": "Proposed",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Walmart"
+          },
+          {
+            "projectId": 1299083,
+            "projectName": "RSU IDC",
+            "status": "Proposed",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Walmart"
+          },
+          {
+            "projectId": 1302038,
+            "projectName": "Darwinbox: P1: Collection Ops",
+            "status": "Completed",
+            "completionPct": 76,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302043,
+            "projectName": "Darwinbox: P1: FP&A MIS Pre PROD",
+            "status": "Completed",
+            "completionPct": 18,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302055,
+            "projectName": "Darwinbox: P1: Profit & Loss",
+            "status": "Blocked",
+            "completionPct": 1,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302062,
+            "projectName": "Darwinbox: P1: Migration Of Portals To Dbox APP",
+            "status": "Completed",
+            "completionPct": 10,
+            "dueDate": "2026-06-24",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302105,
+            "projectName": "Darwinbox: P1: MT940 Recon Against Unpaid Invoices",
+            "status": "Blocked",
+            "completionPct": 0,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302113,
+            "projectName": "Darwinbox: P1: Master Data Management (MDM)",
+            "status": "On Hold",
+            "completionPct": 0,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1303155,
+            "projectName": "UC 1 – COD Remittance Reconciliation",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-02-24",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303169,
+            "projectName": "UC 2 & UC 3 – Prepaid Transaction Reconciliation || Prepaid Rate Card Reconciliation",
+            "status": "Blocked",
+            "completionPct": 53,
+            "dueDate": "2025-03-27",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303233,
+            "projectName": "UC 4 – Business Partner Claims Automation",
+            "status": "Blocked",
+            "completionPct": 84,
+            "dueDate": "2026-03-26",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303241,
+            "projectName": "UC 5 – Overall Claims from Delivery Partners",
+            "status": "Blocked",
+            "completionPct": 40,
+            "dueDate": "2026-07-24",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1309700,
+            "projectName": "Flipkart-CFF",
+            "status": "On Hold",
+            "completionPct": 19,
+            "dueDate": "2026-12-16",
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1309874,
+            "projectName": "Migration - to Mumbai Neo Cluster",
+            "status": "In progress",
+            "completionPct": 82,
+            "dueDate": null,
+            "customer": "Neve Jewels"
+          },
+          {
+            "projectId": 1319057,
+            "projectName": "FK TIGER - BAU",
+            "status": "In progress",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1333675,
+            "projectName": "EatFit – Production Migration (Dedicated → Shared)",
+            "status": "In progress",
+            "completionPct": 68,
+            "dueDate": "2026-08-31",
+            "customer": "EatFit"
+          },
+          {
+            "projectId": 1333721,
+            "projectName": "Purplle Enterprise SAP",
+            "status": "In progress",
+            "completionPct": 99,
+            "dueDate": null,
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1335061,
+            "projectName": "NEVE Jewels AR-Dashboard-Compliance",
+            "status": "In progress",
+            "completionPct": 69,
+            "dueDate": null,
+            "customer": "Neve Jewels"
+          },
+          {
+            "projectId": 1342705,
+            "projectName": "Darwinbox: P1: NetSuite & Gainsight Reports",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-01-30",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1342706,
+            "projectName": "Darwinbox: P1: Product Partner",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1342860,
+            "projectName": "Honasa: Incentive Operations-Managed Services",
+            "status": "In progress",
+            "completionPct": 95,
+            "dueDate": "2026-06-11",
+            "customer": "Honasa"
+          },
+          {
+            "projectId": 1344196,
+            "projectName": "AP",
+            "status": "In progress",
+            "completionPct": 20,
+            "dueDate": "2026-12-09",
+            "customer": "Jeebly"
+          },
+          {
+            "projectId": 1346705,
+            "projectName": "Yatra: Invoice Discounting",
+            "status": "In progress",
+            "completionPct": 65,
+            "dueDate": null,
+            "customer": "Yatra"
+          },
+          {
+            "projectId": 1358126,
+            "projectName": "MIS",
+            "status": "In progress",
+            "completionPct": 73,
+            "dueDate": "2026-08-31",
+            "customer": "Bluecopa--internal"
+          },
+          {
+            "projectId": 1368130,
+            "projectName": "Diversey Migration - to Mumbai Neo Cluster",
+            "status": "In progress",
+            "completionPct": 83,
+            "dueDate": null,
+            "customer": "Diversey"
+          },
+          {
+            "projectId": 1380560,
+            "projectName": "Purplle Non Enterprise Migration - to Mumbai Neo Cluster",
+            "status": "Proposed",
+            "completionPct": 41,
+            "dueDate": null,
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1385520,
+            "projectName": "Honasa: Migration Project",
+            "status": "In progress",
+            "completionPct": 69,
+            "dueDate": "2026-08-31",
+            "customer": "Honasa"
+          },
+          {
+            "projectId": 1387267,
+            "projectName": "Jubilant: Reconciliation",
+            "status": "Proposed",
+            "completionPct": 62,
+            "dueDate": "2026-08-21",
+            "customer": "Jubilant"
+          },
+          {
+            "projectId": 1398224,
+            "projectName": "Giva - Inventory",
+            "status": "In progress",
+            "completionPct": 3,
+            "dueDate": "2026-11-06",
+            "customer": "Giva"
+          }
+        ],
+        "auto": true
+      },
+      {
+        "id": 4,
+        "type": "weekly",
+        "label": "Week of 3 Aug 2026 (auto)",
+        "capturedAt": "2026-08-09T16:18:57.588Z",
+        "projects": [
+          {
+            "projectId": 1253735,
+            "projectName": "Rocketlane - Implementation project",
+            "status": "In progress",
+            "completionPct": 24,
+            "dueDate": "2026-09-30",
+            "customer": "Test - Rocketlane"
+          },
+          {
+            "projectId": 1284572,
+            "projectName": "Ads Cash & Collection",
+            "status": "In progress",
+            "completionPct": 89,
+            "dueDate": "2026-07-31",
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1292320,
+            "projectName": "AR- Jeebly",
+            "status": "In progress",
+            "completionPct": 61,
+            "dueDate": "2026-10-23",
+            "customer": "Jeebly"
+          },
+          {
+            "projectId": 1295975,
+            "projectName": "Giva - Inventory use case",
+            "status": "In progress",
+            "completionPct": 3,
+            "dueDate": "2026-09-22",
+            "customer": "Giva"
+          },
+          {
+            "projectId": 1299073,
+            "projectName": "Allocations MS",
+            "status": "Proposed",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Walmart"
+          },
+          {
+            "projectId": 1299083,
+            "projectName": "RSU IDC",
+            "status": "Proposed",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Walmart"
+          },
+          {
+            "projectId": 1302038,
+            "projectName": "Darwinbox: P1: Collection Ops",
+            "status": "Completed",
+            "completionPct": 76,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302043,
+            "projectName": "Darwinbox: P1: FP&A MIS Pre PROD",
+            "status": "Completed",
+            "completionPct": 18,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302055,
+            "projectName": "Darwinbox: P1: Profit & Loss",
+            "status": "Blocked",
+            "completionPct": 1,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302062,
+            "projectName": "Darwinbox: P1: Migration Of Portals To Dbox APP",
+            "status": "Completed",
+            "completionPct": 10,
+            "dueDate": "2026-06-24",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302105,
+            "projectName": "Darwinbox: P1: MT940 Recon Against Unpaid Invoices",
+            "status": "Blocked",
+            "completionPct": 0,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302113,
+            "projectName": "Darwinbox: P1: Master Data Management (MDM)",
+            "status": "On Hold",
+            "completionPct": 0,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1303155,
+            "projectName": "UC 1 – COD Remittance Reconciliation",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-02-24",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303169,
+            "projectName": "UC 2 & UC 3 – Prepaid Transaction Reconciliation || Prepaid Rate Card Reconciliation",
+            "status": "Blocked",
+            "completionPct": 53,
+            "dueDate": "2025-03-27",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303233,
+            "projectName": "UC 4 – Business Partner Claims Automation",
+            "status": "Blocked",
+            "completionPct": 84,
+            "dueDate": "2026-03-26",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303241,
+            "projectName": "UC 5 – Overall Claims from Delivery Partners",
+            "status": "Blocked",
+            "completionPct": 40,
+            "dueDate": "2026-07-24",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1309700,
+            "projectName": "Flipkart-CFF",
+            "status": "On Hold",
+            "completionPct": 19,
+            "dueDate": "2026-12-16",
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1309874,
+            "projectName": "Migration - to Mumbai Neo Cluster",
+            "status": "In progress",
+            "completionPct": 82,
+            "dueDate": null,
+            "customer": "Neve Jewels"
+          },
+          {
+            "projectId": 1319057,
+            "projectName": "FK TIGER - BAU",
+            "status": "In progress",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1333675,
+            "projectName": "EatFit – Production Migration (Dedicated → Shared)",
+            "status": "In progress",
+            "completionPct": 68,
+            "dueDate": "2026-08-31",
+            "customer": "EatFit"
+          },
+          {
+            "projectId": 1333721,
+            "projectName": "Purplle Enterprise SAP",
+            "status": "In progress",
+            "completionPct": 99,
+            "dueDate": null,
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1335061,
+            "projectName": "NEVE Jewels AR-Dashboard-Compliance",
+            "status": "In progress",
+            "completionPct": 69,
+            "dueDate": null,
+            "customer": "Neve Jewels"
+          },
+          {
+            "projectId": 1342705,
+            "projectName": "Darwinbox: P1: NetSuite & Gainsight Reports",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-01-30",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1342706,
+            "projectName": "Darwinbox: P1: Product Partner",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1342860,
+            "projectName": "Honasa: Incentive Operations-Managed Services",
+            "status": "In progress",
+            "completionPct": 95,
+            "dueDate": "2026-06-11",
+            "customer": "Honasa"
+          },
+          {
+            "projectId": 1344196,
+            "projectName": "AP",
+            "status": "In progress",
+            "completionPct": 20,
+            "dueDate": "2026-12-09",
+            "customer": "Jeebly"
+          },
+          {
+            "projectId": 1346705,
+            "projectName": "Yatra: Invoice Discounting",
+            "status": "In progress",
+            "completionPct": 65,
+            "dueDate": null,
+            "customer": "Yatra"
+          },
+          {
+            "projectId": 1358126,
+            "projectName": "MIS",
+            "status": "In progress",
+            "completionPct": 73,
+            "dueDate": "2026-08-31",
+            "customer": "Bluecopa--internal"
+          },
+          {
+            "projectId": 1368130,
+            "projectName": "Diversey Migration - to Mumbai Neo Cluster",
+            "status": "In progress",
+            "completionPct": 83,
+            "dueDate": null,
+            "customer": "Diversey"
+          },
+          {
+            "projectId": 1380560,
+            "projectName": "Purplle Non Enterprise Migration - to Mumbai Neo Cluster",
+            "status": "Proposed",
+            "completionPct": 41,
+            "dueDate": null,
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1385520,
+            "projectName": "Honasa: Migration Project",
+            "status": "In progress",
+            "completionPct": 69,
+            "dueDate": "2026-08-31",
+            "customer": "Honasa"
+          },
+          {
+            "projectId": 1387267,
+            "projectName": "Jubilant: Reconciliation",
+            "status": "Proposed",
+            "completionPct": 62,
+            "dueDate": "2026-08-21",
+            "customer": "Jubilant"
+          },
+          {
+            "projectId": 1398224,
+            "projectName": "Giva - Inventory",
+            "status": "In progress",
+            "completionPct": 3,
+            "dueDate": "2026-11-06",
+            "customer": "Giva"
+          }
+        ],
+        "auto": true
+      },
+      {
+        "id": 5,
+        "type": "weekly",
+        "label": "Week of 3 Aug 2026 (auto)",
+        "capturedAt": "2026-08-09T16:28:05.009Z",
+        "projects": [
+          {
+            "projectId": 1253735,
+            "projectName": "Rocketlane - Implementation project",
+            "status": "In progress",
+            "completionPct": 24,
+            "dueDate": "2026-09-30",
+            "customer": "Test - Rocketlane"
+          },
+          {
+            "projectId": 1284572,
+            "projectName": "Ads Cash & Collection",
+            "status": "In progress",
+            "completionPct": 89,
+            "dueDate": "2026-07-31",
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1292320,
+            "projectName": "AR- Jeebly",
+            "status": "In progress",
+            "completionPct": 61,
+            "dueDate": "2026-10-23",
+            "customer": "Jeebly"
+          },
+          {
+            "projectId": 1295975,
+            "projectName": "Giva - Inventory use case",
+            "status": "In progress",
+            "completionPct": 3,
+            "dueDate": "2026-09-22",
+            "customer": "Giva"
+          },
+          {
+            "projectId": 1299073,
+            "projectName": "Allocations MS",
+            "status": "Proposed",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Walmart"
+          },
+          {
+            "projectId": 1299083,
+            "projectName": "RSU IDC",
+            "status": "Proposed",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Walmart"
+          },
+          {
+            "projectId": 1302038,
+            "projectName": "Darwinbox: P1: Collection Ops",
+            "status": "Completed",
+            "completionPct": 76,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302043,
+            "projectName": "Darwinbox: P1: FP&A MIS Pre PROD",
+            "status": "Completed",
+            "completionPct": 18,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302055,
+            "projectName": "Darwinbox: P1: Profit & Loss",
+            "status": "Blocked",
+            "completionPct": 1,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302062,
+            "projectName": "Darwinbox: P1: Migration Of Portals To Dbox APP",
+            "status": "Completed",
+            "completionPct": 10,
+            "dueDate": "2026-06-24",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302105,
+            "projectName": "Darwinbox: P1: MT940 Recon Against Unpaid Invoices",
+            "status": "Blocked",
+            "completionPct": 0,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302113,
+            "projectName": "Darwinbox: P1: Master Data Management (MDM)",
+            "status": "On Hold",
+            "completionPct": 0,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1303155,
+            "projectName": "UC 1 – COD Remittance Reconciliation",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-02-24",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303169,
+            "projectName": "UC 2 & UC 3 – Prepaid Transaction Reconciliation || Prepaid Rate Card Reconciliation",
+            "status": "Blocked",
+            "completionPct": 53,
+            "dueDate": "2025-03-27",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303233,
+            "projectName": "UC 4 – Business Partner Claims Automation",
+            "status": "Blocked",
+            "completionPct": 84,
+            "dueDate": "2026-03-26",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303241,
+            "projectName": "UC 5 – Overall Claims from Delivery Partners",
+            "status": "Blocked",
+            "completionPct": 40,
+            "dueDate": "2026-07-24",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1309700,
+            "projectName": "Flipkart-CFF",
+            "status": "On Hold",
+            "completionPct": 19,
+            "dueDate": "2026-12-16",
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1309874,
+            "projectName": "Migration - to Mumbai Neo Cluster",
+            "status": "In progress",
+            "completionPct": 82,
+            "dueDate": null,
+            "customer": "Neve Jewels"
+          },
+          {
+            "projectId": 1319057,
+            "projectName": "FK TIGER - BAU",
+            "status": "In progress",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1333675,
+            "projectName": "EatFit – Production Migration (Dedicated → Shared)",
+            "status": "In progress",
+            "completionPct": 68,
+            "dueDate": "2026-08-31",
+            "customer": "EatFit"
+          },
+          {
+            "projectId": 1333721,
+            "projectName": "Purplle Enterprise SAP",
+            "status": "In progress",
+            "completionPct": 99,
+            "dueDate": null,
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1335061,
+            "projectName": "NEVE Jewels AR-Dashboard-Compliance",
+            "status": "In progress",
+            "completionPct": 69,
+            "dueDate": null,
+            "customer": "Neve Jewels"
+          },
+          {
+            "projectId": 1342705,
+            "projectName": "Darwinbox: P1: NetSuite & Gainsight Reports",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-01-30",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1342706,
+            "projectName": "Darwinbox: P1: Product Partner",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1342860,
+            "projectName": "Honasa: Incentive Operations-Managed Services",
+            "status": "In progress",
+            "completionPct": 95,
+            "dueDate": "2026-06-11",
+            "customer": "Honasa"
+          },
+          {
+            "projectId": 1344196,
+            "projectName": "AP",
+            "status": "In progress",
+            "completionPct": 20,
+            "dueDate": "2026-12-09",
+            "customer": "Jeebly"
+          },
+          {
+            "projectId": 1346705,
+            "projectName": "Yatra: Invoice Discounting",
+            "status": "In progress",
+            "completionPct": 65,
+            "dueDate": null,
+            "customer": "Yatra"
+          },
+          {
+            "projectId": 1358126,
+            "projectName": "MIS",
+            "status": "In progress",
+            "completionPct": 73,
+            "dueDate": "2026-08-31",
+            "customer": "Bluecopa--internal"
+          },
+          {
+            "projectId": 1368130,
+            "projectName": "Diversey Migration - to Mumbai Neo Cluster",
+            "status": "In progress",
+            "completionPct": 83,
+            "dueDate": null,
+            "customer": "Diversey"
+          },
+          {
+            "projectId": 1380560,
+            "projectName": "Purplle Non Enterprise Migration - to Mumbai Neo Cluster",
+            "status": "Proposed",
+            "completionPct": 41,
+            "dueDate": null,
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1385520,
+            "projectName": "Honasa: Migration Project",
+            "status": "In progress",
+            "completionPct": 69,
+            "dueDate": "2026-08-31",
+            "customer": "Honasa"
+          },
+          {
+            "projectId": 1387267,
+            "projectName": "Jubilant: Reconciliation",
+            "status": "Proposed",
+            "completionPct": 62,
+            "dueDate": "2026-08-21",
+            "customer": "Jubilant"
+          },
+          {
+            "projectId": 1398224,
+            "projectName": "Giva - Inventory",
+            "status": "In progress",
+            "completionPct": 3,
+            "dueDate": "2026-11-06",
+            "customer": "Giva"
+          }
+        ],
+        "auto": true
+      },
+      {
+        "id": 6,
+        "type": "weekly",
+        "label": "Week of 3 Aug 2026 (auto)",
+        "capturedAt": "2026-08-09T16:31:11.697Z",
+        "projects": [
+          {
+            "projectId": 1253735,
+            "projectName": "Rocketlane - Implementation project",
+            "status": "In progress",
+            "completionPct": 24,
+            "dueDate": "2026-09-30",
+            "customer": "Test - Rocketlane"
+          },
+          {
+            "projectId": 1284572,
+            "projectName": "Ads Cash & Collection",
+            "status": "In progress",
+            "completionPct": 89,
+            "dueDate": "2026-07-31",
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1292320,
+            "projectName": "AR- Jeebly",
+            "status": "In progress",
+            "completionPct": 61,
+            "dueDate": "2026-10-23",
+            "customer": "Jeebly"
+          },
+          {
+            "projectId": 1295975,
+            "projectName": "Giva - Inventory use case",
+            "status": "In progress",
+            "completionPct": 3,
+            "dueDate": "2026-09-22",
+            "customer": "Giva"
+          },
+          {
+            "projectId": 1299073,
+            "projectName": "Allocations MS",
+            "status": "Proposed",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Walmart"
+          },
+          {
+            "projectId": 1299083,
+            "projectName": "RSU IDC",
+            "status": "Proposed",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Walmart"
+          },
+          {
+            "projectId": 1302038,
+            "projectName": "Darwinbox: P1: Collection Ops",
+            "status": "Completed",
+            "completionPct": 76,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302043,
+            "projectName": "Darwinbox: P1: FP&A MIS Pre PROD",
+            "status": "Completed",
+            "completionPct": 18,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302055,
+            "projectName": "Darwinbox: P1: Profit & Loss",
+            "status": "Blocked",
+            "completionPct": 1,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302062,
+            "projectName": "Darwinbox: P1: Migration Of Portals To Dbox APP",
+            "status": "Completed",
+            "completionPct": 10,
+            "dueDate": "2026-06-24",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302105,
+            "projectName": "Darwinbox: P1: MT940 Recon Against Unpaid Invoices",
+            "status": "Blocked",
+            "completionPct": 0,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1302113,
+            "projectName": "Darwinbox: P1: Master Data Management (MDM)",
+            "status": "On Hold",
+            "completionPct": 0,
+            "dueDate": "2026-08-31",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1303155,
+            "projectName": "UC 1 – COD Remittance Reconciliation",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-02-24",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303169,
+            "projectName": "UC 2 & UC 3 – Prepaid Transaction Reconciliation || Prepaid Rate Card Reconciliation",
+            "status": "Blocked",
+            "completionPct": 53,
+            "dueDate": "2025-03-27",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303233,
+            "projectName": "UC 4 – Business Partner Claims Automation",
+            "status": "Blocked",
+            "completionPct": 84,
+            "dueDate": "2026-03-26",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1303241,
+            "projectName": "UC 5 – Overall Claims from Delivery Partners",
+            "status": "Blocked",
+            "completionPct": 40,
+            "dueDate": "2026-07-24",
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1309700,
+            "projectName": "Flipkart-CFF",
+            "status": "On Hold",
+            "completionPct": 19,
+            "dueDate": "2026-12-16",
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1309874,
+            "projectName": "Migration - to Mumbai Neo Cluster",
+            "status": "In progress",
+            "completionPct": 82,
+            "dueDate": null,
+            "customer": "Neve Jewels"
+          },
+          {
+            "projectId": 1319057,
+            "projectName": "FK TIGER - BAU",
+            "status": "In progress",
+            "completionPct": 0,
+            "dueDate": null,
+            "customer": "Flipkart"
+          },
+          {
+            "projectId": 1333675,
+            "projectName": "EatFit – Production Migration (Dedicated → Shared)",
+            "status": "In progress",
+            "completionPct": 68,
+            "dueDate": "2026-08-31",
+            "customer": "EatFit"
+          },
+          {
+            "projectId": 1333721,
+            "projectName": "Purplle Enterprise SAP",
+            "status": "In progress",
+            "completionPct": 99,
+            "dueDate": null,
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1335061,
+            "projectName": "NEVE Jewels AR-Dashboard-Compliance",
+            "status": "In progress",
+            "completionPct": 69,
+            "dueDate": null,
+            "customer": "Neve Jewels"
+          },
+          {
+            "projectId": 1342705,
+            "projectName": "Darwinbox: P1: NetSuite & Gainsight Reports",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-01-30",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1342706,
+            "projectName": "Darwinbox: P1: Product Partner",
+            "status": "Completed",
+            "completionPct": 100,
+            "dueDate": "2026-07-17",
+            "customer": "Darwinbox"
+          },
+          {
+            "projectId": 1342860,
+            "projectName": "Honasa: Incentive Operations-Managed Services",
+            "status": "In progress",
+            "completionPct": 95,
+            "dueDate": "2026-06-11",
+            "customer": "Honasa"
+          },
+          {
+            "projectId": 1344196,
+            "projectName": "AP",
+            "status": "In progress",
+            "completionPct": 20,
+            "dueDate": "2026-12-09",
+            "customer": "Jeebly"
+          },
+          {
+            "projectId": 1346705,
+            "projectName": "Yatra: Invoice Discounting",
+            "status": "In progress",
+            "completionPct": 65,
+            "dueDate": null,
+            "customer": "Yatra"
+          },
+          {
+            "projectId": 1358126,
+            "projectName": "MIS",
+            "status": "In progress",
+            "completionPct": 73,
+            "dueDate": "2026-08-31",
+            "customer": "Bluecopa--internal"
+          },
+          {
+            "projectId": 1368130,
+            "projectName": "Diversey Migration - to Mumbai Neo Cluster",
+            "status": "In progress",
+            "completionPct": 83,
+            "dueDate": null,
+            "customer": "Diversey"
+          },
+          {
+            "projectId": 1380560,
+            "projectName": "Purplle Non Enterprise Migration - to Mumbai Neo Cluster",
+            "status": "Proposed",
+            "completionPct": 41,
+            "dueDate": null,
+            "customer": "Purplle"
+          },
+          {
+            "projectId": 1385520,
+            "projectName": "Honasa: Migration Project",
+            "status": "In progress",
+            "completionPct": 69,
+            "dueDate": "2026-08-31",
+            "customer": "Honasa"
+          },
+          {
+            "projectId": 1387267,
+            "projectName": "Jubilant: Reconciliation",
+            "status": "Proposed",
+            "completionPct": 62,
+            "dueDate": "2026-08-21",
+            "customer": "Jubilant"
+          },
+          {
+            "projectId": 1398224,
+            "projectName": "Giva - Inventory",
+            "status": "In progress",
+            "completionPct": 3,
+            "dueDate": "2026-11-06",
+            "customer": "Giva"
+          }
+        ],
+        "auto": true
+      }
+    ],
+    "nextSnapshotId": 7,
+    "findings": [],
+    "nextFindingId": 2
   }
 }
