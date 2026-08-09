@@ -10776,41 +10776,81 @@ function rlTabTimeline(body) {
 function rlTabTrends(body) {
   body.innerHTML='<div style="text-align:center;padding:40px;"><div class="rl-spin" style="margin:0 auto;"></div></div>';
   fetch('/api/rocketlane/snapshots').then(function(r){return r.json();}).then(function(d){
-    var snaps=(d.snapshots||[]).slice(0,20);
-    if(!snaps.length){body.innerHTML=rlCard('<div style="padding:48px;text-align:center;font-size:13px;color:#8a92a0;">No snapshots yet. Snapshots capture automatically every Monday at 9:50 AM IST.</div>');return;}
+    var allSnaps=(d.snapshots||[]);
+    if(!allSnaps.length){body.innerHTML=rlCard('<div style="padding:48px;text-align:center;font-size:13px;color:#8a92a0;">No snapshots yet. Snapshots auto-capture every Monday at 9:50 AM IST.</div>');return;}
+
     function avg(s){if(!s||!s.projects||!s.projects.length)return 0;var std=s.projects.filter(function(p){return p.completionPct!=null;});if(!std.length)return 0;return Math.round(std.reduce(function(a,p){return a+p.completionPct;},0)/std.length);}
-    var l=snaps[0],pw=snaps[1]||null,pm=snaps.find(function(s){return new Date(s.capturedAt)<new Date(Date.now()-28*864e5);})||null;
-    var la=avg(l),wa=avg(pw),ma=avg(pm);
     function delta(a,b){if(b===null)return '<span style="color:#8a92a0">—</span>';var d=a-b,c=d>0?'#22c55e':d<0?'#dc2626':'#8a92a0';return '<span style="color:'+c+';font-weight:700;">'+(d>0?'+':'')+d+'%</span>';}
-    body.innerHTML=
-      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">'+
-        [{label:'Latest Avg Progress',val:la+'%',sub:new Date(l.capturedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'})},
-         {label:'Week over Week',val:delta(la,pw?wa:null),sub:pw?'vs '+new Date(pw.capturedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'No prior week snapshot'},
-         {label:'Month over Month',val:delta(la,pm?ma:null),sub:pm?'vs '+new Date(pm.capturedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'No prior month snapshot'}
-        ].map(function(k){return rlCard('<div style="padding:20px;"><div style="font-size:10px;color:#8a92a0;letter-spacing:.08em;text-transform:uppercase;font-family:\'DM Mono\',monospace;margin-bottom:10px;">'+k.label+'</div><div style="font-size:28px;font-weight:800;color:#f0f0f6;letter-spacing:-.5px;">'+k.val+'</div><div style="font-size:11px;color:#8a92a0;margin-top:6px;">'+k.sub+'</div></div>');}).join('')+
-      '</div>'+
-      rlCard(
-        '<div style="padding:12px 16px 4px;font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Snapshot History</div>'+
-        '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">'+
-          '<thead><tr>'+
-            '<th style="padding:8px 16px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Date</th>'+
-            '<th style="padding:8px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Type</th>'+
-            '<th style="padding:8px 16px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Label</th>'+
-            '<th style="padding:8px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:center;font-family:\'DM Mono\',monospace;">Avg %</th>'+
-            '<th style="padding:8px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:center;font-family:\'DM Mono\',monospace;">Projects</th>'+
-          '</tr></thead>'+
-          '<tbody>'+snaps.map(function(s){
-            var a=avg(s), dt=new Date(s.capturedAt);
-            return '<tr style="border-top:1px solid rgba(255,255,255,.04);">'+
-              '<td style="padding:10px 16px;font-size:12px;color:#f0f0f6;">'+dt.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+'</td>'+
-              '<td style="padding:10px 8px;"><span style="font-size:11px;font-family:\'DM Mono\',monospace;background:rgba(255,255,255,.06);border-radius:4px;padding:2px 6px;color:#8a92a0;">'+s.type+'</span></td>'+
-              '<td style="padding:10px 16px;font-size:12px;color:#f0f0f6;">'+s.label+'</td>'+
-              '<td style="padding:10px 8px;text-align:center;font-size:12px;font-family:\'DM Mono\',monospace;color:#c9a227;font-weight:600;">'+a+'%</td>'+
-              '<td style="padding:10px 8px;text-align:center;font-size:12px;color:#8a92a0;font-family:\'DM Mono\',monospace;">'+(s.projects||[]).length+'</td>'+
-            '</tr>';
-          }).join('')+'</tbody>'+
-        '</table></div>'
-      );
+
+    function periodSnaps(period){
+      if(period==='weekly') return allSnaps;
+      var map={};
+      allSnaps.forEach(function(s){
+        var dt=new Date(s.capturedAt);
+        var key=period==='monthly'
+          ? dt.getUTCFullYear()+'-'+('0'+(dt.getUTCMonth()+1)).slice(-2)
+          : dt.getUTCFullYear()+'-Q'+(Math.floor(dt.getUTCMonth()/3)+1);
+        if(!map[key]) map[key]=s; // snaps are newest-first; first = most recent in period
+      });
+      return Object.values(map);
+    }
+
+    function render(period){
+      var snaps=periodSnaps(period).slice(0,20);
+      var l=snaps[0], p1=snaps[1]||null;
+      // Second comparison point: ~1 month / ~1 quarter / ~1 year back
+      var p2=period==='weekly'
+        ? (allSnaps.find(function(s){return new Date(s.capturedAt)<new Date(Date.now()-28*864e5);})||null)
+        : period==='monthly' ? (snaps[3]||null)
+        : (snaps[4]||null);
+      var la=avg(l), p1a=p1?avg(p1):null, p2a=p2?avg(p2):null;
+      var kpi1=period==='weekly'?'Week over Week':period==='monthly'?'Month over Month':'Quarter over Quarter';
+      var kpi2=period==='weekly'?'Month over Month':period==='monthly'?'Quarter over Quarter':'Year over Year';
+      var p1sub=p1?'vs '+new Date(p1.capturedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'No prior snapshot';
+      var p2sub=p2?'vs '+new Date(p2.capturedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'No prior snapshot';
+
+      function btn(p,label){
+        var a=p===period;
+        return '<button onclick="rlTrendPeriod(\''+p+'\')" style="background:'+(a?'rgba(201,162,39,.15)':'transparent')+';border:1px solid '+(a?'rgba(201,162,39,.4)':'rgba(255,255,255,.1)')+';color:'+(a?'#c9a227':'rgba(255,255,255,.4)')+';border-radius:6px;padding:5px 16px;font-size:12px;font-family:\'DM Sans\',sans-serif;font-weight:'+(a?'600':'400')+';cursor:pointer;transition:all .15s;">'+label+'</button>';
+      }
+
+      body.innerHTML=
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">'+
+          '<div style="font-size:11px;color:#8a92a0;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">View by period</div>'+
+          '<div style="display:flex;gap:6px;">'+btn('weekly','Weekly')+btn('monthly','Monthly')+btn('quarterly','Quarterly')+'</div>'+
+        '</div>'+
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">'+
+          [{label:'Latest Avg Progress',val:la+'%',sub:new Date(l.capturedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'})},
+           {label:kpi1,val:delta(la,p1a),sub:p1sub},
+           {label:kpi2,val:delta(la,p2a),sub:p2sub}
+          ].map(function(k){return rlCard('<div style="padding:20px;"><div style="font-size:10px;color:#8a92a0;letter-spacing:.08em;text-transform:uppercase;font-family:\'DM Mono\',monospace;margin-bottom:10px;">'+k.label+'</div><div style="font-size:28px;font-weight:800;color:#f0f0f6;letter-spacing:-.5px;">'+k.val+'</div><div style="font-size:11px;color:#8a92a0;margin-top:6px;">'+k.sub+'</div></div>');}).join('')+
+        '</div>'+
+        rlCard(
+          '<div style="padding:12px 16px 4px;font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Snapshot History — '+period.charAt(0).toUpperCase()+period.slice(1)+' View ('+(snaps.length)+' entries)</div>'+
+          '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">'+
+            '<thead><tr>'+
+              '<th style="padding:8px 16px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Date</th>'+
+              '<th style="padding:8px 16px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Label</th>'+
+              '<th style="padding:8px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:center;font-family:\'DM Mono\',monospace;">Avg %</th>'+
+              '<th style="padding:8px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:center;font-family:\'DM Mono\',monospace;">Change</th>'+
+              '<th style="padding:8px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:center;font-family:\'DM Mono\',monospace;">Projects</th>'+
+            '</tr></thead>'+
+            '<tbody>'+snaps.map(function(s,i){
+              var a=avg(s),pa=snaps[i+1]?avg(snaps[i+1]):null,dt=new Date(s.capturedAt);
+              return '<tr style="border-top:1px solid rgba(255,255,255,.04);">'+
+                '<td style="padding:10px 16px;font-size:12px;color:#f0f0f6;">'+dt.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+'</td>'+
+                '<td style="padding:10px 16px;font-size:12px;color:#f0f0f6;">'+s.label+'</td>'+
+                '<td style="padding:10px 8px;text-align:center;font-size:12px;font-family:\'DM Mono\',monospace;color:#c9a227;font-weight:600;">'+a+'%</td>'+
+                '<td style="padding:10px 8px;text-align:center;font-size:12px;font-family:\'DM Mono\',monospace;">'+delta(a,pa)+'</td>'+
+                '<td style="padding:10px 8px;text-align:center;font-size:12px;color:#8a92a0;font-family:\'DM Mono\',monospace;">'+(s.projects||[]).length+'</td>'+
+              '</tr>';
+            }).join('')+'</tbody>'+
+          '</table></div>'
+        );
+    }
+
+    window.rlTrendPeriod=function(p){render(p);};
+    render('weekly');
   }).catch(function(e){body.innerHTML='<div style="text-align:center;padding:32px;color:#dc2626;font-size:13px;">'+e.message+'</div>';});
 }
 

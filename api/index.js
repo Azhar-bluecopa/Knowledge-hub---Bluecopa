@@ -3951,4 +3951,77 @@ app.get('/api/debug/db', async (req, res) => {
   });
 });
 
+// ── Rocketlane Weekly Auto-Snapshot (triggered by Vercel Cron) ───────────────
+async function rlAutoSnapshot() {
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) return { ok: false, reason: 'no_api_key' };
+  await getDbInitPromise();
+  ensureRL();
+
+  const now = new Date();
+  const dayOfWeek = now.getUTCDay();
+  const mondayUTC = new Date(now);
+  mondayUTC.setUTCDate(now.getUTCDate() - ((dayOfWeek + 6) % 7));
+  mondayUTC.setUTCHours(0, 0, 0, 0);
+  const thisWeekKey = mondayUTC.toISOString().slice(0, 10);
+
+  const alreadyDone = db.rocketlane.snapshots.some(s =>
+    s.type === 'weekly' && s.capturedAt && s.capturedAt.startsWith(thisWeekKey)
+  );
+  if (alreadyDone) return { ok: true, skipped: true, reason: 'already_captured_this_week' };
+
+  try {
+    const [projResp, allTasks] = await Promise.all([
+      fetch('https://api.rocketlane.com/api/1.0/projects?pageSize=100', { headers: { 'api-key': apiKey, 'Accept': 'application/json' } }),
+      rlFetchAllTasks(apiKey)
+    ]);
+    if (!projResp.ok) return { ok: false, reason: 'api_error', status: projResp.status };
+    const data = await projResp.json();
+    const allProjects = Array.isArray(data.data) ? data.data : Object.values(data.data || {});
+
+    const tasksByProject = {};
+    allTasks.forEach(t => {
+      const pid = t.project?.projectId;
+      if (!pid) return;
+      if (!tasksByProject[pid]) tasksByProject[pid] = [];
+      tasksByProject[pid].push(t);
+    });
+
+    const projects = allProjects.map(p => {
+      const progress = rlBuildProjectProgress(tasksByProject[p.projectId] || []);
+      return {
+        projectId: p.projectId, projectName: p.projectName,
+        status: p.status?.label || 'Unknown',
+        isStandard: progress.isStandard,
+        completionPct: progress.overallPct,
+        dueDate: p.dueDate || null,
+        customer: p.customer?.companyName || null
+      };
+    });
+
+    const label = `Week of ${mondayUTC.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} (auto)`;
+    const snap = {
+      id: db.rocketlane.nextSnapshotId++,
+      type: 'weekly', label,
+      capturedAt: now.toISOString(),
+      projects, auto: true
+    };
+    db.rocketlane.snapshots.push(snap);
+    await saveDB(db);
+    return { ok: true, label, projectCount: projects.length };
+  } catch (e) {
+    return { ok: false, reason: 'exception', message: e.message };
+  }
+}
+
+// Vercel Cron: every Monday at 4:20 AM UTC (9:50 AM IST)
+// Schedule defined in vercel.json: "20 4 * * 1"
+app.get('/api/cron/rl-snapshot', async (req, res) => {
+  const secret = process.env.CRON_SECRET;
+  if (secret && req.headers.authorization !== `Bearer ${secret}`)
+    return res.status(401).json({ error: 'Unauthorized' });
+  const result = await rlAutoSnapshot();
+  res.json(result);
+});
+
 module.exports = app;
