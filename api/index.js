@@ -2831,8 +2831,98 @@ function rlBuildProjectProgress(projectTasks) {
     overallPct: isStandard ? overallCompleted : null,
     phases: isStandard ? phases : null,
     mainTaskCount: mainFound.length,
-    totalTasks: projectTasks.length
+    totalTasks: projectTasks.length,
+    _mainFound: mainFound
   };
+}
+
+function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) {
+  const issues = [];
+  const today = new Date(); today.setHours(0,0,0,0);
+  const projectStatus = (project.status?.label || '').toLowerCase();
+  const mainFound = progress._mainFound || [];
+  const allMainTasks = Object.entries(progress.phases || {})
+    .flatMap(([ph, obj]) => obj.tasks.map(t => ({ ...t, _phase: ph })));
+
+  if (!progress.isStandard) {
+    const matchedOrders = new Set(mainFound.map(t => t._mt?.order).filter(Boolean));
+    const matchedPhases = new Set(mainFound.map(t => t._mt?.phase).filter(Boolean));
+    ['engage','drive','enable','convert'].forEach(ph => {
+      if (!matchedPhases.has(ph))
+        issues.push({ severity:'high', category:'structure', task:null, phase:ph, issue:`Phase missing: ${ph}` });
+    });
+    RL_METHODOLOGY.forEach(mt => {
+      if (!matchedOrders.has(mt.order))
+        issues.push({ severity:'high', category:'structure', task:null, phase:mt.phase, issue:`Standard task missing: "${mt.key}"` });
+    });
+    const orderCounts = {};
+    mainFound.forEach(t => { const o = t._mt?.order; if (o) orderCounts[o] = (orderCounts[o]||0)+1; });
+    Object.entries(orderCounts).filter(([,c])=>c>1).forEach(([o]) => {
+      const mt = RL_METHODOLOGY.find(m => m.order === parseInt(o));
+      if (mt) issues.push({ severity:'medium', category:'structure', task:null, phase:mt.phase, issue:`Duplicate task slot: "${mt.key}"` });
+    });
+    if (!issues.length)
+      issues.push({ severity:'medium', category:'structure', task:null, phase:null, issue:'Non-standard structure — fewer than 7 methodology tasks found' });
+    return issues;
+  }
+
+  allMainTasks.filter(t => !t.owner && !t.completed).forEach(t =>
+    issues.push({ severity:'medium', category:'ownership', task:t.taskName, phase:t._phase, issue:'No owner assigned' })
+  );
+
+  allProjectTasks.forEach(t => {
+    const lbl = t.status?.label || '';
+    if ((lbl === 'In Progress' || lbl === 'In progress') && t.dueDate) {
+      const due = new Date(t.dueDate * 1000);
+      if (due < today) {
+        const days = Math.floor((today - due) / 86400000);
+        issues.push({ severity:'high', category:'overdue', task:t.taskName, phase:null, issue:`In-progress, ${days}d overdue` });
+      }
+    }
+  });
+
+  allProjectTasks.forEach(t => {
+    if ((t.status?.label||'') === 'Blocked')
+      issues.push({ severity:'high', category:'blocked', task:t.taskName, phase:null, issue:'Task is blocked' });
+  });
+
+  allMainTasks.filter(t => !t.completed).forEach(t => {
+    if (!t.dueDate)
+      issues.push({ severity:'medium', category:'dates', task:t.taskName, phase:t._phase, issue:'No due date set' });
+    else if (!t.startDate)
+      issues.push({ severity:'low', category:'dates', task:t.taskName, phase:t._phase, issue:'No start date set' });
+  });
+
+  if (project.dueDate) {
+    const projDue = new Date(project.dueDate * 1000);
+    allMainTasks.filter(t => !t.completed && t.dueDate).forEach(t => {
+      if (new Date(t.dueDate * 1000) > projDue)
+        issues.push({ severity:'medium', category:'dates', task:t.taskName, phase:t._phase, issue:'Due after project deadline' });
+    });
+  }
+
+  if (prevSnapProject && prevSnapProject.completionPct != null && progress.overallPct != null
+      && prevSnapProject.completionPct === progress.overallPct && progress.overallPct < 100)
+    issues.push({ severity:'medium', category:'stale', task:null, phase:null, issue:'No methodology progress since last snapshot' });
+
+  if (projectStatus.includes('complet') || projectStatus.includes('done')) {
+    const openMain = allMainTasks.filter(t => !t.completed);
+    if (openMain.length)
+      issues.push({ severity:'high', category:'completion', task:null, phase:null, issue:`Project marked complete — ${openMain.length} standard task(s) still open` });
+  }
+
+  if (progress.overallPct === 100) {
+    const cTask = allProjectTasks.find(t => {
+      const n = (t.taskName||'').toLowerCase().trim();
+      return n === 'project closure' || n.startsWith('project closure');
+    });
+    if (!cTask)
+      issues.push({ severity:'low', category:'closure', task:null, phase:null, issue:'All delivery tasks complete — Project Closure task not found' });
+    else if ((cTask.status?.label||'') !== 'Completed')
+      issues.push({ severity:'medium', category:'closure', task:'Project Closure', phase:null, issue:`Delivery complete but Project Closure is ${cTask.status?.label||'open'}` });
+  }
+
+  return issues;
 }
 
 let rlFullCache = null;
@@ -3166,23 +3256,16 @@ app.get('/api/rocketlane/projects-full', async (req, res) => {
       tasksByProject[pid].push(t);
     });
 
+    await getDbInitPromise();
+    ensureRL();
+    const prevSnap = db.rocketlane.snapshots.length > 0
+      ? db.rocketlane.snapshots[db.rocketlane.snapshots.length - 1]
+      : null;
+
     const projects = allProjects.map(p => {
       const progress = rlBuildProjectProgress(tasksByProject[p.projectId] || []);
-      // Compliance: overdue main tasks and tasks without due dates
-      const issues = [];
-      if (progress.isStandard && progress.phases) {
-        const today = new Date(); today.setHours(0,0,0,0);
-        Object.entries(progress.phases).forEach(([ph, phObj]) => {
-          phObj.tasks.forEach(t => {
-            if (!t.completed && t.dueDate && new Date(t.dueDate * 1000) < today)
-              issues.push({ severity: 'high', phase: ph, task: t.taskName, issue: 'Overdue', daysOverdue: Math.floor((today - new Date(t.dueDate * 1000)) / 86400000) });
-            if (!t.dueDate && !t.completed)
-              issues.push({ severity: 'medium', phase: ph, task: t.taskName, issue: 'No due date' });
-          });
-        });
-      }
-      if (!progress.isStandard)
-        issues.push({ severity: 'low', phase: null, task: null, issue: 'Non-standard structure' });
+      const prevSnapProject = prevSnap?.projects?.find(proj => proj.projectId === p.projectId) || null;
+      const issues = rlBuildCompliance(p, progress, tasksByProject[p.projectId] || [], prevSnapProject);
       return {
         projectId: p.projectId, projectName: p.projectName,
         status: p.status?.label || 'Unknown',
