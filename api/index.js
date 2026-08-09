@@ -3069,7 +3069,9 @@ app.put('/api/feedback/:id', async (req, res) => {
 
 // ── Rocketlane Snapshots ──────────────────────────────────────────────────────
 function ensureRL() {
-  if (!db.rocketlane) db.rocketlane = { snapshots: [], nextSnapshotId: 1 };
+  if (!db.rocketlane) db.rocketlane = { snapshots: [], nextSnapshotId: 1, findings: [], nextFindingId: 1 };
+  if (!db.rocketlane.findings) db.rocketlane.findings = [];
+  if (!db.rocketlane.nextFindingId) db.rocketlane.nextFindingId = 1;
 }
 
 app.get('/api/rocketlane/snapshots', (req, res) => {
@@ -3096,6 +3098,45 @@ app.delete('/api/rocketlane/snapshots/:id', async (req, res) => {
   ensureRL();
   const id = parseInt(req.params.id);
   db.rocketlane.snapshots = db.rocketlane.snapshots.filter(s => s.id !== id);
+  await saveDB(db);
+  res.json({ ok: true });
+});
+
+// ── Rocketlane Findings ───────────────────────────────────────────────────────
+app.get('/api/rocketlane/findings', (req, res) => {
+  ensureRL();
+  res.json({ findings: db.rocketlane.findings });
+});
+
+app.post('/api/rocketlane/findings', async (req, res) => {
+  ensureRL();
+  const { projectId, projectName, checkId, title, severity, description } = req.body;
+  const finding = {
+    id: db.rocketlane.nextFindingId++,
+    projectId, projectName, checkId,
+    title: title || 'Untitled', severity: severity || 'medium',
+    description: description || '',
+    status: 'open', createdAt: new Date().toISOString()
+  };
+  db.rocketlane.findings.push(finding);
+  await saveDB(db);
+  res.status(201).json({ ok: true, finding });
+});
+
+app.put('/api/rocketlane/findings/:id', async (req, res) => {
+  ensureRL();
+  const id = parseInt(req.params.id);
+  const idx = db.rocketlane.findings.findIndex(f => f.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'not_found' });
+  db.rocketlane.findings[idx] = { ...db.rocketlane.findings[idx], ...req.body, id };
+  await saveDB(db);
+  res.json({ ok: true, finding: db.rocketlane.findings[idx] });
+});
+
+app.delete('/api/rocketlane/findings/:id', async (req, res) => {
+  ensureRL();
+  const id = parseInt(req.params.id);
+  db.rocketlane.findings = db.rocketlane.findings.filter(f => f.id !== id);
   await saveDB(db);
   res.json({ ok: true });
 });
