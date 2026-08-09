@@ -2836,8 +2836,8 @@ function buildEnrollmentEmail({ memberName, courseIds, dueDate, enrolledBy, path
 
   function phaseSection(label, sublabel, color, phaseIds) {
     if (!phaseIds.length) return '';
-    return `<tr><td colspan="2" style="padding:0">
-  <div style="background:#f9fafb;border-left:3px solid ${color};border-radius:0 6px 6px 0;padding:9px 14px;margin-bottom:1px">
+    return `<tr><td colspan="4" style="padding:0">
+  <div style="background:#f9fafb;border-left:4px solid ${color};padding:10px 16px;margin-bottom:1px">
     <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${color}">${label}</div>
     <div style="font-size:12px;color:#6b7280;margin-top:2px">${sublabel}</div>
   </div>
@@ -2846,7 +2846,7 @@ function buildEnrollmentEmail({ memberName, courseIds, dueDate, enrolledBy, path
 
   const coursesBlock = (p1.length || p2.length)
     ? phaseSection('Phase 1 · Finance Studio',   `${p1.length} modules — core finance process knowledge`, '#7c3aed', p1) +
-      (p1.length && p2.length ? '<tr><td colspan="2" style="padding:6px 0;text-align:center;color:#9ca3af;font-size:13px;background:#fff">↓&nbsp; then move to</td></tr>' : '') +
+      (p1.length && p2.length ? '<tr><td colspan="4" style="padding:6px 0;text-align:center;color:#9ca3af;font-size:13px;background:#fff">↓&nbsp; then move to</td></tr>' : '') +
       phaseSection('Phase 2 · Platform Mastery', `${p2.length} modules — Bluecopa features &amp; integrations`, '#0891b2', p2)
     : ids.map(id => courseRow(id)).join('');
 
