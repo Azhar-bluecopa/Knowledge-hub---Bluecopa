@@ -9778,6 +9778,8 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
       var params = new URLSearchParams(window.location.search);
       var courseId = params.get('course');
       if (courseId) {
+        // Strip ?course= immediately so a page refresh doesn't re-open the course
+        history.replaceState(null, '', location.pathname);
         setTimeout(function(){
           if (typeof dwGoLearning === 'function') dwGoLearning();
           setTimeout(function(){
