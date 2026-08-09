@@ -2589,6 +2589,123 @@ app.delete('/api/rocketlane/snapshots/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Rocketlane Findings ───────────────────────────────────────────────────────
+function ensureRLFindings() {
+  if (!db.rocketlane) db.rocketlane = { snapshots: [], nextSnapshotId: 1 };
+  if (!db.rocketlane.findings) db.rocketlane.findings = [];
+  if (!db.rocketlane.nextFindingId) db.rocketlane.nextFindingId = 1;
+}
+
+app.get('/api/rocketlane/findings', (req, res) => {
+  ensureRLFindings();
+  res.json({ findings: db.rocketlane.findings });
+});
+
+app.post('/api/rocketlane/findings', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureRLFindings();
+  const { projectId, projectName, title, description, severity, owner, status, checkId } = req.body;
+  if (!title) return res.status(400).json({ error: 'title required' });
+  const finding = {
+    id: db.rocketlane.nextFindingId++,
+    projectId, projectName, title, description: description || '', severity: severity || 'medium',
+    owner: owner || '', checkId: checkId || null,
+    status: status || 'open',
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), resolvedAt: null
+  };
+  db.rocketlane.findings.push(finding);
+  await saveDB(db);
+  res.json({ ok: true, finding });
+});
+
+app.put('/api/rocketlane/findings/:id', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureRLFindings();
+  const id = parseInt(req.params.id);
+  const idx = db.rocketlane.findings.findIndex(f => f.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  const existing = db.rocketlane.findings[idx];
+  const updated = { ...existing, ...req.body, id, updatedAt: new Date().toISOString() };
+  if (req.body.status === 'resolved' && !existing.resolvedAt) updated.resolvedAt = new Date().toISOString();
+  db.rocketlane.findings[idx] = updated;
+  await saveDB(db);
+  res.json({ ok: true, finding: updated });
+});
+
+app.delete('/api/rocketlane/findings/:id', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureRLFindings();
+  const id = parseInt(req.params.id);
+  db.rocketlane.findings = db.rocketlane.findings.filter(f => f.id !== id);
+  await saveDB(db);
+  res.json({ ok: true });
+});
+
+// ── Rocketlane Auto-Snapshot (Monday 9:50 AM IST = 4:20 AM UTC) ──────────────
+async function rlAutoSnapshot() {
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) return;
+  ensureRL();
+
+  // Check if we already have a weekly snapshot from this Monday
+  const now = new Date();
+  const dayOfWeek = now.getUTCDay(); // 0=Sun, 1=Mon
+  const mondayUTC = new Date(now);
+  mondayUTC.setUTCDate(now.getUTCDate() - ((dayOfWeek + 6) % 7));
+  mondayUTC.setUTCHours(0, 0, 0, 0);
+  const thisWeekKey = mondayUTC.toISOString().slice(0, 10);
+
+  const alreadyDone = db.rocketlane.snapshots.some(s =>
+    s.type === 'weekly' && s.capturedAt && s.capturedAt.startsWith(thisWeekKey)
+  );
+  if (alreadyDone) return;
+
+  try {
+    const [projResp, completionMap] = await Promise.all([
+      fetch('https://api.rocketlane.com/api/1.0/projects?pageSize=100', { headers: { 'api-key': apiKey, 'Accept': 'application/json' } }),
+      rlFetchCompletionMap(apiKey)
+    ]);
+    if (!projResp.ok) return;
+    const data = await projResp.json();
+    const projects = (data.data || []).map(p => {
+      const comp = completionMap[p.projectId];
+      const completionPct = (comp && comp.total > 0)
+        ? Math.round((comp.completed + comp.inprogress * 0.5) / comp.total * 100)
+        : ((p.status?.label||'').toLowerCase().includes('complet') ? 100 : 0);
+      return {
+        projectId: p.projectId, projectName: p.projectName,
+        status: p.status?.label || 'Unknown',
+        completionPct, dueDate: p.dueDate || null,
+        customer: p.customer?.companyName || null
+      };
+    });
+
+    const label = `Week of ${mondayUTC.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} (auto)`;
+    const snap = {
+      id: db.rocketlane.nextSnapshotId++,
+      type: 'weekly', label,
+      capturedAt: now.toISOString(),
+      projects, auto: true
+    };
+    db.rocketlane.snapshots.push(snap);
+    await saveDB(db);
+    console.log(`[RL auto-snapshot] Captured weekly snapshot: ${label} (${projects.length} projects)`);
+  } catch (e) {
+    console.warn('[RL auto-snapshot] Failed:', e.message);
+  }
+}
+
+// Schedule: check every minute, run snapshot when it's Monday and time is 4:20–4:21 UTC (9:50–9:51 IST)
+setInterval(async () => {
+  const now = new Date();
+  if (now.getUTCDay() === 1 && now.getUTCHours() === 4 && now.getUTCMinutes() === 20) {
+    await rlAutoSnapshot();
+  }
+}, 60 * 1000);
+
+// Also try on startup (catches missed Monday if server was restarted after 4:20 UTC on Monday)
+setTimeout(rlAutoSnapshot, 15000);
+
 // ── Proxy Login ───────────────────────────────────────────────────────────────
 function ensureProxyLogs() { if (!db.proxyLogs) db.proxyLogs = []; }
 

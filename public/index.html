@@ -6916,7 +6916,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=13" defer></script>
-  <script src="/app.js?v=69" defer></script>
+  <script src="/app.js?v=70" defer></script>
   <script src="/uat.js?v=58" defer></script>
   <script src="/ews.js?v=8" defer></script>
 
@@ -9899,6 +9899,386 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
 });
+</script>
+
+<!-- ═══ ROCKETLANE COMPLIANCE + FINDINGS ═══ -->
+<script>
+// ── Compliance check engine ────────────────────────────────────────────────
+var RL_CHECKS = [
+  // A · Project Setup
+  { id:'customer',    label:'Customer assigned',           cat:'Setup',
+    fn: function(p){ return !!(typeof p.customer==='string'?p.customer:p.customer&&p.customer.companyName); } },
+  { id:'owner',       label:'Owner assigned',              cat:'Setup',
+    fn: function(p){ return !!(p.owner&&p.owner.emailId); } },
+  { id:'team',        label:'Team size ≥ 2 members',       cat:'Setup',
+    fn: function(p){ return (p.teamMembers&&p.teamMembers.members||[]).length>=2; } },
+  { id:'methodology', label:'Implementation methodology',  cat:'Setup',
+    fn: function(p,g){ var v=g('Implementation methodology'); return v===null?null:!!v; } },
+  { id:'category',    label:'Project category set',        cat:'Setup',
+    fn: function(p,g){ var v=g('Project category'); return v===null?null:!!v; } },
+
+  // B · Timeline & Milestones
+  { id:'kickoff',     label:'Kick-off date recorded',      cat:'Timeline',
+    fn: function(p,g){ return !!(g('Kick-off')||g('Kickoff Date')||g('Kick-off - Planned')); } },
+  { id:'golive',      label:'Go-live date planned',        cat:'Timeline',
+    fn: function(p,g){ return !!(g('Go-Live - Planned')||g('Estimated Go-live Date')); } },
+  { id:'planning_ot', label:'Planning sign-off on time',   cat:'Timeline',
+    fn: function(p,g){ var a=g('Planning sign-off'),pl=g('Planning sign-off - Planned'); if(!a||!pl)return null; return new Date(a)<=new Date(pl); } },
+  { id:'build_ot',    label:'Build & Config on time',      cat:'Timeline',
+    fn: function(p,g){ var a=g('Build & Config Sign-off'),pl=g('Build & Config Sign-off - Planned'); if(!a||!pl)return null; return new Date(a)<=new Date(pl); } },
+  { id:'test_ot',     label:'Testing sign-off on time',    cat:'Timeline',
+    fn: function(p,g){ var a=g('Testing & Live sign-off'),pl=g('Testing & Live sign-off - Planned'); if(!a||!pl)return null; return new Date(a)<=new Date(pl); } },
+
+  // C · Data Quality
+  { id:'scope',       label:'Scope finalized',             cat:'Data Quality',
+    fn: function(p,g){ var v=g('Scope Finalized'); return v===true||v==='true'||v==='True'; } },
+  { id:'fin_tower',   label:'Finance tower defined',       cat:'Data Quality',
+    fn: function(p,g){ var v=g('Finance Tower'); return v===null?null:(Array.isArray(v)?v.length>0:!!v); } },
+  { id:'duration',    label:'Project duration set',        cat:'Data Quality',
+    fn: function(p,g){ var v=g('Project Duration (weeks)'); return v===null?null:parseFloat(v)>0; } },
+  { id:'deployment',  label:'Deployment type set',         cat:'Data Quality',
+    fn: function(p,g){ var v=g('Deployment type'); return v===null?null:!!v; } },
+  { id:'no_delay',    label:'No delay reason flagged',     cat:'Data Quality',
+    fn: function(p,g){ var v=g('Reason for Delay'); if(v===null||v===false)return null; var t=(v+'').replace(/<[^>]+>/g,'').trim(); return !t; } },
+
+  // D · Delivery Health
+  { id:'not_overdue', label:'Not overdue',                 cat:'Health',
+    fn: function(p){ if(p.status==='completed')return true; return !(p.dueDate&&new Date(p.dueDate)<new Date()); } },
+  { id:'rag',         label:'RAG status not Red',          cat:'Health',
+    fn: function(p,g){ var v=g('RAG Status'); return v===null?null:v!==3&&v!=='3'; } },
+  { id:'timeline_ok', label:'Timeline status not Red',     cat:'Health',
+    fn: function(p,g){ var v=g('Timeline Status'); return v===null?null:v!==3&&v!=='3'; } },
+  { id:'cr_doc',      label:'CR status documented',        cat:'Health',
+    fn: function(p,g){ var v=g('Change Request Required'); return v===null?null:!v; } },
+  { id:'progress',    label:'Progress > 0% (active)',      cat:'Health',
+    fn: function(p){ if(p.status==='completed'||p.status==='proposed')return null; return (p.completionPct||0)>0; } }
+];
+
+function rlGetField(proj, label) {
+  var fields = proj.fields || [];
+  for (var i=0; i<fields.length; i++) {
+    if (fields[i].fieldLabel === label) return fields[i].fieldValue;
+  }
+  return null;
+}
+
+function rlComputeCompliance(proj) {
+  var g = function(l){ return rlGetField(proj, l); };
+  var results = RL_CHECKS.map(function(chk) {
+    var r;
+    try { r = chk.fn(proj, g); } catch(e) { r = null; }
+    return { id:chk.id, label:chk.label, cat:chk.cat, result:r };
+  });
+  var applicable = results.filter(function(r){ return r.result !== null; });
+  var passed = applicable.filter(function(r){ return r.result === true; }).length;
+  var failed = applicable.filter(function(r){ return r.result === false; });
+  var score = applicable.length > 0 ? Math.round(passed / applicable.length * 100) : 100;
+  return { checks: results, passed: passed, applicable: applicable.length, failed: failed, score: score };
+}
+
+function rlScoreColor(score) {
+  if (score >= 85) return '#22c55e';
+  if (score >= 60) return '#f59e0b';
+  return '#ef4444';
+}
+
+function rlRenderCompliance() {
+  var el = document.getElementById('rl2CompPane');
+  if (!el) return;
+  var data = typeof rlProjectsData !== 'undefined' ? rlProjectsData : [];
+  if (!data.length) {
+    el.innerHTML = '<div style="text-align:center;padding:64px;color:rgba(255,255,255,.25);font-size:14px;">No projects loaded</div>';
+    return;
+  }
+
+  var results = data.map(function(p) {
+    var c = rlComputeCompliance(p);
+    return { proj: p, comp: c };
+  }).sort(function(a,b){ return a.comp.score - b.comp.score; });
+
+  var critical = results.filter(function(r){ return r.comp.score < 60; }).length;
+  var warning  = results.filter(function(r){ return r.comp.score >= 60 && r.comp.score < 85; }).length;
+  var healthy  = results.filter(function(r){ return r.comp.score >= 85; }).length;
+  var avgScore = Math.round(results.reduce(function(s,r){ return s + r.comp.score; }, 0) / results.length);
+
+  var summaryHtml =
+    '<div class="rlc-summary">' +
+      '<div class="rlc-sum-card" style="border-color:rgba(239,68,68,.3)">' +
+        '<div class="rlc-sum-n" style="color:#ef4444">' + critical + '</div>' +
+        '<div class="rlc-sum-l">Critical</div>' +
+        '<div class="rlc-sum-sub">&lt; 60% score</div>' +
+      '</div>' +
+      '<div class="rlc-sum-card" style="border-color:rgba(245,158,11,.3)">' +
+        '<div class="rlc-sum-n" style="color:#f59e0b">' + warning + '</div>' +
+        '<div class="rlc-sum-l">Needs Attention</div>' +
+        '<div class="rlc-sum-sub">60–84% score</div>' +
+      '</div>' +
+      '<div class="rlc-sum-card" style="border-color:rgba(34,197,94,.3)">' +
+        '<div class="rlc-sum-n" style="color:#22c55e">' + healthy + '</div>' +
+        '<div class="rlc-sum-l">Healthy</div>' +
+        '<div class="rlc-sum-sub">≥ 85% score</div>' +
+      '</div>' +
+      '<div class="rlc-sum-card" style="border-color:rgba(255,255,255,.1)">' +
+        '<div class="rlc-sum-n" style="color:' + rlScoreColor(avgScore) + '">' + avgScore + '%</div>' +
+        '<div class="rlc-sum-l">Portfolio Score</div>' +
+        '<div class="rlc-sum-sub">' + results.length + ' projects</div>' +
+      '</div>' +
+    '</div>';
+
+  var rowsHtml = results.map(function(r) {
+    var p = r.proj, c = r.comp;
+    var color = rlScoreColor(c.score);
+    var icon = (p.projectName||'').split(/\s+/).slice(0,2).map(function(w){return w[0];}).join('').toUpperCase() || '?';
+    var ic = (typeof rlIconColor === 'function') ? rlIconColor(p.projectName||'') : {bg:'rgba(255,255,255,.08)',text:'rgba(255,255,255,.5)'};
+    var failTags = c.failed.slice(0,3).map(function(f){
+      return '<span class="rlc-fail-tag">' + f.label + '</span>';
+    }).join('');
+    var moreCount = c.failed.length - 3;
+    var barW = c.score;
+    return '<div class="rlc-proj-row" onclick="rlShowComplianceDetail(\'' + p.projectId + '\')">' +
+      '<div class="rl2-proj-icon" style="background:' + ic.bg + ';color:' + ic.text + '">' + icon + '</div>' +
+      '<div class="rlc-proj-info">' +
+        '<div class="rl2-proj-name">' + (p.projectName||'') + '</div>' +
+        '<div class="rl2-proj-client">' + (p.customer&&p.customer.companyName ? p.customer.companyName : '') + '</div>' +
+      '</div>' +
+      '<div class="rlc-score-col">' +
+        '<div class="rlc-score-num" style="color:' + color + '">' + c.score + '%</div>' +
+        '<div class="rlc-score-bar"><div class="rlc-score-fill" style="width:' + barW + '%;background:' + color + '"></div></div>' +
+        '<div style="font-size:9px;font-family:\'DM Mono\',monospace;color:rgba(255,255,255,.2);margin-top:2px">' + c.passed + '/' + c.applicable + ' checks</div>' +
+      '</div>' +
+      '<div class="rlc-issues-col">' + failTags + (moreCount > 0 ? '<span class="rlc-fail-more">+' + moreCount + ' more</span>' : '') + '</div>' +
+    '</div>';
+  }).join('');
+
+  el.innerHTML =
+    '<div style="font-size:9px;font-family:\'DM Mono\',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:12px">20 compliance checks · ' + results.length + ' projects</div>' +
+    summaryHtml +
+    '<div class="rlc-proj-grid">' + rowsHtml + '</div>';
+}
+
+function rlShowComplianceDetail(projectId) {
+  var data = typeof rlProjectsData !== 'undefined' ? rlProjectsData : [];
+  var proj = data.find(function(p){ return String(p.projectId) === String(projectId); });
+  if (!proj) return;
+  var c = rlComputeCompliance(proj);
+  var cats = ['Setup','Timeline','Data Quality','Health'];
+  var catHtml = cats.map(function(cat) {
+    var checks = c.checks.filter(function(ch){ return ch.cat === cat; });
+    var rows = checks.map(function(ch) {
+      var icon = ch.result === null ? '—' : ch.result ? '✓' : '✗';
+      var col = ch.result === null ? 'rgba(255,255,255,.2)' : ch.result ? '#22c55e' : '#ef4444';
+      var bg = ch.result === false ? 'rgba(239,68,68,.06)' : 'transparent';
+      return '<div class="rlc-det-row" style="background:' + bg + '">' +
+        '<span class="rlc-det-icon" style="color:' + col + '">' + icon + '</span>' +
+        '<span class="rlc-det-label">' + ch.label + '</span>' +
+        (ch.result === false ? '<span class="rlc-det-action" onclick="rlCreateFindingFromCheck(\'' + proj.projectId + '\',\'' + ch.id + '\',\'' + ch.label + '\')" title="Log finding">+ Log</span>' : '') +
+      '</div>';
+    }).join('');
+    return '<div class="rlc-det-cat"><div class="rlc-det-cat-hd">' + cat + '</div>' + rows + '</div>';
+  }).join('');
+
+  var modal = document.createElement('div');
+  modal.id = 'rlcDetailModal';
+  modal.className = 'rlc-modal-wrap';
+  modal.innerHTML =
+    '<div class="rlc-modal">' +
+      '<div class="rlc-modal-hd">' +
+        '<div>' +
+          '<div style="font-size:16px;font-weight:800;color:#fff">' + (proj.projectName||'') + '</div>' +
+          '<div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:2px">Compliance Score: <span style="color:' + rlScoreColor(c.score) + ';font-weight:700">' + c.score + '%</span> · ' + c.passed + '/' + c.applicable + ' checks passed</div>' +
+        '</div>' +
+        '<button onclick="document.getElementById(\'rlcDetailModal\').remove()" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:6px;padding:6px 12px;font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer">Close ✕</button>' +
+      '</div>' +
+      '<div class="rlc-det-body">' + catHtml + '</div>' +
+    '</div>';
+  modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+// ── Findings workflow ────────────────────────────────────────────────────────
+var rlFindings = [];
+var rlFindingsLoaded = false;
+
+async function rlLoadFindings() {
+  try {
+    var r = await fetch('/api/rocketlane/findings');
+    if (r.ok) { var d = await r.json(); rlFindings = d.findings || []; }
+  } catch(e) {}
+  rlFindingsLoaded = true;
+}
+
+async function rlSaveFinding(finding) {
+  var method = finding.id ? 'PUT' : 'POST';
+  var url = finding.id ? '/api/rocketlane/findings/' + finding.id : '/api/rocketlane/findings';
+  var r = await fetch(url, {
+    method: method,
+    headers: { 'Content-Type': 'application/json', 'x-user-email': (typeof getAdminPwd === 'function' ? getAdminPwd() : '') || '' },
+    body: JSON.stringify(finding)
+  });
+  return r.ok ? r.json() : null;
+}
+
+async function rlCreateFindingFromCheck(projectId, checkId, checkLabel) {
+  var data = typeof rlProjectsData !== 'undefined' ? rlProjectsData : [];
+  var proj = data.find(function(p){ return String(p.projectId) === String(projectId); });
+  var projName = proj ? proj.projectName : projectId;
+  rlOpenFindingForm({ projectId: projectId, projectName: projName, checkId: checkId, title: 'Compliance failure: ' + checkLabel });
+}
+
+function rlOpenFindingForm(prefill) {
+  prefill = prefill || {};
+  var data = typeof rlProjectsData !== 'undefined' ? rlProjectsData : [];
+  var projOptions = data.map(function(p) {
+    var sel = String(p.projectId) === String(prefill.projectId) ? ' selected' : '';
+    return '<option value="' + p.projectId + '"' + sel + '>' + (p.projectName||p.projectId) + '</option>';
+  }).join('');
+
+  var modal = document.createElement('div');
+  modal.id = 'rlFindingFormModal';
+  modal.className = 'rlc-modal-wrap';
+  modal.innerHTML =
+    '<div class="rlc-modal" style="max-width:520px">' +
+      '<div class="rlc-modal-hd">' +
+        '<div style="font-size:15px;font-weight:800;color:#fff">' + (prefill.id ? 'Edit Finding' : 'Log New Finding') + '</div>' +
+        '<button onclick="document.getElementById(\'rlFindingFormModal\').remove()" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:6px;padding:6px 12px;font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer">✕</button>' +
+      '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:14px;padding-top:4px">' +
+        '<div><div class="rlc-form-label">Project</div><select id="rlFindProj" class="rlc-form-input">' + projOptions + '</select></div>' +
+        '<div><div class="rlc-form-label">Title</div><input id="rlFindTitle" class="rlc-form-input" value="' + (prefill.title||'').replace(/"/g,'&quot;') + '" placeholder="Short description of the finding"/></div>' +
+        '<div><div class="rlc-form-label">Description</div><textarea id="rlFindDesc" class="rlc-form-input" rows="3" placeholder="Details, root cause, impact...">' + (prefill.description||'') + '</textarea></div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+          '<div><div class="rlc-form-label">Severity</div><select id="rlFindSev" class="rlc-form-input"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>' +
+          '<div><div class="rlc-form-label">Owner (email)</div><input id="rlFindOwner" class="rlc-form-input" value="' + (prefill.owner||'') + '" placeholder="owner@bluecopa.com"/></div>' +
+        '</div>' +
+        '<div style="display:flex;justify-content:flex-end;gap:8px;padding-top:4px">' +
+          '<button onclick="document.getElementById(\'rlFindingFormModal\').remove()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);border-radius:8px;padding:9px 18px;font-size:13px;font-family:\'DM Sans\',sans-serif;cursor:pointer">Cancel</button>' +
+          '<button onclick="rlSubmitFinding(' + (prefill.id||'null') + ')" style="background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.4);color:#c9a227;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;font-family:\'DM Sans\',sans-serif;cursor:pointer">Save Finding</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+async function rlSubmitFinding(existingId) {
+  var projSel = document.getElementById('rlFindProj');
+  var title = (document.getElementById('rlFindTitle')||{}).value || '';
+  var desc  = (document.getElementById('rlFindDesc')||{}).value || '';
+  var sev   = (document.getElementById('rlFindSev')||{}).value || 'medium';
+  var owner = (document.getElementById('rlFindOwner')||{}).value || '';
+  var projId = projSel ? projSel.value : '';
+  var data = typeof rlProjectsData !== 'undefined' ? rlProjectsData : [];
+  var proj = data.find(function(p){ return String(p.projectId) === String(projId); });
+
+  if (!title.trim()) { alert('Title is required'); return; }
+
+  var finding = {
+    id: existingId || null,
+    projectId: projId,
+    projectName: proj ? proj.projectName : projId,
+    title: title.trim(),
+    description: desc.trim(),
+    severity: sev,
+    owner: owner.trim(),
+    status: 'open',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  var result = await rlSaveFinding(finding);
+  if (result) {
+    document.getElementById('rlFindingFormModal')?.remove();
+    document.getElementById('rlcDetailModal')?.remove();
+    await rlLoadFindings();
+    if (document.getElementById('rl2FindPane') && document.getElementById('rl2FindPane').style.display !== 'none') {
+      rlRenderFindings();
+    }
+    if (typeof showToast === 'function') showToast('Finding logged successfully');
+  } else {
+    alert('Failed to save finding. Please try again.');
+  }
+}
+
+async function rlUpdateFindingStatus(id, status) {
+  var finding = rlFindings.find(function(f){ return f.id === id; });
+  if (!finding) return;
+  finding.status = status;
+  finding.updatedAt = new Date().toISOString();
+  if (status === 'resolved') finding.resolvedAt = new Date().toISOString();
+  await rlSaveFinding(finding);
+  await rlLoadFindings();
+  rlRenderFindings();
+}
+
+function rlRenderFindings() {
+  var el = document.getElementById('rl2FindPane');
+  if (!el) return;
+
+  if (!rlFindingsLoaded) {
+    el.innerHTML = '<div style="text-align:center;padding:48px;color:rgba(255,255,255,.3);font-size:13px;"><div class="rl-spin" style="margin:0 auto 12px"></div>Loading findings…</div>';
+    rlLoadFindings().then(function(){ rlRenderFindings(); });
+    return;
+  }
+
+  var sevColor = { critical:'#ef4444', high:'#f97316', medium:'#f59e0b', low:'#6b7280' };
+  var statusLabel = { open:'Open', in_progress:'In Progress', resolved:'Resolved', wontfix:'Won\'t Fix' };
+  var statusColor = { open:'rgba(239,68,68,.7)', in_progress:'rgba(245,158,11,.7)', resolved:'rgba(34,197,94,.7)', wontfix:'rgba(107,114,128,.5)' };
+
+  var open   = rlFindings.filter(function(f){ return f.status==='open'; });
+  var inprog = rlFindings.filter(function(f){ return f.status==='in_progress'; });
+  var res    = rlFindings.filter(function(f){ return f.status==='resolved'; });
+
+  var summaryHtml =
+    '<div class="rlc-summary" style="grid-template-columns:repeat(3,1fr)">' +
+      '<div class="rlc-sum-card" style="border-color:rgba(239,68,68,.3)"><div class="rlc-sum-n" style="color:#ef4444">' + open.length + '</div><div class="rlc-sum-l">Open</div></div>' +
+      '<div class="rlc-sum-card" style="border-color:rgba(245,158,11,.3)"><div class="rlc-sum-n" style="color:#f59e0b">' + inprog.length + '</div><div class="rlc-sum-l">In Progress</div></div>' +
+      '<div class="rlc-sum-card" style="border-color:rgba(34,197,94,.3)"><div class="rlc-sum-n" style="color:#22c55e">' + res.length + '</div><div class="rlc-sum-l">Resolved</div></div>' +
+    '</div>';
+
+  if (!rlFindings.length) {
+    el.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
+        '<div style="font-size:9px;font-family:\'DM Mono\',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.25)">Finding Resolution Tracker</div>' +
+        '<button onclick="rlOpenFindingForm()" class="rl2-capture-btn">+ Log Finding</button>' +
+      '</div>' +
+      '<div style="text-align:center;padding:64px;color:rgba(255,255,255,.2);font-size:14px;">No findings logged yet.<br><span style="font-size:12px;color:rgba(255,255,255,.12)">Compliance failures can be logged as findings for tracking.</span></div>';
+    return;
+  }
+
+  var rows = rlFindings.slice().sort(function(a,b){
+    var sOrd = {open:0,in_progress:1,resolved:2,wontfix:3};
+    var sevOrd = {critical:0,high:1,medium:2,low:3};
+    return (sOrd[a.status]||0)-(sOrd[b.status]||0) || (sevOrd[a.severity]||2)-(sevOrd[b.severity]||2);
+  }).map(function(f) {
+    var sc = sevColor[f.severity] || '#6b7280';
+    var stc = statusColor[f.status] || 'rgba(255,255,255,.3)';
+    var stl = statusLabel[f.status] || f.status;
+    var canProgress = f.status === 'open';
+    var canResolve  = f.status !== 'resolved' && f.status !== 'wontfix';
+    var dt = f.createdAt ? new Date(f.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
+    return '<div class="rlc-find-row">' +
+      '<div class="rlc-find-sev" style="background:' + sc + '22;color:' + sc + '">' + (f.severity||'').toUpperCase() + '</div>' +
+      '<div class="rlc-find-info">' +
+        '<div class="rlc-find-title">' + (f.title||'') + '</div>' +
+        '<div class="rlc-find-meta">' + (f.projectName||'') + (f.owner ? ' · ' + f.owner : '') + (dt ? ' · ' + dt : '') + '</div>' +
+        (f.description ? '<div class="rlc-find-desc">' + f.description + '</div>' : '') +
+      '</div>' +
+      '<div class="rlc-find-actions">' +
+        '<span class="rlc-find-status" style="color:' + stc + '">' + stl + '</span>' +
+        (canProgress ? '<button onclick="rlUpdateFindingStatus(' + f.id + ',\'in_progress\')" class="rlc-find-btn">→ In Progress</button>' : '') +
+        (canResolve  ? '<button onclick="rlUpdateFindingStatus(' + f.id + ',\'resolved\')" class="rlc-find-btn rlc-find-btn-green">✓ Resolve</button>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  el.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
+      '<div style="font-size:9px;font-family:\'DM Mono\',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.25)">Finding Resolution Tracker · ' + rlFindings.length + ' total</div>' +
+      '<button onclick="rlOpenFindingForm()" class="rl2-capture-btn">+ Log Finding</button>' +
+    '</div>' +
+    summaryHtml +
+    '<div class="rlc-find-grid">' + rows + '</div>';
+}
 </script>
 </body>
 </html>
