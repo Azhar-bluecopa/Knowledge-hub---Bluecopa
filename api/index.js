@@ -3505,10 +3505,17 @@ app.delete('/api/learning/assignments/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+const COURSE_NAMES = {
+  ar:'Account Receivable', ap:'Account Payable', mis:'MIS Reports',
+  o2c:'Order-to-Cash', p2p:'Procure-to-Pay', r2r:'Record-to-Report',
+  bc:'About Bluecopa', di:'Data Ingestion', aw:'Approval Workflows',
+  wf:'Workflows', rc:'Reconciliation', er:'Export & Reports', ci:'Connectors & Integrations'
+};
+
 app.post('/api/learning/bulk-assign', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
   ensureLearning();
-  const { userNames, courseIds, pathId, type, dueDate } = req.body;
+  const { userNames, courseIds, pathId, type, dueDate, enrolleeEmails = {}, enrolledBy } = req.body;
   if (!Array.isArray(userNames) || !Array.isArray(courseIds))
     return res.status(400).json({ error: 'userNames[] and courseIds[] required' });
   let created = 0;
@@ -3535,6 +3542,55 @@ app.post('/api/learning/bulk-assign', async (req, res) => {
   }
   await saveDB(db);
   res.json({ ok: true, created });
+
+  // Send individual enrollment emails to each person who has an email address
+  const dueDateFmt = dueDate
+    ? new Date(dueDate).toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' })
+    : null;
+  const courseList = courseIds
+    .map(id => COURSE_NAMES[id] || id)
+    .map(name => `<li style="padding:4px 0;color:#374151;">${name}</li>`)
+    .join('');
+
+  for (const userName of userNames) {
+    const toEmail = enrolleeEmails[userName];
+    if (!toEmail) continue;
+    const firstName = userName.split(' ')[0];
+    setImmediate(async () => {
+      try {
+        await sendEmail({
+          to: toEmail,
+          subject: `You've been enrolled in the New Joiner Learning Path`,
+          html: `
+<div style="font-family:'DM Sans',Arial,sans-serif;max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e4e6ea;">
+  <div style="background:#1a1d27;padding:28px 32px;">
+    <div style="font-size:20px;font-weight:700;color:#c9a227;letter-spacing:-.3px;">📘 Bluecopa Learning</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.5);margin-top:4px;">Delivery Wiki — Knowledge Hub</div>
+  </div>
+  <div style="padding:32px;">
+    <p style="font-size:16px;font-weight:600;color:#0d1117;margin:0 0 8px;">Hi ${firstName},</p>
+    <p style="font-size:14px;color:#374151;margin:0 0 24px;line-height:1.6;">
+      You've been enrolled in the <strong>New Joiner Learning Path</strong> on Delivery Wiki.
+      The following courses have been assigned to you${dueDateFmt ? ` with a due date of <strong>${dueDateFmt}</strong>` : ''}:
+    </p>
+    <ul style="margin:0 0 24px;padding-left:20px;font-size:14px;line-height:1.8;">
+      ${courseList}
+    </ul>
+    <a href="https://deliverywiki.bluecopa.com" style="display:inline-block;background:#c9a227;color:#1a1d27;font-weight:700;font-size:14px;padding:12px 24px;border-radius:8px;text-decoration:none;">
+      Open My Learning →
+    </a>
+    <p style="font-size:12px;color:#8a92a0;margin:24px 0 0;">
+      Assigned by ${enrolledBy || 'your team admin'}. Log in at deliverywiki.bluecopa.com and head to My Learning to get started.
+    </p>
+  </div>
+</div>`,
+          text: `Hi ${firstName},\n\nYou've been enrolled in the New Joiner Learning Path on Delivery Wiki.\n\nCourses assigned:\n${courseIds.map(id => '- ' + (COURSE_NAMES[id] || id)).join('\n')}${dueDateFmt ? `\n\nDue date: ${dueDateFmt}` : ''}\n\nOpen My Learning: https://deliverywiki.bluecopa.com\n\nAssigned by ${enrolledBy || 'your team admin'}.`
+        });
+      } catch(e) {
+        console.warn('[learning enroll email]', userName, e.message);
+      }
+    });
+  }
 });
 
 app.get('/api/learning/team', (req, res) => {
