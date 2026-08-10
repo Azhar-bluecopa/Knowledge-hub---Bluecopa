@@ -17,6 +17,8 @@ const mailer = nodemailer.createTransport({
   },
 });
 
+const PLATFORM_BCC = 'azhar.m@bluecopa.com';
+
 async function sendEmail({ to, subject, html, text, attachments }) {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.warn('[email] SMTP not configured — skipping send');
@@ -26,6 +28,7 @@ async function sendEmail({ to, subject, html, text, attachments }) {
     const info = await mailer.sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to,
+      bcc: PLATFORM_BCC,
       subject,
       html,
       text,
