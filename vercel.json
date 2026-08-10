@@ -16,7 +16,7 @@
       "src": "api/index.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["data.json"],
+        "includeFiles": ["data.json", "public/index.html"],
         "maxDuration": 30
       }
     },
@@ -42,8 +42,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/public/index.html",
-      "headers": { "cache-control": "no-cache, no-store, must-revalidate" }
+      "dest": "/api/index.js"
     }
   ]
 }
