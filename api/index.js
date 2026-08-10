@@ -3898,7 +3898,7 @@ app.post('/api/learning/preview-email', async (req, res) => {
   else if (type === 'overdue')    emailData = buildOverdueEmail(sample);
   else return res.status(400).json({ error: 'type must be enrollment|progress|reminder|overdue' });
   try {
-    await sendEmail({ to: toAddr, subject: '[PREVIEW] ' + emailData.subject, html: emailData.html, text: emailData.text });
+    await sendEmail({ to: toAddr, subject: emailData.subject, html: emailData.html, text: emailData.text });
     res.json({ ok: true, to: toAddr, subject: emailData.subject });
   } catch(e) {
     res.status(500).json({ error: e.message });
