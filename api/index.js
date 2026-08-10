@@ -19,36 +19,6 @@ const mailer = nodemailer.createTransport({
 
 const PLATFORM_BCC = 'azhar.m@bluecopa.com';
 
-// ── Staging access gate ───────────────────────────────────────────────────────
-const STAGING_PASSWORD = process.env.STAGING_PASSWORD || 'Bluecopa@12345';
-
-function isStaging(req) {
-  const host = (req.headers.host || '').toLowerCase();
-  return host.includes('staging') && !host.includes('deliverywiki');
-}
-
-function getStagingCookie(req) {
-  const raw = req.headers.cookie || '';
-  const m   = raw.match(/(?:^|;\s*)stg_auth=([^;]+)/);
-  return m ? m[1] : null;
-}
-
-const STAGING_LOGIN_HTML = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Staging — Restricted Access</title>
-<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#08080d;font-family:'DM Sans',Arial,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}.card{background:#0f0f16;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:44px 40px;width:380px;max-width:calc(100vw - 32px)}.logo{color:#c9a227;font-size:18px;font-weight:800;letter-spacing:-.3px;margin-bottom:4px}.env{display:inline-block;background:rgba(201,162,39,.15);color:#c9a227;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 8px;border-radius:4px;margin-bottom:28px}.label{font-size:11px;font-weight:700;color:#8a92a0;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}input[type=password]{width:100%;background:#1a1d27;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:13px 16px;color:#f0f0f6;font-size:14px;outline:none;transition:border-color .15s}input[type=password]:focus{border-color:#c9a227}button{width:100%;background:#c9a227;color:#1a1d27;font-weight:800;font-size:14px;padding:14px;border-radius:8px;border:none;cursor:pointer;margin-top:14px;transition:background .15s}button:hover{background:#d4ae35}.err{color:#dc2626;font-size:13px;margin-top:14px;display:none}.hint{color:#8a92a0;font-size:12px;margin-top:20px;line-height:1.6}</style>
-</head><body><div class="card">
-<div class="logo">📘 Delivery Wikipedia</div>
-<div class="env">Staging</div>
-<div class="label">Password</div>
-<form method="POST" action="/stg-auth">
-  <input type="password" name="pwd" placeholder="Enter staging password" autofocus autocomplete="current-password">
-  <button type="submit">Continue →</button>
-  <div class="err" id="err">Incorrect password — try again</div>
-</form>
-<div class="hint">This environment is restricted. Contact <strong>azhar.m@bluecopa.com</strong> for access.</div>
-</div>
-<script>if(new URLSearchParams(location.search).get('err'))document.getElementById('err').style.display='block'</script>
-</body></html>`;
-
 async function sendEmail({ to, subject, html, text, attachments }) {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.warn('[email] SMTP not configured — skipping send');
@@ -4567,31 +4537,6 @@ app.get('/api/cron/rl-snapshot', async (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   const result = await rlAutoSnapshot();
   res.json(result);
-});
-
-// ── Staging gate routes ───────────────────────────────────────────────────────
-app.get('/stg-auth', (req, res) => {
-  res.setHeader('Content-Type', 'text/html');
-  res.send(STAGING_LOGIN_HTML);
-});
-
-app.post('/stg-auth', express.urlencoded({ extended: false }), (req, res) => {
-  if ((req.body.pwd || '').trim() === STAGING_PASSWORD) {
-    res.setHeader('Set-Cookie', 'stg_auth=ok; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800');
-    return res.redirect(302, '/');
-  }
-  res.redirect(302, '/stg-auth?err=1');
-});
-
-// ── SPA catch-all (serves index.html, with staging gate) ─────────────────────
-const INDEX_HTML_PATH = path.join(__dirname, '../public/index.html');
-
-app.get('*', (req, res) => {
-  if (isStaging(req) && getStagingCookie(req) !== 'ok') {
-    return res.redirect(302, '/stg-auth');
-  }
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.sendFile(INDEX_HTML_PATH);
 });
 
 module.exports = app;
