@@ -10715,7 +10715,7 @@ function rlTabCompliance(body) {
       if(!byProject[i.project]) byProject[i.project]={status:i.status,items:[]};
       byProject[i.project].items.push(i);
     });
-    return rlCard(
+    return '<div id="rl-cat-'+cat.key+'">'+rlCard(
       '<div style="padding:12px 16px 0;">'+
         '<div style="font-size:12px;font-weight:700;color:'+cat.color+';text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">'+cat.icon+' '+cat.label+' ('+issues.length+')</div>'+
         Object.keys(byProject).map(function(projName){
@@ -10735,7 +10735,7 @@ function rlTabCompliance(body) {
         }).join('')+
       '</div><div style="height:12px;"></div>',
       'margin-bottom:16px;'
-    );
+    )+'</div>';
   }
 
   var activeCats=CATEGORIES.filter(function(cat){return allIssues.some(function(i){return i.category===cat.key;});});
@@ -10756,8 +10756,8 @@ function rlTabCompliance(body) {
       '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">'+
         activeCats.map(function(cat){
           var cnt=allIssues.filter(function(i){return i.category===cat.key;}).length;
-          return '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:4px 12px;font-size:11px;color:'+cat.color+';display:flex;align-items:center;gap:5px;">'+
-            cat.icon+' '+cat.label+' <span style="font-weight:700;font-family:\'DM Mono\',monospace;">('+cnt+')</span></div>';
+          return '<button onclick="var e=document.getElementById(\'rl-cat-'+cat.key+'\');if(e)e.scrollIntoView({behavior:\'smooth\',block:\'start\'});" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;font-size:11px;color:'+cat.color+';display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:background .15s,border-color .15s;" onmouseover="this.style.background=\'rgba(255,255,255,.1)\';this.style.borderColor=\''+cat.color+'40\';" onmouseout="this.style.background=\'rgba(255,255,255,.04)\';this.style.borderColor=\'rgba(255,255,255,.12)\';">'+
+            cat.icon+' '+cat.label+' <span style="font-weight:700;font-family:\'DM Mono\',monospace;">('+cnt+')</span></button>';
         }).join('')+
       '</div>'
     :'')+
