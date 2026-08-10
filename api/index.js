@@ -3823,26 +3823,25 @@ app.post('/api/learning/bulk-assign', async (req, res) => {
     }
   }
   await saveDB(db);
-  res.json({ ok: true, created });
 
-  // Find the path for context
+  // Send enrollment emails before responding (setImmediate is killed on Vercel serverless)
   const path = db.learning.paths.find(p => p.id === pathId);
-  for (const userName of userNames) {
+  await Promise.allSettled(userNames.map(async (userName) => {
     const toEmail = enrolleeEmails[userName];
-    if (!toEmail) continue;
-    setImmediate(async () => {
-      try {
-        const { subject, html, text } = buildEnrollmentEmail({
-          memberName: userName, courseIds, dueDate,
-          pathName: path ? path.name : undefined,
-          enrolledBy
-        });
-        await sendEmail({ to: toEmail, subject, html, text });
-      } catch(e) {
-        console.warn('[learning enroll email]', userName, e.message);
-      }
-    });
-  }
+    if (!toEmail) return;
+    try {
+      const { subject, html, text } = buildEnrollmentEmail({
+        memberName: userName, courseIds, dueDate,
+        pathName: path ? path.name : undefined,
+        enrolledBy
+      });
+      await sendEmail({ to: toEmail, subject, html, text });
+    } catch(e) {
+      console.warn('[learning enroll email]', userName, e.message);
+    }
+  }));
+
+  res.json({ ok: true, created });
 });
 
 app.post('/api/learning/assignments/:id/complete', async (req, res) => {
@@ -3852,28 +3851,30 @@ app.post('/api/learning/assignments/:id/complete', async (req, res) => {
   if (!a) return res.status(404).json({ error: 'Not found' });
   a.completedAt = a.completedAt || new Date().toISOString();
   await saveDB(db);
-  res.json({ ok: true, assignment: a });
 
-  setImmediate(async () => {
-    try {
-      const toEmail = db.learning.memberEmails[a.userName];
-      if (!toEmail) return;
+  // Send progress email before responding (setImmediate is killed on Vercel serverless)
+  try {
+    const toEmail = db.learning.memberEmails[a.userName];
+    if (toEmail) {
       const path = db.learning.paths.find(p => p.id === a.pathId) || db.learning.paths[0];
-      if (!path) return;
-      const allIds       = path.courseIds || NJ_ALL;
-      const completedIds = db.learning.assignments
-        .filter(x => x.userName.toLowerCase() === a.userName.toLowerCase() && x.pathId === a.pathId && x.completedAt)
-        .map(x => x.courseId);
-      const { subject, html, text } = buildProgressEmail({
-        memberName: a.userName, allCourseIds: allIds,
-        completedCourseIds: completedIds, dueDate: a.dueDate,
-        pathName: path.name
-      });
-      await sendEmail({ to: toEmail, subject, html, text });
-    } catch(e) {
-      console.warn('[learning progress email]', a.userName, e.message);
+      if (path) {
+        const allIds       = path.courseIds || NJ_ALL;
+        const completedIds = db.learning.assignments
+          .filter(x => x.userName.toLowerCase() === a.userName.toLowerCase() && x.pathId === a.pathId && x.completedAt)
+          .map(x => x.courseId);
+        const { subject, html, text } = buildProgressEmail({
+          memberName: a.userName, allCourseIds: allIds,
+          completedCourseIds: completedIds, dueDate: a.dueDate,
+          pathName: path.name
+        });
+        await sendEmail({ to: toEmail, subject, html, text });
+      }
     }
-  });
+  } catch(e) {
+    console.warn('[learning progress email]', a.userName, e.message);
+  }
+
+  res.json({ ok: true, assignment: a });
 });
 
 app.post('/api/learning/preview-email', async (req, res) => {
