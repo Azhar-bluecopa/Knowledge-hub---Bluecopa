@@ -10371,7 +10371,18 @@ function rlInitDashboard() {
   el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px;gap:16px;"><div class="rl-spin"></div><div style="font-size:13px;color:rgba(255,255,255,.3);">Loading Rocketlane data…</div></div>';
   fetch('/api/rocketlane/projects-full')
     .then(function(r){ return r.json(); })
-    .then(function(data){ _rlData = data; _rlLoading = false; rlRenderShell(); })
+    .then(function(data){
+      _rlData = data; _rlLoading = false; rlRenderShell();
+      // Server served stale cache — silently fetch fresh data in the background
+      if (data.stale) {
+        setTimeout(function() {
+          fetch('/api/rocketlane/projects-full?refresh=1')
+            .then(function(r){ return r.json(); })
+            .then(function(fresh){ _rlData = fresh; rlRenderShell(); })
+            .catch(function(){});
+        }, 800);
+      }
+    })
     .catch(function(e){ el.innerHTML = '<div style="text-align:center;padding:80px;color:#dc2626;font-size:13px;">Failed to load: '+(e.message||'Unknown error')+'</div>'; _rlLoading = false; });
 }
 

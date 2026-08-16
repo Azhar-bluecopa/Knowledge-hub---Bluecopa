@@ -2934,7 +2934,8 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
 
 let rlFullCache = null;
 let rlFullCacheAt = 0;
-const RL_FULL_CACHE_TTL = 5 * 60 * 1000;
+const RL_FULL_CACHE_TTL  = 10 * 60 * 1000; // 10 min in-memory
+const RL_PERSIST_TTL     = 20 * 60 * 1000; // 20 min persistent (data.json)
 
 async function rlFetchAllTasks(apiKey) {
   const now = Date.now();
@@ -3169,6 +3170,8 @@ function ensureRL() {
   if (!db.rocketlane) db.rocketlane = { snapshots: [], nextSnapshotId: 1, findings: [], nextFindingId: 1 };
   if (!db.rocketlane.findings) db.rocketlane.findings = [];
   if (!db.rocketlane.nextFindingId) db.rocketlane.nextFindingId = 1;
+  if (!('fullData' in db.rocketlane)) db.rocketlane.fullData = null;
+  if (!('fullDataAt' in db.rocketlane)) db.rocketlane.fullDataAt = 0;
 }
 
 app.get('/api/rocketlane/snapshots', (req, res) => {
@@ -3239,77 +3242,104 @@ app.delete('/api/rocketlane/findings/:id', async (req, res) => {
 });
 
 // ── Rocketlane Projects Full (methodology-based) ──────────────────────────────
+async function rlDoFullFetch(apiKey) {
+  const now = Date.now();
+  const [projResp, allTasks] = await Promise.all([
+    fetch('https://api.rocketlane.com/api/1.0/projects?pageSize=100', { headers: { 'api-key': apiKey, 'Accept': 'application/json' } }),
+    rlFetchAllTasks(apiKey)
+  ]);
+  if (!projResp.ok) throw new Error('Rocketlane API ' + projResp.status);
+  const projData = await projResp.json();
+  const allProjects = Array.isArray(projData.data) ? projData.data : Object.values(projData.data || {});
+  const tasksByProject = {};
+  allTasks.forEach(t => {
+    const pid = t.project?.projectId;
+    if (!pid) return;
+    if (!tasksByProject[pid]) tasksByProject[pid] = [];
+    tasksByProject[pid].push(t);
+  });
+  await getDbInitPromise();
+  ensureRL();
+  const prevSnap = db.rocketlane.snapshots.length > 0
+    ? db.rocketlane.snapshots[db.rocketlane.snapshots.length - 1] : null;
+  const projects = allProjects.map(p => {
+    const progress = rlBuildProjectProgress(tasksByProject[p.projectId] || []);
+    const prevSnapProject = prevSnap?.projects?.find(proj => proj.projectId === p.projectId) || null;
+    const issues = rlBuildCompliance(p, progress, tasksByProject[p.projectId] || [], prevSnapProject);
+    return {
+      projectId: p.projectId, projectName: p.projectName,
+      status: p.status?.label || 'Unknown',
+      customer: p.customer?.companyName || null,
+      dueDate: p.dueDate || null,
+      isStandard: progress.isStandard,
+      overallPct: progress.overallPct,
+      phases: progress.phases,
+      mainTaskCount: progress.mainTaskCount,
+      totalTasks: progress.totalTasks,
+      compliance: { issues, issueCount: issues.length }
+    };
+  });
+  const standard = projects.filter(p => p.isStandard);
+  const avgProgress = standard.length ? Math.round(standard.reduce((s, p) => s + (p.overallPct || 0), 0) / standard.length) : 0;
+  const phaseAvg = { engage: 0, drive: 0, enable: 0, convert: 0 };
+  if (standard.length) {
+    ['engage','drive','enable','convert'].forEach(ph => {
+      phaseAvg[ph] = Math.round(standard.map(p => p.phases?.[ph]?.pct || 0).reduce((a, v) => a + v, 0) / standard.length);
+    });
+  }
+  const result = {
+    projects,
+    summary: {
+      total: projects.length, standard: standard.length, nonStandard: projects.length - standard.length,
+      avgProgress, phaseAvg,
+      byStatus: projects.reduce((m, p) => { m[p.status] = (m[p.status] || 0) + 1; return m; }, {})
+    },
+    fetchedAt: now
+  };
+  // Persist to data.json so the next cold start is instant
+  rlFullCache = result;
+  rlFullCacheAt = now;
+  db.rocketlane.fullData = result;
+  db.rocketlane.fullDataAt = now;
+  await saveDB(db);
+  return result;
+}
+
 app.get('/api/rocketlane/projects-full', async (req, res) => {
   const apiKey = process.env.ROCKETLANE_API_KEY;
   if (!apiKey) return res.status(503).json({ error: 'not_configured', message: 'ROCKETLANE_API_KEY not set.' });
   const now = Date.now();
-  if (rlFullCache && !req.query.refresh && (now - rlFullCacheAt) < RL_FULL_CACHE_TTL)
+  const isRefresh = !!req.query.refresh;
+
+  // Layer 1: in-memory cache (fastest, survives within the same serverless instance)
+  if (!isRefresh && rlFullCache && (now - rlFullCacheAt) < RL_FULL_CACHE_TTL)
     return res.json({ ...rlFullCache, cached: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
-  try {
-    const [projResp, allTasks] = await Promise.all([
-      fetch('https://api.rocketlane.com/api/1.0/projects?pageSize=100', { headers: { 'api-key': apiKey, 'Accept': 'application/json' } }),
-      rlFetchAllTasks(apiKey)
-    ]);
-    if (!projResp.ok) return res.status(projResp.status).json({ error: 'api_error', status: projResp.status });
-    const projData = await projResp.json();
-    const allProjects = Array.isArray(projData.data) ? projData.data : Object.values(projData.data || {});
 
-    // Group tasks by project
-    const tasksByProject = {};
-    allTasks.forEach(t => {
-      const pid = t.project?.projectId;
-      if (!pid) return;
-      if (!tasksByProject[pid]) tasksByProject[pid] = [];
-      tasksByProject[pid].push(t);
-    });
-
-    await getDbInitPromise();
-    ensureRL();
-    const prevSnap = db.rocketlane.snapshots.length > 0
-      ? db.rocketlane.snapshots[db.rocketlane.snapshots.length - 1]
-      : null;
-
-    const projects = allProjects.map(p => {
-      const progress = rlBuildProjectProgress(tasksByProject[p.projectId] || []);
-      const prevSnapProject = prevSnap?.projects?.find(proj => proj.projectId === p.projectId) || null;
-      const issues = rlBuildCompliance(p, progress, tasksByProject[p.projectId] || [], prevSnapProject);
-      return {
-        projectId: p.projectId, projectName: p.projectName,
-        status: p.status?.label || 'Unknown',
-        customer: p.customer?.companyName || null,
-        dueDate: p.dueDate || null,
-        isStandard: progress.isStandard,
-        overallPct: progress.overallPct,
-        phases: progress.phases,
-        mainTaskCount: progress.mainTaskCount,
-        totalTasks: progress.totalTasks,
-        compliance: { issues, issueCount: issues.length }
-      };
-    });
-
-    const standard = projects.filter(p => p.isStandard);
-    const avgProgress = standard.length ? Math.round(standard.reduce((s, p) => s + (p.overallPct || 0), 0) / standard.length) : 0;
-    const phaseAvg = { engage: 0, drive: 0, enable: 0, convert: 0 };
-    if (standard.length) {
-      ['engage','drive','enable','convert'].forEach(ph => {
-        const vals = standard.map(p => p.phases?.[ph]?.pct || 0);
-        phaseAvg[ph] = Math.round(vals.reduce((a, v) => a + v, 0) / vals.length);
-      });
+  // Layer 2: persistent cache (survives cold starts)
+  await getDbInitPromise();
+  ensureRL();
+  if (!isRefresh && db.rocketlane.fullData) {
+    const persAge = now - (db.rocketlane.fullDataAt || 0);
+    rlFullCache = db.rocketlane.fullData;
+    rlFullCacheAt = db.rocketlane.fullDataAt || 0;
+    if (persAge < RL_PERSIST_TTL) {
+      // Fresh enough — serve immediately, no Rocketlane API call needed
+      return res.json({ ...rlFullCache, cached: true, cacheAge: Math.round(persAge / 1000) });
     }
+    // Stale — serve old data now, client will auto-refresh in background
+    res.json({ ...rlFullCache, stale: true, cacheAge: Math.round(persAge / 1000) });
+    // Kick off background refresh (best-effort on Vercel — may not complete fully)
+    rlDoFullFetch(apiKey).catch(() => {});
+    return;
+  }
 
-    const result = {
-      projects,
-      summary: {
-        total: projects.length, standard: standard.length, nonStandard: projects.length - standard.length,
-        avgProgress, phaseAvg,
-        byStatus: projects.reduce((m, p) => { m[p.status] = (m[p.status] || 0) + 1; return m; }, {})
-      },
-      fetchedAt: now
-    };
-    rlFullCache = result;
-    rlFullCacheAt = now;
+  // Layer 3: cold fetch — no cached data exists at all
+  try {
+    const result = await rlDoFullFetch(apiKey);
     res.json({ ...result, cached: false });
   } catch (e) {
+    if (db.rocketlane?.fullData)
+      return res.json({ ...db.rocketlane.fullData, stale: true, error: e.message });
     res.status(500).json({ error: 'fetch_failed', message: e.message });
   }
 });
