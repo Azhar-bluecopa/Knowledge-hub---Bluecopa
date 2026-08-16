@@ -10448,7 +10448,7 @@ function rlPhaseBar(phases, pct) {
     return '<div style="height:100%;width:'+w+'%;background:'+RL_PHASES[ph].color+';transition:width .3s;" title="'+RL_PHASES[ph].label+': '+(phases[ph]?phases[ph].pct:0)+'%"></div>';
   }).join('');
   return '<div style="position:relative;padding-top:18px;">'+
-    '<div style="position:absolute;top:0;right:0;font-size:11px;font-family:\'DM Mono\',monospace;color:#c9a227;font-weight:600;">'+(pct||0)+'%</div>'+
+    '<div style="position:absolute;top:0;right:0;font-size:11px;font-family:\'DM Mono\',monospace;color:#c9a227;font-weight:600;">'+Math.min(100,pct||0)+'%</div>'+
     '<div style="height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;display:flex;">'+segs+'</div>'+
     '<div style="display:flex;gap:8px;margin-top:5px;">'+
       ['engage','drive','enable','convert'].map(function(ph){
@@ -10620,7 +10620,7 @@ function rlDrillTo(projectId) {
   var phaseBlocks = ['engage','drive','enable','convert'].map(function(ph){
     var cfg=RL_PHASES[ph], phD=p.phases&&p.phases[ph];
     if(!phD||!phD.tasks||!phD.tasks.length) return '';
-    var phasePct=phD.pct||0;
+    var phasePct=Math.min(100,phD.pct||0);
     var sortedTasks=phD.tasks.slice().sort(function(a,b){return a.order-b.order;});
     return '<div style="margin-bottom:20px;">'+
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'+
@@ -10664,7 +10664,7 @@ function rlDrillTo(projectId) {
         '</div>'+
         '<div style="display:flex;align-items:center;gap:16px;">'+
           '<div style="text-align:center;">'+
-            '<div style="font-size:28px;font-weight:800;color:#c9a227;line-height:1;">'+(p.overallPct||0)+'%</div>'+
+            '<div style="font-size:28px;font-weight:800;color:#c9a227;line-height:1;">'+Math.min(100,p.overallPct||0)+'%</div>'+
             '<div style="font-size:10px;color:#8a92a0;font-family:\'DM Mono\',monospace;letter-spacing:.06em;">OVERALL</div>'+
           '</div>'+
           closeBtn+

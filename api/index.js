@@ -2812,10 +2812,14 @@ function rlBuildProjectProgress(projectTasks) {
   const phases = { engage:{tasks:[],pct:0}, drive:{tasks:[],pct:0}, enable:{tasks:[],pct:0}, convert:{tasks:[],pct:0} };
   let overallCompleted = 0;
   if (isStandard) {
+    const countedOrders = new Set();
     mainFound.forEach(t => {
       const phase = t._mt.phase;
       const isDone = t.status?.label === 'Completed';
-      if (isDone) overallCompleted += t._mt.weight;
+      if (isDone && !countedOrders.has(t._mt.order)) {
+        countedOrders.add(t._mt.order);
+        overallCompleted += t._mt.weight;
+      }
       phases[phase].tasks.push({
         taskId: t.taskId, taskName: t.taskName, order: t._mt.order,
         status: t.status?.label || 'Unknown',
