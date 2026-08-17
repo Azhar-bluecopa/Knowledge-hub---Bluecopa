@@ -10424,7 +10424,11 @@ window.rlSwitchTab = rlSwitchTab;
 function rlRenderActiveTab() {
   var body = document.getElementById('rlTabBody');
   if (!body || !_rlData) return;
-  ({ executive: rlTabExecutive, progress: rlTabProgress, compliance: rlTabCompliance, timeline: rlTabTimeline, trends: rlTabTrends, findings: rlTabFindings })[_rlTab](body);
+  try {
+    ({ executive: rlTabExecutive, progress: rlTabProgress, compliance: rlTabCompliance, timeline: rlTabTimeline, trends: rlTabTrends, findings: rlTabFindings })[_rlTab](body);
+  } catch(e) {
+    body.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626;font-size:13px;">Tab render error: ' + (e && e.message || String(e)) + '</div>';
+  }
 }
 
 function rlRefreshDashboard() {
@@ -10473,7 +10477,7 @@ function rlPhaseBar(phases, pct) {
 // ─── Tab 1: Executive Overview ────────────────────────────────────────────────
 function rlTabExecutive(body) {
   var d = _rlData, s = d.summary;
-  var totalIssues = d.projects.reduce(function(a,p){ return a+(p.compliance.issueCount||0); },0);
+  var totalIssues = d.projects.reduce(function(a,p){ return a+((p.compliance&&p.compliance.issueCount)||0); },0);
   var compScore = Math.max(0, Math.round(100 - (d.projects.length ? totalIssues/d.projects.length*10 : 0)));
   var activeCount = (s.byStatus['In progress']||0);
 
@@ -10510,7 +10514,7 @@ function rlTabExecutive(body) {
   );
 
   var rows = d.projects.map(function(p){
-    var iss = p.compliance.issueCount||0;
+    var iss = (p.compliance&&p.compliance.issueCount)||0;
     var issColor = iss===0?'#22c55e':iss>=3?'#dc2626':'#f59e0b';
     return '<tr style="border-top:1px solid rgba(255,255,255,.04);cursor:pointer;" onmouseenter="this.style.background=\'rgba(255,255,255,.02)\'" onmouseleave="this.style.background=\'transparent\'" onclick="rlSwitchTab(\'progress\');setTimeout(function(){rlDrillTo('+p.projectId+')},60);">'+
       '<td style="padding:10px 16px;font-size:13px;font-weight:500;color:#f0f0f6;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+p.projectName+'</td>'+
@@ -10596,7 +10600,7 @@ function rlTabProgress(body) {
 
     // Build per-project issue lists (with date filtering)
     var projIssues = projs.map(function(p) {
-      var iss = filterIssues(p.compliance.issues, p.status);
+      var iss = filterIssues(p.compliance && p.compliance.issues, p.status);
       return { p: p, issues: iss };
     });
 
@@ -10715,12 +10719,16 @@ function rlTabProgress(body) {
         }).join('') +
       '</div>';
 
+    var issuesHTML;
+    try { issuesHTML = renderIssuesSection(projs); }
+    catch(e) { issuesHTML = '<div style="padding:20px;color:#dc2626;font-size:12px;">Issues section error: '+(e&&e.message||String(e))+'</div>'; }
+
     body.innerHTML =
       filterBar +
       '<div style="margin-bottom:8px;font-size:10px;color:#5a6270;text-transform:uppercase;letter-spacing:.1em;font-family:\'DM Mono\',monospace;">Task Progress</div>' +
       renderTasksSection(projs, filter) +
       '<div style="margin:28px 0 8px;font-size:10px;color:#5a6270;text-transform:uppercase;letter-spacing:.1em;font-family:\'DM Mono\',monospace;">Compliance Issues</div>' +
-      renderIssuesSection(projs);
+      issuesHTML;
 
     if (_rlDrillProject) setTimeout(function(){ rlDrillTo(_rlDrillProject); }, 60);
   }
