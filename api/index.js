@@ -2955,19 +2955,32 @@ async function rlFetchAllTasks(apiKey) {
   let hasMore = true;
   while (hasMore) {
     const url = 'https://api.rocketlane.com/api/1.0/tasks?pageSize=100' + (pageToken ? `&pageToken=${pageToken}` : '');
-    try {
-      const r = await fetch(url, { headers: { 'api-key': apiKey, 'Accept': 'application/json' } });
-      if (!r.ok) break;
-      const d = await r.json();
-      const chunk = Array.isArray(d.data) ? d.data : Object.values(d.data || {});
-      chunk.forEach(t => { if (t && t.taskId) tasks.push(t); });
-      hasMore = d.pagination?.hasMore || false;
-      pageToken = d.pagination?.nextPageToken || null;
-    } catch { break; }
+    let pageOk = false;
+    for (let attempt = 0; attempt < 3 && !pageOk; attempt++) {
+      try {
+        if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 1200));
+        const r = await fetch(url, { headers: { 'api-key': apiKey, 'Accept': 'application/json' } });
+        if (!r.ok) {
+          if (r.status === 429 || r.status >= 500) continue; // transient — retry
+          hasMore = false; break; // 4xx client error — stop
+        }
+        const d = await r.json();
+        const chunk = Array.isArray(d.data) ? d.data : Object.values(d.data || {});
+        chunk.forEach(t => { if (t && t.taskId) tasks.push(t); });
+        hasMore = d.pagination?.hasMore || false;
+        pageToken = d.pagination?.nextPageToken || null;
+        pageOk = true;
+      } catch { /* retry */ }
+    }
+    if (!pageOk) break; // all 3 attempts failed — stop pagination
   }
-  rlAllTasksCache = tasks;
-  rlAllTasksCacheAt = now;
-  return tasks;
+  // Only replace the cache when the new fetch looks complete (≥70% of previous count)
+  const prevCount = rlAllTasksCache?.length || 0;
+  if (tasks.length > 0 && tasks.length >= prevCount * 0.7) {
+    rlAllTasksCache = tasks;
+    rlAllTasksCacheAt = now;
+  }
+  return tasks.length > 0 ? tasks : (rlAllTasksCache || []);
 }
 
 async function rlFetchCompletionMap(apiKey) {
@@ -3304,9 +3317,23 @@ async function rlDoFullFetch(apiKey) {
       avgProgress, phaseAvg,
       byStatus: projects.reduce((m, p) => { m[p.status] = (m[p.status] || 0) + 1; return m; }, {})
     },
+    tasksFetched: allTasks.length,
     fetchedAt: now
   };
-  // Persist to data.json so the next cold start is instant
+  // Sanity check: if new fetch has far fewer tasks than the previous cache, it's likely
+  // an incomplete paginated fetch (network error mid-way). Don't overwrite good data.
+  const prev = db.rocketlane.fullData;
+  const prevStandard = prev?.summary?.standard || 0;
+  const prevTasksFetched = prev?.tasksFetched || 0;
+  const looksIncomplete =
+    prevStandard >= 5 &&
+    result.summary.standard < Math.floor(prevStandard * 0.6) &&
+    prevTasksFetched > 0 &&
+    allTasks.length < prevTasksFetched * 0.7;
+  if (looksIncomplete) {
+    // Return the previous good result rather than overwriting with bad data
+    return { ...prev, stale: false };
+  }
   rlFullCache = result;
   rlFullCacheAt = now;
   db.rocketlane.fullData = result;
