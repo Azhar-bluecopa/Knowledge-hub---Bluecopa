@@ -10538,63 +10538,197 @@ function rlTabExecutive(body) {
 // ─── Tab 2: Project Progress ──────────────────────────────────────────────────
 function rlTabProgress(body) {
   var d = _rlData;
-  body.innerHTML =
-    '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">'+
-      '<span style="font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-family:\'DM Mono\',monospace;">Filter:</span>'+
-      ['all','standard','nonstandard'].map(function(f){
-        var labels={all:'All ('+d.projects.length+')',standard:'Standard ('+d.summary.standard+')',nonstandard:'Non-Standard ('+d.summary.nonStandard+')'};
-        var a = f===_rlFilter;
-        return '<button id="rlf-'+f+'" onclick="rlFilterProj(\''+f+'\')" style="border:1px solid '+(a?'rgba(201,162,39,.3)':'rgba(255,255,255,.07)')+';background:'+(a?'rgba(201,162,39,.1)':'transparent')+';color:'+(a?'#c9a227':'rgba(255,255,255,.5)')+';border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:\'DM Sans\',sans-serif;">'+labels[f]+'</button>';
-      }).join('')+
-    '</div>'+
-    '<div id="rlProgressTable"></div>'+
-    '<div id="rlDrillPanel" style="display:none;margin-top:16px;"></div>';
-  rlRenderProgressTable();
-  if (_rlDrillProject) setTimeout(function(){ rlDrillTo(_rlDrillProject); }, 60);
+  var DATE_CATS = { overdue: true, dates: true };
+  var DATE_BLOCKED_STATUSES = { blocked: true, onhold: true };
+
+  function filterIssues(issues, status) {
+    var st = (status || '').toLowerCase().replace(/\s+/g,'');
+    var isDateExcluded = DATE_BLOCKED_STATUSES[st] || st === 'on_hold' || st === 'onhold';
+    return (issues || []).filter(function(iss) {
+      if (isDateExcluded && DATE_CATS[iss.category]) return false;
+      return true;
+    });
+  }
+
+  function renderTasksSection(projs, filter) {
+    var rows = projs.map(function(p) {
+      var barHTML = p.isStandard
+        ? rlPhaseBar(p.phases, p.overallPct)
+        : '<span style="font-size:11px;color:#5a6270;font-style:italic;">Non-standard structure</span>';
+      return '<tr style="border-top:1px solid rgba(255,255,255,.04);cursor:pointer;" ' +
+        'onmouseenter="this.style.background=\'rgba(255,255,255,.025)\'" ' +
+        'onmouseleave="this.style.background=\'transparent\'" ' +
+        'onclick="rlDrillTo(' + p.projectId + ')">' +
+        '<td style="padding:10px 16px;font-size:13px;font-weight:500;color:#f0f0f6;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.projectName + '</td>' +
+        '<td style="padding:10px 8px;">' + rlStatus(p.status) + '</td>' +
+        '<td style="padding:6px 16px;min-width:200px;">' + barHTML + '</td>' +
+        '<td style="padding:10px 8px;text-align:center;font-size:12px;font-family:\'DM Mono\',monospace;color:#8a92a0;">' + p.totalTasks + '</td>' +
+        '<td style="padding:10px 12px;font-size:12px;color:#c9a227;text-align:center;opacity:.5;">▶</td>' +
+        '</tr>';
+    }).join('');
+    return rlCard(
+      '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">' +
+        '<thead><tr>' +
+          '<th style="padding:10px 16px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Project</th>' +
+          '<th style="padding:10px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Status</th>' +
+          '<th style="padding:10px 16px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Phase Progress</th>' +
+          '<th style="padding:10px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:center;font-family:\'DM Mono\',monospace;">Tasks</th>' +
+          '<th></th>' +
+        '</tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+      '</table></div>'
+    );
+  }
+
+  function renderIssuesSection(projs) {
+    var SEV_ORDER = { high: 0, medium: 1, low: 2 };
+    var SEV_COLOR = { high: '#ef4444', medium: '#f59e0b', low: '#60a5fa' };
+    var CAT_LABEL = {
+      structure:  'Structure',
+      ownership:  'Owner',
+      overdue:    'Overdue',
+      blocked:    'Blocked',
+      dates:      'Dates',
+      stale:      'Stale',
+      completion: 'Completion',
+      closure:    'Closure'
+    };
+
+    // Build per-project issue lists (with date filtering)
+    var projIssues = projs.map(function(p) {
+      var iss = filterIssues(p.compliance.issues, p.status);
+      return { p: p, issues: iss };
+    });
+
+    // Tally totals
+    var totHigh = 0, totMed = 0, totLow = 0;
+    projIssues.forEach(function(pi) {
+      pi.issues.forEach(function(iss) {
+        if (iss.severity === 'high') totHigh++;
+        else if (iss.severity === 'medium') totMed++;
+        else totLow++;
+      });
+    });
+
+    // Sort: most high issues first, then medium, then total
+    projIssues.sort(function(a, b) {
+      var aH = a.issues.filter(function(i){return i.severity==='high';}).length;
+      var bH = b.issues.filter(function(i){return i.severity==='high';}).length;
+      if (aH !== bH) return bH - aH;
+      var aM = a.issues.filter(function(i){return i.severity==='medium';}).length;
+      var bM = b.issues.filter(function(i){return i.severity==='medium';}).length;
+      if (aM !== bM) return bM - aM;
+      return b.issues.length - a.issues.length;
+    });
+
+    var withIssues = projIssues.filter(function(pi){return pi.issues.length > 0;});
+    var clean = projIssues.filter(function(pi){return pi.issues.length === 0;});
+
+    var summaryHTML =
+      '<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">' +
+        '<div style="display:flex;align-items:center;gap:6px;">' +
+          '<div style="width:8px;height:8px;border-radius:50%;background:#ef4444;"></div>' +
+          '<span style="font-size:12px;color:#ef4444;font-weight:700;">' + totHigh + ' high</span>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;">' +
+          '<div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;"></div>' +
+          '<span style="font-size:12px;color:#f59e0b;font-weight:700;">' + totMed + ' medium</span>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;">' +
+          '<div style="width:8px;height:8px;border-radius:50%;background:#60a5fa;"></div>' +
+          '<span style="font-size:12px;color:#60a5fa;font-weight:700;">' + totLow + ' low</span>' +
+        '</div>' +
+        (clean.length ? '<span style="font-size:11px;color:#22c55e;margin-left:8px;">· ' + clean.length + ' project' + (clean.length>1?'s':'') + ' fully healthy</span>' : '') +
+      '</div>';
+
+    var rowsHTML = withIssues.map(function(pi, ri) {
+      var p = pi.p, iss = pi.issues;
+      var highCount = iss.filter(function(i){return i.severity==='high';}).length;
+      var topColor = highCount > 0 ? '#ef4444' : iss.some(function(i){return i.severity==='medium';}) ? '#f59e0b' : '#60a5fa';
+      var st = (p.status||'').toLowerCase().replace(/\s+/g,'');
+      var isDateExcluded = DATE_BLOCKED_STATUSES[st] || st==='on_hold' || st==='onhold';
+
+      // Sort issues by severity
+      var sorted = iss.slice().sort(function(a,b){return (SEV_ORDER[a.severity]||2)-(SEV_ORDER[b.severity]||2);});
+      var issueRows = sorted.map(function(iss) {
+        var sc = SEV_COLOR[iss.severity] || '#8a92a0';
+        var cat = CAT_LABEL[iss.category] || iss.category;
+        var taskLabel = iss.task ? '<span style="font-size:10px;color:#8a92a0;font-family:\'DM Mono\',monospace;margin-left:6px;">→ ' + iss.task + '</span>' : '';
+        return '<div style="display:flex;align-items:flex-start;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.03);">' +
+          '<div style="flex-shrink:0;margin-top:2px;width:6px;height:6px;border-radius:50%;background:' + sc + ';"></div>' +
+          '<span style="font-size:10px;background:rgba(255,255,255,.05);color:#8a92a0;border-radius:4px;padding:1px 6px;white-space:nowrap;flex-shrink:0;">' + cat + '</span>' +
+          '<div style="font-size:12px;color:rgba(255,255,255,.7);flex:1;">' + iss.issue + taskLabel + '</div>' +
+        '</div>';
+      }).join('');
+
+      var badgeHTML = '';
+      if (highCount > 0) badgeHTML += '<span style="font-size:10px;background:rgba(239,68,68,.12);color:#ef4444;border-radius:4px;padding:1px 7px;">' + highCount + ' critical</span> ';
+      var medCount = iss.filter(function(i){return i.severity==='medium';}).length;
+      if (medCount > 0) badgeHTML += '<span style="font-size:10px;background:rgba(245,158,11,.10);color:#f59e0b;border-radius:4px;padding:1px 7px;">' + medCount + ' warning</span>';
+
+      var dateNote = isDateExcluded
+        ? '<span style="font-size:10px;color:#5a6270;margin-left:8px;">· date issues excluded (' + p.status + ')</span>'
+        : '';
+
+      return '<div style="border-top:1px solid rgba(255,255,255,.06);padding:12px 16px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer;" onclick="rlDrillTo(' + p.projectId + ')">' +
+          '<div style="width:3px;height:32px;background:' + topColor + ';border-radius:2px;flex-shrink:0;"></div>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:13px;font-weight:600;color:#f0f0f6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.projectName + '</div>' +
+            '<div style="display:flex;align-items:center;gap:6px;margin-top:2px;">' + rlStatus(p.status) + dateNote + '</div>' +
+          '</div>' +
+          '<div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">' + badgeHTML + '</div>' +
+        '</div>' +
+        '<div style="padding-left:13px;">' + issueRows + '</div>' +
+      '</div>';
+    }).join('');
+
+    var noIssuesHTML = withIssues.length === 0
+      ? '<div style="padding:32px;text-align:center;font-size:13px;color:#22c55e;">✓ No issues found across ' + projs.length + ' projects</div>'
+      : '';
+
+    return rlCard(
+      '<div style="padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">' +
+        '<div style="font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">' +
+          'Project Issues <span style="color:#5a6270;font-weight:400;">(' + withIssues.length + ' of ' + projs.length + ' projects)</span>' +
+        '</div>' +
+        summaryHTML +
+      '</div>' +
+      rowsHTML + noIssuesHTML
+    );
+  }
+
+  function render(filter) {
+    var d = _rlData;
+    var all = d.projects;
+    var projs = filter === 'standard'    ? all.filter(function(p){return p.isStandard;})
+              : filter === 'nonstandard' ? all.filter(function(p){return !p.isStandard;})
+              : all;
+
+    var filterBar =
+      '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">' +
+        '<span style="font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-family:\'DM Mono\',monospace;">Filter:</span>' +
+        ['all','standard','nonstandard'].map(function(f){
+          var labels={all:'All ('+all.length+')',standard:'Standard ('+d.summary.standard+')',nonstandard:'Non-Standard ('+d.summary.nonStandard+')'};
+          var a = f === filter;
+          return '<button onclick="rlFilterProj(\'' + f + '\')" style="border:1px solid ' + (a?'rgba(201,162,39,.3)':'rgba(255,255,255,.07)') + ';background:' + (a?'rgba(201,162,39,.1)':'transparent') + ';color:' + (a?'#c9a227':'rgba(255,255,255,.5)') + ';border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:\'DM Sans\',sans-serif;">' + labels[f] + '</button>';
+        }).join('') +
+      '</div>';
+
+    body.innerHTML =
+      filterBar +
+      '<div style="margin-bottom:8px;font-size:10px;color:#5a6270;text-transform:uppercase;letter-spacing:.1em;font-family:\'DM Mono\',monospace;">Task Progress</div>' +
+      renderTasksSection(projs, filter) +
+      '<div style="margin:28px 0 8px;font-size:10px;color:#5a6270;text-transform:uppercase;letter-spacing:.1em;font-family:\'DM Mono\',monospace;">Compliance Issues</div>' +
+      renderIssuesSection(projs);
+
+    if (_rlDrillProject) setTimeout(function(){ rlDrillTo(_rlDrillProject); }, 60);
+  }
+
+  window.rlFilterProj = function(f) { _rlFilter = f; render(f); };
+  render(_rlFilter);
 }
 
-function rlFilterProj(f) {
-  _rlFilter = f;
-  ['all','standard','nonstandard'].forEach(function(id){
-    var b=document.getElementById('rlf-'+id); if(!b) return;
-    var a=id===f;
-    b.style.background=a?'rgba(201,162,39,.1)':'transparent';
-    b.style.color=a?'#c9a227':'rgba(255,255,255,.5)';
-    b.style.borderColor=a?'rgba(201,162,39,.3)':'rgba(255,255,255,.07)';
-  });
-  rlRenderProgressTable();
-  var dp=document.getElementById('rlDrillPanel'); if(dp) dp.style.display='none';
-}
-window.rlFilterProj = rlFilterProj;
-
-function rlRenderProgressTable() {
-  var el=document.getElementById('rlProgressTable'); if(!el||!_rlData) return;
-  var projs = _rlFilter==='standard'?_rlData.projects.filter(function(p){return p.isStandard;}):
-              _rlFilter==='nonstandard'?_rlData.projects.filter(function(p){return !p.isStandard;}):
-              _rlData.projects;
-  var rows = projs.map(function(p){
-    var barHTML = p.isStandard ? rlPhaseBar(p.phases, p.overallPct) : '<span style="font-size:11px;color:#8a92a0;font-style:italic;">Non-Standard Structure / Mapping Required</span>';
-    return '<tr style="border-top:1px solid rgba(255,255,255,.04);cursor:pointer;" onmouseenter="this.style.background=\'rgba(255,255,255,.02)\'" onmouseleave="this.style.background=\'transparent\'" onclick="rlDrillTo('+p.projectId+')">'+
-      '<td style="padding:10px 16px;font-size:13px;font-weight:500;color:#f0f0f6;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+p.projectName+'</td>'+
-      '<td style="padding:10px 8px;">'+rlStatus(p.status)+'</td>'+
-      '<td style="padding:6px 16px;min-width:220px;">'+barHTML+'</td>'+
-      '<td style="padding:10px 8px;text-align:center;font-size:12px;color:#8a92a0;font-family:\'DM Mono\',monospace;">'+p.totalTasks+'</td>'+
-      '<td style="padding:10px 12px;font-size:13px;color:#c9a227;text-align:center;">▶</td>'+
-    '</tr>';
-  }).join('');
-  el.innerHTML = rlCard(
-    '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">'+
-      '<thead><tr>'+
-        '<th style="padding:10px 16px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Project</th>'+
-        '<th style="padding:10px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Status</th>'+
-        '<th style="padding:10px 16px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-family:\'DM Mono\',monospace;">Phase Progress</th>'+
-        '<th style="padding:10px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:center;font-family:\'DM Mono\',monospace;">Tasks</th>'+
-        '<th></th>'+
-      '</tr></thead>'+
-      '<tbody>'+rows+'</tbody>'+
-    '</table></div>'
-  );
-}
 
 function rlDrillTo(projectId) {
   _rlDrillProject = projectId;
