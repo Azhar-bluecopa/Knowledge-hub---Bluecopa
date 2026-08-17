@@ -2794,7 +2794,8 @@ function rlNorm(s) {
   return (s || '').toLowerCase().trim()
     .replace(/&/g, 'and')
     .replace(/[-–—]/g, ' ')
-    .replace(/\s+/g, ' ');
+    .replace(/\s+/g, ' ')
+    .replace(/^\d+[\.\):\s]+/, ''); // strip leading numeric prefix like "1. " or "2) "
 }
 
 function rlMatchMainTask(taskName) {
@@ -3328,18 +3329,26 @@ app.get('/api/rocketlane/projects-full', async (req, res) => {
   await getDbInitPromise();
   ensureRL();
   if (!isRefresh && db.rocketlane.fullData) {
-    const persAge = now - (db.rocketlane.fullDataAt || 0);
-    rlFullCache = db.rocketlane.fullData;
-    rlFullCacheAt = db.rocketlane.fullDataAt || 0;
-    if (persAge < RL_PERSIST_TTL) {
-      // Fresh enough — serve immediately, no Rocketlane API call needed
-      return res.json({ ...rlFullCache, cached: true, cacheAge: Math.round(persAge / 1000) });
+    const cached = db.rocketlane.fullData;
+    // Detect corrupted cache: 0 standard projects with many total is clearly wrong
+    const isCorrupted = cached.summary && cached.summary.standard === 0 && (cached.summary.total || 0) > 10;
+    if (!isCorrupted) {
+      const persAge = now - (db.rocketlane.fullDataAt || 0);
+      rlFullCache = cached;
+      rlFullCacheAt = db.rocketlane.fullDataAt || 0;
+      if (persAge < RL_PERSIST_TTL) {
+        return res.json({ ...rlFullCache, cached: true, cacheAge: Math.round(persAge / 1000) });
+      }
+      // Stale — serve old data, client auto-refreshes via ?refresh=1
+      res.json({ ...rlFullCache, stale: true, cacheAge: Math.round(persAge / 1000) });
+      rlDoFullFetch(apiKey).catch(() => {});
+      return;
     }
-    // Stale — serve old data now, client will auto-refresh in background
-    res.json({ ...rlFullCache, stale: true, cacheAge: Math.round(persAge / 1000) });
-    // Kick off background refresh (best-effort on Vercel — may not complete fully)
-    rlDoFullFetch(apiKey).catch(() => {});
-    return;
+    // Corrupted cache detected — clear it and fall through to a fresh fetch
+    db.rocketlane.fullData = null;
+    db.rocketlane.fullDataAt = 0;
+    rlFullCache = null;
+    rlFullCacheAt = 0;
   }
 
   // Layer 3: cold fetch — no cached data exists at all
