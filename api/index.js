@@ -2777,25 +2777,34 @@ const RL_TASKS_CACHE_TTL = 5 * 60 * 1000;
 
 // ── Bluecopa Delivery Methodology engine ──────────────────────────────────────
 const RL_METHODOLOGY = [
-  { key: 'personalization',        phase: 'engage',  order: 1,  weight: 10 },
-  { key: 'data management',        phase: 'engage',  order: 2,  weight: 10 },
-  { key: 'configurations',         phase: 'drive',   order: 3,  weight: 10 },
-  { key: 'process walkthrough',    phase: 'drive',   order: 4,  weight: 10 },
-  { key: 'user and role alignment',phase: 'drive',   order: 5,  weight: 10 },
-  { key: 'teach back',             phase: 'enable',  order: 6,  weight: 10 },
-  { key: 'system validation',      phase: 'enable',  order: 7,  weight: 10 },
-  { key: 'user acceptance testing',phase: 'enable',  order: 8,  weight: 10 },
-  { key: 'go-live',                phase: 'convert', order: 9,  weight: 10, aliases: ['go live', 'golive'] },
-  { key: 'hypercare',              phase: 'convert', order: 10, weight: 10, aliases: ['hypercare period'] },
+  { key: 'personalization',         phase: 'engage',  order: 1,  weight: 10 },
+  { key: 'data management',         phase: 'engage',  order: 2,  weight: 10 },
+  { key: 'configurations',          phase: 'drive',   order: 3,  weight: 10, aliases: ['configuration'] },
+  { key: 'process walkthrough',     phase: 'drive',   order: 4,  weight: 10, aliases: ['process walk through', 'process walk-through', 'walkthrough', 'walk through'] },
+  { key: 'user and role alignment', phase: 'drive',   order: 5,  weight: 10, aliases: ['user & role alignment', 'user role alignment', 'users and role alignment', 'user and roles alignment'] },
+  { key: 'teach back',              phase: 'enable',  order: 6,  weight: 10, aliases: ['teachback', 'teach-back'] },
+  { key: 'system validation',       phase: 'enable',  order: 7,  weight: 10, aliases: ['system validation and testing'] },
+  { key: 'user acceptance testing', phase: 'enable',  order: 8,  weight: 10, aliases: ['uat', 'user acceptance'] },
+  { key: 'go-live',                 phase: 'convert', order: 9,  weight: 10, aliases: ['go live', 'golive', 'go-live support'] },
+  { key: 'hypercare',               phase: 'convert', order: 10, weight: 10, aliases: ['hypercare period', 'hyper care'] },
 ];
 
+// Normalise a task name for fuzzy matching: lowercase, & → and, hyphens/dashes → space
+function rlNorm(s) {
+  return (s || '').toLowerCase().trim()
+    .replace(/&/g, 'and')
+    .replace(/[-–—]/g, ' ')
+    .replace(/\s+/g, ' ');
+}
+
 function rlMatchMainTask(taskName) {
-  const n = (taskName || '').toLowerCase().trim();
+  const n = rlNorm(taskName);
   if (n === 'project closure' || n.startsWith('project closure')) return { excluded: true };
   for (const mt of RL_METHODOLOGY) {
-    const toCheck = [mt.key, ...(mt.aliases || [])];
-    for (const variant of toCheck) {
-      if (n === variant || n.startsWith(variant)) return mt;
+    const variants = [mt.key, ...(mt.aliases || [])].map(rlNorm);
+    for (const v of variants) {
+      // Match exact, or task starts with the variant (word boundary — followed by space or end)
+      if (n === v || n.startsWith(v + ' ') || n === v || (n.startsWith(v) && (n.length === v.length || n[v.length] === ' ' || n[v.length] === ':' || n[v.length] === '-'))) return mt;
     }
   }
   return null;
@@ -2835,7 +2844,7 @@ function rlBuildProjectProgress(projectTasks) {
   }
   return {
     isStandard,
-    overallPct: isStandard ? overallCompleted : null,
+    overallPct: isStandard ? Math.min(100, overallCompleted) : null,
     phases: isStandard ? phases : null,
     mainTaskCount: mainFound.length,
     totalTasks: projectTasks.length,
@@ -3014,7 +3023,7 @@ app.get('/api/rocketlane/projects', async (req, res) => {
       const comp = completionMap[pid];
       if (comp && comp.total > 0) {
         // Weighted formula: completed=100%, in-progress=50%, todo=0%
-        p.completionPct = Math.round((comp.completed + comp.inprogress * 0.5) / comp.total * 100);
+        p.completionPct = Math.min(100, Math.round((comp.completed + comp.inprogress * 0.5) / comp.total * 100));
         p.completionTasks = comp;
       } else {
         const lbl = (p.status?.label || '').toLowerCase();
