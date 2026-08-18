@@ -3906,7 +3906,7 @@ app.post('/api/learning/bulk-assign', async (req, res) => {
   // Send enrollment emails before responding (setImmediate is killed on Vercel serverless)
   const path = db.learning.paths.find(p => p.id === pathId);
   await Promise.allSettled(userNames.map(async (userName) => {
-    const toEmail = enrolleeEmails[userName];
+    const toEmail = enrolleeEmails[userName] || db.learning.memberEmails[userName];
     if (!toEmail) return;
     try {
       const { subject, html, text } = buildEnrollmentEmail({
@@ -4050,9 +4050,10 @@ app.get('/api/learning/team', (req, res) => {
   ensureLearning();
   ensureSM();
   res.json({
-    assignments: db.learning.assignments,
-    paths:       db.learning.paths,
-    employees:   db.skillMatrix.employees
+    assignments:  db.learning.assignments,
+    paths:        db.learning.paths,
+    employees:    db.skillMatrix.employees,
+    memberEmails: db.learning.memberEmails || {}
   });
 });
 

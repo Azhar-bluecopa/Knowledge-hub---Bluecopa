@@ -6432,6 +6432,10 @@ async function updateFeedbackStatus(id) {
           <select class="lm-select" id="lmFormUser"><option value="">— select member —</option></select>
         </div>
         <div class="lm-form-group">
+          <label class="lm-label">Member Email <span style="font-size:10px;color:#8a92a0;font-weight:400;">(required to send notification)</span></label>
+          <input class="lm-input" type="email" id="lmFormEmail" placeholder="email@bluecopa.com" autocomplete="off">
+        </div>
+        <div class="lm-form-group">
           <label class="lm-label">Courses</label>
           <div class="lm-course-checks" id="lmCourseChecks"></div>
         </div>
@@ -6923,7 +6927,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=15" defer></script>
-  <script src="/app.js?v=72" defer></script>
+  <script src="/app.js?v=73" defer></script>
   <script src="/uat.js?v=58" defer></script>
   <script src="/ews.js?v=8" defer></script>
 
