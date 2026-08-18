@@ -3573,10 +3573,11 @@ function _emailFooter(url) {
 </td></tr>`;
 }
 
-function buildEnrollmentEmail({ memberName, courseIds, dueDate, pathName, portalUrl }) {
+function buildEnrollmentEmail({ memberName, courseIds, dueDate, pathName, portalUrl, context }) {
   const eh = _emailEscape, url = portalUrl || PORTAL_URL;
   const firstName = (memberName || 'Team Member').split(' ')[0];
-  const path = pathName || 'New Joiner Learning Path';
+  const isExisting = context === 'existing';
+  const path = pathName || (isExisting ? 'Continuing Learning Programme' : 'New Joiner Learning Path');
   const dueFmt = _fmtDate(dueDate) || 'To be confirmed by your manager';
   const ids = courseIds || NJ_ALL;
   const p1 = ids.filter(id => NJ_PHASE1.includes(id));
@@ -3608,23 +3609,41 @@ function buildEnrollmentEmail({ memberName, courseIds, dueDate, pathName, portal
       (p1.length && p2.length ? '<tr><td colspan="4" style="padding:6px 0;text-align:center;color:#9ca3af;font-size:13px;background:#fff">&darr;&nbsp; then move to</td></tr>' : '') +
       phaseSection('Phase 2 · Platform Mastery', `${p2.length} modules — Bluecopa features &amp; integrations`, '#0891b2', p2)
     : ids.map(id => courseRow(id)).join('');
-  const subject = `You've been enrolled: ${path} — Delivery Wikipedia`;
+
+  // Context-specific copy
+  const bannerText = isExisting
+    ? '&#x1F4DA;&nbsp; New training has been assigned to you'
+    : '&#x1F389;&nbsp; Congratulations — you\'ve been enrolled in a new learning path!';
+  const introPara = isExisting
+    ? `You have been assigned ${ids.length === 1 ? 'a new training module' : `${ids.length} new training modules`} as part of your ongoing professional development at Bluecopa. Complete ${ids.length === 1 ? 'it' : 'them'} by your target date to keep your skills sharp and your progress on track.`
+    : `As part of your onboarding at Bluecopa, you have been enrolled in the <strong>${eh(path)}</strong>. This structured ${ids.length}-module programme is designed to equip you with the foundational knowledge and platform expertise needed to excel in your role — complete all modules by your target date to receive your onboarding certificate.`;
+  const sectionLabel = isExisting ? 'Assigned Training' : 'Your Learning Journey';
+  const certBullet = isExisting
+    ? `<tr><td style="color:#22c55e;font-weight:700;width:18px;padding:2px 0">&#10003;</td><td style="padding:2px 0 2px 8px;color:#374151;font-size:13px">Track your progress at any time in the learning portal</td></tr>`
+    : `<tr><td style="color:#22c55e;font-weight:700;width:18px;padding:2px 0">&#10003;</td><td style="padding:2px 0 2px 8px;color:#374151;font-size:13px">Certificate of completion issued for all ${ids.length} modules</td></tr>`;
+  const previewText = isExisting
+    ? `${path} · ${ids.length} module${ids.length > 1 ? 's' : ''} assigned`
+    : `${path} · ${ids.length} modules`;
+  const subject = isExisting
+    ? `New training assigned: ${path} — Delivery Wikipedia`
+    : `You've been enrolled: ${path} — Delivery Wikipedia`;
+
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${eh(subject)}</title></head>
 <body style="margin:0;padding:0;background:#f1f2f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
-${_emailPreview(`New Joiner Learning Path · ${ids.length} modules`)}
+${_emailPreview(previewText)}
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f5;padding:20px 0"><tr><td>
 <table width="100%" cellpadding="0" cellspacing="0" style="width:100%;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">
-${_emailHeader('Learning &amp; Development','🎓','Enrolled','201,162,39')}
-<tr><td style="background:#c9a227;padding:11px 28px"><div style="color:#1a1d27;font-size:13px;font-weight:700">&#x1F389;&nbsp; Congratulations — you've been enrolled in a new learning path!</div></td></tr>
+${_emailHeader('Learning &amp; Development','🎓','Assigned','201,162,39')}
+<tr><td style="background:#c9a227;padding:11px 28px"><div style="color:#1a1d27;font-size:13px;font-weight:700">${bannerText}</div></td></tr>
 <tr><td style="background:#ffffff;padding:28px 28px 22px">
   <div style="font-size:22px;font-weight:800;color:#0d1117;letter-spacing:-.3px;margin-bottom:6px">Hi ${eh(firstName)}!</div>
-  <div style="color:#374151;font-size:14px;line-height:1.7;margin-bottom:20px">As part of your onboarding at Bluecopa, you have been enrolled in the <strong>${eh(path)}</strong>. This structured ${ids.length}-module programme is designed to equip you with the foundational knowledge and platform expertise needed to excel in your role — complete all modules by your target date to receive your onboarding certificate.</div>
+  <div style="color:#374151;font-size:14px;line-height:1.7;margin-bottom:20px">${introPara}</div>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fefce8;border:1px solid #fde68a;border-radius:10px;margin-bottom:20px"><tr><td style="padding:15px 18px"><table cellpadding="0" cellspacing="0"><tr>
     <td style="font-size:20px;padding-right:10px;vertical-align:middle">&#x1F4C5;</td>
     <td><div style="color:#92400e;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px">Completion Due By</div>
     <div style="color:#78350f;font-size:18px;font-weight:800;margin-top:2px">${eh(dueFmt)}</div></td>
   </tr></table></td></tr></table>
-  <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px">Your Learning Journey — ${ids.length} Modules</div>
+  <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px">${eh(sectionLabel)} — ${ids.length} Module${ids.length > 1 ? 's' : ''}</div>
   <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e4e6ea;border-radius:10px;overflow:hidden"><tbody>${coursesBlock}</tbody></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;margin-bottom:20px"><tr>
     <td align="center"><a href="${url}" style="display:inline-block;background:#c9a227;color:#1a1d27;text-decoration:none;font-weight:800;font-size:14px;padding:14px 40px;border-radius:8px">Start Learning &rarr;</a></td>
@@ -3634,17 +3653,20 @@ ${_emailHeader('Learning &amp; Development','🎓','Enrolled','201,162,39')}
     <table cellpadding="0" cellspacing="0"><tbody>
       <tr><td style="color:#22c55e;font-weight:700;width:18px;padding:2px 0">&#10003;</td><td style="padding:2px 0 2px 8px;color:#374151;font-size:13px">Self-paced modules — learn at your own schedule</td></tr>
       <tr><td style="color:#22c55e;font-weight:700;width:18px;padding:2px 0">&#10003;</td><td style="padding:2px 0 2px 8px;color:#374151;font-size:13px">Interactive quizzes after each module</td></tr>
-      <tr><td style="color:#22c55e;font-weight:700;width:18px;padding:2px 0">&#10003;</td><td style="padding:2px 0 2px 8px;color:#374151;font-size:13px">Certificate of completion issued for all ${ids.length} modules</td></tr>
+      ${certBullet}
       <tr><td style="color:#22c55e;font-weight:700;width:18px;padding:2px 0">&#10003;</td><td style="padding:2px 0 2px 8px;color:#374151;font-size:13px">Progress visible to your learning manager in real time</td></tr>
     </tbody></table>
   </div>
 </td></tr>
 ${_emailFooter(url)}
 </table></td></tr></table></body></html>`;
-  const text = `Hi ${firstName},\n\nYou've been enrolled in: ${path}\nTarget completion: ${dueFmt}\n\n` +
+  const text = `Hi ${firstName},\n\n` +
+    (isExisting ? `New training has been assigned to you: ${path}` : `You've been enrolled in: ${path}`) +
+    `\nTarget completion: ${dueFmt}\n\n` +
     (p1.length ? `Phase 1 — Finance Studio:\n${p1.map((id,i)=>`  ${i+1}. ${(ENROLLMENT_COURSE_INFO[id]||{}).title||id}`).join('\n')}\n\n` : '') +
     (p2.length ? `Phase 2 — Platform Mastery:\n${p2.map((id,i)=>`  ${p1.length+i+1}. ${(ENROLLMENT_COURSE_INFO[id]||{}).title||id}`).join('\n')}\n\n` : '') +
-    `Start at: ${url}\n\n— Delivery Wikipedia`;
+    (!p1.length && !p2.length ? ids.map((id,i)=>`  ${i+1}. ${(ENROLLMENT_COURSE_INFO[id]||{}).title||id}`).join('\n') + '\n\n' : '') +
+    `Open at: ${url}\n\n— Delivery Wikipedia`;
   return { subject, html, text };
 }
 
@@ -3874,7 +3896,7 @@ app.delete('/api/learning/assignments/:id', async (req, res) => {
 app.post('/api/learning/bulk-assign', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
   ensureLearning();
-  const { userNames, courseIds, pathId, type, dueDate, enrolleeEmails = {}, enrolledBy } = req.body;
+  const { userNames, courseIds, pathId, type, dueDate, enrolleeEmails = {}, enrolledBy, context } = req.body;
   if (!Array.isArray(userNames) || !Array.isArray(courseIds))
     return res.status(400).json({ error: 'userNames[] and courseIds[] required' });
   let created = 0;
@@ -3912,7 +3934,7 @@ app.post('/api/learning/bulk-assign', async (req, res) => {
       const { subject, html, text } = buildEnrollmentEmail({
         memberName: userName, courseIds, dueDate,
         pathName: path ? path.name : undefined,
-        enrolledBy
+        enrolledBy, context
       });
       await sendEmail({ to: toEmail, subject, html, text });
     } catch(e) {

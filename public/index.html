@@ -6439,6 +6439,13 @@ async function updateFeedbackStatus(id) {
           <label class="lm-label">Courses</label>
           <div class="lm-course-checks" id="lmCourseChecks"></div>
         </div>
+        <div class="lm-form-group">
+          <label class="lm-label">Learning Context</label>
+          <select class="lm-select" id="lmFormContext">
+            <option value="new_joiner">New Joiner</option>
+            <option value="existing">Existing Employee</option>
+          </select>
+        </div>
         <div class="lm-form-row">
           <div class="lm-form-group">
             <label class="lm-label">Training Type</label>
@@ -6927,7 +6934,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=15" defer></script>
-  <script src="/app.js?v=73" defer></script>
+  <script src="/app.js?v=74" defer></script>
   <script src="/uat.js?v=58" defer></script>
   <script src="/ews.js?v=8" defer></script>
 
