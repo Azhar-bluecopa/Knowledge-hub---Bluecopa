@@ -3422,11 +3422,37 @@ app.get('/api/proxy/users', async (req, res) => {
       hasMore = d.pagination?.hasMore || false;
       pageToken = d.pagination?.nextPageToken || null;
     }
+    // Also merge all skill matrix employees so all 88 team members appear
+    const smEmployees = db.skillMatrix?.employees || [];
+    const memberEmails = db.learning?.memberEmails || {};
+    smEmployees.forEach(empName => {
+      const name = typeof empName === 'object' ? (empName.name || '') : empName;
+      if (!name) return;
+      const email = (memberEmails[name] || '').toLowerCase().trim();
+      const alreadyInByEmail = email && memberMap.has(email);
+      const alreadyInByName = [...memberMap.values()].some(m => m.name.toLowerCase() === name.toLowerCase());
+      if (!alreadyInByEmail && !alreadyInByName) {
+        const initials = name.split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').toUpperCase() || '?';
+        const key = email || ('__name__' + name.toLowerCase());
+        memberMap.set(key, { name, email, role: null, initials });
+      }
+    });
     const users = [...memberMap.values()].sort((a, b) => a.name.localeCompare(b.name));
     res.json({ users, source: 'rocketlane_projects' });
   } catch(e) {
-    const emails = db.settings?.adminEmails || [];
-    res.json({ users: emails.map(e => ({ name: e.split('@')[0], email: e, role: null, initials: (e[0]||'?').toUpperCase() })), source: 'fallback', error: e.message });
+    // Fallback: use skill matrix employees with any known emails
+    const smEmployees = db.skillMatrix?.employees || [];
+    const memberEmails = db.learning?.memberEmails || {};
+    const fallbackMap = new Map();
+    smEmployees.forEach(empName => {
+      const name = typeof empName === 'object' ? (empName.name || '') : empName;
+      if (!name) return;
+      const email = (memberEmails[name] || '').toLowerCase().trim();
+      const initials = name.split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').toUpperCase() || '?';
+      fallbackMap.set(name.toLowerCase(), { name, email, role: null, initials });
+    });
+    const users = [...fallbackMap.values()].sort((a, b) => a.name.localeCompare(b.name));
+    res.json({ users, source: 'fallback', error: e.message });
   }
 });
 
