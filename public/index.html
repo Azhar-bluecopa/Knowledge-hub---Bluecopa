@@ -2381,6 +2381,30 @@ async function startProxy(idx) {
     startedAt: new Date().toISOString()
   };
 
+  // Fetch target user's server-side learning progress BEFORE activating proxy
+  // (must happen before kb_proxy_session is set so fetch interceptor doesn't interfere)
+  let virtualMlProg = {};
+  try {
+    const teamRes = await fetch('/api/learning/team', { headers: { 'x-user-email': realAdmin.email } });
+    if (teamRes.ok) {
+      const teamData = await teamRes.json();
+      const userAssignments = (teamData.assignments || []).filter(a =>
+        a.userName.toLowerCase() === targetUser.name.toLowerCase()
+      );
+      // Build ml_prog from completed assignments so My Learning shows their actual state
+      userAssignments.forEach(a => {
+        if (a.completedAt) {
+          virtualMlProg[a.courseId] = { passed: true, score: 100, passedAt: a.completedAt, lessons: [] };
+        }
+      });
+    }
+  } catch(e) { console.warn('proxy: could not load target learning data', e); }
+
+  // Back up admin's ml_prog and install target user's virtual progress
+  const adminMlProg = localStorage.getItem('ml_prog');
+  if (adminMlProg) localStorage.setItem('ml_prog_admin_backup', adminMlProg);
+  localStorage.setItem('ml_prog', JSON.stringify(virtualMlProg));
+
   // Persist real admin before switching
   localStorage.setItem('kb_real_admin', JSON.stringify(realAdmin));
   localStorage.setItem('kb_proxy_session', JSON.stringify(session));
@@ -2432,6 +2456,15 @@ async function exitProxy() {
   localStorage.setItem('kb_user', JSON.stringify(realAdmin));
   localStorage.removeItem('kb_proxy_session');
   localStorage.removeItem('kb_real_admin');
+
+  // Restore admin's ml_prog from backup
+  const adminMlProgBackup = localStorage.getItem('ml_prog_admin_backup');
+  if (adminMlProgBackup) {
+    localStorage.setItem('ml_prog', adminMlProgBackup);
+    localStorage.removeItem('ml_prog_admin_backup');
+  } else {
+    localStorage.removeItem('ml_prog');
+  }
 
   if (typeof _rlLoaded !== 'undefined') _rlLoaded = false;
   _pdLoadedForUser = null;
