@@ -4583,12 +4583,12 @@ app.get('/api/leaderboard', async (req, res) => {
       addPts(idea.author, 'ideas', 5);
     }
 
-    // 7. Learning assignments (+3 each, by assignedAt)
+    // 7. Learning assignments (+5 each, only on completion)
     for (const a of ((db.learning && db.learning.assignments) || [])) {
-      if (!a.userName) continue;
-      const ts = new Date(a.assignedAt);
+      if (!a.userName || !a.completedAt) continue;
+      const ts = new Date(a.completedAt);
       if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
-      addPts(a.userName, 'learning', 3);
+      addPts(a.userName, 'learning', 5);
     }
 
     // 8. Skill Matrix — PROFILE BONUS only for people with other activity in period.
