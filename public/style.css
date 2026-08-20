@@ -65,4 +65,4 @@
 .mc-drop-items-wrap{flex:1;padding:4px}
 .mc-drop-panel{display:none}
 .mc-panel-active{display:block}
-.mc-dropdown{min-width:440px}
+.mc-dropdown{min-width:176px}.mc-dropdown.mc-has-active{min-width:440px}.mc-dropdown:not(.mc-has-active) .mc-drop-items-wrap{display:none}.mc-dropdown:not(.mc-has-active) .mc-drop-cat-arrow{display:none}

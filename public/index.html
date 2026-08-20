@@ -26,7 +26,7 @@ html.dw-restoring #dwCover{display:block;position:fixed;top:0;left:0;right:0;bot
   <noscript>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
-  <link rel="stylesheet" href="/style.css?v=94">
+  <link rel="stylesheet" href="/style.css?v=95">
   <link rel="stylesheet" href="/uat.css?v=26">
   <link rel="stylesheet" href="/ews.css?v=8">
   <script src="https://accounts.google.com/gsi/client" async></script>
@@ -4302,33 +4302,60 @@ async function updateFeedbackStatus(id) {
     <a class="mc-nav-logo" onclick="void(0)">
       <img src="/bluecopa-icon.png" alt="Bluecopa">
     </a>
-    <script>function mcSetCat(idx){document.querySelectorAll('.mc-drop-cat').forEach(function(el,i){el.classList.toggle('mc-cat-active',i===idx)});document.querySelectorAll('.mc-drop-panel').forEach(function(el,i){el.classList.toggle('mc-panel-active',i===idx)});}</script>
+    <script>
+      var _mcActiveCat = -1;
+      function mcSetCat(idx) {
+        var dd = document.getElementById('mcDropdown');
+        if (_mcActiveCat === idx) {
+          // toggle off
+          _mcActiveCat = -1;
+          document.querySelectorAll('.mc-drop-cat').forEach(function(el){ el.classList.remove('mc-cat-active'); });
+          document.querySelectorAll('.mc-drop-panel').forEach(function(el){ el.classList.remove('mc-panel-active'); });
+          dd.classList.remove('mc-has-active');
+        } else {
+          _mcActiveCat = idx;
+          document.querySelectorAll('.mc-drop-cat').forEach(function(el,i){ el.classList.toggle('mc-cat-active', i===idx); });
+          document.querySelectorAll('.mc-drop-panel').forEach(function(el,i){ el.classList.toggle('mc-panel-active', i===idx); });
+          dd.classList.add('mc-has-active');
+        }
+      }
+      // Reset panel state when dropdown closes
+      document.addEventListener('click', function(e) {
+        if (!document.getElementById('mcBrowseBtn').contains(e.target)) {
+          _mcActiveCat = -1;
+          document.querySelectorAll('.mc-drop-cat').forEach(function(el){ el.classList.remove('mc-cat-active'); });
+          document.querySelectorAll('.mc-drop-panel').forEach(function(el){ el.classList.remove('mc-panel-active'); });
+          var dd = document.getElementById('mcDropdown');
+          if (dd) dd.classList.remove('mc-has-active');
+        }
+      });
+    </script>
     <div class="mc-browse-btn" id="mcBrowseBtn" onclick="mcToggleBrowse(event)">
       Explore <span class="mc-browse-chevron">▼</span>
       <div class="mc-dropdown" id="mcDropdown" onclick="event.stopPropagation()">
         <div class="mc-drop-panels">
           <!-- Left: category list -->
           <div class="mc-drop-cats">
-            <div class="mc-drop-cat mc-cat-active" id="mcCatBtn0" onmouseenter="mcSetCat(0)">
+            <div class="mc-drop-cat" id="mcCatBtn0" onclick="mcSetCat(0)">
               <div class="mc-drop-cat-icon-wrap" style="background:rgba(201,162,39,.12);">🎓</div>
               <div class="mc-drop-cat-text"><div class="mc-drop-cat-title">Academy</div><div class="mc-drop-cat-sub">Learning</div></div>
               <span class="mc-drop-cat-arrow">›</span>
             </div>
-            <div class="mc-drop-cat" id="mcCatBtn1" onmouseenter="mcSetCat(1)">
+            <div class="mc-drop-cat" id="mcCatBtn1" onclick="mcSetCat(1)">
               <div class="mc-drop-cat-icon-wrap" style="background:rgba(236,72,153,.12);">🌟</div>
               <div class="mc-drop-cat-text"><div class="mc-drop-cat-title">Pulse</div><div class="mc-drop-cat-sub">People</div></div>
               <span class="mc-drop-cat-arrow">›</span>
             </div>
-            <div class="mc-drop-cat" id="mcCatBtn2" onmouseenter="mcSetCat(2)">
+            <div class="mc-drop-cat" id="mcCatBtn2" onclick="mcSetCat(2)">
               <div class="mc-drop-cat-icon-wrap" style="background:rgba(59,130,246,.12);">🚀</div>
               <div class="mc-drop-cat-text"><div class="mc-drop-cat-title">Mission Deck</div><div class="mc-drop-cat-sub">Projects</div></div>
               <span class="mc-drop-cat-arrow">›</span>
             </div>
           </div>
-          <!-- Right: item panels -->
+          <!-- Right: item panels (hidden until a category is clicked) -->
           <div class="mc-drop-items-wrap">
             <!-- Panel 0: Academy – Learning -->
-            <div class="mc-drop-panel mc-panel-active" id="mcPanel0">
+            <div class="mc-drop-panel" id="mcPanel0">
               <div class="mc-drop-item" onclick="dwGoLearning();mcCloseBrowse()">
                 <div class="mc-drop-icon" style="background:rgba(201,162,39,.1);">🎓</div>
                 <div class="mc-drop-text"><div class="mc-drop-title">My Learning</div><div class="mc-drop-sub">Structured courses across AR, AP & more</div></div>
@@ -4344,17 +4371,22 @@ async function updateFeedbackStatus(id) {
                 <div class="mc-drop-text"><div class="mc-drop-title">Skill Matrix</div><div class="mc-drop-sub">Track & grow team skills</div></div>
                 <span class="mc-drop-badge mc-drop-live">Live</span>
               </div>
-              <div class="mc-drop-item" onclick="mcGoTo('puzzle');mcCloseBrowse()">
-                <div class="mc-drop-icon" style="background:rgba(232,122,122,.1);">🧩</div>
-                <div class="mc-drop-text"><div class="mc-drop-title">Process Puzzle</div><div class="mc-drop-sub">Gamified weekly challenges</div></div>
-                <span class="mc-drop-badge mc-drop-live">Live</span>
-              </div>
             </div>
             <!-- Panel 1: Pulse – People -->
             <div class="mc-drop-panel" id="mcPanel1">
+              <div class="mc-drop-item" onclick="dwComingSoon('KPIs');mcCloseBrowse()">
+                <div class="mc-drop-icon" style="background:rgba(249,167,79,.1);">📊</div>
+                <div class="mc-drop-text"><div class="mc-drop-title">KPIs</div><div class="mc-drop-sub">Live delivery metrics</div></div>
+                <span class="mc-drop-badge mc-drop-soon">Soon</span>
+              </div>
               <div class="mc-drop-item" onclick="dwGoEngagement();mcCloseBrowse()">
                 <div class="mc-drop-icon" style="background:rgba(236,72,153,.1);">🌟</div>
                 <div class="mc-drop-text"><div class="mc-drop-title">Employee Engagement Hub</div><div class="mc-drop-sub">Awards, moments, birthdays & team ideas</div></div>
+                <span class="mc-drop-badge mc-drop-live">Live</span>
+              </div>
+              <div class="mc-drop-item" onclick="mcGoTo('puzzle');mcCloseBrowse()">
+                <div class="mc-drop-icon" style="background:rgba(232,122,122,.1);">🧩</div>
+                <div class="mc-drop-text"><div class="mc-drop-title">Process Puzzle</div><div class="mc-drop-sub">Gamified weekly challenges</div></div>
                 <span class="mc-drop-badge mc-drop-live">Live</span>
               </div>
               <!-- Leadership Insights — only shown to approved users (app.js controls display via id) -->
@@ -4366,11 +4398,6 @@ async function updateFeedbackStatus(id) {
             </div>
             <!-- Panel 2: Mission Deck – Projects -->
             <div class="mc-drop-panel" id="mcPanel2">
-              <div class="mc-drop-item" onclick="dwComingSoon('KPIs');mcCloseBrowse()">
-                <div class="mc-drop-icon" style="background:rgba(249,167,79,.1);">📊</div>
-                <div class="mc-drop-text"><div class="mc-drop-title">KPIs</div><div class="mc-drop-sub">Live delivery metrics</div></div>
-                <span class="mc-drop-badge mc-drop-soon">Soon</span>
-              </div>
               <div class="mc-drop-item" onclick="dwComingSoon('Delivery Journey');mcCloseBrowse()">
                 <div class="mc-drop-icon" style="background:rgba(52,211,153,.1);">🏛️</div>
                 <div class="mc-drop-text"><div class="mc-drop-title">The Delivery Journey</div><div class="mc-drop-sub">Past implementation stories</div></div>
