@@ -4526,12 +4526,12 @@ app.get('/api/leaderboard', async (req, res) => {
     excludedNames.delete(undefined);
 
     const empMap = {};
-    // addPts stores POINTS (not counts) in breakdown so UI shows actual scores
     function addPts(name, cat, pts) {
       if (!name || pts <= 0) return;
-      if (!empMap[name]) empMap[name] = { name, score: 0, breakdown: {} };
+      if (!empMap[name]) empMap[name] = { name, score: 0, breakdown: {}, counts: {} };
       empMap[name].score += pts;
       empMap[name].breakdown[cat] = (empMap[name].breakdown[cat] || 0) + pts;
+      empMap[name].counts[cat] = (empMap[name].counts[cat] || 0) + 1;
     }
 
     // 1. Articles published (+10 each, by created_at)
@@ -4588,7 +4588,7 @@ app.get('/api/leaderboard', async (req, res) => {
       if (!a.userName || !a.completedAt) continue;
       const ts = new Date(a.completedAt);
       if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
-      addPts(a.userName, 'learning', 5);
+      addPts(a.userName, 'learning', 2);
     }
 
     // 8. Skill Matrix — PROFILE BONUS only for people with other activity in period.
