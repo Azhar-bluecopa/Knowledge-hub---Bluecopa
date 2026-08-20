@@ -26,7 +26,7 @@ html.dw-restoring #dwCover{display:block;position:fixed;top:0;left:0;right:0;bot
   <noscript>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
-  <link rel="stylesheet" href="/style.css?v=91">
+  <link rel="stylesheet" href="/style.css?v=90">
   <link rel="stylesheet" href="/uat.css?v=26">
   <link rel="stylesheet" href="/ews.css?v=8">
   <script src="https://accounts.google.com/gsi/client" async></script>
@@ -905,16 +905,6 @@ function renderUserInfo() {
   if (mcAdminBtn) mcAdminBtn.style.display = 'none';
   const mcDashBtn = document.getElementById('mcDashBtn');
   if (mcDashBtn) mcDashBtn.style.display = u ? '' : 'none';
-  const hpWelcomeBar = document.getElementById('hpWelcomeBar');
-  if (hpWelcomeBar && u) {
-    const h = new Date().getHours();
-    const period = h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening';
-    const emoji  = h < 12 ? '☀️' : h < 17 ? '🌤️' : '🌙';
-    const first  = u.name.split(' ')[0];
-    const fname  = first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
-    document.getElementById('hpWelcomeText').textContent = `Good ${period}, ${fname} ${emoji} — welcome back to Delivery Wikipedia`;
-    hpWelcomeBar.style.display = '';
-  }
 }
 
 function toggleUserMenu() {
@@ -4399,262 +4389,379 @@ async function updateFeedbackStatus(id) {
     </div><!-- /dw-header-row -->
 
     <!-- ══ My Dashboard Panel (collapsible) ══ -->
-    <!-- Hero v2 — premium redesign -->
-    <div class="hp-welcome-bar" id="hpWelcomeBar">
-      <div class="hp-welcome-inner">
-        <span class="hp-welcome-text" id="hpWelcomeText">Welcome back!</span>
-        <div class="hp-welcome-actions">
-          <button class="hp-welcome-btn" onclick="pdShowDashboard()">My Dashboard</button>
-          <button class="hp-welcome-btn" onclick="dwGoLearning()">Continue Learning →</button>
-        </div>
+    <!-- Hero -->
+    <div class="dw-hero">
+      <div class="dw-hero-title-wrap">
+        <div class="dw-hero-title">Delivery Wikipedia</div>
+        <div class="dw-hero-rule"></div>
       </div>
-    </div>
-    <div class="hp-hero">
-      <div class="hp-hero-eyebrow"><span class="hp-hero-dot"></span>Delivery Wikipedia by Bluecopa</div>
-      <h1 class="hp-hero-headline">Everything You Need to<br><em class="hp-hero-em">Learn, Deliver</em> and Grow</h1>
-      <div class="hp-hero-sub" id="dwHeroSub">
+      <div class="dw-hero-sub" id="dwHeroSub">
         <span class="dw-hero-phrase dw-phrase-active">Single Source of truth for Bluecopa Delivery Team</span>
       </div>
-      <div class="hp-hero-ctas">
-        <button class="hp-cta-primary" onclick="document.getElementById('hpSections').scrollIntoView({behavior:'smooth'})">Explore All Sections ↓</button>
-        <button class="hp-cta-ghost" onclick="ipShowPortal()">⚡ Raise an Issue</button>
-        <button class="hp-cta-ghost" onclick="ibOpen()">💡 Idea Box</button>
-        <button class="hp-cta-ghost" onclick="dwOpenAbout()">About</button>
+      <div class="dw-about-btn-wrap">
+        <button class="dw-about-btn" onclick="dwOpenAbout()"><span class="dw-about-btn-spark">✦</span><span class="dw-about-btn-label">About This Platform</span></button>
       </div>
-    </div>
-    <div class="hp-stats-strip">
-      <div class="hp-stat-item">
-        <div class="hp-stat-n" id="dwStatCourses">—</div>
-        <div class="hp-stat-sub" id="dwStatCoursesSub"></div>
-        <div class="hp-stat-l">My Learning</div>
-      </div>
-      <div class="hp-stat-sep"></div>
-      <div class="hp-stat-item">
-        <div class="hp-stat-n" id="dwStatArticles">—</div>
-        <div class="hp-stat-sub" id="dwStatPlanned"></div>
-        <div class="hp-stat-l">Knowledge Articles</div>
-      </div>
-      <div class="hp-stat-sep"></div>
-      <div class="hp-stat-item">
-        <div class="hp-stat-n" id="dwStatSMPeople">—</div>
-        <div class="hp-stat-sub"></div>
-        <div class="hp-stat-l">Team Members</div>
-      </div>
-      <div class="hp-stat-sep"></div>
-      <div class="hp-stat-item">
-        <div class="hp-stat-n" id="dwStatGames">—</div>
-        <div class="hp-stat-sub"></div>
-        <div class="hp-stat-l">Puzzles Played</div>
-      </div>
-      <div class="hp-stat-sep"></div>
-      <div class="hp-stat-item">
-        <div class="hp-stat-n">Soon</div>
-        <div class="hp-stat-sub"></div>
-        <div class="hp-stat-l">KPIs</div>
-      </div>
-      <div class="hp-stat-sep"></div>
-      <div class="hp-stat-item">
-        <div class="hp-stat-n">Soon</div>
-        <div class="hp-stat-sub"></div>
-        <div class="hp-stat-l">Delivery Journey</div>
+      <div class="dw-hero-stats">
+        <div class="dw-h-stat">
+          <div class="dw-h-stat-n" id="dwStatCourses">—</div>
+          <div class="dw-h-stat-sub" id="dwStatCoursesSub"></div>
+          <div class="dw-h-stat-l">My Learning</div>
+        </div>
+        <div class="dw-h-stat">
+          <div class="dw-h-stat-n" id="dwStatArticles">—</div>
+          <div class="dw-h-stat-sub" id="dwStatPlanned"></div>
+          <div class="dw-h-stat-l">Knowledge Articles</div>
+        </div>
+        <div class="dw-h-stat">
+          <div class="dw-h-stat-n" id="dwStatSMPeople">—</div>
+          <div class="dw-h-stat-sub"></div>
+          <div class="dw-h-stat-l">Team Members</div>
+        </div>
+        <div class="dw-h-stat">
+          <div class="dw-h-stat-n">Soon</div>
+          <div class="dw-h-stat-sub"></div>
+          <div class="dw-h-stat-l">KPIs</div>
+        </div>
+        <div class="dw-h-stat">
+          <div class="dw-h-stat-n">Soon</div>
+          <div class="dw-h-stat-sub"></div>
+          <div class="dw-h-stat-l">Delivery Journey</div>
+        </div>
+        <div class="dw-h-stat">
+          <div class="dw-h-stat-n" id="dwStatGames">—</div>
+          <div class="dw-h-stat-sub"></div>
+          <div class="dw-h-stat-l">Games Hosted</div>
+        </div>
       </div>
     </div>
 
-    <!-- Sections v2 — premium redesign -->
-    <div id="hpSections" class="hp-sections-wrap">
+    <!-- Section cards -->
 
-      <!-- Leaderboard preview strip -->
-      <div class="hp-lb-strip">
-        <div class="hp-lb-strip-label">🏆 Top Performers</div>
-        <div class="hp-lb-strip-list" id="hpLbList"><span class="hp-lb-placeholder">Loading…</span></div>
-        <button class="hp-lb-see-all" onclick="dwGoEngagement()">Full Leaderboard →</button>
+    <div class="dw-cards-label">Explore Sections</div>
+    <div class="dw-cards-sub">Everything your delivery team needs — in one place</div>
+    <div class="dw-cards-grid">
+
+      <!-- Academy -->
+      <div class="dw-section-sep"><span>Academy - Learning</span></div>
+
+      <!-- 01 My Learning -->
+      <div class="dw-card" style="--cr:201,162,39;--fdur:4.1s;--fdel:0s;" onclick="dwGoLearning()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip06')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip06">
+          <div class="dw-tooltip-title">My Learning</div>
+          <div class="dw-tooltip-text">Structured courses built from Bluecopa knowledge articles. Deep-dive into AR, AP, MIS, P2P, O2C and R2R — self-paced, practical and tailored for the delivery team.</div>
+        </div>
+        <div class="dw-card-badge">● Live</div>
+        <span class="dw-card-icon">🎓</span>
+        <div class="dw-card-num">01</div>
+        <div class="dw-card-name">My Learning</div>
+        <div class="dw-card-desc">Structured courses across AR, AP, MIS, P2P, O2C and R2R — built from knowledge articles.</div>
+        <div class="dw-card-tags"><span class="dw-card-tag">AR</span><span class="dw-card-tag">AP</span><span class="dw-card-tag">MIS</span><span class="dw-card-tag">P2P</span><span class="dw-card-tag">O2C</span><span class="dw-card-tag">R2R</span></div>
+        <div class="dw-card-features">
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Self-paced with quiz assessments</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Progress tracked per course</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Earn completion certificates</div>
+        </div>
+        <div class="dw-card-stat-row">
+          <div class="dw-card-stat"><div class="dw-card-stat-n" id="dwCardCourseCount">—</div><div class="dw-card-stat-l">Courses</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n" id="dwCardLessonsCount">—</div><div class="dw-card-stat-l">Lessons</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">∞</div><div class="dw-card-stat-l">Self-paced</div></div>
+        </div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
 
-      <!-- ── Academy ── -->
-      <div class="hp-section hp-section-reveal">
-        <div class="hp-section-hd">
-          <span class="hp-section-label">Academy</span>
-          <span class="hp-section-title">Learning &amp; Knowledge</span>
-          <span class="hp-section-desc">Grow your delivery expertise with structured courses, deep-dive articles and skill tracking.</span>
+      <!-- 02 Knowledge Articles -->
+      <div class="dw-card" style="--cr:0,200,204;--fdur:4.2s;--fdel:.5s;" onclick="dwGoKnowledge()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip01')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip01">
+          <div class="dw-tooltip-title">Knowledge Articles</div>
+          <div class="dw-tooltip-text">Step-by-step guides, how-tos, deep technical docs and best practices covering every Bluecopa feature — written by the team, for the team. Browse by category or search.</div>
         </div>
-        <div class="hp-cards-bento hp-bento-academy">
-
-          <div class="hp-bcard hp-bcard-primary" style="--bc:201,162,39;--cr:201,162,39" onclick="dwGoLearning()">
-            <div class="hp-bcard-glow"></div>
-            <div class="hp-bcard-badge hp-badge-live">● Live</div>
-            <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip06')" title="About">i</div>
-            <div class="dw-tooltip" id="tip06"><div class="dw-tooltip-title">My Learning</div><div class="dw-tooltip-text">Structured courses built from Bluecopa knowledge articles. Deep-dive into AR, AP, MIS, P2P, O2C and R2R — self-paced, practical and tailored for the delivery team.</div></div>
-            <div class="hp-bcard-num">01</div>
-            <div class="hp-bcard-icon">🎓</div>
-            <div class="hp-bcard-name">My Learning</div>
-            <div class="hp-bcard-desc">Structured courses across AR, AP, MIS, P2P, O2C and R2R — self-paced, practical and built for delivery teams.</div>
-            <div class="hp-bcard-tags"><span class="hp-tag">AR</span><span class="hp-tag">AP</span><span class="hp-tag">MIS</span><span class="hp-tag">P2P</span><span class="hp-tag">O2C</span><span class="hp-tag">R2R</span></div>
-            <div class="hp-bcard-stats">
-              <span><span class="hp-bcard-sn" id="dwCardCourseCount">—</span> <span class="hp-bcard-sl">Courses</span></span>
-              <span><span class="hp-bcard-sn" id="dwCardLessonsCount">—</span> <span class="hp-bcard-sl">Lessons</span></span>
-              <span><span class="hp-bcard-sn">∞</span> <span class="hp-bcard-sl">Self-paced</span></span>
-            </div>
-            <div class="hp-bcard-arrow">→</div>
-          </div>
-
-          <div class="hp-bcard" style="--bc:0,200,204;--cr:0,200,204" onclick="dwGoKnowledge()">
-            <div class="hp-bcard-glow"></div>
-            <div class="hp-bcard-badge hp-badge-live">● Live</div>
-            <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip01')" title="About">i</div>
-            <div class="dw-tooltip" id="tip01"><div class="dw-tooltip-title">Knowledge Articles</div><div class="dw-tooltip-text">Step-by-step guides, how-tos, deep technical docs and best practices covering every Bluecopa feature — written by the team, for the team.</div></div>
-            <div class="hp-bcard-num">02</div>
-            <div class="hp-bcard-icon">📚</div>
-            <div class="hp-bcard-name">Knowledge Articles</div>
-            <div class="hp-bcard-desc">Step-by-step guides, how-tos and deep technical docs covering every Bluecopa feature.</div>
-            <div class="hp-bcard-stats">
-              <span><span class="hp-bcard-sn" id="dwStatArticleCount">—</span> <span class="hp-bcard-sl">Articles</span></span>
-              <span><span class="hp-bcard-sn" id="dwStatCatCount">—</span> <span class="hp-bcard-sl">Categories</span></span>
-            </div>
-            <div class="hp-bcard-arrow">→</div>
-          </div>
-
-          <div class="hp-bcard" style="--bc:129,140,248;--cr:129,140,248" onclick="dwGoSkillMatrix()">
-            <div class="hp-bcard-glow"></div>
-            <div class="hp-bcard-badge hp-badge-live">● Live</div>
-            <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip02')" title="About">i</div>
-            <div class="dw-tooltip" id="tip02"><div class="dw-tooltip-title">Skill Matrix</div><div class="dw-tooltip-text">See where every team member stands across all process areas. Track growth over time, spot skill gaps, and celebrate expertise.</div></div>
-            <div class="hp-bcard-num">03</div>
-            <div class="hp-bcard-icon">🧠</div>
-            <div class="hp-bcard-name">Skill Matrix</div>
-            <div class="hp-bcard-desc">Track every team member's skills across all process areas with live data snapshots.</div>
-            <div class="hp-bcard-stats">
-              <span><span class="hp-bcard-sn" id="dwCardPACount">—</span> <span class="hp-bcard-sl">Process Areas</span></span>
-              <span><span class="hp-bcard-sn" id="dwCardEmpCount">—</span> <span class="hp-bcard-sl">Team Members</span></span>
-            </div>
-            <div class="hp-bcard-arrow">→</div>
-          </div>
-
+        <div class="dw-card-badge">● Live</div>
+        <span class="dw-card-icon">📚</span>
+        <div class="dw-card-num">02</div>
+        <div class="dw-card-name">Knowledge Articles</div>
+        <div class="dw-card-desc">Step-by-step guides, how-tos and deep technical docs covering every Bluecopa feature.</div>
+        <div class="dw-card-tags"><span class="dw-card-tag">How-Tos</span><span class="dw-card-tag">Deep Dives</span><span class="dw-card-tag">Best Practices</span><span class="dw-card-tag">FAQs</span></div>
+        <div class="dw-card-features">
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Search by keyword or category</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Written by the delivery team</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Always up to date with the product</div>
         </div>
+        <div class="dw-card-stat-row">
+          <div class="dw-card-stat"><div class="dw-card-stat-n" id="dwStatArticleCount">—</div><div class="dw-card-stat-l">Articles</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n" id="dwStatCatCount">—</div><div class="dw-card-stat-l">Categories</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">🔍</div><div class="dw-card-stat-l">Searchable</div></div>
+        </div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
 
-      <!-- ── Pulse ── -->
-      <div class="hp-section hp-section-reveal">
-        <div class="hp-section-hd">
-          <span class="hp-section-label">Pulse</span>
-          <span class="hp-section-title">People &amp; Performance</span>
-          <span class="hp-section-desc">Stay connected with team engagement, live metrics and gamified process challenges.</span>
+      <!-- 03 Skill Matrix -->
+      <div class="dw-card" style="--cr:129,140,248;--fdur:3.8s;--fdel:1s;" onclick="dwGoSkillMatrix()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip02')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip02">
+          <div class="dw-tooltip-title">Skill Matrix</div>
+          <div class="dw-tooltip-text">See where every team member stands across all process areas. Track growth over time, spot skill gaps, and celebrate expertise — with live data snapshots and visual dashboards.</div>
         </div>
-        <div class="hp-cards-bento hp-bento-pulse">
-
-          <div class="hp-bcard hp-bcard-soon" style="--bc:249,167,79;--cr:249,167,79" onclick="dwComingSoon('KPIs')">
-            <div class="hp-bcard-glow"></div>
-            <div class="hp-bcard-badge hp-badge-soon">◌ Coming Soon</div>
-            <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip03')" title="About">i</div>
-            <div class="dw-tooltip" id="tip03"><div class="dw-tooltip-title">KPIs</div><div class="dw-tooltip-text">Delivery performance metrics that actually matter — velocity, quality, efficiency and team health indicators. Compare period-over-period trends.</div></div>
-            <div class="hp-bcard-num">04</div>
-            <div class="hp-bcard-icon">📊</div>
-            <div class="hp-bcard-name">KPIs</div>
-            <div class="hp-bcard-desc">Live delivery performance metrics — velocity, quality and team health in one dashboard.</div>
-            <div class="hp-bcard-arrow">→</div>
-          </div>
-
-          <div class="hp-bcard hp-bcard-primary" style="--bc:236,72,153;--cr:236,72,153" onclick="dwGoEngagement()">
-            <div class="hp-bcard-glow"></div>
-            <div class="hp-bcard-badge hp-badge-live">● Live</div>
-            <div class="hp-bcard-num">05</div>
-            <div class="hp-bcard-icon">🌟</div>
-            <div class="hp-bcard-name">Employee Engagement Hub</div>
-            <div class="hp-bcard-desc">Celebrate your team — spotlight awards, memories, birthdays and a space to share ideas.</div>
-            <div class="hp-bcard-tags"><span class="hp-tag">Leaderboard</span><span class="hp-tag">Sweet Place</span><span class="hp-tag">Idea Box</span></div>
-            <div class="hp-bcard-stats">
-              <span><span class="hp-bcard-sn">🏆</span> <span class="hp-bcard-sl">Awards</span></span>
-              <span><span class="hp-bcard-sn">🎉</span> <span class="hp-bcard-sl">Moments</span></span>
-              <span><span class="hp-bcard-sn">💡</span> <span class="hp-bcard-sl">Ideas</span></span>
-            </div>
-            <div class="hp-bcard-arrow">→</div>
-          </div>
-
-          <div class="hp-bcard" style="--bc:232,122,122;--cr:232,122,122" onclick="dwGoProcessPuzzle()">
-            <div class="hp-bcard-glow"></div>
-            <div class="hp-bcard-badge hp-badge-live">● Live</div>
-            <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip05')" title="About">i</div>
-            <div class="dw-tooltip" id="tip05"><div class="dw-tooltip-title">Process Puzzle</div><div class="dw-tooltip-text">Quizzes, puzzles and interactive challenges built around real Bluecopa processes — gamified learning for the delivery team.</div></div>
-            <div class="hp-bcard-num">06</div>
-            <div class="hp-bcard-icon">🧩</div>
-            <div class="hp-bcard-name">Process Puzzle</div>
-            <div class="hp-bcard-desc">Quizzes and challenges built around real Bluecopa processes — gamified weekly learning.</div>
-            <div class="hp-bcard-stats">
-              <span><span class="hp-bcard-sn">10+</span> <span class="hp-bcard-sl">Modes</span></span>
-              <span><span class="hp-bcard-sn">Weekly</span> <span class="hp-bcard-sl">Challenges</span></span>
-            </div>
-            <div class="hp-bcard-arrow">→</div>
-          </div>
-
+        <div class="dw-card-badge">● Live</div>
+        <span class="dw-card-icon">🧠</span>
+        <div class="dw-card-num">03</div>
+        <div class="dw-card-name">Skill Matrix</div>
+        <div class="dw-card-desc">Track every team member's skills across all process areas with live data.</div>
+        <div class="dw-card-tags"><span class="dw-card-tag">AR</span><span class="dw-card-tag">AP</span><span class="dw-card-tag">MIS</span><span class="dw-card-tag">P2P</span><span class="dw-card-tag">O2C</span><span class="dw-card-tag">R2R</span></div>
+        <div class="dw-card-features">
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Individual skill levels per process area</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Spot gaps across the whole team</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Visual dashboard with live snapshots</div>
         </div>
+        <div class="dw-card-stat-row">
+          <div class="dw-card-stat"><div class="dw-card-stat-n" id="dwCardPACount">—</div><div class="dw-card-stat-l">Process Areas</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n" id="dwCardEmpCount">—</div><div class="dw-card-stat-l">Team Members</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">Live</div><div class="dw-card-stat-l">Data</div></div>
+        </div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
 
-      <!-- ── Mission Deck ── -->
-      <div class="hp-section hp-section-reveal">
-        <div class="hp-section-hd">
-          <span class="hp-section-label">Mission Deck</span>
-          <span class="hp-section-title">Projects &amp; Operations</span>
-          <span class="hp-section-desc">Manage delivery journeys, UAT sign-offs, risk signals and live project health.</span>
+      <!-- Pulse -->
+      <div class="dw-section-sep"><span>Pulse - People</span></div>
+
+      <!-- 04 KPIs -->
+      <div class="dw-card" style="--cr:249,167,79;--fdur:4.5s;--fdel:1.5s;" onclick="dwComingSoon('KPIs')">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip03')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip03">
+          <div class="dw-tooltip-title">KPIs</div>
+          <div class="dw-tooltip-text">Delivery performance metrics that actually matter — velocity, quality, efficiency and team health indicators, all in one live dashboard. Compare period-over-period trends.</div>
         </div>
-        <div class="hp-cards-bento hp-bento-4">
-
-          <div class="hp-bcard hp-bcard-soon" style="--bc:122,232,180;--cr:122,232,180" onclick="dwComingSoon('Delivery Journey')">
-            <div class="hp-bcard-glow"></div>
-            <div class="hp-bcard-badge hp-badge-soon">◌ Coming Soon</div>
-            <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip04')" title="About">i</div>
-            <div class="dw-tooltip" id="tip04"><div class="dw-tooltip-title">The Delivery Journey</div><div class="dw-tooltip-text">A living record of every past implementation — what was built, what was learned, and how each project shaped the team we are today.</div></div>
-            <div class="hp-bcard-num">07</div>
-            <div class="hp-bcard-icon">🏛️</div>
-            <div class="hp-bcard-name">Delivery Journey</div>
-            <div class="hp-bcard-desc">A living record of every past implementation — stories, timelines and lessons learned.</div>
-            <div class="hp-bcard-arrow">→</div>
-          </div>
-
-          <div class="hp-bcard" style="--bc:59,130,246;--cr:59,130,246" onclick="UAT.open()">
-            <div class="hp-bcard-glow"></div>
-            <div class="hp-bcard-badge hp-badge-live">● Live</div>
-            <div class="hp-bcard-num">08</div>
-            <div class="hp-bcard-icon">🧪</div>
-            <div class="hp-bcard-name">UAT Platform</div>
-            <div class="hp-bcard-desc">Enterprise UAT management — test cases, client portal, dashboards and sign-off.</div>
-            <div class="hp-bcard-stats">
-              <span><span class="hp-bcard-sn">📋</span> <span class="hp-bcard-sl">Test Cases</span></span>
-              <span><span class="hp-bcard-sn">✅</span> <span class="hp-bcard-sl">Sign-off</span></span>
-            </div>
-            <div class="hp-bcard-arrow">→</div>
-          </div>
-
-          <div class="hp-bcard" style="--bc:220,38,38;--cr:220,38,38" onclick="EWS.open()">
-            <div class="hp-bcard-glow"></div>
-            <div class="hp-bcard-badge" style="background:rgba(220,38,38,.12);color:#dc2626;border:1px solid rgba(220,38,38,.22)">● New</div>
-            <div class="hp-bcard-num">09</div>
-            <div class="hp-bcard-icon">⚠️</div>
-            <div class="hp-bcard-name">Early Warning System</div>
-            <div class="hp-bcard-desc">Proactive risk detection — surface delivery issues before they become escalations.</div>
-            <div class="hp-bcard-stats">
-              <span><span class="hp-bcard-sn">12</span> <span class="hp-bcard-sl">Trigger Types</span></span>
-              <span><span class="hp-bcard-sn">6-Step</span> <span class="hp-bcard-sl">Escalation</span></span>
-            </div>
-            <div class="hp-bcard-arrow">→</div>
-          </div>
-
-          <div class="hp-bcard" style="--bc:251,146,60;--cr:251,146,60" onclick="rlOpen()">
-            <div class="hp-bcard-glow"></div>
-            <div class="hp-bcard-badge" style="background:rgba(251,146,60,.1);color:#fb923c;border:1px solid rgba(251,146,60,.22)">● Live</div>
-            <div class="hp-bcard-num">10</div>
-            <div class="hp-bcard-icon">🚀</div>
-            <div class="hp-bcard-name">Rocketlane Dashboard</div>
-            <div class="hp-bcard-desc">Live sync of all active delivery projects — status, compliance and weekly snapshots.</div>
-            <div class="hp-bcard-stats">
-              <span><span class="hp-bcard-sn">33</span> <span class="hp-bcard-sl">Projects</span></span>
-              <span><span class="hp-bcard-sn">20-Check</span> <span class="hp-bcard-sl">Compliance</span></span>
-            </div>
-            <div class="hp-bcard-arrow">→</div>
-          </div>
-
+        <div class="dw-card-badge">◌ Coming Soon</div>
+        <span class="dw-card-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" width="56" height="56" style="display:block;">
+            <!-- base line -->
+            <line x1="3" y1="46" x2="53" y2="46" stroke="rgba(249,167,79,.18)" stroke-width="1.5" stroke-linecap="round"/>
+            <!-- bars: rising left to right -->
+            <rect x="3"  y="33" width="10" height="13" rx="3" fill="rgba(249,167,79,.35)"/>
+            <rect x="16" y="25" width="10" height="21" rx="3" fill="rgba(249,167,79,.55)"/>
+            <rect x="29" y="15" width="10" height="31" rx="3" fill="rgba(249,167,79,.78)"/>
+            <rect x="42" y="5"  width="10" height="41" rx="3" fill="rgba(249,167,79,1)"/>
+            <!-- trend line -->
+            <polyline points="8,31 21,23 34,13 47,3" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- arrowhead -->
+            <polyline points="43,2 47,3 46,7" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- dots on trend line -->
+            <circle cx="8"  cy="31" r="2.8" fill="rgba(255,255,255,.8)"/>
+            <circle cx="47" cy="3"  r="2.8" fill="rgba(255,255,255,.8)"/>
+          </svg>
+        </span>
+        <div class="dw-card-num">04</div>
+        <div class="dw-card-name">KPIs</div>
+        <div class="dw-card-desc">Delivery performance metrics — velocity, quality and team health, all live.</div>
+        <div class="dw-card-tags"><span class="dw-card-tag">Velocity</span><span class="dw-card-tag">Quality</span><span class="dw-card-tag">Team Health</span><span class="dw-card-tag">Efficiency</span></div>
+        <div class="dw-card-features">
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Delivery velocity & throughput metrics</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Quality & error rate tracking</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Period-over-period trend comparison</div>
         </div>
+        <div class="dw-card-stat-row">
+          <div class="dw-card-stat"><div class="dw-card-stat-n">10+</div><div class="dw-card-stat-l">KPI Metrics</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">Live</div><div class="dw-card-stat-l">Dashboard</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">⏳</div><div class="dw-card-stat-l">Coming Soon</div></div>
+        </div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
 
-    </div><!-- /hp-sections-wrap -->
+      <!-- 05 Employee Engagement Hub -->
+      <div class="dw-card" style="--cr:236,72,153;--fdur:4.3s;--fdel:3s;" onclick="dwGoEngagement()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-card-badge">● Live</div>
+        <span class="dw-card-icon">🌟</span>
+        <div class="dw-card-num">05</div>
+        <div class="dw-card-name">Employee Engagement Hub</div>
+        <div class="dw-card-desc">Celebrate your team — spotlight awards, memories, birthdays, anniversaries, and a space to share ideas.</div>
+        <div class="dw-card-tags"><span class="dw-card-tag">Leaderboard</span><span class="dw-card-tag">Sweet Place</span><span class="dw-card-tag">Idea Box</span></div>
+        <div class="dw-card-features">
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Employee of Month, Quarter & Year</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Team photos, birthdays & anniversaries</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Submit & vote on team ideas</div>
+        </div>
+        <div class="dw-card-stat-row">
+          <div class="dw-card-stat"><div class="dw-card-stat-n">🏆</div><div class="dw-card-stat-l">Awards</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">🎉</div><div class="dw-card-stat-l">Moments</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">💡</div><div class="dw-card-stat-l">Ideas</div></div>
+        </div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+      <!-- 06 Process Puzzle -->
+      <div class="dw-card" style="--cr:232,122,122;--fdur:3.6s;--fdel:2.5s;" onclick="dwGoProcessPuzzle()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip05')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip05">
+          <div class="dw-tooltip-title">Process Puzzle</div>
+          <div class="dw-tooltip-text">Quizzes, puzzles and interactive challenges built around real Bluecopa processes — learn by doing and level up your knowledge. Fun, gamified learning for the delivery team.</div>
+        </div>
+        <div class="dw-card-badge">● Live</div>
+        <span class="dw-card-icon">🧩</span>
+        <div class="dw-card-num">06</div>
+        <div class="dw-card-name">Process Puzzle</div>
+        <div class="dw-card-desc">Quizzes, puzzles and interactive challenges — learn by doing and level up.</div>
+        <div class="dw-card-tags"><span class="dw-card-tag">Quizzes</span><span class="dw-card-tag">Puzzles</span><span class="dw-card-tag">Leaderboard</span><span class="dw-card-tag">Badges</span></div>
+        <div class="dw-card-features">
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Weekly gamified challenges</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Covers AR, AP, MIS, P2P, O2C & R2R</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Leaderboard, streaks & team rankings</div>
+        </div>
+        <div class="dw-card-stat-row">
+          <div class="dw-card-stat"><div class="dw-card-stat-n">10+</div><div class="dw-card-stat-l">Game Modes</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">Weekly</div><div class="dw-card-stat-l">Challenges</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">🏆</div><div class="dw-card-stat-l">Leaderboard</div></div>
+        </div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+
+      <!-- Mission Deck -->
+      <div class="dw-section-sep"><span>Mission Deck - Projects</span></div>
+
+      <!-- 07 The Delivery Journey -->
+      <div class="dw-card" style="--cr:122,232,180;--fdur:4s;--fdel:2s;" onclick="dwComingSoon('Delivery Journey')">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-info-btn" onclick="event.stopPropagation();dwToggleTip('tip04')" title="About this section">i</div>
+        <div class="dw-tooltip" id="tip04">
+          <div class="dw-tooltip-title">The Delivery Journey</div>
+          <div class="dw-tooltip-text">A living record of every past implementation — what was built, what was learned, and how each project shaped the team we are today. Project stories, timelines and retrospectives.</div>
+        </div>
+        <div class="dw-card-badge">◌ Coming Soon</div>
+        <span class="dw-card-icon">🏛️</span>
+        <div class="dw-card-num">07</div>
+        <div class="dw-card-name">The Delivery Journey</div>
+        <div class="dw-card-desc">A living record of every past implementation and what we learned.</div>
+        <div class="dw-card-tags"><span class="dw-card-tag">Timelines</span><span class="dw-card-tag">Retrospectives</span><span class="dw-card-tag">Client Stories</span></div>
+        <div class="dw-card-features">
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Every past implementation documented</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Lessons learned per project</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Team growth milestones & stories</div>
+        </div>
+        <div class="dw-card-stat-row">
+          <div class="dw-card-stat"><div class="dw-card-stat-n">All</div><div class="dw-card-stat-l">Clients</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">Full</div><div class="dw-card-stat-l">Timelines</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">⏳</div><div class="dw-card-stat-l">Coming Soon</div></div>
+        </div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+      <!-- 08 UAT Platform -->
+      <div class="dw-card" style="--cr:59,130,246;--fdur:4.1s;--fdel:2.5s;" onclick="UAT.open()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-card-badge">● Live</div>
+        <span class="dw-card-icon">🧪</span>
+        <div class="dw-card-num">08</div>
+        <div class="dw-card-name">UAT Platform</div>
+        <div class="dw-card-desc">Enterprise UAT management — test cases, client collaboration, dashboards, sign-off and export.</div>
+        <div class="dw-card-tags"><span class="dw-card-tag">Clients</span><span class="dw-card-tag">Test Cases</span><span class="dw-card-tag">Sign-off</span></div>
+        <div class="dw-card-features">
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Full test case lifecycle with bulk actions</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Client portal with secure unique links</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>CSV export & formal UAT sign-off</div>
+        </div>
+        <div class="dw-card-stat-row">
+          <div class="dw-card-stat"><div class="dw-card-stat-n">📋</div><div class="dw-card-stat-l">Test Cases</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">🔗</div><div class="dw-card-stat-l">Portal</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">✅</div><div class="dw-card-stat-l">Sign-off</div></div>
+        </div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+      <div class="dw-card" style="--cr:220,38,38;--fdur:4.4s;--fdel:3.2s;" onclick="EWS.open()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-card-badge" style="background:rgba(220,38,38,.15);color:#dc2626;border:1px solid rgba(220,38,38,.2)">● New</div>
+        <span class="dw-card-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" width="56" height="56" style="display:block">
+            <!-- base plate -->
+            <circle cx="28" cy="28" r="26" fill="rgba(8,8,13,.9)" stroke="rgba(220,38,38,.35)" stroke-width="1.2"/>
+            <!-- concentric rings -->
+            <circle cx="28" cy="28" r="8"  fill="none" stroke="rgba(220,38,38,.25)" stroke-width=".8"/>
+            <circle cx="28" cy="28" r="16" fill="none" stroke="rgba(220,38,38,.18)" stroke-width=".8"/>
+            <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(220,38,38,.12)" stroke-width=".8"/>
+            <!-- crosshairs -->
+            <line x1="28" y1="4"  x2="28" y2="52" stroke="rgba(220,38,38,.09)" stroke-width=".6"/>
+            <line x1="4"  y1="28" x2="52" y2="28" stroke="rgba(220,38,38,.09)" stroke-width=".6"/>
+            <!-- center dot -->
+            <circle cx="28" cy="28" r="2" fill="rgba(220,38,38,.6)"/>
+            <!-- rotating sweep arm + trail -->
+            <g>
+              <path d="M28,28 L28,4 A24,24 0 0,1 48.8,16 Z" fill="rgba(220,38,38,.16)"/>
+              <line x1="28" y1="28" x2="28" y2="4" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/>
+              <animateTransform attributeName="transform" type="rotate" from="0 28 28" to="360 28 28" dur="3s" repeatCount="indefinite"/>
+            </g>
+            <!-- blip 1: upper-right (~52° from north) -->
+            <circle cx="42" cy="17" r="2.2" fill="#ef4444">
+              <animate attributeName="opacity" values="0;0;1;0.4;0" keyTimes="0;0.04;0.1;0.25;1" dur="3s" begin="0.43s" repeatCount="indefinite"/>
+              <animate attributeName="r" values="1;1;2.8;2;1" keyTimes="0;0.04;0.1;0.25;1" dur="3s" begin="0.43s" repeatCount="indefinite"/>
+            </circle>
+            <!-- blip glow 1 -->
+            <circle cx="42" cy="17" r="5" fill="rgba(239,68,68,.12)">
+              <animate attributeName="opacity" values="0;0;0.8;0;0" keyTimes="0;0.04;0.1;0.22;1" dur="3s" begin="0.43s" repeatCount="indefinite"/>
+            </circle>
+            <!-- blip 2: lower-right (~146° from north) -->
+            <circle cx="34" cy="37" r="1.8" fill="#f97316">
+              <animate attributeName="opacity" values="0;0;1;0.3;0" keyTimes="0;0.04;0.1;0.25;1" dur="3s" begin="1.22s" repeatCount="indefinite"/>
+              <animate attributeName="r" values="1;1;2.5;1.8;1" keyTimes="0;0.04;0.1;0.25;1" dur="3s" begin="1.22s" repeatCount="indefinite"/>
+            </circle>
+          </svg>
+        </span>
+        <div class="dw-card-num">09</div>
+        <div class="dw-card-name">Early Warning System</div>
+        <div class="dw-card-desc">Proactive risk detection for delivery teams — surface issues before they become escalations.</div>
+        <div class="dw-card-tags"><span class="dw-card-tag">Risk</span><span class="dw-card-tag">Escalation</span><span class="dw-card-tag">Mitigation</span></div>
+        <div class="dw-card-features">
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>12 trigger types with severity scoring</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>6-step escalation workflow & ownership</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Action items, updates & leadership view</div>
+        </div>
+        <div class="dw-card-stat-row">
+          <div class="dw-card-stat"><div class="dw-card-stat-n">🎯</div><div class="dw-card-stat-l">Risks</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">📋</div><div class="dw-card-stat-l">Actions</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">📊</div><div class="dw-card-stat-l">Analytics</div></div>
+        </div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+      <!-- 10 Rocketlane Dashboard -->
+      <div class="dw-card" style="--cr:251,146,60;--fdur:4.6s;--fdel:3.8s;" onclick="rlOpen()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-card-badge" style="background:rgba(251,146,60,.15);color:#fb923c;border:1px solid rgba(251,146,60,.25)">● Live</div>
+        <span class="dw-card-icon">🚀</span>
+        <div class="dw-card-num">10</div>
+        <div class="dw-card-name">Rocketlane Dashboard</div>
+        <div class="dw-card-desc">Live sync of all active delivery projects — track status, compliance and weekly progress.</div>
+        <div class="dw-card-tags"><span class="dw-card-tag">Projects</span><span class="dw-card-tag">Compliance</span><span class="dw-card-tag">Snapshots</span></div>
+        <div class="dw-card-features">
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Real-time project status & completion</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>20-check compliance scoring</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Weekly auto-snapshots & findings tracker</div>
+        </div>
+        <div class="dw-card-stat-row">
+          <div class="dw-card-stat"><div class="dw-card-stat-n">33</div><div class="dw-card-stat-l">Projects</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">📊</div><div class="dw-card-stat-l">Compliance</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">📸</div><div class="dw-card-stat-l">Snapshots</div></div>
+        </div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+    </div><!-- /dw-cards-grid -->
 
 
     <!-- ═══ TRUSTED BY — Infinite Logo Carousel ═══ -->
@@ -6860,7 +6967,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=17" defer></script>
-  <script src="/app.js?v=81" defer></script>
+  <script src="/app.js?v=80" defer></script>
   <script src="/uat.js?v=58" defer></script>
   <script src="/ews.js?v=8" defer></script>
 
