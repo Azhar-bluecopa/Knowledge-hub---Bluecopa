@@ -4616,6 +4616,116 @@ app.get('/api/leaderboard', async (req, res) => {
   }
 });
 
+// ── Leaderboard: per-person points history ────────────────────────────────────
+app.get('/api/leaderboard/history', async (req, res) => {
+  const { name, period = 'year', offset = '0' } = req.query;
+  if (!name) return res.status(400).json({ error: 'name required' });
+  try {
+    await getDbInitPromise();
+    const now = new Date();
+    const y = now.getFullYear(), mo = now.getMonth();
+    const off = parseInt(offset, 10) || 0;
+    let pStart, pEnd;
+    if (period === 'month') {
+      pStart = new Date(y, mo + off, 1);
+      pEnd   = new Date(y, mo + off + 1, 1);
+    } else if (period === 'quarter') {
+      const tq = Math.floor(mo / 3) + off;
+      pStart = new Date(y, tq * 3, 1);
+      pEnd   = new Date(y, tq * 3 + 3, 1);
+    } else {
+      pStart = new Date(y + off, 0, 1);
+      pEnd   = new Date(y + off + 1, 0, 1);
+    }
+
+    const norm = name.toLowerCase();
+    const acts = [];
+
+    // Articles
+    for (const a of (db.articles || [])) {
+      if (!a.author || a.author.toLowerCase() !== norm) continue;
+      const ts = new Date(a.created_at);
+      if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
+      acts.push({ cat: 'articles', pts: 10, date: a.created_at, detail: a.title || 'Article' });
+    }
+
+    // Puzzles
+    for (const a of ((db.processGame && db.processGame.attempts) || [])) {
+      if (!a.playerName || a.playerName.toLowerCase() !== norm) continue;
+      const ts = new Date(a.completedAt);
+      if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
+      const pts = 5 + Math.round((a.accuracy || 0) * 0.1);
+      acts.push({ cat: 'puzzles', pts, date: a.completedAt, detail: `${Math.round(a.accuracy || 0)}% accuracy — ${a.score}/${a.total} correct` });
+    }
+
+    // Issues raised & solved
+    for (const issue of (db.issues || [])) {
+      if (issue.reportedBy && issue.reportedBy.name && issue.reportedBy.name.toLowerCase() === norm) {
+        const ts = new Date(issue.createdAt);
+        if (!isNaN(ts) && ts >= pStart && ts < pEnd)
+          acts.push({ cat: 'raised', pts: 3, date: issue.createdAt, detail: issue.title || 'Issue reported' });
+      }
+      for (const sol of (issue.solutions || [])) {
+        if (!sol.isAccepted || !sol.author || sol.author.name.toLowerCase() !== norm) continue;
+        const ts = new Date(sol.acceptedAt || sol.createdAt);
+        if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
+        acts.push({ cat: 'issues', pts: 15, date: sol.acceptedAt || sol.createdAt, detail: `Solved: ${issue.title || 'Issue'}` });
+      }
+    }
+
+    // Tasks
+    for (const t of (db.tasks || [])) {
+      if (t.status !== 'completed' || !t.assigneeName || t.assigneeName.toLowerCase() !== norm) continue;
+      const dateStr = t.dueDate || t.createdAt;
+      if (!dateStr) continue;
+      const ts = new Date(dateStr.length === 10 ? dateStr + 'T00:00:00.000Z' : dateStr);
+      if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
+      acts.push({ cat: 'tasks', pts: 8, date: dateStr, detail: t.title || 'Task completed' });
+    }
+
+    // Ideas
+    for (const idea of ((db.engagement && db.engagement.ideas) || [])) {
+      if (!idea.author || idea.author.toLowerCase() !== norm) continue;
+      const ts = new Date(idea.date);
+      if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
+      acts.push({ cat: 'ideas', pts: 5, date: idea.date, detail: idea.title || (idea.text || '').slice(0, 80) });
+    }
+
+    // Learning completions
+    for (const a of ((db.learning && db.learning.assignments) || [])) {
+      if (!a.completedAt || !a.userName || a.userName.toLowerCase() !== norm) continue;
+      const ts = new Date(a.completedAt);
+      if (isNaN(ts) || ts < pStart || ts >= pEnd) continue;
+      acts.push({ cat: 'learning', pts: 2, date: a.completedAt, detail: a.courseId });
+    }
+
+    // Skill matrix bonus
+    const smAll = (db.skillMatrix && db.skillMatrix.currentScores) || {};
+    const smKey = Object.keys(smAll).find(k => k.toLowerCase() === norm);
+    if (smKey) {
+      const smScores = smAll[smKey];
+      const vals = Object.values(smScores).filter(v => typeof v === 'number');
+      if (vals.length) {
+        const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+        const pts = Math.round(avg / 10);
+        if (pts > 0)
+          acts.push({ cat: 'skills', pts, date: null, detail: `Avg skill score ${avg.toFixed(0)}/100 across ${vals.length} areas` });
+      }
+    }
+
+    acts.sort((a, b) => {
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return new Date(b.date) - new Date(a.date);
+    });
+
+    res.json(acts);
+  } catch (err) {
+    console.error('[leaderboard/history]', err.message);
+    res.status(500).json({ error: 'Failed to load history', detail: err.message });
+  }
+});
+
 // ── Debug endpoint (DB state snapshot) ───────────────────────────────────────
 app.get('/api/debug/db', async (req, res) => {
   await getDbInitPromise();
