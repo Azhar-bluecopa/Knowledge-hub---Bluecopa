@@ -3727,7 +3727,7 @@ function buildProgressEmail({ memberName, allCourseIds, completedCourseIds, dueD
   const heroMsg = isFinished
     ? `&#x1F3C6; Outstanding! You've completed all ${total} modules in <strong>${eh(path)}</strong>. Your certificate is ready!`
     : `Great work! You completed <strong>${latestInfo.icon} ${eh(latestInfo.title)}</strong> — ${done} of ${total} modules done so far.`;
-  const subject = isFinished ? `&#x1F389; You've completed ${path} — Delivery Wikipedia` : `Progress: ${done} of ${total} modules done — Delivery Wikipedia`;
+  const subject = isFinished ? `🎉 You've completed ${path} — Delivery Wikipedia` : `Progress: ${done} of ${total} modules done — Delivery Wikipedia`;
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${eh(subject)}</title></head>
 <body style="margin:0;padding:0;background:#f1f2f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
 ${_emailPreview(`${done} of ${total} modules completed`)}
@@ -3776,7 +3776,7 @@ function buildReminderEmail({ memberName, daysLeft, allCourseIds, completedCours
   <a href="${cUrl}" style="display:inline-block;font-size:11px;color:${uc};font-weight:700;text-decoration:none;border:1px solid ${uc};border-radius:4px;padding:5px 10px">Start &rarr;</a>
 </td></tr>`;
   }).join('');
-  const subject = isCritical ? `&#x26A0;&#xFE0F; Final reminder: Learning deadline is tomorrow — Delivery Wikipedia` : `Reminder: ${daysLeft} days until your learning deadline — Delivery Wikipedia`;
+  const subject = isCritical ? `⚠️ Final reminder: Learning deadline is tomorrow — Delivery Wikipedia` : `Reminder: ${daysLeft} days until your learning deadline — Delivery Wikipedia`;
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${eh(subject)}</title></head>
 <body style="margin:0;padding:0;background:#f1f2f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
 ${_emailPreview(`${remaining.length} modules remaining · ${daysLeft} day${daysLeft===1?'':'s'} left`)}
@@ -3994,7 +3994,10 @@ app.post('/api/learning/assignments/:id/complete', async (req, res) => {
           completedCourseIds: completedIds, dueDate: a.dueDate,
           pathName: path.name
         });
-        await sendEmail({ to: toEmail, subject, html, text });
+        await Promise.race([
+          sendEmail({ to: toEmail, subject, html, text }),
+          new Promise(r => setTimeout(r, 9000))
+        ]);
       }
     }
   } catch(e) {
@@ -4002,6 +4005,41 @@ app.post('/api/learning/assignments/:id/complete', async (req, res) => {
   }
 
   res.json({ ok: true, assignment: a });
+});
+
+app.post('/api/learning/complete-by-course', async (req, res) => {
+  ensureLearning();
+  const { courseId, userName } = req.body;
+  if (!courseId || !userName) return res.status(400).json({ error: 'courseId and userName required' });
+  const a = db.learning.assignments.find(x =>
+    x.courseId === courseId &&
+    x.userName.toLowerCase() === (userName||'').toLowerCase() &&
+    !x.completedAt
+  );
+  if (!a) return res.json({ ok: true, alreadyComplete: true });
+  a.completedAt = new Date().toISOString();
+  await saveDB(db);
+  try {
+    const toEmail = db.learning.memberEmails[a.userName];
+    if (toEmail) {
+      const path = db.learning.paths.find(p => p.id === a.pathId) || db.learning.paths[0];
+      if (path) {
+        const allIds = path.courseIds || NJ_ALL;
+        const completedIds = db.learning.assignments
+          .filter(x => x.userName.toLowerCase() === a.userName.toLowerCase() && x.pathId === a.pathId && x.completedAt)
+          .map(x => x.courseId);
+        const { subject, html, text } = buildProgressEmail({
+          memberName: a.userName, allCourseIds: allIds,
+          completedCourseIds: completedIds, dueDate: a.dueDate, pathName: path.name
+        });
+        await Promise.race([
+          sendEmail({ to: toEmail, subject, html, text }),
+          new Promise(r => setTimeout(r, 9000))
+        ]);
+      }
+    }
+  } catch(e) { console.warn('[complete-by-course email]', userName, e.message); }
+  res.json({ ok: true, completedAt: a.completedAt });
 });
 
 app.post('/api/learning/preview-email', async (req, res) => {
