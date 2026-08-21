@@ -3364,6 +3364,30 @@ app.delete('/api/rocketlane/snapshots/:id', async (req, res) => {
 });
 
 // ── Rocketlane Findings ───────────────────────────────────────────────────────
+// ── Temporary diagnostic: inspect raw task fields ──────────────────────────
+app.get('/api/rocketlane/debug-task-fields', async (req, res) => {
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) return res.status(503).json({ error: 'no api key' });
+  try {
+    const r = await fetch('https://api.rocketlane.com/api/1.0/tasks?pageSize=5', {
+      headers: { 'api-key': apiKey, 'Accept': 'application/json' }
+    });
+    const d = await r.json();
+    const tasks = (Array.isArray(d.data) ? d.data : []).slice(0, 5).map(t => ({
+      taskId: t.taskId,
+      taskName: t.taskName,
+      status: t.status,
+      dueDate: t.dueDate,
+      dueDateType: typeof t.dueDate,
+      startDate: t.startDate,
+      startDateType: typeof t.startDate,
+      assignees: t.assignees,
+      allKeys: Object.keys(t).sort().join(', ')
+    }));
+    res.json({ count: tasks.length, tasks });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/rocketlane/findings', (req, res) => {
   ensureRL();
   res.json({ findings: db.rocketlane.findings });
