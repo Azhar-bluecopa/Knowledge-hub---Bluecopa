@@ -2874,7 +2874,7 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
     // Not-started tasks whose planned start has already passed
     const notStarted = ['todo','to do','not started','planned'].includes(lbl);
     if (notStarted && t.startDate) {
-      const st = new Date(t.startDate * 1000);
+      const st = new Date(t.startDate);
       if (st < today) {
         const daysLate = Math.floor((today - st) / 86400000);
         issues.push({ severity:'medium', category:'dates', task:t.taskName, phase:null,
@@ -2887,7 +2887,7 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
   allProjectTasks.forEach(t => {
     const lbl = t.status?.label || '';
     if ((lbl === 'In Progress' || lbl === 'In progress') && t.dueDate) {
-      const due = new Date(t.dueDate * 1000);
+      const due = new Date(t.dueDate);
       if (due < today) {
         const days = Math.floor((today - due) / 86400000);
         issues.push({ severity:'high', category:'overdue', task:t.taskName, phase:null, issue:`In-progress, ${days}d overdue` });
@@ -2901,7 +2901,7 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
     const isDone = lbl.toLowerCase().includes('complet');
     const isInProg = lbl === 'In Progress' || lbl === 'In progress';
     if (!isDone && !isInProg && t.dueDate) {
-      const due = new Date(t.dueDate * 1000);
+      const due = new Date(t.dueDate);
       if (due < today) {
         const days = Math.floor((today - due) / 86400000);
         issues.push({ severity:'high', category:'overdue', task:t.taskName, phase:null,
@@ -2920,10 +2920,10 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
   {
     const tasksWithDates = allProjectTasks
       .filter(t => { const l=(t.status?.label||'').toLowerCase(); return !l.includes('complet') && t.dueDate; })
-      .sort((a,b) => a.dueDate - b.dueDate);
+      .sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
     for (let i = 1; i < tasksWithDates.length; i++) {
-      const prev = new Date(tasksWithDates[i-1].dueDate*1000);
-      const curr = new Date(tasksWithDates[i].dueDate*1000);
+      const prev = new Date(tasksWithDates[i-1].dueDate);
+      const curr = new Date(tasksWithDates[i].dueDate);
       if (curr <= prev) continue;
       let bizDays = 0, d = new Date(prev);
       d.setDate(d.getDate()+1);
@@ -2938,7 +2938,7 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
   allProjectTasks.forEach(t => {
     const lbl = (t.status?.label || '').toLowerCase();
     if (lbl.includes('complet') || !t.dueDate) return;
-    const day = new Date(t.dueDate * 1000).getDay();
+    const day = new Date(t.dueDate).getDay();
     if (day === 0 || day === 6)
       issues.push({ severity:'low', category:'weekend', task:t.taskName, phase:null,
         issue:`Due date falls on a ${day === 0 ? 'Sunday' : 'Saturday'} — consider shifting to a weekday` });
@@ -2948,7 +2948,7 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
   allProjectTasks.forEach(t => {
     const lbl = t.status?.label || '';
     if ((lbl === 'In Progress' || lbl === 'In progress') && t.startDate) {
-      const start = new Date(t.startDate * 1000);
+      const start = new Date(t.startDate);
       const ageDays = Math.floor((today - start) / 86400000);
       if (ageDays > 14)
         issues.push({ severity:'medium', category:'stale', task:t.taskName, phase:null,
@@ -3004,16 +3004,16 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
 
   // Tasks due after project deadline
   if (project.dueDate) {
-    const projDue = new Date(project.dueDate * 1000);
+    const projDue = new Date(project.dueDate);
     allMainTasks.filter(t => !t.completed && t.dueDate).forEach(t => {
-      if (new Date(t.dueDate * 1000) > projDue)
+      if (new Date(t.dueDate) > projDue)
         issues.push({ severity:'medium', category:'dates', task:t.taskName, phase:t._phase, issue:'Due after project deadline' });
     });
   }
 
   // Date sequencing: start date on or after due date (methodology tasks)
   allMainTasks.filter(t => t.startDate && t.dueDate && !t.completed).forEach(t => {
-    const start = new Date(t.startDate * 1000), due = new Date(t.dueDate * 1000);
+    const start = new Date(t.startDate), due = new Date(t.dueDate);
     if (start >= due)
       issues.push({ severity:'medium', category:'dates', task:t.taskName, phase:t._phase,
         issue:'Start date is on or after due date' });
@@ -3365,28 +3365,6 @@ app.delete('/api/rocketlane/snapshots/:id', async (req, res) => {
 
 // ── Rocketlane Findings ───────────────────────────────────────────────────────
 // ── Temporary diagnostic: inspect raw task fields ──────────────────────────
-app.get('/api/rocketlane/debug-task-fields', async (req, res) => {
-  const apiKey = process.env.ROCKETLANE_API_KEY;
-  if (!apiKey) return res.status(503).json({ error: 'no api key' });
-  try {
-    const r = await fetch('https://api.rocketlane.com/api/1.0/tasks?pageSize=5', {
-      headers: { 'api-key': apiKey, 'Accept': 'application/json' }
-    });
-    const d = await r.json();
-    const tasks = (Array.isArray(d.data) ? d.data : []).slice(0, 5).map(t => ({
-      taskId: t.taskId,
-      taskName: t.taskName,
-      status: t.status,
-      dueDate: t.dueDate,
-      dueDateType: typeof t.dueDate,
-      startDate: t.startDate,
-      startDateType: typeof t.startDate,
-      assignees: t.assignees,
-      allKeys: Object.keys(t).sort().join(', ')
-    }));
-    res.json({ count: tasks.length, tasks });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
 
 app.get('/api/rocketlane/findings', (req, res) => {
   ensureRL();
