@@ -10479,8 +10479,7 @@ var RL_TABS = [
   { id: 'progress',   label: 'Project Progress' },
   { id: 'compliance', label: 'Project Compliance' },
   { id: 'timeline',   label: 'Timeline Changes' },
-  { id: 'trends',     label: 'Historical Trends' },
-  { id: 'findings',   label: 'Compliance Findings' }
+  { id: 'trends',     label: 'Historical Trends' }
 ];
 
 function rlInitDashboard() {
@@ -10545,7 +10544,7 @@ function rlRenderActiveTab() {
   var body = document.getElementById('rlTabBody');
   if (!body || !_rlData) return;
   try {
-    ({ executive: rlTabExecutive, progress: rlTabProgress, compliance: rlTabCompliance, timeline: rlTabTimeline, trends: rlTabTrends, findings: rlTabFindings })[_rlTab](body);
+    ({ executive: rlTabExecutive, progress: rlTabProgress, compliance: rlTabCompliance, timeline: rlTabTimeline, trends: rlTabTrends })[_rlTab](body);
   } catch(e) {
     body.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626;font-size:13px;">Tab render error: ' + (e && e.message || String(e)) + '</div>';
   }
@@ -10958,85 +10957,248 @@ function rlCloseDrill() {
 window.rlCloseDrill = rlCloseDrill;
 
 // ─── Tab 3: Project Compliance ────────────────────────────────────────────────
-function rlTabCompliance(body) {
-  var d=_rlData, allIssues=[];
-  d.projects.forEach(function(p){
+var RL_COMP_CATEGORIES = [
+  {key:'structure',  label:'Phase & Task Structure',     color:'#f59e0b', icon:'⚠️',  desc:'Projects not aligned with the required Engage→Drive→Enable→Convert methodology'},
+  {key:'ownership',  label:'Unowned Tasks',              color:'#60a5fa', icon:'👤',  desc:'Tasks with no assigned owner'},
+  {key:'overdue',    label:'Overdue Tasks',              color:'#dc2626', icon:'🔴',  desc:'Non-complete tasks past their due date (all statuses including Blocked & On Hold)'},
+  {key:'blocked',    label:'Blocked Tasks',              color:'#ef4444', icon:'🚫',  desc:'Tasks currently in Blocked status'},
+  {key:'dates',      label:'Missing / Invalid Dates',    color:'#8b5cf6', icon:'📅',  desc:'Tasks with no due date, no start date, or start after due'},
+  {key:'premature',  label:'Premature Completion',       color:'#f97316', icon:'⚡',  desc:'Later-phase tasks marked complete while earlier-phase tasks are still open'},
+  {key:'gaps',       label:'Task Date Gaps',             color:'#a78bfa', icon:'⏱️', desc:'Consecutive tasks with more than 5 business days between due dates'},
+  {key:'stale',      label:'Stale Progress',             color:'#fb923c', icon:'⏸️', desc:'No methodology progress since last weekly snapshot'},
+  {key:'completion', label:'Project Completion Issues',  color:'#dc2626', icon:'✅',  desc:'Project marked complete but standard tasks remain open'},
+  {key:'inactive',   label:'Inactive Projects',          color:'#6b7280', icon:'💤',  desc:'In-Progress projects with 0% methodology completion'},
+  {key:'closure',    label:'Closure Pending',            color:'#c9a227', icon:'🔒',  desc:'Delivery complete but Project Closure task missing or not done'}
+];
+
+function rlBuildAllIssues() {
+  var allIssues = [];
+  (_rlData.projects||[]).forEach(function(p){
     (p.compliance.issues||[]).forEach(function(iss){
-      allIssues.push({project:p.projectName,status:p.status,severity:iss.severity,category:iss.category,phase:iss.phase,task:iss.task,issue:iss.issue,projectId:p.projectId});
+      allIssues.push({
+        project:p.projectName, status:p.status, severity:iss.severity,
+        category:iss.category, phase:iss.phase, task:iss.task,
+        issue:iss.issue, projectId:p.projectId,
+        customer:p.customer||''
+      });
     });
   });
-  var high=allIssues.filter(function(i){return i.severity==='high';}),
-      med=allIssues.filter(function(i){return i.severity==='medium';}),
-      low=allIssues.filter(function(i){return i.severity==='low';});
+  return allIssues;
+}
 
-  var CATEGORIES=[
-    {key:'structure',  label:'Phase & Task Structure',  color:'#f59e0b', icon:'⚠️'},
-    {key:'ownership',  label:'Task Ownership',          color:'#60a5fa', icon:'👤'},
-    {key:'overdue',    label:'Overdue Tasks',           color:'#dc2626', icon:'🔴'},
-    {key:'blocked',    label:'Blocked Tasks',           color:'#ef4444', icon:'🚫'},
-    {key:'dates',      label:'Missing / Invalid Dates', color:'#8b5cf6', icon:'📅'},
-    {key:'stale',      label:'Stale Progress',          color:'#f97316', icon:'⏸️'},
-    {key:'completion', label:'Premature Completion',    color:'#dc2626', icon:'⚡'},
-    {key:'closure',    label:'Project Closure Pending', color:'#c9a227', icon:'🔒'}
-  ];
+function rlTabCompliance(body) {
+  var allIssues = rlBuildAllIssues();
+  var high = allIssues.filter(function(i){return i.severity==='high';});
+  var med  = allIssues.filter(function(i){return i.severity==='medium';});
+  var low  = allIssues.filter(function(i){return i.severity==='low';});
 
-  function catSection(cat){
-    var issues=allIssues.filter(function(i){return i.category===cat.key;});
-    if(!issues.length) return '';
-    var byProject={};
-    issues.forEach(function(i){
-      if(!byProject[i.project]) byProject[i.project]={status:i.status,items:[]};
-      byProject[i.project].items.push(i);
-    });
-    return '<div id="rl-cat-'+cat.key+'">'+rlCard(
-      '<div style="padding:12px 16px 0;">'+
-        '<div style="font-size:12px;font-weight:700;color:'+cat.color+';text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">'+cat.icon+' '+cat.label+' ('+issues.length+')</div>'+
-        Object.keys(byProject).map(function(projName){
-          var proj=byProject[projName];
-          return '<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,.04);">'+
-            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">'+
-              '<div style="font-size:12px;font-weight:500;color:#f0f0f6;flex:1;">'+projName+'</div>'+
-              rlStatus(proj.status)+
-            '</div>'+
-            proj.items.map(function(i){
-              var meta=[i.phase&&('Phase: '+i.phase),i.task&&('Task: '+i.task)].filter(Boolean).join(' / ');
-              return '<div style="font-size:11px;color:'+cat.color+';padding:2px 0 2px 10px;border-left:2px solid rgba(255,255,255,.1);margin:1px 0;">'+
-                (meta?'<span style="color:#8a92a0;">'+meta+'</span> — ':'')+i.issue+
-              '</div>';
-            }).join('')+
-          '</div>';
-        }).join('')+
-      '</div><div style="height:12px;"></div>',
-      'margin-bottom:16px;'
-    )+'</div>';
+  var activeCats = RL_COMP_CATEGORIES.filter(function(cat){
+    return allIssues.some(function(i){return i.category===cat.key;});
+  });
+
+  var totalProjects = (_rlData.projects||[]).length;
+  var affectedProjects = new Set(allIssues.map(function(i){return i.projectId;})).size;
+  var healthyProjects  = totalProjects - affectedProjects;
+
+  var summaryHtml =
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;">' +
+      [{label:'Critical Issues', count:high.length,            color:'#dc2626', bg:'rgba(220,38,38,.08)',   bc:'rgba(220,38,38,.2)'},
+       {label:'Warnings',        count:med.length,             color:'#f59e0b', bg:'rgba(245,158,11,.08)',  bc:'rgba(245,158,11,.2)'},
+       {label:'Info',            count:low.length,             color:'#60a5fa', bg:'rgba(96,165,250,.08)', bc:'rgba(96,165,250,.2)'},
+       {label:'Healthy Projects',count:healthyProjects+'/'+totalProjects, color:'#22c55e', bg:'rgba(34,197,94,.08)', bc:'rgba(34,197,94,.2)'}
+      ].map(function(k){
+        return '<div style="background:'+k.bg+';border:1px solid '+k.bc+';border-radius:12px;padding:20px;text-align:center;">' +
+          '<div style="font-size:28px;font-weight:800;color:'+k.color+';line-height:1;">'+k.count+'</div>' +
+          '<div style="font-size:11px;color:#8a92a0;margin-top:6px;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">'+k.label+'</div>' +
+        '</div>';
+      }).join('') +
+    '</div>';
+
+  var catGrid = '';
+  if (activeCats.length) {
+    catGrid =
+      '<div style="font-size:10px;color:#5a6270;text-transform:uppercase;letter-spacing:.1em;font-family:\'DM Mono\',monospace;margin-bottom:10px;">Compliance Categories — click to explore</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:28px;">' +
+        activeCats.map(function(cat){
+          var cnt = allIssues.filter(function(i){return i.category===cat.key;}).length;
+          var highCnt = allIssues.filter(function(i){return i.category===cat.key&&i.severity==='high';}).length;
+          var sevBadge = highCnt > 0
+            ? '<span style="font-size:9px;background:rgba(220,38,38,.15);color:#ef4444;border-radius:4px;padding:1px 6px;font-family:\'DM Mono\',monospace;font-weight:700;">'+highCnt+' critical</span>'
+            : '';
+          return '<button onclick="rlOpenCatDetail(\''+cat.key+'\')" style="' +
+            'background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:12px;' +
+            'padding:14px 16px;text-align:left;cursor:pointer;font-family:\'DM Sans\',sans-serif;' +
+            'transition:background .15s,border-color .15s;display:flex;flex-direction:column;gap:6px;' +
+            '" onmouseover="this.style.background=\'rgba(255,255,255,.07)\';this.style.borderColor=\''+cat.color+'50\';" ' +
+            'onmouseout="this.style.background=\'rgba(255,255,255,.03)\';this.style.borderColor=\'rgba(255,255,255,.1)\';">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+              '<div style="display:flex;align-items:center;gap:8px;">' +
+                '<span style="font-size:16px;line-height:1;">'+cat.icon+'</span>' +
+                '<span style="font-size:13px;font-weight:700;color:'+cat.color+';">'+cat.label+'</span>' +
+              '</div>' +
+              '<span style="font-size:11px;font-weight:800;font-family:\'DM Mono\',monospace;color:'+cat.color+';">'+cnt+'</span>' +
+            '</div>' +
+            '<div style="font-size:11px;color:#5a6270;line-height:1.4;">'+cat.desc+'</div>' +
+            (sevBadge ? '<div>'+sevBadge+'</div>' : '') +
+            '<div style="font-size:10px;color:rgba(255,255,255,.2);margin-top:2px;display:flex;align-items:center;gap:4px;">View details →</div>' +
+          '</button>';
+        }).join('') +
+      '</div>';
   }
 
-  var activeCats=CATEGORIES.filter(function(cat){return allIssues.some(function(i){return i.category===cat.key;});});
-
-  body.innerHTML=
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">'+
-      [{label:'Critical Issues',count:high.length,color:'#dc2626',bg:'rgba(220,38,38,.08)',bc:'rgba(220,38,38,.2)'},
-       {label:'Warnings',count:med.length,color:'#f59e0b',bg:'rgba(245,158,11,.08)',bc:'rgba(245,158,11,.2)'},
-       {label:'Info',count:low.length,color:'#60a5fa',bg:'rgba(96,165,250,.08)',bc:'rgba(96,165,250,.2)'}
-      ].map(function(k){
-        return '<div style="background:'+k.bg+';border:1px solid '+k.bc+';border-radius:12px;padding:20px;text-align:center;">'+
-          '<div style="font-size:32px;font-weight:800;color:'+k.color+';line-height:1;">'+k.count+'</div>'+
-          '<div style="font-size:11px;color:#8a92a0;margin-top:6px;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">'+k.label+'</div>'+
-        '</div>';
-      }).join('')+
-    '</div>'+
-    (activeCats.length?
-      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">'+
-        activeCats.map(function(cat){
-          var cnt=allIssues.filter(function(i){return i.category===cat.key;}).length;
-          return '<button onclick="var e=document.getElementById(\'rl-cat-'+cat.key+'\');if(e)e.scrollIntoView({behavior:\'smooth\',block:\'start\'});" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;font-size:11px;color:'+cat.color+';display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:background .15s,border-color .15s;" onmouseover="this.style.background=\'rgba(255,255,255,.1)\';this.style.borderColor=\''+cat.color+'40\';" onmouseout="this.style.background=\'rgba(255,255,255,.04)\';this.style.borderColor=\'rgba(255,255,255,.12)\';">'+
-            cat.icon+' '+cat.label+' <span style="font-weight:700;font-family:\'DM Mono\',monospace;">('+cnt+')</span></button>';
-        }).join('')+
-      '</div>'
-    :'')+
-    CATEGORIES.map(function(cat){return catSection(cat);}).join('')+
-    (!allIssues.length?rlCard('<div style="padding:48px;text-align:center;font-size:13px;color:#22c55e;">✅ No compliance issues found across all projects</div>'):'');
+  body.innerHTML = summaryHtml + catGrid +
+    (!allIssues.length ? rlCard('<div style="padding:48px;text-align:center;font-size:13px;color:#22c55e;">✅ No compliance issues found across all '+totalProjects+' projects</div>') : '');
 }
+
+function rlOpenCatDetail(catKey) {
+  var cat = RL_COMP_CATEGORIES.find(function(c){return c.key===catKey;});
+  if (!cat) return;
+  var allIssues = rlBuildAllIssues();
+  var catIssues = allIssues.filter(function(i){return i.category===catKey;});
+  var body = document.getElementById('rlTabBody');
+  if (!body) return;
+
+  var _statusFilter = 'all';
+  var _sevFilter    = 'all';
+
+  var SEV_ORDER = {high:0, medium:1, low:2};
+  var SEV_COLOR = {high:'#ef4444', medium:'#f59e0b', low:'#60a5fa'};
+  var SEV_LABEL = {high:'High', medium:'Medium', low:'Low'};
+
+  var allStatuses = [];
+  catIssues.forEach(function(i){ if(allStatuses.indexOf(i.status)<0) allStatuses.push(i.status); });
+
+  function renderDetail(statusFilter, sevFilter) {
+    var filtered = catIssues.filter(function(i){
+      var stOk  = statusFilter === 'all' || i.status === statusFilter;
+      var sevOk = sevFilter    === 'all' || i.severity === sevFilter;
+      return stOk && sevOk;
+    });
+
+    var byProject = {};
+    filtered.forEach(function(i){
+      if(!byProject[i.projectId]) byProject[i.projectId] = {name:i.project, status:i.status, customer:i.customer, items:[]};
+      byProject[i.projectId].items.push(i);
+    });
+
+    var projEntries = Object.values(byProject).sort(function(a,b){
+      var ah = a.items.filter(function(i){return i.severity==='high';}).length;
+      var bh = b.items.filter(function(i){return i.severity==='high';}).length;
+      return bh - ah || b.items.length - a.items.length;
+    });
+
+    var highN = filtered.filter(function(i){return i.severity==='high';}).length;
+    var medN  = filtered.filter(function(i){return i.severity==='medium';}).length;
+    var lowN  = filtered.filter(function(i){return i.severity==='low';}).length;
+
+    function fBtn(val, lbl, current, onClick) {
+      var a = val === current;
+      return '<button onclick="'+onClick+'" style="border:1px solid '+(a?cat.color+'60':'rgba(255,255,255,.08)')+';background:'+(a?'rgba(255,255,255,.07)':'transparent')+';color:'+(a?cat.color:'rgba(255,255,255,.4)')+';border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:\'DM Sans\',sans-serif;font-weight:'+(a?'600':'400')+';transition:all .15s;">'+lbl+'</button>';
+    }
+
+    var statusBtns = ['all'].concat(allStatuses).map(function(s){
+      return fBtn(s, s==='all'?'All Status':s, statusFilter, 'rlCatDetailFilter(\'status\',\''+s+'\')');
+    }).join('');
+    var sevBtns = ['all','high','medium','low'].map(function(s){
+      return fBtn(s, s==='all'?'All Severity':(SEV_LABEL[s]||s), sevFilter, 'rlCatDetailFilter(\'sev\',\''+s+'\')');
+    }).join('');
+
+    var rowsHtml = '';
+    if (!projEntries.length) {
+      rowsHtml = '<div style="padding:48px;text-align:center;font-size:13px;color:#22c55e;">No issues match the selected filters</div>';
+    } else {
+      rowsHtml = projEntries.map(function(proj){
+        var sortedItems = proj.items.slice().sort(function(a,b){return (SEV_ORDER[a.severity]||2)-(SEV_ORDER[b.severity]||2);});
+        var issueRows = sortedItems.map(function(iss){
+          var sc = SEV_COLOR[iss.severity] || '#8a92a0';
+          var meta = [iss.phase && ('Phase: '+iss.phase), iss.task && ('Task: '+iss.task)].filter(Boolean).join(' · ');
+          return '<tr style="border-top:1px solid rgba(255,255,255,.04);">' +
+            '<td style="padding:10px 14px;vertical-align:top;">' +
+              '<div style="display:flex;align-items:center;gap:6px;">' +
+                '<div style="width:6px;height:6px;border-radius:50%;background:'+sc+';flex-shrink:0;"></div>' +
+                '<span style="font-size:10px;background:'+sc+'18;color:'+sc+';border-radius:4px;padding:1px 7px;font-weight:700;font-family:\'DM Mono\',monospace;white-space:nowrap;">'+(SEV_LABEL[iss.severity]||iss.severity).toUpperCase()+'</span>' +
+              '</div>' +
+            '</td>' +
+            '<td style="padding:10px 14px;font-size:12px;color:rgba(255,255,255,.7);vertical-align:top;">' +
+              '<div>'+iss.issue+'</div>' +
+              (meta ? '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;margin-top:3px;">'+meta+'</div>' : '') +
+            '</td>' +
+          '</tr>';
+        }).join('');
+
+        var highCount = proj.items.filter(function(i){return i.severity==='high';}).length;
+        var topColor  = highCount > 0 ? '#ef4444' : proj.items.some(function(i){return i.severity==='medium';}) ? '#f59e0b' : '#60a5fa';
+
+        return '<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:12px;margin-bottom:8px;overflow:hidden;">' +
+          '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06);">' +
+            '<div style="width:3px;height:32px;background:'+topColor+';border-radius:2px;flex-shrink:0;"></div>' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-size:13px;font-weight:700;color:#f0f0f6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+proj.name+'</div>' +
+              '<div style="display:flex;gap:8px;align-items:center;margin-top:3px;">' +
+                rlStatus(proj.status) +
+                (proj.customer ? '<span style="font-size:11px;color:#5a6270;">🏢 '+proj.customer+'</span>' : '') +
+              '</div>' +
+            '</div>' +
+            '<span style="font-size:11px;font-weight:700;font-family:\'DM Mono\',monospace;color:'+topColor+';flex-shrink:0;">'+proj.items.length+' issue'+(proj.items.length!==1?'s':'')+'</span>' +
+          '</div>' +
+          '<table style="width:100%;border-collapse:collapse;"><tbody>'+issueRows+'</tbody></table>' +
+        '</div>';
+      }).join('');
+    }
+
+    body.innerHTML =
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">' +
+        '<button onclick="rlBackToCompliance()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .15s;" onmouseover="this.style.background=\'rgba(255,255,255,.12)\'" onmouseout="this.style.background=\'rgba(255,255,255,.06)\'">← Back to Compliance</button>' +
+        '<span style="color:rgba(255,255,255,.15);">/</span>' +
+        '<span style="font-size:13px;color:rgba(255,255,255,.4);">'+cat.icon+' '+cat.label+'</span>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">' +
+        '<div>' +
+          '<div style="font-size:18px;font-weight:800;color:'+cat.color+';display:flex;align-items:center;gap:8px;">'+cat.icon+' '+cat.label+' <span style="font-size:13px;color:rgba(255,255,255,.3);font-weight:400;">('+catIssues.length+' total)</span></div>' +
+          '<div style="font-size:12px;color:#5a6270;margin-top:3px;">'+cat.desc+'</div>' +
+        '</div>' +
+        '<div style="margin-left:auto;display:flex;gap:16px;">' +
+          (highN ? '<div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:#ef4444;">'+highN+'</div><div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Critical</div></div>' : '') +
+          (medN  ? '<div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:#f59e0b;">'+medN+'</div><div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Warning</div></div>' : '') +
+          (lowN  ? '<div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:#60a5fa;">'+lowN+'</div><div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Info</div></div>' : '') +
+        '</div>' +
+      '</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:20px;padding:14px 16px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:10px;">' +
+        '<span style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-right:4px;">Status:</span>' +
+        statusBtns +
+        '<span style="width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 6px;"></span>' +
+        '<span style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-right:4px;">Severity:</span>' +
+        sevBtns +
+        '<span style="margin-left:auto;font-size:11px;color:#5a6270;font-family:\'DM Mono\',monospace;">'+filtered.length+' of '+catIssues.length+' issues · '+projEntries.length+' project'+(projEntries.length!==1?'s':'')+'</span>' +
+      '</div>' +
+      rowsHtml;
+
+    window._rlCatDetailState = {catKey:catKey, statusFilter:statusFilter, sevFilter:sevFilter};
+  }
+
+  window.rlCatDetailFilter = function(type, val) {
+    var st = window._rlCatDetailState || {};
+    if (type==='status') renderDetail(val, st.sevFilter||'all');
+    else renderDetail(st.statusFilter||'all', val);
+  };
+
+  renderDetail(_statusFilter, _sevFilter);
+}
+window.rlOpenCatDetail = rlOpenCatDetail;
+
+function rlBackToCompliance() {
+  _rlTab = 'compliance';
+  var bar = document.getElementById('rlTabBar');
+  if (bar) RL_TABS.forEach(function(t, i) {
+    var btn = bar.children[i]; if (!btn) return;
+    var a = t.id === 'compliance';
+    btn.style.fontWeight = a ? '600' : '400';
+    btn.style.color = a ? '#c9a227' : 'rgba(255,255,255,.4)';
+    btn.style.borderBottom = '2px solid ' + (a ? '#c9a227' : 'transparent');
+  });
+  rlTabCompliance(document.getElementById('rlTabBody'));
+}
+window.rlBackToCompliance = rlBackToCompliance;
 
 // ─── Tab 4: Timeline Changes ──────────────────────────────────────────────────
 function rlTabTimeline(body) {

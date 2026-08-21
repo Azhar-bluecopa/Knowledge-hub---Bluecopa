@@ -2939,6 +2939,74 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
       issues.push({ severity:'medium', category:'closure', task:'Project Closure', phase:null, issue:`Delivery complete but Project Closure is ${cTask.status?.label||'open'}` });
   }
 
+  // ── Extended overdue: flag all non-complete tasks (Blocked, On Hold, Todo, etc.) past due ──
+  allProjectTasks.forEach(t => {
+    const lbl = (t.status?.label || '').trim();
+    const isDone = lbl.toLowerCase().includes('complet');
+    const isInProg = lbl === 'In Progress' || lbl === 'In progress';
+    if (!isDone && !isInProg && t.dueDate) {
+      const due = new Date(t.dueDate * 1000);
+      if (due < today) {
+        const days = Math.floor((today - due) / 86400000);
+        issues.push({ severity:'high', category:'overdue', task:t.taskName, phase:null,
+          issue:`${lbl||'Open'} task — ${days}d past due date` });
+      }
+    }
+  });
+
+  // ── Date sequencing: start date on or after due date ──
+  allMainTasks.filter(t => t.startDate && t.dueDate && !t.completed).forEach(t => {
+    const start = new Date(t.startDate * 1000), due = new Date(t.dueDate * 1000);
+    if (start >= due)
+      issues.push({ severity:'medium', category:'dates', task:t.taskName, phase:t._phase,
+        issue:'Start date is on or after due date' });
+  });
+
+  // ── Premature completion: later-phase task done while an earlier phase has open tasks ──
+  if (progress.isStandard) {
+    const phOrder = ['engage','drive','enable','convert'];
+    phOrder.forEach((laterPh, laterIdx) => {
+      if (laterIdx === 0) return;
+      const doneInLater = (progress.phases[laterPh]?.tasks||[]).filter(t => t.completed);
+      if (!doneInLater.length) return;
+      for (let ei = 0; ei < laterIdx; ei++) {
+        const earlyPh = phOrder[ei];
+        const openInEarly = (progress.phases[earlyPh]?.tasks||[]).filter(t => !t.completed);
+        if (openInEarly.length) {
+          doneInLater.forEach(t => {
+            const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+            issues.push({ severity:'medium', category:'premature', task:t.taskName, phase:laterPh,
+              issue:`${cap(laterPh)} task completed while ${openInEarly.length} ${cap(earlyPh)} task(s) still open` });
+          });
+          break;
+        }
+      }
+    });
+  }
+
+  // ── Business day gaps > 5 between consecutive standard task due dates ──
+  if (progress.isStandard) {
+    const tasksWithDates = allMainTasks.filter(t => t.dueDate)
+      .sort((a,b) => (a.order||0)-(b.order||0));
+    for (let i = 1; i < tasksWithDates.length; i++) {
+      const prev = new Date(tasksWithDates[i-1].dueDate*1000);
+      const curr = new Date(tasksWithDates[i].dueDate*1000);
+      if (curr <= prev) continue;
+      let bizDays = 0, d = new Date(prev);
+      d.setDate(d.getDate()+1);
+      while (d < curr) { if (d.getDay()!==0&&d.getDay()!==6) bizDays++; d.setDate(d.getDate()+1); }
+      if (bizDays > 5)
+        issues.push({ severity:'low', category:'gaps', task:`${tasksWithDates[i-1].taskName} → ${tasksWithDates[i].taskName}`, phase:null,
+          issue:`${bizDays} business day gap between consecutive task due dates` });
+    }
+  }
+
+  // ── Inactive: In Progress project with 0% methodology completion ──
+  if (progress.isStandard && projectStatus.includes('progress') && (progress.overallPct||0) === 0) {
+    issues.push({ severity:'medium', category:'inactive', task:null, phase:null,
+      issue:'Project In Progress with 0% methodology completion — possible stale or abandoned project' });
+  }
+
   return issues;
 }
 
