@@ -3429,10 +3429,19 @@ async function rlDoFullFetch(apiKey) {
     const progress = rlBuildProjectProgress(tasksByProject[p.projectId] || []);
     const prevSnapProject = prevSnap?.projects?.find(proj => proj.projectId === p.projectId) || null;
     const issues = rlBuildCompliance(p, progress, tasksByProject[p.projectId] || [], prevSnapProject);
+    const projectOwner = (() => {
+      const mems = p.teamMembers?.members || [];
+      const pm = mems.find(m => {
+        const r = (m.designation||m.role||m.jobTitle||'').toLowerCase();
+        return r.includes('project manager')||r.includes('delivery manager')||r.includes('program manager')||r===('pm')||r.includes(' pm ');
+      });
+      return (pm || mems[0])?.name || null;
+    })();
     return {
       projectId: p.projectId, projectName: p.projectName,
       status: p.status?.label || 'Unknown',
       customer: p.customer?.companyName || null,
+      projectOwner,
       dueDate: p.dueDate || null,
       isStandard: progress.isStandard,
       overallPct: progress.overallPct,
