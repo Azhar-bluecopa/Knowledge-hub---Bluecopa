@@ -2903,11 +2903,24 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
       issues.push({ severity:'high', category:'blocked', task:t.taskName, phase:null, issue:'Task is blocked' });
   });
 
-  allMainTasks.filter(t => !t.completed).forEach(t => {
+  // Missing / invalid dates — all non-completed project tasks (not just methodology ones)
+  allProjectTasks.forEach(t => {
+    const lbl = (t.status?.label || '').toLowerCase();
+    if (lbl.includes('complet')) return;
     if (!t.dueDate)
-      issues.push({ severity:'medium', category:'dates', task:t.taskName, phase:t._phase, issue:'No due date set' });
+      issues.push({ severity:'medium', category:'dates', task:t.taskName, phase:null, issue:'No due date set' });
     else if (!t.startDate)
-      issues.push({ severity:'low', category:'dates', task:t.taskName, phase:t._phase, issue:'No start date set' });
+      issues.push({ severity:'low', category:'dates', task:t.taskName, phase:null, issue:'No start date set' });
+    // Task whose start date has already passed but is still not started
+    const notStarted = ['todo','to do','not started','planned'].includes(lbl);
+    if (notStarted && t.startDate) {
+      const st = new Date(t.startDate * 1000);
+      if (st < today) {
+        const daysLate = Math.floor((today - st) / 86400000);
+        issues.push({ severity:'medium', category:'dates', task:t.taskName, phase:null,
+          issue:`Start date was ${daysLate}d ago — task still not started` });
+      }
+    }
   });
 
   if (project.dueDate) {
@@ -2984,10 +2997,11 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
     });
   }
 
-  // ── Business day gaps > 5 between consecutive standard task due dates ──
-  if (progress.isStandard) {
-    const tasksWithDates = allMainTasks.filter(t => t.dueDate)
-      .sort((a,b) => (a.order||0)-(b.order||0));
+  // ── Business day gaps > 5 between consecutive task due dates (all project tasks, sorted by due date) ──
+  {
+    const tasksWithDates = allProjectTasks
+      .filter(t => { const l=(t.status?.label||'').toLowerCase(); return !l.includes('complet') && t.dueDate; })
+      .sort((a,b) => a.dueDate - b.dueDate);
     for (let i = 1; i < tasksWithDates.length; i++) {
       const prev = new Date(tasksWithDates[i-1].dueDate*1000);
       const curr = new Date(tasksWithDates[i].dueDate*1000);
@@ -3005,6 +3019,47 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
   if (progress.isStandard && projectStatus.includes('progress') && (progress.overallPct||0) === 0) {
     issues.push({ severity:'medium', category:'inactive', task:null, phase:null,
       issue:'Project In Progress with 0% methodology completion — possible stale or abandoned project' });
+  }
+
+  // ── Weekend due dates: tasks due on Saturday or Sunday ──
+  allProjectTasks.forEach(t => {
+    const lbl = (t.status?.label || '').toLowerCase();
+    if (lbl.includes('complet') || !t.dueDate) return;
+    const day = new Date(t.dueDate * 1000).getDay();
+    if (day === 0 || day === 6)
+      issues.push({ severity:'low', category:'weekend', task:t.taskName, phase:null,
+        issue:`Due date falls on a ${day === 0 ? 'Sunday' : 'Saturday'} — consider shifting to a weekday` });
+  });
+
+  // ── Long-running: In Progress tasks with a start date > 14 days ago ──
+  allProjectTasks.forEach(t => {
+    const lbl = t.status?.label || '';
+    if ((lbl === 'In Progress' || lbl === 'In progress') && t.startDate) {
+      const start = new Date(t.startDate * 1000);
+      const ageDays = Math.floor((today - start) / 86400000);
+      if (ageDays > 14)
+        issues.push({ severity:'medium', category:'stale', task:t.taskName, phase:null,
+          issue:`In Progress for ${ageDays} days without completion` });
+    }
+  });
+
+  // ── Unowned active tasks: In Progress or Blocked with no assignee ──
+  allProjectTasks.forEach(t => {
+    const lbl = t.status?.label || '';
+    const isActive = lbl === 'In Progress' || lbl === 'In progress' || lbl === 'Blocked';
+    const hasOwner = (t.assignees || []).length > 0;
+    if (isActive && !hasOwner) {
+      const alreadyFlagged = issues.some(i => i.task === t.taskName && i.category === 'ownership');
+      if (!alreadyFlagged)
+        issues.push({ severity:'high', category:'ownership', task:t.taskName, phase:null,
+          issue:`${lbl} task has no owner assigned` });
+    }
+  });
+
+  // ── Tasks complete but project still In Progress ──
+  if (progress.isStandard && progress.overallPct === 100 && projectStatus.includes('progress')) {
+    issues.push({ severity:'medium', category:'closure', task:null, phase:null,
+      issue:'All methodology tasks complete — project status should be updated from In Progress' });
   }
 
   return issues;
