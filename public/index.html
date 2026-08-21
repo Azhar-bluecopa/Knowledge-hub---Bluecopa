@@ -10988,67 +10988,246 @@ function rlBuildAllIssues() {
 }
 
 function rlTabCompliance(body) {
-  var allIssues = rlBuildAllIssues();
-  var high = allIssues.filter(function(i){return i.severity==='high';});
-  var med  = allIssues.filter(function(i){return i.severity==='medium';});
-  var low  = allIssues.filter(function(i){return i.severity==='low';});
+  // ── Data prep ────────────────────────────────────────────────────────────────
+  var allIssues       = rlBuildAllIssues();
+  var high            = allIssues.filter(function(i){return i.severity==='high';});
+  var med             = allIssues.filter(function(i){return i.severity==='medium';});
+  var low             = allIssues.filter(function(i){return i.severity==='low';});
+  var totalProjects   = (_rlData.projects||[]).length;
+  var affectedProjs   = new Set(allIssues.map(function(i){return i.projectId;})).size;
+  var healthyProjects = totalProjects - affectedProjs;
+  var scoreRaw        = totalProjects>0 ? Math.round((healthyProjects/totalProjects)*100) : 100;
 
-  var activeCats = RL_COMP_CATEGORIES.filter(function(cat){
-    return allIssues.some(function(i){return i.category===cat.key;});
-  });
-
-  var totalProjects = (_rlData.projects||[]).length;
-  var affectedProjects = new Set(allIssues.map(function(i){return i.projectId;})).size;
-  var healthyProjects  = totalProjects - affectedProjects;
-
-  var summaryHtml =
-    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;">' +
-      [{label:'Critical Issues', count:high.length,            color:'#dc2626', bg:'rgba(220,38,38,.08)',   bc:'rgba(220,38,38,.2)'},
-       {label:'Warnings',        count:med.length,             color:'#f59e0b', bg:'rgba(245,158,11,.08)',  bc:'rgba(245,158,11,.2)'},
-       {label:'Info',            count:low.length,             color:'#60a5fa', bg:'rgba(96,165,250,.08)', bc:'rgba(96,165,250,.2)'},
-       {label:'Healthy Projects',count:healthyProjects+'/'+totalProjects, color:'#22c55e', bg:'rgba(34,197,94,.08)', bc:'rgba(34,197,94,.2)'}
-      ].map(function(k){
-        return '<div style="background:'+k.bg+';border:1px solid '+k.bc+';border-radius:12px;padding:20px;text-align:center;">' +
-          '<div style="font-size:28px;font-weight:800;color:'+k.color+';line-height:1;">'+k.count+'</div>' +
-          '<div style="font-size:11px;color:#8a92a0;margin-top:6px;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">'+k.label+'</div>' +
-        '</div>';
-      }).join('') +
-    '</div>';
-
-  var catGrid = '';
-  if (activeCats.length) {
-    catGrid =
-      '<div style="font-size:10px;color:#5a6270;text-transform:uppercase;letter-spacing:.1em;font-family:\'DM Mono\',monospace;margin-bottom:10px;">Compliance Categories — click to explore</div>' +
-      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:28px;">' +
-        activeCats.map(function(cat){
-          var cnt = allIssues.filter(function(i){return i.category===cat.key;}).length;
-          var highCnt = allIssues.filter(function(i){return i.category===cat.key&&i.severity==='high';}).length;
-          var sevBadge = highCnt > 0
-            ? '<span style="font-size:9px;background:rgba(220,38,38,.15);color:#ef4444;border-radius:4px;padding:1px 6px;font-family:\'DM Mono\',monospace;font-weight:700;">'+highCnt+' critical</span>'
-            : '';
-          return '<button onclick="rlOpenCatDetail(\''+cat.key+'\')" style="' +
-            'background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:12px;' +
-            'padding:14px 16px;text-align:left;cursor:pointer;font-family:\'DM Sans\',sans-serif;' +
-            'transition:background .15s,border-color .15s;display:flex;flex-direction:column;gap:6px;' +
-            '" onmouseover="this.style.background=\'rgba(255,255,255,.07)\';this.style.borderColor=\''+cat.color+'50\';" ' +
-            'onmouseout="this.style.background=\'rgba(255,255,255,.03)\';this.style.borderColor=\'rgba(255,255,255,.1)\';">' +
-            '<div style="display:flex;align-items:center;justify-content:space-between;">' +
-              '<div style="display:flex;align-items:center;gap:8px;">' +
-                '<span style="font-size:16px;line-height:1;">'+cat.icon+'</span>' +
-                '<span style="font-size:13px;font-weight:700;color:'+cat.color+';">'+cat.label+'</span>' +
-              '</div>' +
-              '<span style="font-size:11px;font-weight:800;font-family:\'DM Mono\',monospace;color:'+cat.color+';">'+cnt+'</span>' +
-            '</div>' +
-            '<div style="font-size:11px;color:#5a6270;line-height:1.4;">'+cat.desc+'</div>' +
-            (sevBadge ? '<div>'+sevBadge+'</div>' : '') +
-            '<div style="font-size:10px;color:rgba(255,255,255,.2);margin-top:2px;display:flex;align-items:center;gap:4px;">View details →</div>' +
-          '</button>';
-        }).join('') +
-      '</div>';
+  // Last refreshed
+  var timeAgoStr = '';
+  var fetchedAt  = _rlData&&(_rlData.fetchedAt||_rlData.cachedAt);
+  if (fetchedAt) {
+    var ago = Math.round((Date.now()-new Date(fetchedAt).getTime())/1000);
+    timeAgoStr = ago<60 ? ago+'s ago' : ago<3600 ? Math.round(ago/60)+' min ago' : Math.round(ago/3600)+'h ago';
   }
 
-  body.innerHTML = summaryHtml + catGrid +
-    (!allIssues.length ? rlCard('<div style="padding:48px;text-align:center;font-size:13px;color:#22c55e;">✅ No compliance issues found across all '+totalProjects+' projects</div>') : '');
+  // ── Category data ─────────────────────────────────────────────────────────────
+  var catData = RL_COMP_CATEGORIES.map(function(cat){
+    var ci = allIssues.filter(function(i){return i.category===cat.key;});
+    var hc = ci.filter(function(i){return i.severity==='high';}).length;
+    var mc = ci.filter(function(i){return i.severity==='medium';}).length;
+    var lc = ci.filter(function(i){return i.severity==='low';}).length;
+    var ap = new Set(ci.map(function(i){return i.projectId;})).size;
+    return { key:cat.key, label:cat.label, color:cat.color, icon:cat.icon, desc:cat.desc,
+             total:ci.length, highCnt:hc, medCnt:mc, lowCnt:lc, affectedProjs:ap,
+             topSev: hc>0?'high':mc>0?'medium':'low' };
+  }).filter(function(c){return c.total>0;});
+  window._rlCompCatData = catData;
+  window._rlCompFilter  = {sev:'all', sort:'findings', search:''};
+
+  // ── Score ring SVG ────────────────────────────────────────────────────────────
+  var r=46, circ=2*Math.PI*r; // 289.03
+  var scoreColor = scoreRaw>=80?'#22c55e':scoreRaw>=50?'#f59e0b':'#dc2626';
+  var arcOffset  = Math.round(circ*(1-scoreRaw/100)*100)/100;
+  var circStr    = Math.round(circ*100)/100;
+  var svgDonut   =
+    '<div style="position:relative;width:116px;height:116px;flex-shrink:0;">'+
+      '<svg viewBox="0 0 110 110" style="width:116px;height:116px;">'+
+        '<circle cx="55" cy="55" r="'+r+'" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="11"/>'+
+        '<circle cx="55" cy="55" r="'+r+'" fill="none" stroke="'+scoreColor+'" stroke-width="11"'+
+          ' stroke-dasharray="'+circStr+'" stroke-dashoffset="'+arcOffset+'"'+
+          ' stroke-linecap="round" transform="rotate(-90 55 55)"/>'+
+      '</svg>'+
+      '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;">'+
+        '<span style="font-size:22px;font-weight:800;color:'+scoreColor+';line-height:1;letter-spacing:-.5px;font-family:\'DM Sans\',sans-serif;">'+scoreRaw+'%</span>'+
+        '<span style="font-size:8px;font-family:\'DM Mono\',monospace;color:rgba(255,255,255,.28);text-transform:uppercase;letter-spacing:.14em;">Score</span>'+
+      '</div>'+
+    '</div>';
+
+  // ── Severity bar ──────────────────────────────────────────────────────────────
+  var totalIss = allIssues.length||1;
+  var hPct = Math.round((high.length/totalIss)*100);
+  var mPct = Math.round((med.length/totalIss)*100);
+  var lPct = Math.max(0, 100-hPct-mPct);
+  var sevBar =
+    '<div style="margin-top:16px;">'+
+      '<div style="font-size:8.5px;font-family:\'DM Mono\',monospace;color:rgba(255,255,255,.22);text-transform:uppercase;letter-spacing:.14em;margin-bottom:7px;">Findings by severity</div>'+
+      '<div style="display:flex;border-radius:4px;overflow:hidden;height:7px;background:rgba(255,255,255,.04);">'+
+        (hPct>0?'<div style="width:'+hPct+'%;background:#dc2626;"></div>':'')+
+        (mPct>0?'<div style="width:'+mPct+'%;background:#f59e0b;"></div>':'')+
+        (lPct>0?'<div style="width:'+lPct+'%;background:#60a5fa;"></div>':'')+
+      '</div>'+
+      '<div style="display:flex;gap:12px;margin-top:7px;flex-wrap:wrap;">'+
+        '<span style="font-size:10px;color:rgba(255,255,255,.38);display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#dc2626;flex-shrink:0;"></span>'+high.length+' Critical</span>'+
+        '<span style="font-size:10px;color:rgba(255,255,255,.38);display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#f59e0b;flex-shrink:0;"></span>'+med.length+' Warning</span>'+
+        '<span style="font-size:10px;color:rgba(255,255,255,.38);display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#60a5fa;flex-shrink:0;"></span>'+low.length+' Info</span>'+
+      '</div>'+
+    '</div>';
+
+  // ── KPI cards ─────────────────────────────────────────────────────────────────
+  var kpiCards = [
+    {label:'Projects Reviewed',  val:totalProjects,                     color:'#c9a227', sub:'total monitored'},
+    {label:'Critical Findings',  val:high.length,                       color:'#dc2626', sub:'require immediate action'},
+    {label:'Warnings',           val:med.length,                        color:'#f59e0b', sub:'should be addressed'},
+    {label:'Healthy Projects',   val:healthyProjects+' / '+totalProjects, color:'#22c55e', sub:'fully compliant'}
+  ].map(function(k){
+    return '<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:18px 18px;">'+
+      '<div style="font-size:9px;font-family:\'DM Mono\',monospace;color:rgba(255,255,255,.28);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;">'+k.label+'</div>'+
+      '<div style="font-size:26px;font-weight:800;color:'+k.color+';letter-spacing:-.5px;line-height:1;font-family:\'DM Sans\',sans-serif;">'+k.val+'</div>'+
+      '<div style="font-size:11px;color:#5a6270;margin-top:7px;">'+k.sub+'</div>'+
+    '</div>';
+  }).join('');
+
+  // ── Summary header ────────────────────────────────────────────────────────────
+  var summaryHtml =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px;">'+
+      '<div>'+
+        '<div style="font-size:9px;font-family:\'DM Mono\',monospace;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.14em;margin-bottom:3px;">Compliance Overview</div>'+
+        '<div style="font-size:12px;color:#5a6270;">'+totalProjects+' projects · '+allIssues.length+' total findings · '+catData.length+' categories</div>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:10px;">'+
+        (_rlData&&_rlData.stale?'<span style="font-size:9px;background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.2);border-radius:5px;padding:2px 8px;font-family:\'DM Mono\',monospace;font-weight:700;letter-spacing:.06em;">STALE</span>':'')+
+        (timeAgoStr?'<span style="font-size:11px;color:#5a6270;font-family:\'DM Mono\',monospace;">Refreshed '+timeAgoStr+'</span>':'')+
+      '</div>'+
+    '</div>'+
+    '<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:24px;margin-bottom:20px;display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:start;">'+
+      '<div style="display:flex;flex-direction:column;align-items:center;padding-right:28px;border-right:1px solid rgba(255,255,255,.06);">'+
+        svgDonut+
+        '<div style="text-align:center;margin-top:10px;">'+
+          '<div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.55);">'+healthyProjects+' of '+totalProjects+'</div>'+
+          '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;margin-top:2px;">projects compliant</div>'+
+        '</div>'+
+        sevBar+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px;">'+kpiCards+'</div>'+
+    '</div>';
+
+  // ── Filter bar ────────────────────────────────────────────────────────────────
+  function sevBtn(val, lbl) {
+    var colors = {all:'rgba(255,255,255,.55)', high:'#dc2626', medium:'#f59e0b', low:'#60a5fa'};
+    var icons  = {all:'', high:'● ', medium:'● ', low:'● '};
+    var icoCol = {all:'', high:'#dc2626', medium:'#f59e0b', low:'#60a5fa'};
+    var isAct  = (window._rlCompFilter||{}).sev === val;
+    var ac     = colors[val];
+    return '<button id="rlSevBtn_'+val+'" onclick="window.rlCompSetFilter(\'sev\',\''+val+'\')" '+
+      'style="background:'+(isAct?'rgba(255,255,255,.06)':'transparent')+';border:1px solid '+(isAct?ac+'55':'rgba(255,255,255,.08)')+';color:'+(isAct?ac:'rgba(255,255,255,.35)')+';border-radius:8px;padding:6px 13px;font-size:12px;font-weight:'+(isAct?'600':'400')+';cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .15s;white-space:nowrap;">'+
+      (icons[val]&&val!=='all'?'<span style="color:'+icoCol[val]+';font-size:9px;margin-right:2px;">●</span> ':'')+lbl+
+    '</button>';
+  }
+  var filterBar =
+    '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:20px;">'+
+      '<div style="position:relative;flex:0 0 auto;width:220px;">'+
+        '<span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:rgba(255,255,255,.2);">🔍</span>'+
+        '<input id="rlCompSearchInput" type="text" placeholder="Search categories…" oninput="window.rlCompSearch(this.value)" '+
+        'style="width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:7px 12px 7px 30px;font-family:\'DM Sans\',sans-serif;font-size:12px;color:#f0f0f6;outline:none;box-sizing:border-box;" />'+
+      '</div>'+
+      '<div style="display:flex;gap:5px;">'+
+        sevBtn('all','All')+sevBtn('high','Critical')+sevBtn('medium','Warning')+sevBtn('low','Info')+
+      '</div>'+
+      '<div style="margin-left:auto;display:flex;align-items:center;gap:8px;">'+
+        '<span style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;white-space:nowrap;">Sort by</span>'+
+        '<select id="rlCompSortSel" onchange="window.rlCompSetSort(this.value)" '+
+        'style="background:#0f0f16;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.55);border-radius:8px;padding:6px 10px;font-family:\'DM Sans\',sans-serif;font-size:12px;cursor:pointer;outline:none;">'+
+          '<option value="findings">Most Findings</option>'+
+          '<option value="critical">Most Critical</option>'+
+          '<option value="projects">Most Projects Affected</option>'+
+        '</select>'+
+      '</div>'+
+    '</div>';
+
+  // ── Category card renderer ─────────────────────────────────────────────────────
+  window.rlRenderCatCard = function(cat) {
+    var sc = cat.topSev==='high'?'#dc2626':cat.topSev==='medium'?'#f59e0b':'#60a5fa';
+    var sl = cat.topSev==='high'?'CRITICAL':cat.topSev==='medium'?'WARNING':'INFO';
+    var sb = cat.topSev==='high'?'rgba(220,38,38,.1)':cat.topSev==='medium'?'rgba(245,158,11,.1)':'rgba(96,165,250,.1)';
+    var sevDots =
+      (cat.highCnt>0?'<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:#dc2626;white-space:nowrap;">● '+cat.highCnt+'</span>':'')+
+      (cat.medCnt>0?'<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:#f59e0b;white-space:nowrap;'+(cat.highCnt>0?'margin-left:7px;':'')+'">● '+cat.medCnt+'</span>':'')+
+      (cat.lowCnt>0?'<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:#60a5fa;white-space:nowrap;'+((cat.highCnt+cat.medCnt>0)?'margin-left:7px;':'')+'">● '+cat.lowCnt+'</span>':'');
+    return '<button onclick="rlOpenCatDetail(\''+cat.key+'\')" '+
+      'style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-left:3px solid '+sc+';border-radius:0 12px 12px 0;'+
+      'padding:0;text-align:left;cursor:pointer;font-family:\'DM Sans\',sans-serif;'+
+      'transition:background .15s,box-shadow .15s;display:flex;flex-direction:column;width:100%;" '+
+      'onmouseover="this.style.background=\'rgba(255,255,255,.045)\';this.style.boxShadow=\'0 4px 20px rgba(0,0,0,.35)\';" '+
+      'onmouseout="this.style.background=\'#0f0f16\';this.style.boxShadow=\'none\';">'+
+      '<div style="padding:15px 15px 11px;">'+
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">'+
+          '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">'+
+            '<span style="font-size:17px;line-height:1;flex-shrink:0;">'+cat.icon+'</span>'+
+            '<span style="font-size:13px;font-weight:700;color:#f0f0f6;line-height:1.3;">'+cat.label+'</span>'+
+          '</div>'+
+          '<span style="font-size:8px;font-weight:700;font-family:\'DM Mono\',monospace;letter-spacing:.1em;background:'+sb+';color:'+sc+';border-radius:5px;padding:3px 7px;flex-shrink:0;white-space:nowrap;border:1px solid '+sc+'35;">'+sl+'</span>'+
+        '</div>'+
+        '<div style="font-size:11px;color:#5a6270;line-height:1.5;">'+cat.desc+'</div>'+
+      '</div>'+
+      '<div style="height:1px;background:rgba(255,255,255,.05);margin:0 15px;"></div>'+
+      '<div style="padding:10px 15px;display:flex;align-items:center;justify-content:space-between;gap:8px;">'+
+        '<div>'+
+          '<div style="display:flex;align-items:baseline;gap:5px;">'+
+            '<span style="font-size:20px;font-weight:800;color:'+sc+';letter-spacing:-.5px;font-family:\'DM Sans\',sans-serif;">'+cat.total+'</span>'+
+            '<span style="font-size:10px;color:rgba(255,255,255,.28);font-family:\'DM Mono\',monospace;">findings</span>'+
+          '</div>'+
+          '<div style="font-size:10px;color:#5a6270;margin-top:2px;">'+cat.affectedProjs+' project'+(cat.affectedProjs!==1?'s':'')+' affected</div>'+
+        '</div>'+
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">'+
+          '<div style="display:flex;align-items:center;gap:3px;">'+sevDots+'</div>'+
+          '<div style="font-size:10px;color:rgba(255,255,255,.2);">View details →</div>'+
+        '</div>'+
+      '</div>'+
+    '</button>';
+  };
+
+  // ── Grid renderer (used by filter/sort) ───────────────────────────────────────
+  window.rlRenderCatGrid = function() {
+    var grid = document.getElementById('rlCompGrid');
+    if (!grid) return;
+    var cats = window._rlCompCatData || [];
+    var f    = window._rlCompFilter  || {};
+    var out  = cats.filter(function(c){
+      if (f.sev && f.sev!=='all' && c.topSev!==f.sev) return false;
+      if (f.search) { var q=f.search.toLowerCase(); if(c.label.toLowerCase().indexOf(q)<0&&c.desc.toLowerCase().indexOf(q)<0) return false; }
+      return true;
+    });
+    if (f.sort==='critical')      out.sort(function(a,b){return b.highCnt-a.highCnt||b.total-a.total;});
+    else if (f.sort==='projects') out.sort(function(a,b){return b.affectedProjs-a.affectedProjs||b.total-a.total;});
+    else                          out.sort(function(a,b){return b.total-a.total;});
+    grid.innerHTML = out.length
+      ? out.map(function(c){return window.rlRenderCatCard(c);}).join('')
+      : '<div style="grid-column:1/-1;padding:48px;text-align:center;font-size:13px;color:#5a6270;">No categories match the selected filters</div>';
+    // Sync filter button active states
+    var colors = {all:'rgba(255,255,255,.55)', high:'#dc2626', medium:'#f59e0b', low:'#60a5fa'};
+    ['all','high','medium','low'].forEach(function(v){
+      var btn = document.getElementById('rlSevBtn_'+v);
+      if (!btn) return;
+      var a = f.sev===v;
+      btn.style.background   = a?'rgba(255,255,255,.06)':'transparent';
+      btn.style.borderColor  = a?(colors[v]+'55'):'rgba(255,255,255,.08)';
+      btn.style.color        = a?colors[v]:'rgba(255,255,255,.35)';
+      btn.style.fontWeight   = a?'600':'400';
+    });
+  };
+  window.rlCompSetFilter = function(type, val) { window._rlCompFilter[type]=val; window.rlRenderCatGrid(); };
+  window.rlCompSearch    = function(q)         { window._rlCompFilter.search=q;  window.rlRenderCatGrid(); };
+  window.rlCompSetSort   = function(val)       { window._rlCompFilter.sort=val;  window.rlRenderCatGrid(); };
+
+  // ── Render ────────────────────────────────────────────────────────────────────
+  if (!allIssues.length) {
+    body.innerHTML = summaryHtml+
+      '<div style="background:#0f0f16;border:1px solid rgba(34,197,94,.2);border-radius:14px;padding:48px;text-align:center;">'+
+        '<div style="font-size:32px;margin-bottom:12px;">✅</div>'+
+        '<div style="font-size:16px;font-weight:700;color:#22c55e;margin-bottom:6px;">All Clear</div>'+
+        '<div style="font-size:13px;color:#5a6270;">No compliance issues found across all '+totalProjects+' projects</div>'+
+      '</div>';
+    return;
+  }
+
+  var sectionLabel =
+    '<div style="font-size:9px;font-family:\'DM Mono\',monospace;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.14em;margin-bottom:12px;">'+
+      catData.length+' compliance categories — click any card to explore'+
+    '</div>';
+
+  var initCats = catData.slice().sort(function(a,b){return b.total-a.total;});
+  var catGrid  =
+    '<div id="rlCompGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:10px;margin-bottom:28px;">'+
+      initCats.map(function(c){return window.rlRenderCatCard(c);}).join('')+
+    '</div>';
+
+  body.innerHTML = summaryHtml + sectionLabel + filterBar + catGrid;
 }
 
 function rlOpenCatDetail(catKey) {
@@ -11064,114 +11243,154 @@ function rlOpenCatDetail(catKey) {
 
   var SEV_ORDER = {high:0, medium:1, low:2};
   var SEV_COLOR = {high:'#ef4444', medium:'#f59e0b', low:'#60a5fa'};
-  var SEV_LABEL = {high:'High', medium:'Medium', low:'Low'};
+  var SEV_LABEL = {high:'Critical', medium:'Warning', low:'Info'};
+  var SEV_BG    = {high:'rgba(239,68,68,.12)', medium:'rgba(245,158,11,.12)', low:'rgba(96,165,250,.12)'};
 
   var allStatuses = [];
   catIssues.forEach(function(i){ if(allStatuses.indexOf(i.status)<0) allStatuses.push(i.status); });
 
+  var RL_CAT_ACTIONS = {
+    structure:  'Ensure the project follows the Engage→Drive→Enable→Convert methodology with all standard tasks in the correct order. Re-structure the project in Rocketlane to match the required template.',
+    ownership:  'Assign task owners in Rocketlane immediately. Unowned active tasks risk being missed or delayed with no accountability trail.',
+    overdue:    'Contact task owners for an updated due date. If the task is already done, mark it complete in Rocketlane to keep the project record accurate.',
+    blocked:    'Escalate blockers to the project manager or customer without delay. Log the blocker reason and review daily until resolved.',
+    dates:      'Set valid start and due dates for all open tasks. Use the agreed project timeline as a reference. Tasks without dates cannot be tracked or flagged for slippage.',
+    premature:  'Re-open the earlier-phase tasks that are still pending, or mark them as Not Applicable with a clear note if they were intentionally skipped.',
+    gaps:       'Review large scheduling gaps and confirm they are intentional (e.g. waiting for client input). Reschedule tasks to close unnecessary idle windows.',
+    stale:      'Update methodology task progress in Rocketlane. If the project is paused, change its status to On Hold so it is tracked correctly.',
+    completion: 'Mark remaining standard tasks as complete or Not Applicable before closing the project. A project marked complete with open tasks creates audit risk.',
+    inactive:   'Investigate why the project shows 0% methodology progress. If it is paused or cancelled, update the status in Rocketlane accordingly.',
+    weekend:    'Move due dates falling on Saturday or Sunday to the adjacent Friday or Monday to avoid missed notifications and reporting gaps.',
+    closure:    'Complete or create the Project Closure task to formally close delivery. This step is required before a project can be marked as fully delivered.'
+  };
+
   function renderDetail(statusFilter, sevFilter) {
     var filtered = catIssues.filter(function(i){
-      var stOk  = statusFilter === 'all' || i.status === statusFilter;
-      var sevOk = sevFilter    === 'all' || i.severity === sevFilter;
-      return stOk && sevOk;
+      return (statusFilter==='all'||i.status===statusFilter)&&(sevFilter==='all'||i.severity===sevFilter);
     });
-
     var byProject = {};
     filtered.forEach(function(i){
-      if(!byProject[i.projectId]) byProject[i.projectId] = {name:i.project, status:i.status, customer:i.customer, items:[]};
+      if(!byProject[i.projectId]) byProject[i.projectId]={name:i.project, status:i.status, customer:i.customer, items:[]};
       byProject[i.projectId].items.push(i);
     });
-
     var projEntries = Object.values(byProject).sort(function(a,b){
-      var ah = a.items.filter(function(i){return i.severity==='high';}).length;
-      var bh = b.items.filter(function(i){return i.severity==='high';}).length;
-      return bh - ah || b.items.length - a.items.length;
+      var ah=a.items.filter(function(i){return i.severity==='high';}).length;
+      var bh=b.items.filter(function(i){return i.severity==='high';}).length;
+      return bh-ah||b.items.length-a.items.length;
     });
-
     var highN = filtered.filter(function(i){return i.severity==='high';}).length;
     var medN  = filtered.filter(function(i){return i.severity==='medium';}).length;
     var lowN  = filtered.filter(function(i){return i.severity==='low';}).length;
+    var topSev   = highN>0?'high':medN>0?'medium':'low';
+    var topColor = SEV_COLOR[topSev];
 
-    function fBtn(val, lbl, current, onClick) {
-      var a = val === current;
-      return '<button onclick="'+onClick+'" style="border:1px solid '+(a?cat.color+'60':'rgba(255,255,255,.08)')+';background:'+(a?'rgba(255,255,255,.07)':'transparent')+';color:'+(a?cat.color:'rgba(255,255,255,.4)')+';border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:\'DM Sans\',sans-serif;font-weight:'+(a?'600':'400')+';transition:all .15s;">'+lbl+'</button>';
+    function fBtn(val, lbl, current, onClick, ac) {
+      var a = val===current;
+      return '<button onclick="'+onClick+'" style="border:1px solid '+(a?(ac||cat.color)+'55':'rgba(255,255,255,.07)')+';background:'+(a?'rgba(255,255,255,.06)':'transparent')+';color:'+(a?(ac||cat.color):'rgba(255,255,255,.32)')+';border-radius:7px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:\'DM Sans\',sans-serif;font-weight:'+(a?'600':'400')+';transition:all .15s;white-space:nowrap;">'+lbl+'</button>';
     }
-
     var statusBtns = ['all'].concat(allStatuses).map(function(s){
-      return fBtn(s, s==='all'?'All Status':s, statusFilter, 'rlCatDetailFilter(\'status\',\''+s+'\')');
+      return fBtn(s, s==='all'?'All Status':s, statusFilter, 'rlCatDetailFilter(\'status\',\''+s+'\')', cat.color);
     }).join('');
     var sevBtns = ['all','high','medium','low'].map(function(s){
-      return fBtn(s, s==='all'?'All Severity':(SEV_LABEL[s]||s), sevFilter, 'rlCatDetailFilter(\'sev\',\''+s+'\')');
+      var ac={all:cat.color,high:'#ef4444',medium:'#f59e0b',low:'#60a5fa'}[s];
+      return fBtn(s, s==='all'?'All':(SEV_LABEL[s]||s), sevFilter, 'rlCatDetailFilter(\'sev\',\''+s+'\')', ac);
     }).join('');
 
     var rowsHtml = '';
     if (!projEntries.length) {
-      rowsHtml = '<div style="padding:48px;text-align:center;font-size:13px;color:#22c55e;">No issues match the selected filters</div>';
+      rowsHtml = '<div style="padding:48px;text-align:center;font-size:13px;color:#5a6270;">No issues match the selected filters</div>';
     } else {
       rowsHtml = projEntries.map(function(proj){
         var sortedItems = proj.items.slice().sort(function(a,b){return (SEV_ORDER[a.severity]||2)-(SEV_ORDER[b.severity]||2);});
+        var hc = proj.items.filter(function(i){return i.severity==='high';}).length;
+        var pc = hc>0?'#ef4444':proj.items.some(function(i){return i.severity==='medium';})? '#f59e0b':'#60a5fa';
         var issueRows = sortedItems.map(function(iss){
-          var sc = SEV_COLOR[iss.severity] || '#8a92a0';
-          var meta = [iss.phase && ('Phase: '+iss.phase), iss.task && ('Task: '+iss.task)].filter(Boolean).join(' · ');
-          return '<tr style="border-top:1px solid rgba(255,255,255,.04);">' +
-            '<td style="padding:10px 14px;vertical-align:top;">' +
-              '<div style="display:flex;align-items:center;gap:6px;">' +
-                '<div style="width:6px;height:6px;border-radius:50%;background:'+sc+';flex-shrink:0;"></div>' +
-                '<span style="font-size:10px;background:'+sc+'18;color:'+sc+';border-radius:4px;padding:1px 7px;font-weight:700;font-family:\'DM Mono\',monospace;white-space:nowrap;">'+(SEV_LABEL[iss.severity]||iss.severity).toUpperCase()+'</span>' +
-              '</div>' +
-            '</td>' +
-            '<td style="padding:10px 14px;font-size:12px;color:rgba(255,255,255,.7);vertical-align:top;">' +
-              '<div>'+iss.issue+'</div>' +
-              (meta ? '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;margin-top:3px;">'+meta+'</div>' : '') +
-            '</td>' +
+          var sc = SEV_COLOR[iss.severity]||'#8a92a0';
+          var sl = SEV_LABEL[iss.severity]||iss.severity;
+          var sb = SEV_BG[iss.severity]||'rgba(255,255,255,.06)';
+          var meta = [iss.phase&&('Phase: '+iss.phase), iss.task&&('Task: '+iss.task)].filter(Boolean).join(' · ');
+          return '<tr style="border-top:1px solid rgba(255,255,255,.04);">'+
+            '<td style="padding:10px 14px;vertical-align:top;width:100px;">'+
+              '<span style="font-size:9.5px;background:'+sb+';color:'+sc+';border-radius:5px;padding:2px 8px;font-weight:700;font-family:\'DM Mono\',monospace;white-space:nowrap;border:1px solid '+sc+'30;letter-spacing:.06em;">'+sl.toUpperCase()+'</span>'+
+            '</td>'+
+            '<td style="padding:10px 14px;font-size:12px;color:rgba(255,255,255,.68);vertical-align:top;line-height:1.5;">'+
+              '<div>'+iss.issue+'</div>'+
+              (meta?'<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;margin-top:4px;">'+meta+'</div>':'')+
+            '</td>'+
           '</tr>';
         }).join('');
-
-        var highCount = proj.items.filter(function(i){return i.severity==='high';}).length;
-        var topColor  = highCount > 0 ? '#ef4444' : proj.items.some(function(i){return i.severity==='medium';}) ? '#f59e0b' : '#60a5fa';
-
-        return '<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:12px;margin-bottom:8px;overflow:hidden;">' +
-          '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06);">' +
-            '<div style="width:3px;height:32px;background:'+topColor+';border-radius:2px;flex-shrink:0;"></div>' +
-            '<div style="flex:1;min-width:0;">' +
-              '<div style="font-size:13px;font-weight:700;color:#f0f0f6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+proj.name+'</div>' +
-              '<div style="display:flex;gap:8px;align-items:center;margin-top:3px;">' +
-                rlStatus(proj.status) +
-                (proj.customer ? '<span style="font-size:11px;color:#5a6270;">🏢 '+proj.customer+'</span>' : '') +
-              '</div>' +
-            '</div>' +
-            '<span style="font-size:11px;font-weight:700;font-family:\'DM Mono\',monospace;color:'+topColor+';flex-shrink:0;">'+proj.items.length+' issue'+(proj.items.length!==1?'s':'')+'</span>' +
-          '</div>' +
-          '<table style="width:100%;border-collapse:collapse;"><tbody>'+issueRows+'</tbody></table>' +
+        return '<div style="background:#0c0c14;border:1px solid rgba(255,255,255,.07);border-left:3px solid '+pc+';border-radius:0 12px 12px 0;margin-bottom:8px;overflow:hidden;">'+
+          '<div style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.05);">'+
+            '<div style="flex:1;min-width:0;">'+
+              '<div style="font-size:13px;font-weight:700;color:#f0f0f6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+proj.name+'</div>'+
+              '<div style="display:flex;gap:8px;align-items:center;margin-top:4px;">'+
+                rlStatus(proj.status)+
+                (proj.customer?'<span style="font-size:11px;color:#5a6270;">'+proj.customer+'</span>':'')+
+              '</div>'+
+            '</div>'+
+            '<span style="font-size:11px;font-weight:700;font-family:\'DM Mono\',monospace;color:'+pc+';flex-shrink:0;background:'+pc+'15;border-radius:6px;padding:3px 10px;border:1px solid '+pc+'25;">'+
+              proj.items.length+' issue'+(proj.items.length!==1?'s':'')+
+            '</span>'+
+          '</div>'+
+          '<table style="width:100%;border-collapse:collapse;"><tbody>'+issueRows+'</tbody></table>'+
         '</div>';
       }).join('');
     }
 
+    var recAction = RL_CAT_ACTIONS[catKey]||'';
+    var actionBox = recAction?
+      '<div style="background:rgba(201,162,39,.05);border:1px solid rgba(201,162,39,.14);border-radius:10px;padding:14px 16px;margin-bottom:18px;display:flex;gap:12px;align-items:flex-start;">'+
+        '<span style="font-size:15px;flex-shrink:0;margin-top:1px;line-height:1;">💡</span>'+
+        '<div>'+
+          '<div style="font-size:9px;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.12em;color:rgba(201,162,39,.55);margin-bottom:5px;font-weight:700;">Recommended Action</div>'+
+          '<div style="font-size:12px;color:rgba(255,255,255,.5);line-height:1.65;">'+recAction+'</div>'+
+        '</div>'+
+      '</div>':'';
+
     body.innerHTML =
-      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">' +
-        '<button onclick="rlBackToCompliance()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .15s;" onmouseover="this.style.background=\'rgba(255,255,255,.12)\'" onmouseout="this.style.background=\'rgba(255,255,255,.06)\'">← Back to Compliance</button>' +
-        '<span style="color:rgba(255,255,255,.15);">/</span>' +
-        '<span style="font-size:13px;color:rgba(255,255,255,.4);">'+cat.icon+' '+cat.label+'</span>' +
-      '</div>' +
-      '<div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">' +
-        '<div>' +
-          '<div style="font-size:18px;font-weight:800;color:'+cat.color+';display:flex;align-items:center;gap:8px;">'+cat.icon+' '+cat.label+' <span style="font-size:13px;color:rgba(255,255,255,.3);font-weight:400;">('+catIssues.length+' total)</span></div>' +
-          '<div style="font-size:12px;color:#5a6270;margin-top:3px;">'+cat.desc+'</div>' +
-        '</div>' +
-        '<div style="margin-left:auto;display:flex;gap:16px;">' +
-          (highN ? '<div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:#ef4444;">'+highN+'</div><div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Critical</div></div>' : '') +
-          (medN  ? '<div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:#f59e0b;">'+medN+'</div><div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Warning</div></div>' : '') +
-          (lowN  ? '<div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:#60a5fa;">'+lowN+'</div><div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Info</div></div>' : '') +
-        '</div>' +
-      '</div>' +
-      '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:20px;padding:14px 16px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:10px;">' +
-        '<span style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-right:4px;">Status:</span>' +
-        statusBtns +
-        '<span style="width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 6px;"></span>' +
-        '<span style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-right:4px;">Severity:</span>' +
-        sevBtns +
-        '<span style="margin-left:auto;font-size:11px;color:#5a6270;font-family:\'DM Mono\',monospace;">'+filtered.length+' of '+catIssues.length+' issues · '+projEntries.length+' project'+(projEntries.length!==1?'s':'')+'</span>' +
-      '</div>' +
+      // Breadcrumb
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:22px;">'+
+        '<button onclick="rlBackToCompliance()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.45);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .15s;display:inline-flex;align-items:center;gap:5px;" onmouseover="this.style.background=\'rgba(255,255,255,.1)\'" onmouseout="this.style.background=\'rgba(255,255,255,.05)\'">'+
+          '← Compliance Overview'+
+        '</button>'+
+        '<span style="color:rgba(255,255,255,.1);font-size:18px;">›</span>'+
+        '<span style="font-size:12px;color:rgba(255,255,255,.32);">'+cat.icon+' '+cat.label+'</span>'+
+      '</div>'+
+      // Header card
+      '<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-left:4px solid '+topColor+';border-radius:0 14px 14px 0;padding:20px 24px;margin-bottom:18px;">'+
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;">'+
+          '<div>'+
+            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'+
+              '<span style="font-size:20px;line-height:1;">'+cat.icon+'</span>'+
+              '<span style="font-size:17px;font-weight:800;color:#f0f0f6;letter-spacing:-.3px;">'+cat.label+'</span>'+
+            '</div>'+
+            '<div style="font-size:12px;color:#5a6270;max-width:480px;line-height:1.55;">'+cat.desc+'</div>'+
+          '</div>'+
+          '<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;">'+
+            (highN?'<div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#ef4444;letter-spacing:-.5px;font-family:\'DM Sans\',sans-serif;">'+highN+'</div><div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.1em;margin-top:3px;">Critical</div></div>':'')+
+            (medN?'<div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#f59e0b;letter-spacing:-.5px;font-family:\'DM Sans\',sans-serif;">'+medN+'</div><div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.1em;margin-top:3px;">Warning</div></div>':'')+
+            (lowN?'<div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:#60a5fa;letter-spacing:-.5px;font-family:\'DM Sans\',sans-serif;">'+lowN+'</div><div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.1em;margin-top:3px;">Info</div></div>':'')+
+            '<div style="text-align:center;"><div style="font-size:22px;font-weight:800;color:rgba(255,255,255,.45);letter-spacing:-.5px;font-family:\'DM Sans\',sans-serif;">'+projEntries.length+'</div><div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.1em;margin-top:3px;">Projects</div></div>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      // Recommended action
+      actionBox+
+      // Filter bar
+      '<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:11px 16px;margin-bottom:18px;">'+
+        '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">'+
+          '<div style="display:flex;gap:5px;align-items:center;">'+
+            '<span style="font-size:9px;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.2);margin-right:3px;">Status</span>'+
+            statusBtns+
+          '</div>'+
+          '<div style="width:1px;height:20px;background:rgba(255,255,255,.07);flex-shrink:0;"></div>'+
+          '<div style="display:flex;gap:5px;align-items:center;">'+
+            '<span style="font-size:9px;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.2);margin-right:3px;">Severity</span>'+
+            sevBtns+
+          '</div>'+
+          '<div style="margin-left:auto;font-size:11px;color:#5a6270;font-family:\'DM Mono\',monospace;white-space:nowrap;">'+filtered.length+' of '+catIssues.length+' · '+projEntries.length+' project'+(projEntries.length!==1?'s':'')+'</div>'+
+        '</div>'+
+      '</div>'+
       rowsHtml;
 
     window._rlCatDetailState = {catKey:catKey, statusFilter:statusFilter, sevFilter:sevFilter};
