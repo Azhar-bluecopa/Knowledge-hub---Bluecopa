@@ -11521,11 +11521,6 @@ function rlTabHealth(body) {
     var selSt = 'background:#161620;border:1px solid rgba(255,255,255,.14);color:#f0f0f6;border-radius:7px;padding:5px 9px;font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer;outline:none;';
     var lbSt  = 'font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;';
 
-    var levelBtns = [{v:'project',l:'Project'},{v:'client',l:'Client'},{v:'owner',l:'Owner'}].map(function(o){
-      var a = o.v === _level;
-      return '<button onclick="window.rlHL(\''+o.v+'\')" style="background:'+(a?'rgba(56,189,248,.15)':'transparent')+';border:1px solid '+(a?'#38bdf8':'rgba(255,255,255,.08)')+';color:'+(a?'#38bdf8':'rgba(255,255,255,.4)')+';border-radius:6px;padding:4px 12px;font-size:11px;font-weight:'+(a?'600':'400')+';cursor:pointer;transition:all .15s;">'+o.l+'</button>';
-    }).join('');
-
     var statusBtns = [{v:'all',l:'All'},{v:'active',l:'Active'},{v:'complete',l:'Completed'}].map(function(o){
       var a = o.v === _statusF;
       return '<button onclick="window.rlHSt(\''+o.v+'\')" style="background:'+(a?'rgba(255,255,255,.1)':'transparent')+';border:1px solid '+(a?'rgba(255,255,255,.2)':'rgba(255,255,255,.07)')+';color:'+(a?'#f0f0f6':'rgba(255,255,255,.35)')+';border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;transition:all .15s;">'+o.l+'</button>';
@@ -11547,10 +11542,6 @@ function rlTabHealth(body) {
     return rlCard(
       '<div style="padding:14px 16px 10px;">'+
         '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">'+
-          '<div style="display:flex;align-items:center;gap:6px;">'+
-            '<span style="'+lbSt+'">View by</span>'+
-            '<div style="display:flex;gap:3px;">'+levelBtns+'</div>'+
-          '</div>'+
           '<div style="display:flex;align-items:center;gap:6px;">'+
             '<span style="'+lbSt+'">Status</span>'+
             '<div style="display:flex;gap:3px;">'+statusBtns+'</div>'+
@@ -11792,10 +11783,18 @@ function rlTabHealth(body) {
     }).join('');
 
     var levelLabel = {project:'Project',client:'Client',owner:'Project Owner'}[_level];
+    var groupBtns = [{v:'project',l:'Project'},{v:'client',l:'Client'},{v:'owner',l:'Owner'}].map(function(o){
+      var a = o.v === _level;
+      return '<button onclick="window.rlHL(\''+o.v+'\')" style="background:'+(a?'rgba(56,189,248,.18)':'transparent')+';border:1px solid '+(a?'#38bdf8':'rgba(255,255,255,.1)')+';color:'+(a?'#38bdf8':'rgba(255,255,255,.4)')+';border-radius:5px;padding:3px 10px;font-size:10px;font-weight:'+(a?'700':'400')+';cursor:pointer;transition:all .15s;font-family:\'DM Sans\',sans-serif;">'+o.l+'</button>';
+    }).join('');
     return rlCard(
-      '<div style="padding:12px 16px 4px;display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px;">'+
-        '<div style="font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">'+levelLabel+' Risk Ranking</div>'+
-        '<div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;">stacked = findings · % = compliance rate · green bar = zero issues</div>'+
+      '<div style="padding:12px 16px 6px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">'+
+        '<div style="font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Risk Ranking</div>'+
+        '<div style="display:flex;align-items:center;gap:6px;">'+
+          '<span style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.06em;">Group by</span>'+
+          '<div style="display:flex;gap:3px;">'+groupBtns+'</div>'+
+        '</div>'+
+        '<div style="width:100%;font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;">stacked = findings · % = compliance rate · green bar = zero issues</div>'+
       '</div>'+
       '<div style="overflow-x:auto;">'+
         '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:400px;height:auto;display:block;overflow:visible;">'+svgP.join('')+'</svg>'+
@@ -11891,79 +11890,6 @@ function rlTabHealth(body) {
     );
   }
 
-  // ── Completion Progress Trend ──
-  function buildProgressTrend(snaps) {
-    if (!snaps||!snaps.length) return rlCard('<div style="padding:30px;text-align:center;font-size:13px;color:#5a6270;">Loading snapshot data…</div>', '');
-    var shown = snaps.slice(0, _weeks).reverse();
-    if (shown.length < 2) return rlCard(
-      '<div style="padding:12px 16px 4px;font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Completion Progress Trend</div>'+
-      '<div style="padding:16px;text-align:center;font-size:11px;color:#5a6270;">'+shown.length+' snapshot'+(shown.length!==1?'s':'')+' — need at least 2 to show trend</div>',
-      ''
-    );
-
-    function avgComp(snap, stdOnly){
-      var ps=(snap.projects||[]).filter(function(p){
-        var ok=p.completionPct!=null;
-        if (stdOnly) ok=ok&&p.isStandard;
-        if (_clientF) ok=ok&&p.customer===_clientF;
-        if (_ownerF)  ok=ok&&p.projectOwner===_ownerF;
-        return ok;
-      });
-      return ps.length ? Math.round(ps.reduce(function(s,p){ return s+p.completionPct; },0)/ps.length) : null;
-    }
-
-    var W=820, H=180, ML=34, MR=16, MT=12, MB=32;
-    var plotW=W-ML-MR, plotH=H-MT-MB;
-    var n=shown.length;
-    function xP(i){ return ML+(i/Math.max(n-1,1))*plotW; }
-    function yP(v){ return MT+plotH-(v/100)*plotH; }
-    var svgP=[];
-
-    [0,25,50,75,100].forEach(function(v){
-      var y=yP(v);
-      svgP.push('<line x1="'+ML+'" y1="'+y+'" x2="'+(W-MR)+'" y2="'+y+'" stroke="rgba(255,255,255,.04)"/>');
-      svgP.push('<text x="'+(ML-5)+'" y="'+y+'" dominant-baseline="middle" text-anchor="end" font-size="9" fill="#5a6270" font-family="DM Mono,monospace">'+v+'</text>');
-    });
-
-    var allVals=shown.map(function(s){ return avgComp(s,false); });
-    var allPts=allVals.map(function(v,i){ return v!=null?[xP(i),yP(v)]:null; }).filter(Boolean);
-    if (allPts.length>=2){
-      var aD='M '+allPts[0][0]+' '+(MT+plotH)+' L '+allPts.map(function(p){ return p[0]+' '+p[1]; }).join(' L ')+' L '+allPts[allPts.length-1][0]+' '+(MT+plotH)+' Z';
-      svgP.push('<path d="'+aD+'" fill="rgba(96,165,250,.07)"/>');
-      svgP.push('<polyline points="'+allPts.map(function(p){ return p[0]+','+p[1]; }).join(' ')+'" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>');
-      var last=allPts[allPts.length-1], lastV=allVals[allVals.length-1];
-      svgP.push('<circle cx="'+last[0]+'" cy="'+last[1]+'" r="4" fill="#60a5fa"/>');
-      if (lastV!=null) svgP.push('<text x="'+(last[0]+7)+'" y="'+last[1]+'" dominant-baseline="middle" font-size="11" fill="#60a5fa" font-family="DM Mono,monospace" font-weight="700">'+lastV+'%</text>');
-    }
-
-    var stdVals=shown.map(function(s){ return avgComp(s,true); });
-    var stdPts=stdVals.map(function(v,i){ return v!=null?[xP(i),yP(v)]:null; }).filter(Boolean);
-    if (stdPts.length>=2){
-      svgP.push('<polyline points="'+stdPts.map(function(p){ return p[0]+','+p[1]; }).join(' ')+'" fill="none" stroke="#34d399" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round" stroke-linecap="round"/>');
-      var ls=stdPts[stdPts.length-1], lsV=stdVals[stdVals.length-1];
-      svgP.push('<circle cx="'+ls[0]+'" cy="'+ls[1]+'" r="3.5" fill="#34d399"/>');
-      if (lsV!=null) svgP.push('<text x="'+(ls[0]+7)+'" y="'+ls[1]+'" dominant-baseline="middle" font-size="11" fill="#34d399" font-family="DM Mono,monospace" font-weight="700">'+lsV+'%</text>');
-    }
-
-    shown.forEach(function(s,i){
-      if (n>8&&i%2!==0&&i!==n-1) return;
-      var d=new Date(s.capturedAt);
-      svgP.push('<text x="'+xP(i)+'" y="'+(H-6)+'" text-anchor="middle" font-size="9" fill="#5a6270" font-family="DM Mono,monospace">'+(isNaN(d)?'—':d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}))+'</text>');
-    });
-
-    return rlCard(
-      '<div style="padding:12px 16px 4px;font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Completion Progress Trend</div>'+
-      '<div style="padding:4px 16px;">'+
-        '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;overflow:visible;">'+svgP.join('')+'</svg>'+
-      '</div>'+
-      '<div style="display:flex;gap:16px;padding:2px 16px 10px;flex-wrap:wrap;">'+
-        '<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#60a5fa;"><svg width="20" height="4" style="flex-shrink:0;"><line x1="0" y1="2" x2="20" y2="2" stroke="#60a5fa" stroke-width="2.5"/></svg>All projects — avg completion %</div>'+
-        '<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#34d399;"><svg width="20" height="4" style="flex-shrink:0;"><line x1="0" y1="2" x2="20" y2="2" stroke="#34d399" stroke-width="2" stroke-dasharray="5 4"/></svg>Standard projects only</div>'+
-      '</div>',
-      ''
-    );
-  }
-
   // ── Drill-down panel ──
   function buildDrillDown() {
     if (!_drillInfo) return '';
@@ -12012,8 +11938,7 @@ function rlTabHealth(body) {
       '</div>'+
       buildHeatMap(ps)+
       buildRanked(ps)+
-      buildComplianceTrend(snaps)+
-      buildProgressTrend(snaps);
+      buildComplianceTrend(snaps);
     if (_drillInfo) {
       setTimeout(function(){
         var el = document.getElementById('rl-drill');
