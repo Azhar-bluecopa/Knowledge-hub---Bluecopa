@@ -10990,6 +10990,31 @@ function rlBuildAllIssues() {
       });
     }
     (p.compliance.issues||[]).forEach(function(iss){
+      // Expand completion summary into one row per open task using phase data
+      if (iss.category==='completion' && !iss.task && p.phases) {
+        var expanded = false;
+        Object.keys(p.phases).forEach(function(ph){
+          (p.phases[ph].tasks||[]).forEach(function(t){
+            if (!t.completed) {
+              expanded = true;
+              allIssues.push({
+                project: p.projectName, projectId: p.projectId,
+                customer: p.customer||'', projectOwner: p.projectOwner||null,
+                status: p.status, severity: iss.severity,
+                category: 'completion', phase: ph,
+                task: t.taskName,
+                issue: 'Still open (' + (t.status||'Unknown') + ') — project marked complete',
+                taskOwner: t.owner||null,
+                taskStartDate: t.startDate||null,
+                taskDueDate: t.dueDate||null,
+                taskStatus: t.status||null
+              });
+            }
+          });
+        });
+        if (!expanded) allIssues.push({ project:p.projectName, projectId:p.projectId, customer:p.customer||'', projectOwner:p.projectOwner||null, status:p.status, severity:iss.severity, category:'completion', phase:null, task:null, issue:iss.issue, taskOwner:null, taskStartDate:null, taskDueDate:null, taskStatus:null });
+        return;
+      }
       var td = (iss.task && taskLookup[iss.task]) || null;
       allIssues.push({
         project: p.projectName, projectId: p.projectId,
