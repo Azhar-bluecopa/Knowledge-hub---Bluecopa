@@ -11506,7 +11506,7 @@ function rlTabTrends(body) {
             '<div style="font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Progress Trend</div>'+
             '<div style="display:flex;align-items:center;gap:8px;">'+clientSelectHtml+'<div style="display:flex;gap:5px;">'+vBtn('portfolio','Portfolio')+vBtn('client','Client')+'</div></div>'+
           '</div>'+
-          '<div style="padding:0 16px 16px;">'+buildTrendChart(chron,view,_clientFilter)+'</div>',
+          '<div style="padding:0 16px 16px;">'+buildTrendChart(cols.slice().reverse(),view,_clientFilter)+'</div>',
           'margin-bottom:16px;'
         )+
         buildClientGrid(cols);
