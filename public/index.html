@@ -11625,37 +11625,41 @@ function rlTabHealth(body) {
     var total = data.reduce(function(s,d){ return s+d.value; }, 0);
     if (!total) return rlCard(
       '<div style="padding:12px 16px 4px;font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Finding Distribution</div>'+
-      '<div style="padding:30px;text-align:center;font-size:14px;color:#22c55e;font-weight:700;">✓ All compliant</div>', ''
+      '<div style="padding:50px;text-align:center;font-size:14px;color:#22c55e;font-weight:700;">✓ All compliant</div>', ''
     );
-    var cx=115,cy=108,R=80,r=42;
+    // Large centered donut
+    var cx=160, cy=160, R=120, r=62;
     var angle = -Math.PI/2;
     var svgP = [];
     data.forEach(function(d){
       var sweep = (d.value/total)*2*Math.PI;
-      if (sweep < 0.02){ angle+=sweep; return; }
+      if (sweep < 0.015){ angle+=sweep; return; }
       var lg = sweep>Math.PI?1:0;
       var x1=(cx+R*Math.cos(angle)).toFixed(2), y1=(cy+R*Math.sin(angle)).toFixed(2);
       var x2=(cx+R*Math.cos(angle+sweep)).toFixed(2), y2=(cy+R*Math.sin(angle+sweep)).toFixed(2);
       var x3=(cx+r*Math.cos(angle+sweep)).toFixed(2), y3=(cy+r*Math.sin(angle+sweep)).toFixed(2);
       var x4=(cx+r*Math.cos(angle)).toFixed(2), y4=(cy+r*Math.sin(angle)).toFixed(2);
-      svgP.push('<path d="M '+x1+' '+y1+' A '+R+' '+R+' 0 '+lg+' 1 '+x2+' '+y2+' L '+x3+' '+y3+' A '+r+' '+r+' 0 '+lg+' 0 '+x4+' '+y4+' Z" fill="'+d.color+'" opacity=".85"><title>'+d.label+': '+d.value+' ('+Math.round(d.value/total*100)+'%)</title></path>');
+      svgP.push('<path d="M '+x1+' '+y1+' A '+R+' '+R+' 0 '+lg+' 1 '+x2+' '+y2+' L '+x3+' '+y3+' A '+r+' '+r+' 0 '+lg+' 0 '+x4+' '+y4+' Z" fill="'+d.color+'" opacity=".88"><title>'+d.label+': '+d.value+' findings ('+Math.round(d.value/total*100)+'%)</title></path>');
       angle += sweep;
     });
-    svgP.push('<text x="'+cx+'" y="'+(cy-8)+'" text-anchor="middle" font-size="22" font-weight="800" fill="#f0f0f6" font-family="DM Mono,monospace">'+total+'</text>');
-    svgP.push('<text x="'+cx+'" y="'+(cy+9)+'" text-anchor="middle" font-size="10" fill="#5a6270" font-family="DM Sans,sans-serif">findings</text>');
-    var legend = data.slice(0,8).map(function(d){
-      return '<div style="display:flex;align-items:center;gap:5px;font-size:10px;">'+
-        '<div style="width:8px;height:8px;border-radius:2px;background:'+d.color+';flex-shrink:0;"></div>'+
-        '<span style="color:#8a92a0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+d.label+'</span>'+
-        '<span style="color:'+d.color+';font-family:\'DM Mono\',monospace;font-weight:600;flex-shrink:0;">'+Math.round(d.value/total*100)+'%</span>'+
+    // Center total
+    svgP.push('<text x="'+cx+'" y="'+(cy-12)+'" text-anchor="middle" font-size="34" font-weight="800" fill="#f0f0f6" font-family="DM Mono,monospace">'+total+'</text>');
+    svgP.push('<text x="'+cx+'" y="'+(cy+10)+'" text-anchor="middle" font-size="11" fill="#5a6270" font-family="DM Sans,sans-serif">total findings</text>');
+    svgP.push('<text x="'+cx+'" y="'+(cy+28)+'" text-anchor="middle" font-size="10" fill="#8a92a0" font-family="DM Sans,sans-serif">'+data.length+' categor'+(data.length===1?'y':'ies')+'</text>');
+    // 2-column legend below the donut
+    var legendItems = data.map(function(d){
+      return '<div style="display:flex;align-items:center;gap:6px;min-width:0;">'+
+        '<div style="width:9px;height:9px;border-radius:2px;background:'+d.color+';flex-shrink:0;"></div>'+
+        '<span style="color:#8a92a0;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+d.label+'</span>'+
+        '<span style="color:'+d.color+';font-family:\'DM Mono\',monospace;font-weight:700;font-size:11px;flex-shrink:0;margin-left:4px;">'+Math.round(d.value/total*100)+'%</span>'+
       '</div>';
     }).join('');
     return rlCard(
       '<div style="padding:12px 16px 4px;font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Finding Distribution</div>'+
-      '<div style="display:flex;align-items:center;gap:10px;padding:6px 16px 14px;flex-wrap:wrap;">'+
-        '<svg viewBox="0 0 230 216" xmlns="http://www.w3.org/2000/svg" style="width:175px;min-width:130px;height:auto;flex-shrink:0;display:block;">'+svgP.join('')+'</svg>'+
-        '<div style="display:flex;flex-direction:column;gap:7px;flex:1;min-width:90px;">'+legend+'</div>'+
-      '</div>', ''
+      '<div style="display:flex;justify-content:center;padding:8px 16px 4px;">'+
+        '<svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" style="width:220px;height:220px;display:block;">'+svgP.join('')+'</svg>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;padding:6px 18px 16px;">'+legendItems+'</div>', ''
     );
   }
 
@@ -11734,72 +11738,116 @@ function rlTabHealth(body) {
       });
     });
 
-    var groups = Object.keys(gmap).map(function(k){ return gmap[k]; }).sort(function(a,b){ return b.total - a.total; });
-    if (!groups.length) return '';
+    var allGroups = Object.keys(gmap).map(function(k){ return gmap[k]; }).sort(function(a,b){ return b.total - a.total; });
+    if (!allGroups.length) return '';
+
+    // In project view cap at 15 (most at-risk first); client/owner show all
+    var maxShow = _level === 'project' ? 15 : 40;
+    var groups = allGroups.slice(0, maxShow);
+    var hiddenCount = allGroups.length - groups.length;
     var maxT = groups.reduce(function(m,g){ return Math.max(m,g.total); }, 1);
 
-    var minSlot = 38;
-    var W = Math.max(680, groups.length * minSlot + 28);
-    var H = 250, ML = 14, MR = 14, MT = 16, MB = 82;
-    var plotH = H-MT-MB, plotW = W-ML-MR;
-    var groupW = plotW / groups.length;
-    var barW = Math.max(5, Math.min(34, groupW * 0.55));
+    // Generous slot: 72px per bar minimum for readability
+    var slotW = Math.max(72, Math.floor(1100 / Math.max(groups.length, 1)));
+    slotW = Math.min(slotW, 110);
+    var barW = Math.round(slotW * 0.54);
+    var ML = 32, MR = 16, MT = 20, MB = 96;
+    var plotH = 220;
+    var W = ML + groups.length * slotW + MR;
+    var H = plotH + MT + MB;
     var svgP = [];
 
-    [0.25, 0.5, 0.75, 1].forEach(function(f){
+    // Y-axis gridlines + labels
+    [0, 0.25, 0.5, 0.75, 1].forEach(function(f){
       var y = MT + plotH*(1-f);
-      svgP.push('<line x1="'+ML+'" y1="'+y+'" x2="'+(W-MR)+'" y2="'+y+'" stroke="rgba(255,255,255,.04)"/>');
-      svgP.push('<text x="'+(ML-3)+'" y="'+y+'" dominant-baseline="middle" text-anchor="end" font-size="9" fill="#5a6270" font-family="DM Mono,monospace">'+Math.round(maxT*f)+'</text>');
+      svgP.push('<line x1="'+ML+'" y1="'+y+'" x2="'+(W-MR)+'" y2="'+y+'" stroke="rgba(255,255,255,'+(f===0?'.06':'.03)')+'" stroke-dasharray="'+(f===0?'none':'4 3')+'"/>');
+      svgP.push('<text x="'+(ML-6)+'" y="'+y+'" dominant-baseline="middle" text-anchor="end" font-size="10" fill="#5a6270" font-family="DM Mono,monospace">'+Math.round(maxT*f)+'</text>');
     });
 
     groups.forEach(function(g,gi){
-      var cx = ML + gi*groupW + groupW/2;
+      var cx = ML + gi*slotW + slotW/2;
       var yBase = MT+plotH, stackH = 0;
       var compRate = g.projects ? Math.round(g.compliant/g.projects*100) : 100;
-      var badgeColor = compRate===100?'#22c55e':compRate>=80?'#86efac':'#f59e0b';
+      var compColor = compRate===100?'#22c55e':compRate>=70?'#86efac':compRate>=40?'#f59e0b':'#ef4444';
+
+      // Alternating column background for readability
+      if (gi%2===0) svgP.push('<rect x="'+(ML+gi*slotW)+'" y="'+MT+'" width="'+slotW+'" height="'+plotH+'" fill="rgba(255,255,255,.012)" rx="0"/>');
 
       if (g.total === 0) {
-        svgP.push('<rect x="'+(cx-barW/2).toFixed(1)+'" y="'+(MT+plotH-4)+'" width="'+barW+'" height="4" fill="#22c55e" rx="1" opacity=".7"><title>'+g.name+': ✓ Fully compliant ('+g.projects+' project'+(g.projects>1?'s':'')+')</title></rect>');
+        // Compliant — green indicator bar + check mark
+        var bx = (cx - barW/2).toFixed(1);
+        svgP.push('<rect x="'+bx+'" y="'+(MT+plotH-6)+'" width="'+barW+'" height="6" fill="#22c55e" rx="2" opacity=".8"><title>'+g.name+': ✓ Fully compliant</title></rect>');
+        svgP.push('<text x="'+cx+'" y="'+(MT+plotH-14)+'" text-anchor="middle" font-size="13" fill="#22c55e">✓</text>');
       } else {
         activeCats.forEach(function(c){
           var count = g.counts[c.key]||0; if (!count) return;
-          var bH = Math.max(2, Math.round((count/maxT)*plotH));
+          var bH = Math.max(3, Math.round((count/maxT)*plotH));
           yBase -= bH; stackH += bH;
-          svgP.push('<rect x="'+(cx-barW/2).toFixed(1)+'" y="'+yBase+'" width="'+barW+'" height="'+bH+'" fill="'+c.color+'" opacity=".85"><title>'+g.name+' · '+c.label+': '+count+'</title></rect>');
+          svgP.push('<rect x="'+(cx-barW/2).toFixed(1)+'" y="'+yBase+'" width="'+barW+'" height="'+bH+'" fill="'+c.color+'" opacity=".88" rx="'+(bH>6?'2':'1')+'"><title>'+g.name+'\n'+c.label+': '+count+' findings</title></rect>');
         });
-        if (stackH > 0) svgP.push('<text x="'+cx+'" y="'+(MT+plotH-stackH-5)+'" text-anchor="middle" font-size="10" fill="#e8c97a" font-family="DM Mono,monospace" font-weight="600">'+g.total+'</text>');
+        if (stackH > 0) {
+          svgP.push('<text x="'+cx+'" y="'+(MT+plotH-stackH-7)+'" text-anchor="middle" font-size="11" fill="#e8c97a" font-family="DM Mono,monospace" font-weight="700">'+g.total+'</text>');
+        }
       }
 
-      svgP.push('<text x="'+cx+'" y="'+(MT+plotH+3)+'" dominant-baseline="hanging" text-anchor="middle" font-size="8.5" fill="'+badgeColor+'" font-family="DM Mono,monospace">'+compRate+'%</text>');
-      var lx = cx, ly = MT+plotH+16;
-      var nm = g.name; if (nm.length > 14) nm = nm.substring(0,13)+'…';
-      svgP.push('<text x="'+lx+'" y="'+ly+'" text-anchor="end" font-size="9.5" fill="#8a92a0" font-family="DM Sans,sans-serif" transform="rotate(-36,'+lx+','+ly+')">'+nm+'</text>');
+      // Compliance % badge
+      svgP.push('<text x="'+cx+'" y="'+(MT+plotH+4)+'" dominant-baseline="hanging" text-anchor="middle" font-size="10" fill="'+compColor+'" font-family="DM Mono,monospace" font-weight="700">'+compRate+'%</text>');
+
+      // Project/group name — two lines if needed
+      var nm = g.name;
+      var maxChars = Math.max(10, Math.floor(slotW / 5.5));
+      var line1, line2 = '';
+      if (nm.length <= maxChars) {
+        line1 = nm;
+      } else {
+        // Try to break at a space
+        var breakAt = nm.lastIndexOf(' ', maxChars);
+        if (breakAt > 3) {
+          line1 = nm.substring(0, breakAt);
+          line2 = nm.substring(breakAt+1);
+          if (line2.length > maxChars) line2 = line2.substring(0, maxChars-1) + '…';
+        } else {
+          line1 = nm.substring(0, maxChars-1) + '…';
+        }
+      }
+      var ly1 = MT+plotH+20;
+      svgP.push('<text x="'+cx+'" y="'+ly1+'" text-anchor="middle" font-size="10.5" fill="#c9d0da" font-family="DM Sans,sans-serif" font-weight="500">'+line1+'</text>');
+      if (line2) svgP.push('<text x="'+cx+'" y="'+(ly1+14)+'" text-anchor="middle" font-size="10" fill="#8a92a0" font-family="DM Sans,sans-serif">'+line2+'</text>');
+
+      // Project count sub-label (for client/owner views)
+      if (_level !== 'project' && g.projects > 1) {
+        svgP.push('<text x="'+cx+'" y="'+(ly1+28)+'" text-anchor="middle" font-size="9" fill="#4b5460" font-family="DM Mono,monospace">'+g.projects+' proj</text>');
+      }
     });
 
     var usedCats = activeCats.filter(function(c){ return groups.some(function(g){ return (g.counts[c.key]||0)>0; }); });
     var legend = usedCats.map(function(c){
-      return '<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#8a92a0;">'+
-        '<div style="width:8px;height:8px;border-radius:2px;background:'+c.color+'"></div>'+c.label+'</div>';
+      return '<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#8a92a0;">'+
+        '<div style="width:9px;height:9px;border-radius:2px;background:'+c.color+'"></div>'+c.label+'</div>';
     }).join('');
 
-    var levelLabel = {project:'Project',client:'Client',owner:'Project Owner'}[_level];
     var groupBtns = [{v:'project',l:'Project'},{v:'client',l:'Client'},{v:'owner',l:'Owner'}].map(function(o){
       var a = o.v === _level;
       return '<button onclick="window.rlHL(\''+o.v+'\')" style="background:'+(a?'rgba(56,189,248,.18)':'transparent')+';border:1px solid '+(a?'#38bdf8':'rgba(255,255,255,.1)')+';color:'+(a?'#38bdf8':'rgba(255,255,255,.4)')+';border-radius:5px;padding:3px 10px;font-size:10px;font-weight:'+(a?'700':'400')+';cursor:pointer;transition:all .15s;font-family:\'DM Sans\',sans-serif;">'+o.l+'</button>';
     }).join('');
+
+    var subtitle = (hiddenCount > 0 ? 'Showing top '+groups.length+' of '+allGroups.length+' · ' : '') + 'sorted by total findings';
+
     return rlCard(
-      '<div style="padding:12px 16px 6px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">'+
-        '<div style="font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Risk Ranking</div>'+
+      '<div style="padding:14px 18px 8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">'+
+        '<div>'+
+          '<div style="font-size:12px;color:#c9d0da;font-weight:700;letter-spacing:.04em;">Risk Ranking</div>'+
+          '<div style="font-size:10px;color:#4b5460;margin-top:2px;font-family:\'DM Mono\',monospace;">'+subtitle+'</div>'+
+        '</div>'+
         '<div style="display:flex;align-items:center;gap:6px;">'+
           '<span style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.06em;">Group by</span>'+
           '<div style="display:flex;gap:3px;">'+groupBtns+'</div>'+
         '</div>'+
-        '<div style="width:100%;font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;">stacked = findings · % = compliance rate · green bar = zero issues</div>'+
       '</div>'+
-      '<div style="overflow-x:auto;">'+
-        '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:400px;height:auto;display:block;overflow:visible;">'+svgP.join('')+'</svg>'+
+      '<div style="overflow-x:auto;padding-bottom:2px;">'+
+        '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:'+Math.min(W,500)+'px;height:auto;display:block;overflow:visible;">'+svgP.join('')+'</svg>'+
       '</div>'+
-      (legend?'<div style="display:flex;flex-wrap:wrap;gap:7px;padding:4px 16px 12px;">'+legend+'</div>':''),
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 18px 14px;border-top:1px solid rgba(255,255,255,.05);margin-top:4px;">'+legend+'</div>',
       'margin-bottom:16px;'
     );
   }
