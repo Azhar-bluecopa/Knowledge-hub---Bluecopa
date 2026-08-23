@@ -11401,8 +11401,13 @@ function rlTabTrends(body) {
           });
         });
         var series=Object.values(groupMap).map(function(g){
-          return {name:g.name,vals:g.sums.map(function(s,i){return g.counts[i]>0?Math.round(s/g.counts[i]):null;})};
-        }).sort(function(a,b){return a.name.localeCompare(b.name);}).slice(0,8);
+          var vals=g.sums.map(function(s,i){return g.counts[i]>0?Math.round(s/g.counts[i]):null;});
+          return {name:g.name,vals:vals,filled:vals.filter(function(v){return v!=null;}).length};
+        }).sort(function(a,b){
+          if(view==='owner'&&a.name==='(Unassigned)')return 1;
+          if(view==='owner'&&b.name==='(Unassigned)')return -1;
+          return b.filled-a.filled||a.name.localeCompare(b.name);
+        }).slice(0,8);
         var n=series.length;
         var barW=n>0?Math.max(3,Math.min(20,(groupW*0.82)/n)):10;
         series.forEach(function(ser,ci){

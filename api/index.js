@@ -3337,7 +3337,25 @@ function ensureRL() {
 
 app.get('/api/rocketlane/snapshots', (req, res) => {
   ensureRL();
-  res.json({ snapshots: [...db.rocketlane.snapshots].reverse() });
+  // Build owner lookup from the full data cache so historical snapshots
+  // (captured before projectOwner was stored) get retroactively enriched.
+  const ownerLookup = {};
+  const fullProjects = (rlFullCache || db.rocketlane.fullData)?.projects || [];
+  fullProjects.forEach(p => {
+    if (p.projectId && p.projectOwner) ownerLookup[String(p.projectId)] = p.projectOwner;
+  });
+  const enrich = Object.keys(ownerLookup).length > 0;
+  const snapshots = enrich
+    ? db.rocketlane.snapshots.map(snap => ({
+        ...snap,
+        projects: (snap.projects || []).map(p => {
+          if (p.projectOwner) return p;
+          const owner = ownerLookup[String(p.projectId)];
+          return owner ? { ...p, projectOwner: owner } : p;
+        })
+      }))
+    : db.rocketlane.snapshots;
+  res.json({ snapshots: [...snapshots].reverse() });
 });
 
 app.post('/api/rocketlane/snapshots', async (req, res) => {
