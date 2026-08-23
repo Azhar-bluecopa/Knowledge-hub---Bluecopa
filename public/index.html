@@ -11115,12 +11115,19 @@ function rlOpenCatDetail(catKey) {
       '</div>';
 
     if (!isDetailed) {
-      // Compact view — one line per issue
+      // Compact view — Phase › Parent Task › Sub Task › Issue
       var rows = items.map(function(iss){
+        var crumbs = [];
+        if (na(iss.phase)) crumbs.push('<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:rgba(255,255,255,.3);text-transform:capitalize;letter-spacing:.03em;">'+iss.phase+'</span>');
+        if (na(iss.task))  crumbs.push('<span style="font-size:11px;color:rgba(255,255,255,.48);">'+iss.task+'</span>');
+        var crumbRow = crumbs.length ? '<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">'+crumbs.join('<span style="color:rgba(255,255,255,.18);font-size:11px;"> › </span>')+'</div>' : '';
         var status = na(iss.taskStatus);
-        return '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:8px 14px;border-top:1px solid rgba(255,255,255,.04);">'+
-          '<span style="font-size:12px;color:rgba(255,255,255,.72);line-height:1.5;flex:1;min-width:0;">'+(na(iss.issue)||'—')+'</span>'+
-          (status ? '<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:rgba(255,255,255,.3);white-space:nowrap;flex-shrink:0;">'+status+'</span>' : '')+
+        return '<div style="padding:9px 14px;border-top:1px solid rgba(255,255,255,.04);">'+
+          crumbRow+
+          '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;">'+
+            '<span style="font-size:12px;color:rgba(255,255,255,.72);line-height:1.5;flex:1;min-width:0;">'+(na(iss.issue)||'—')+'</span>'+
+            (status ? '<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:rgba(255,255,255,.3);white-space:nowrap;flex-shrink:0;">'+status+'</span>' : '')+
+          '</div>'+
         '</div>';
       }).join('');
       return toggleBtn+rows;

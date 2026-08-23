@@ -3027,8 +3027,9 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
   // Completion: project marked done but standard tasks still open
   if (projectStatus.includes('complet') || projectStatus.includes('done')) {
     const openMain = allMainTasks.filter(t => !t.completed);
-    if (openMain.length)
-      issues.push({ severity:'high', category:'completion', task:null, phase:null, issue:`Project marked complete — ${openMain.length} standard task(s) still open` });
+    openMain.forEach(t => {
+      issues.push({ severity:'high', category:'completion', task:t.taskName, phase:t._phase, issue:`Still open (${t.status || 'Unknown'}) — project marked complete` });
+    });
   }
 
   // Closure: all methodology tasks done but Project Closure task not complete
