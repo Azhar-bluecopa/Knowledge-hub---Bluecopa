@@ -10477,7 +10477,6 @@ var RL_PHASES = {
 var RL_TABS = [
   { id: 'overview',   label: '360° Overall Dashboard' },
   { id: 'executive',  label: 'Executive Overview' },
-  { id: 'progress',   label: 'Project Progress' },
   { id: 'compliance', label: 'Project Compliance' },
   { id: 'timeline',   label: 'Timeline Changes' },
   { id: 'trends',     label: 'Historical Trends' },
@@ -10546,7 +10545,7 @@ function rlRenderActiveTab() {
   var body = document.getElementById('rlTabBody');
   if (!body || !_rlData) return;
   try {
-    ({ overview: rlTabOverview, executive: rlTabExecutive, progress: rlTabProgress, compliance: rlTabCompliance, timeline: rlTabTimeline, trends: rlTabTrends, health: rlTabHealth })[_rlTab](body);
+    ({ overview: rlTabOverview, executive: rlTabExecutive, compliance: rlTabCompliance, timeline: rlTabTimeline, trends: rlTabTrends, health: rlTabHealth })[_rlTab](body);
   } catch(e) {
     body.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626;font-size:13px;">Tab render error: ' + (e && e.message || String(e)) + '</div>';
   }
