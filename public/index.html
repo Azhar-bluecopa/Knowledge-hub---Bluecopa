@@ -11384,6 +11384,8 @@ function rlTabTrends(body) {
           parts.push('<text x="'+cx+'" y="'+(bY-4)+'" text-anchor="middle" font-size="9" fill="'+col+'" font-family="monospace" font-weight="600">'+v+'%</text>');
         });
       } else {
+        var ownerLookup={};
+        if(_rlData&&_rlData.projects){_rlData.projects.forEach(function(lp){if(lp.projectId&&lp.projectOwner)ownerLookup[String(lp.projectId)]=lp.projectOwner;});}
         var groupMap={};
         pts.forEach(function(s,si){
           (s.projects||[]).filter(function(p){
@@ -11392,7 +11394,7 @@ function rlTabTrends(body) {
             var key,name;
             if(view==='client'){key=p.customer||'(No Client)';name=key;}
             else if(view==='project'){key=String(p.projectId);name=p.projectName||p.name||'Unknown';}
-            else{key=p.projectOwner||'(Unassigned)';name=key;}
+            else{var o=p.projectOwner||ownerLookup[String(p.projectId)]||'(Unassigned)';key=o;name=o;}
             if(!groupMap[key])groupMap[key]={name:name,sums:new Array(pts.length).fill(0),counts:new Array(pts.length).fill(0)};
             groupMap[key].sums[si]+=p.completionPct;
             groupMap[key].counts[si]++;
