@@ -3498,6 +3498,25 @@ async function rlDoFullFetch(apiKey) {
   return result;
 }
 
+// Temporary: dump raw teamMembers from Rocketlane for one project to discover the owner field
+app.get('/api/rocketlane/debug-members', async (req, res) => {
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) return res.status(503).json({ error: 'no_key' });
+  try {
+    const r = await fetch('https://api.rocketlane.com/api/1.0/projects?pageSize=5', { headers: { 'api-key': apiKey, 'Accept': 'application/json' } });
+    const d = await r.json();
+    const sample = (d.data || []).slice(0, 3).map(p => ({
+      projectName: p.projectName,
+      projectId: p.projectId,
+      ownerField: p.owner,
+      projectOwnerField: p.projectOwner,
+      teamMembers: p.teamMembers,
+      rawKeys: Object.keys(p)
+    }));
+    res.json(sample);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/rocketlane/projects-full', async (req, res) => {
   const apiKey = process.env.ROCKETLANE_API_KEY;
   if (!apiKey) return res.status(503).json({ error: 'not_configured', message: 'ROCKETLANE_API_KEY not set.' });
