@@ -11607,7 +11607,7 @@ function rlTabHealth(body) {
         '<div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;">green fill = % compliant · bar = finding count</div>'+
       '</div>'+
       '<div style="padding:6px 16px 14px;overflow-x:auto;">'+
-        '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:300px;height:auto;display:block;">'+svgP.join('')+'</svg>'+
+        '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:'+W+'px;max-width:100%;height:auto;display:block;">'+svgP.join('')+'</svg>'+
       '</div>', ''
     );
   }
@@ -11747,13 +11747,14 @@ function rlTabHealth(body) {
     var hiddenCount = allGroups.length - groups.length;
     var maxT = groups.reduce(function(m,g){ return Math.max(m,g.total); }, 1);
 
-    // Generous slot: 72px per bar minimum for readability
-    var slotW = Math.max(72, Math.floor(1100 / Math.max(groups.length, 1)));
-    slotW = Math.min(slotW, 110);
-    var barW = Math.round(slotW * 0.54);
-    var ML = 32, MR = 16, MT = 20, MB = 96;
+    // Slot width: wider for fewer groups so bars are always readable
+    var n = groups.length;
+    var slotW = n <= 2 ? 180 : n <= 4 ? 150 : n <= 7 ? 120 : n <= 12 ? 95 : Math.max(72, Math.floor(1080 / n));
+    slotW = Math.min(slotW, 180);
+    var barW = Math.round(slotW * 0.52);
+    var ML = 36, MR = 20, MT = 20, MB = 100;
     var plotH = 220;
-    var W = ML + groups.length * slotW + MR;
+    var W = ML + n * slotW + MR;
     var H = plotH + MT + MB;
     var svgP = [];
 
@@ -11844,8 +11845,8 @@ function rlTabHealth(body) {
           '<div style="display:flex;gap:3px;">'+groupBtns+'</div>'+
         '</div>'+
       '</div>'+
-      '<div style="overflow-x:auto;padding-bottom:2px;">'+
-        '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:'+Math.min(W,500)+'px;height:auto;display:block;overflow:visible;">'+svgP.join('')+'</svg>'+
+      '<div style="overflow-x:auto;padding-bottom:4px;">'+
+        '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:'+W+'px;height:'+H+'px;display:block;">'+svgP.join('')+'</svg>'+
       '</div>'+
       '<div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 18px 14px;border-top:1px solid rgba(255,255,255,.05);margin-top:4px;">'+legend+'</div>',
       'margin-bottom:16px;'
