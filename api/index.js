@@ -4923,9 +4923,8 @@ async function rlAutoSnapshot() {
   mondayUTC.setUTCHours(0, 0, 0, 0);
   const thisWeekKey = mondayUTC.toISOString().slice(0, 10);
 
-  // Dedup by weekKey (not capturedAt prefix) so manual retriggers on non-Monday days don't duplicate
   const alreadyDone = db.rocketlane.snapshots.some(s =>
-    s.type === 'weekly' && s.weekKey === thisWeekKey
+    s.type === 'weekly' && s.capturedAt && s.capturedAt.startsWith(thisWeekKey)
   );
   if (alreadyDone) return { ok: true, skipped: true, reason: 'already_captured_this_week' };
 
@@ -4950,10 +4949,6 @@ async function rlAutoSnapshot() {
       const progress = rlBuildProjectProgress(tasksByProject[p.projectId] || []);
       const o = p.owner;
       const projectOwner = o ? ([o.firstName, o.lastName].filter(Boolean).join(' ').trim() || o.emailId || null) : null;
-      // Capture per-category compliance counts so trends can be computed from snapshots
-      const issues = rlBuildCompliance(p, progress, tasksByProject[p.projectId] || [], null);
-      const byCategory = {};
-      issues.forEach(i => { byCategory[i.category] = (byCategory[i.category] || 0) + 1; });
       return {
         projectId: p.projectId, projectName: p.projectName,
         status: p.status?.label || 'Unknown',
@@ -4961,15 +4956,14 @@ async function rlAutoSnapshot() {
         completionPct: progress.overallPct,
         dueDate: p.dueDate || null,
         customer: p.customer?.companyName || null,
-        projectOwner,
-        compliance: { issueCount: issues.length, byCategory }
+        projectOwner
       };
     });
 
     const label = `Week of ${mondayUTC.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} (auto)`;
     const snap = {
       id: db.rocketlane.nextSnapshotId++,
-      type: 'weekly', label, weekKey: thisWeekKey,
+      type: 'weekly', label,
       capturedAt: now.toISOString(),
       projects, auto: true
     };
