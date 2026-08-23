@@ -4928,13 +4928,16 @@ async function rlAutoSnapshot() {
 
     const projects = allProjects.map(p => {
       const progress = rlBuildProjectProgress(tasksByProject[p.projectId] || []);
+      const o = p.owner;
+      const projectOwner = o ? ([o.firstName, o.lastName].filter(Boolean).join(' ').trim() || o.emailId || null) : null;
       return {
         projectId: p.projectId, projectName: p.projectName,
         status: p.status?.label || 'Unknown',
         isStandard: progress.isStandard,
         completionPct: progress.overallPct,
         dueDate: p.dueDate || null,
-        customer: p.customer?.companyName || null
+        customer: p.customer?.companyName || null,
+        projectOwner
       };
     });
 

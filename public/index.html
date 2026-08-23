@@ -11361,7 +11361,7 @@ function rlTabTrends(body) {
       if(pts.length<2) return '<div style="padding:24px;text-align:center;font-size:12px;color:#8a92a0;">Need at least 2 snapshots to show chart.</div>';
       var W=900, H=180, ML=40, MR=16, MT=16, MB=28;
       var plotW=W-ML-MR, plotH=H-MT-MB;
-      var COLORS=['#c9a227','#60a5fa','#22c55e','#a78bfa','#f97316','#34d399','#f59e0b','#e879f9'];
+      var COLORS=['#60a5fa','#22c55e','#a78bfa','#f97316','#34d399','#f59e0b','#e879f9','#f43f5e'];
       function yP(v){return MT+plotH-(v/100)*plotH;}
       var groupW=plotW/pts.length;
       function xCenter(i){return ML+(i+0.5)*groupW;}
@@ -11384,24 +11384,38 @@ function rlTabTrends(body) {
           parts.push('<text x="'+cx+'" y="'+(bY-4)+'" text-anchor="middle" font-size="9" fill="'+col+'" font-family="monospace" font-weight="600">'+v+'%</text>');
         });
       } else {
-        var projMap={};
-        pts.forEach(function(s,si){(s.projects||[]).filter(function(p){return p.completionPct!=null;}).forEach(function(p){if(!projMap[p.projectId])projMap[p.projectId]={name:p.projectName||p.name||'Unknown',customer:p.customer||'',vals:new Array(pts.length).fill(null)};});});
-        pts.forEach(function(s,si){Object.keys(projMap).forEach(function(id){var m=(s.projects||[]).find(function(x){return String(x.id||x.projectId)===String(id);});if(m&&m.completionPct!=null)projMap[id].vals[si]=m.completionPct;});});
-        var projs=Object.values(projMap).filter(function(p){return !clientFilter||p.customer===clientFilter;}).slice(0,8);
-        var n=projs.length;
+        var groupMap={};
+        pts.forEach(function(s,si){
+          (s.projects||[]).filter(function(p){
+            return p.completionPct!=null&&(!clientFilter||p.customer===clientFilter);
+          }).forEach(function(p){
+            var key,name;
+            if(view==='client'){key=p.customer||'(No Client)';name=key;}
+            else if(view==='project'){key=String(p.projectId);name=p.projectName||p.name||'Unknown';}
+            else{key=p.projectOwner||'(Unassigned)';name=key;}
+            if(!groupMap[key])groupMap[key]={name:name,sums:new Array(pts.length).fill(0),counts:new Array(pts.length).fill(0)};
+            groupMap[key].sums[si]+=p.completionPct;
+            groupMap[key].counts[si]++;
+          });
+        });
+        var series=Object.values(groupMap).map(function(g){
+          return {name:g.name,vals:g.sums.map(function(s,i){return g.counts[i]>0?Math.round(s/g.counts[i]):null;})};
+        }).sort(function(a,b){return a.name.localeCompare(b.name);}).slice(0,8);
+        var n=series.length;
         var barW=n>0?Math.max(3,Math.min(20,(groupW*0.82)/n)):10;
-        projs.forEach(function(proj,ci){
+        series.forEach(function(ser,ci){
           var col=COLORS[ci%COLORS.length];
-          proj.vals.forEach(function(v,si){
+          ser.vals.forEach(function(v,si){
             if(v==null)return;
             var cx=xCenter(si);
             var bx=cx-(n*barW/2)+ci*barW+barW/2;
             var bH=(v/100)*plotH, bY=yP(v);
-            parts.push('<rect x="'+(bx-barW/2+0.5)+'" y="'+bY+'" width="'+(barW-1)+'" height="'+bH+'" fill="'+col+'" rx="2" opacity=".82"/>');
+            parts.push('<rect x="'+(bx-barW/2+0.5)+'" y="'+bY+'" width="'+(barW-1)+'" height="'+bH+'" fill="'+col+'" rx="2" opacity=".85"/>');
             parts.push('<text x="'+bx+'" y="'+(bY-3)+'" text-anchor="middle" font-size="8" fill="'+col+'" font-family="monospace" font-weight="600">'+v+'%</text>');
           });
-          legendItems.push('<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#8a92a0;"><div style="width:10px;height:10px;border-radius:2px;background:'+col+';flex-shrink:0;"></div><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;" title="'+proj.name+'">'+proj.name+'</span></div>');
+          legendItems.push('<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#8a92a0;"><div style="width:10px;height:10px;border-radius:2px;background:'+col+';flex-shrink:0;"></div><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;" title="'+ser.name+'">'+ser.name+'</span></div>');
         });
+        if(!series.length)parts.push('<text x="'+(ML+plotW/2)+'" y="'+(MT+plotH/2)+'" text-anchor="middle" font-size="12" fill="#5a6270" font-family="monospace">No data for this view</text>');
       }
       var step=Math.max(1,Math.ceil(pts.length/7));
       for(var i=0;i<pts.length;i+=step){parts.push('<text x="'+xCenter(i)+'" y="'+(H-5)+'" text-anchor="middle" font-size="9" fill="#5a6270" font-family="monospace">'+fmtDate(pts[i])+'</text>');}
@@ -11481,7 +11495,7 @@ function rlTabTrends(body) {
       var allClients=[];
       chron.forEach(function(s){(s.projects||[]).forEach(function(p){if(p.customer&&allClients.indexOf(p.customer)<0)allClients.push(p.customer);});});
       allClients.sort();
-      var clientSelectHtml=view==='client'
+      var clientSelectHtml=view!=='portfolio'
         ?'<select onchange="rlTrendClient(this.value)" style="background:#161620;border:1px solid rgba(255,255,255,.15);color:#f0f0f6;border-radius:6px;padding:4px 10px;font-size:11px;font-family:\'DM Sans\',sans-serif;cursor:pointer;"><option value=""'+(_clientFilter===''?' selected':'')+'>All Clients</option>'+allClients.map(function(c){return'<option value="'+c.replace(/"/g,'&quot;')+'"'+(c===_clientFilter?' selected':'')+'>'+c+'</option>';}).join('')+'</select>'
         :'';
 
@@ -11504,7 +11518,7 @@ function rlTabTrends(body) {
         rlCard(
           '<div style="padding:12px 16px 8px;display:flex;align-items:center;justify-content:space-between;">'+
             '<div style="font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Progress Trend</div>'+
-            '<div style="display:flex;align-items:center;gap:8px;">'+clientSelectHtml+'<div style="display:flex;gap:5px;">'+vBtn('portfolio','Portfolio')+vBtn('client','Client')+'</div></div>'+
+            '<div style="display:flex;align-items:center;gap:8px;">'+clientSelectHtml+'<div style="display:flex;gap:5px;">'+vBtn('portfolio','Portfolio')+vBtn('client','Client')+vBtn('project','Project')+vBtn('owner','Owner')+'</div></div>'+
           '</div>'+
           '<div style="padding:0 16px 16px;">'+buildTrendChart(cols.slice().reverse(),view,_clientFilter)+'</div>',
           'margin-bottom:16px;'
