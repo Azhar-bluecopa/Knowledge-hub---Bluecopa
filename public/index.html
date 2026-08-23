@@ -4302,141 +4302,64 @@ async function updateFeedbackStatus(id) {
     <a class="mc-nav-logo" onclick="void(0)">
       <img src="/bluecopa-icon.png" alt="Bluecopa">
     </a>
-    <script>
-      var _mcActiveCat = -1;
-      function mcSetCat(idx) {
-        var dd = document.getElementById('mcDropdown');
-        if (_mcActiveCat === idx) {
-          _mcActiveCat = -1;
-          document.querySelectorAll('.mc-drop-cat').forEach(function(el){ el.classList.remove('mc-cat-active'); });
-          document.querySelectorAll('.mc-drop-panel').forEach(function(el){ el.classList.remove('mc-panel-active'); });
-          dd.classList.remove('mc-has-active');
-        } else {
-          _mcActiveCat = idx;
-          document.querySelectorAll('.mc-drop-cat').forEach(function(el,i){ el.classList.toggle('mc-cat-active', i===idx); });
-          document.querySelectorAll('.mc-drop-panel').forEach(function(el,i){ el.classList.toggle('mc-panel-active', i===idx); });
-          dd.classList.add('mc-has-active');
-        }
-      }
-      document.addEventListener('click', function(e) {
-        var btn = document.getElementById('mcBrowseBtn');
-        if (btn && !btn.contains(e.target)) {
-          _mcActiveCat = -1;
-          document.querySelectorAll('.mc-drop-cat').forEach(function(el){ el.classList.remove('mc-cat-active'); });
-          document.querySelectorAll('.mc-drop-panel').forEach(function(el){ el.classList.remove('mc-panel-active'); });
-          var dd = document.getElementById('mcDropdown');
-          if (dd) dd.classList.remove('mc-has-active');
-        }
-      });
-    </script>
     <div class="mc-browse-btn" id="mcBrowseBtn" onclick="mcToggleBrowse(event)">
       Explore <span class="mc-browse-chevron">▼</span>
       <div class="mc-dropdown" id="mcDropdown" onclick="event.stopPropagation()">
-        <div class="mc-drop-panels">
-          <!-- Left: category tiles -->
-          <div class="mc-drop-cats">
-            <div class="mc-drop-cat" id="mcCatBtn0" onclick="mcSetCat(0)" style="--acc:201,162,39">
-              <div class="mc-drop-cat-icon-wrap">🎓</div>
-              <div class="mc-drop-cat-text">
-                <div class="mc-drop-cat-title">Academy</div>
-                <div class="mc-drop-cat-sub">Learning</div>
-              </div>
-              <span class="mc-drop-cat-arrow">›</span>
-            </div>
-            <div class="mc-drop-cat" id="mcCatBtn1" onclick="mcSetCat(1)" style="--acc:236,72,153">
-              <div class="mc-drop-cat-icon-wrap">🌟</div>
-              <div class="mc-drop-cat-text">
-                <div class="mc-drop-cat-title">Pulse</div>
-                <div class="mc-drop-cat-sub">People</div>
-              </div>
-              <span class="mc-drop-cat-arrow">›</span>
-            </div>
-            <div class="mc-drop-cat" id="mcCatBtn2" onclick="mcSetCat(2)" style="--acc:59,130,246">
-              <div class="mc-drop-cat-icon-wrap">🚀</div>
-              <div class="mc-drop-cat-text">
-                <div class="mc-drop-cat-title">Mission Deck</div>
-                <div class="mc-drop-cat-sub">Projects</div>
-              </div>
-              <span class="mc-drop-cat-arrow">›</span>
-            </div>
-          </div>
-          <!-- Right: item panels -->
-          <div class="mc-drop-items-wrap">
-            <!-- Panel 0: Academy -->
-            <div class="mc-drop-panel" id="mcPanel0">
-              <div class="mc-drop-panel-hdr">🎓 Academy — Learning</div>
-              <div class="mc-drop-grid">
-                <div class="mc-drop-item" onclick="dwGoLearning();mcCloseBrowse()">
-                  <div class="mc-drop-icon" style="background:rgba(201,162,39,.12);">🎓</div>
-                  <div class="mc-drop-text"><div class="mc-drop-title">My Learning</div><div class="mc-drop-sub">Structured courses across AR, AP & more</div></div>
-                  <span class="mc-drop-badge mc-drop-live">Live</span>
-                </div>
-                <div class="mc-drop-item" onclick="mcGoTo('knowledge');mcCloseBrowse()">
-                  <div class="mc-drop-icon" style="background:rgba(0,200,204,.12);">📚</div>
-                  <div class="mc-drop-text"><div class="mc-drop-title">Knowledge Articles</div><div class="mc-drop-sub">Guides, how-tos & best practices</div></div>
-                  <span class="mc-drop-badge mc-drop-live">Live</span>
-                </div>
-                <div class="mc-drop-item" onclick="mcGoTo('skillmatrix');mcCloseBrowse()">
-                  <div class="mc-drop-icon" style="background:rgba(129,140,248,.12);">🧠</div>
-                  <div class="mc-drop-text"><div class="mc-drop-title">Skill Matrix</div><div class="mc-drop-sub">Track & grow team skills</div></div>
-                  <span class="mc-drop-badge mc-drop-live">Live</span>
-                </div>
-              </div>
-            </div>
-            <!-- Panel 1: Pulse -->
-            <div class="mc-drop-panel" id="mcPanel1">
-              <div class="mc-drop-panel-hdr">🌟 Pulse — People</div>
-              <div class="mc-drop-grid">
-                <div class="mc-drop-item" onclick="dwComingSoon('KPIs');mcCloseBrowse()">
-                  <div class="mc-drop-icon" style="background:rgba(249,167,79,.12);">📊</div>
-                  <div class="mc-drop-text"><div class="mc-drop-title">KPIs</div><div class="mc-drop-sub">Live delivery metrics</div></div>
-                  <span class="mc-drop-badge mc-drop-soon">Soon</span>
-                </div>
-                <div class="mc-drop-item" onclick="dwGoEngagement();mcCloseBrowse()">
-                  <div class="mc-drop-icon" style="background:rgba(236,72,153,.12);">🌟</div>
-                  <div class="mc-drop-text"><div class="mc-drop-title">Employee Engagement</div><div class="mc-drop-sub">Awards, moments & team ideas</div></div>
-                  <span class="mc-drop-badge mc-drop-live">Live</span>
-                </div>
-                <div class="mc-drop-item" onclick="mcGoTo('puzzle');mcCloseBrowse()">
-                  <div class="mc-drop-icon" style="background:rgba(232,122,122,.12);">🧩</div>
-                  <div class="mc-drop-text"><div class="mc-drop-title">Process Puzzle</div><div class="mc-drop-sub">Gamified weekly challenges</div></div>
-                  <span class="mc-drop-badge mc-drop-live">Live</span>
-                </div>
-                <!-- Leadership Insights — only shown to approved users -->
-                <div class="mc-drop-item" id="mcLiItem" onclick="liOpen();mcCloseBrowse()" style="display:none;">
-                  <div class="mc-drop-icon" style="background:rgba(201,162,39,.12);">👑</div>
-                  <div class="mc-drop-text"><div class="mc-drop-title" style="color:rgba(201,162,39,.95);">Leadership Insights</div><div class="mc-drop-sub">Executive command centre</div></div>
-                  <span class="mc-drop-badge" style="background:rgba(201,162,39,.1);color:rgba(201,162,39,.9);border:1px solid rgba(201,162,39,.25);">Private</span>
-                </div>
-              </div>
-            </div>
-            <!-- Panel 2: Mission Deck -->
-            <div class="mc-drop-panel" id="mcPanel2">
-              <div class="mc-drop-panel-hdr">🚀 Mission Deck — Projects</div>
-              <div class="mc-drop-grid">
-                <div class="mc-drop-item" onclick="rlOpen();mcCloseBrowse()">
-                  <div class="mc-drop-icon" style="background:rgba(251,146,60,.12);">📋</div>
-                  <div class="mc-drop-text"><div class="mc-drop-title">Rocketlane Dashboard</div><div class="mc-drop-sub">Live project tracking & delivery</div></div>
-                  <span class="mc-drop-badge mc-drop-live">Live</span>
-                </div>
-                <div class="mc-drop-item" onclick="UAT.open();mcCloseBrowse()">
-                  <div class="mc-drop-icon" style="background:rgba(59,130,246,.12);">🧪</div>
-                  <div class="mc-drop-text"><div class="mc-drop-title">UAT Platform</div><div class="mc-drop-sub">Client UAT management & sign-off</div></div>
-                  <span class="mc-drop-badge mc-drop-live">Live</span>
-                </div>
-                <div class="mc-drop-item" onclick="EWS.open();mcCloseBrowse()">
-                  <div class="mc-drop-icon" style="background:rgba(220,38,38,.12);">⚠️</div>
-                  <div class="mc-drop-text"><div class="mc-drop-title">Early Warning System</div><div class="mc-drop-sub">Proactive risk detection & escalation</div></div>
-                  <span class="mc-drop-badge" style="background:rgba(220,38,38,.1);color:#dc2626;border:1px solid rgba(220,38,38,.25);">New</span>
-                </div>
-                <div class="mc-drop-item" onclick="dwComingSoon('Delivery Journey');mcCloseBrowse()">
-                  <div class="mc-drop-icon" style="background:rgba(52,211,153,.12);">🏛️</div>
-                  <div class="mc-drop-text"><div class="mc-drop-title">The Delivery Journey</div><div class="mc-drop-sub">Past implementation stories</div></div>
-                  <span class="mc-drop-badge mc-drop-soon">Soon</span>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div class="mc-drop-item" onclick="dwGoLearning();mcCloseBrowse()">
+          <div class="mc-drop-icon" style="background:rgba(201,162,39,.1);">🎓</div>
+          <div class="mc-drop-text"><div class="mc-drop-title">My Learning</div><div class="mc-drop-sub">Structured courses across AR, AP & more</div></div>
+          <span class="mc-drop-badge mc-drop-live">Live</span>
+        </div>
+        <div class="mc-drop-item" onclick="mcGoTo('knowledge');mcCloseBrowse()">
+          <div class="mc-drop-icon" style="background:rgba(0,200,204,.1);">📚</div>
+          <div class="mc-drop-text"><div class="mc-drop-title">Knowledge Articles</div><div class="mc-drop-sub">Guides, how-tos & best practices</div></div>
+          <span class="mc-drop-badge mc-drop-live">Live</span>
+        </div>
+        <div class="mc-drop-item" onclick="mcGoTo('skillmatrix');mcCloseBrowse()">
+          <div class="mc-drop-icon" style="background:rgba(129,140,248,.1);">🧠</div>
+          <div class="mc-drop-text"><div class="mc-drop-title">Skill Matrix</div><div class="mc-drop-sub">Track & grow team skills</div></div>
+          <span class="mc-drop-badge mc-drop-live">Live</span>
+        </div>
+        <div class="mc-drop-divider"></div>
+        <div class="mc-drop-item" onclick="dwComingSoon('KPIs');mcCloseBrowse()">
+          <div class="mc-drop-icon" style="background:rgba(249,167,79,.1);">📊</div>
+          <div class="mc-drop-text"><div class="mc-drop-title">KPIs</div><div class="mc-drop-sub">Live delivery metrics</div></div>
+          <span class="mc-drop-badge mc-drop-soon">Soon</span>
+        </div>
+        <div class="mc-drop-item" onclick="dwGoEngagement();mcCloseBrowse()">
+          <div class="mc-drop-icon" style="background:rgba(236,72,153,.1);">🌟</div>
+          <div class="mc-drop-text"><div class="mc-drop-title">Employee Engagement Hub</div><div class="mc-drop-sub">Awards, moments, birthdays & team ideas</div></div>
+          <span class="mc-drop-badge mc-drop-live">Live</span>
+        </div>
+        <div class="mc-drop-divider"></div>
+        <div class="mc-drop-item" onclick="mcGoTo('puzzle');mcCloseBrowse()">
+          <div class="mc-drop-icon" style="background:rgba(232,122,122,.1);">🧩</div>
+          <div class="mc-drop-text"><div class="mc-drop-title">Process Puzzle</div><div class="mc-drop-sub">Gamified weekly challenges</div></div>
+          <span class="mc-drop-badge mc-drop-live">Live</span>
+        </div>
+        <div class="mc-drop-item" onclick="dwComingSoon('Delivery Journey');mcCloseBrowse()">
+          <div class="mc-drop-icon" style="background:rgba(52,211,153,.1);">🏛️</div>
+          <div class="mc-drop-text"><div class="mc-drop-title">The Delivery Journey</div><div class="mc-drop-sub">Past implementation stories</div></div>
+          <span class="mc-drop-badge mc-drop-soon">Soon</span>
+        </div>
+        <div class="mc-drop-divider"></div>
+        <div class="mc-drop-item" onclick="UAT.open();mcCloseBrowse()">
+          <div class="mc-drop-icon" style="background:rgba(59,130,246,.1);">🧪</div>
+          <div class="mc-drop-text"><div class="mc-drop-title">UAT Platform</div><div class="mc-drop-sub">Client UAT management & sign-off</div></div>
+          <span class="mc-drop-badge mc-drop-live">Live</span>
+        </div>
+        <div class="mc-drop-divider"></div>
+        <div class="mc-drop-item" onclick="EWS.open();mcCloseBrowse()">
+          <div class="mc-drop-icon" style="background:rgba(220,38,38,.1);">⚠️</div>
+          <div class="mc-drop-text"><div class="mc-drop-title">Early Warning System</div><div class="mc-drop-sub">Proactive risk detection & escalation</div></div>
+          <span class="mc-drop-badge" style="background:rgba(220,38,38,.1);color:#dc2626;border:1px solid rgba(220,38,38,.25);">New</span>
+        </div>
+        <div class="mc-drop-divider"></div>
+        <!-- Leadership Insights — only shown to approved users -->
+        <div class="mc-drop-item" id="mcLiItem" onclick="liOpen();mcCloseBrowse()" style="display:none;">
+          <div class="mc-drop-icon" style="background:rgba(201,162,39,.1);">👑</div>
+          <div class="mc-drop-text"><div class="mc-drop-title" style="color:rgba(201,162,39,.95);">Leadership Insights</div><div class="mc-drop-sub">Executive command centre</div></div>
+          <span class="mc-drop-badge" style="background:rgba(201,162,39,.1);color:rgba(201,162,39,.9);border:1px solid rgba(201,162,39,.25);">Private</span>
         </div>
       </div>
     </div>
