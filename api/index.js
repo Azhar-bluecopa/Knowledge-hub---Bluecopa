@@ -3431,11 +3431,18 @@ async function rlDoFullFetch(apiKey) {
     const issues = rlBuildCompliance(p, progress, tasksByProject[p.projectId] || [], prevSnapProject);
     const projectOwner = (() => {
       const mems = p.teamMembers?.members || [];
+      // Rocketlane marks one member as "Project owner" (exact designation used in UI)
+      const owner = mems.find(m => {
+        const r = (m.designation||m.role||m.jobTitle||'').toLowerCase();
+        return r === 'project owner' || r === 'projectowner' || r.startsWith('project owner');
+      });
+      if (owner) return owner.name || null;
+      // Fallback: delivery / project manager roles
       const pm = mems.find(m => {
         const r = (m.designation||m.role||m.jobTitle||'').toLowerCase();
-        return r.includes('project manager')||r.includes('delivery manager')||r.includes('program manager')||r===('pm')||r.includes(' pm ');
+        return r.includes('project manager')||r.includes('delivery manager')||r.includes('program manager');
       });
-      return (pm || mems[0])?.name || null;
+      return pm?.name || null;
     })();
     return {
       projectId: p.projectId, projectName: p.projectName,

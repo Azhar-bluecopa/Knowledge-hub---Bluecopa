@@ -11147,19 +11147,25 @@ function rlOpenCatDetail(catKey) {
   function renderGrouped(groupBy){
     var projects = buildProjectMap();
     var html = '';
+    function groupHeader(name, tot) {
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,.05);">'+
+        '<span style="font-size:13px;font-weight:700;color:rgba(255,255,255,.75);">'+name+'</span>'+
+        '<span style="font-size:12px;font-weight:700;font-family:\'DM Mono\',monospace;color:#e8c97a;background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.22);border-radius:6px;padding:2px 10px;white-space:nowrap;">'+tot+' '+(tot===1?'finding':'findings')+'</span>'+
+      '</div>';
+    }
     if (groupBy==='client') {
       var cmap = {};
       projects.forEach(function(p){ var k=na(p.customer)||'No Client'; if(!cmap[k])cmap[k]=[]; cmap[k].push(p); });
       Object.keys(cmap).sort().forEach(function(k){
         var ps=cmap[k]; var tot=ps.reduce(function(s,p){return s+p.items.length;},0);
-        html+='<div style="margin-bottom:18px;"><div style="font-size:9.5px;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.26);margin-bottom:8px;padding:0 4px;">'+k+' · '+tot+' finding'+(tot!==1?'s':'')+'</div>'+ps.map(renderProjectRow).join('')+'</div>';
+        html+='<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:12px;margin-bottom:12px;overflow:hidden;">'+groupHeader(k,tot)+ps.map(renderProjectRow).join('')+'</div>';
       });
     } else if (groupBy==='owner') {
       var omap = {};
       projects.forEach(function(p){ var k=na(p.projectOwner)||'Unassigned'; if(!omap[k])omap[k]=[]; omap[k].push(p); });
       Object.keys(omap).sort().forEach(function(k){
         var ps=omap[k]; var tot=ps.reduce(function(s,p){return s+p.items.length;},0);
-        html+='<div style="margin-bottom:18px;"><div style="font-size:9.5px;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.26);margin-bottom:8px;padding:0 4px;">'+k+' · '+tot+' finding'+(tot!==1?'s':'')+'</div>'+ps.map(renderProjectRow).join('')+'</div>';
+        html+='<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:12px;margin-bottom:12px;overflow:hidden;">'+groupHeader(k,tot)+ps.map(renderProjectRow).join('')+'</div>';
       });
     } else {
       html = projects.map(renderProjectRow).join('');
