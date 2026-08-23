@@ -3429,20 +3429,12 @@ async function rlDoFullFetch(apiKey) {
     const progress = rlBuildProjectProgress(tasksByProject[p.projectId] || []);
     const prevSnapProject = prevSnap?.projects?.find(proj => proj.projectId === p.projectId) || null;
     const issues = rlBuildCompliance(p, progress, tasksByProject[p.projectId] || [], prevSnapProject);
+    // Rocketlane exposes the project owner as a direct top-level `owner` field
+    // with { firstName, lastName, emailId, userId } — not derivable from teamMembers
     const projectOwner = (() => {
-      const mems = p.teamMembers?.members || [];
-      // Rocketlane marks one member as "Project owner" (exact designation used in UI)
-      const owner = mems.find(m => {
-        const r = (m.designation||m.role||m.jobTitle||'').toLowerCase();
-        return r === 'project owner' || r === 'projectowner' || r.startsWith('project owner');
-      });
-      if (owner) return owner.name || null;
-      // Fallback: delivery / project manager roles
-      const pm = mems.find(m => {
-        const r = (m.designation||m.role||m.jobTitle||'').toLowerCase();
-        return r.includes('project manager')||r.includes('delivery manager')||r.includes('program manager');
-      });
-      return pm?.name || null;
+      const o = p.owner;
+      if (!o) return null;
+      return [o.firstName, o.lastName].filter(Boolean).join(' ').trim() || o.emailId || null;
     })();
     return {
       projectId: p.projectId, projectName: p.projectName,
@@ -3497,25 +3489,6 @@ async function rlDoFullFetch(apiKey) {
   await saveDB(db);
   return result;
 }
-
-// Temporary: dump raw teamMembers from Rocketlane for one project to discover the owner field
-app.get('/api/rocketlane/debug-members', async (req, res) => {
-  const apiKey = process.env.ROCKETLANE_API_KEY;
-  if (!apiKey) return res.status(503).json({ error: 'no_key' });
-  try {
-    const r = await fetch('https://api.rocketlane.com/api/1.0/projects?pageSize=5', { headers: { 'api-key': apiKey, 'Accept': 'application/json' } });
-    const d = await r.json();
-    const sample = (d.data || []).slice(0, 3).map(p => ({
-      projectName: p.projectName,
-      projectId: p.projectId,
-      ownerField: p.owner,
-      projectOwnerField: p.projectOwner,
-      teamMembers: p.teamMembers,
-      rawKeys: Object.keys(p)
-    }));
-    res.json(sample);
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
 
 app.get('/api/rocketlane/projects-full', async (req, res) => {
   const apiKey = process.env.ROCKETLANE_API_KEY;
