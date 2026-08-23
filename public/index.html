@@ -11189,8 +11189,8 @@ function rlOpenCatDetail(catKey) {
     var ownerVal = na(proj.projectOwner);
     var clientVal = na(proj.customer);
     var metaItems = [];
-    if (clientVal) metaItems.push('<span style="font-size:11px;color:rgba(255,255,255,.38);">'+clientVal+'</span>');
-    if (ownerVal)  metaItems.push('<span style="font-size:11px;color:#7aabdb;font-weight:500;">'+ownerVal+'</span>');
+    if (clientVal) metaItems.push('<span style="font-size:11px;color:rgba(255,255,255,.45);">'+clientVal+'</span>');
+    if (ownerVal)  metaItems.push('<span style="font-size:11px;color:rgba(255,255,255,.45);">'+ownerVal+'</span>');
     var sep = '<span style="color:rgba(255,255,255,.14);font-size:10px;margin:0 1px;">·</span>';
     var metaHtml = '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;">'+
       rlStatus(proj.status)+
@@ -11200,7 +11200,7 @@ function rlOpenCatDetail(catKey) {
       '<div style="display:flex;align-items:center;gap:16px;padding:14px 18px;cursor:pointer;" '+
         'onclick="window._rlCatExpanded[\''+key+'\']=!window._rlCatExpanded[\''+key+'\'];window.rlRenderCatDetail();">'+
         '<div style="flex:1;min-width:0;">'+
-          '<div style="font-size:14px;font-weight:700;color:#f0f0f6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(na(proj.project)||'—')+'</div>'+
+          '<div style="font-size:14px;font-weight:700;color:#7dd3fc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(na(proj.project)||'—')+'</div>'+
           metaHtml+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:14px;flex-shrink:0;">'+
@@ -11219,9 +11219,8 @@ function rlOpenCatDetail(catKey) {
     var projects = buildProjectMap();
     var html = '';
     function groupHeader(name, tot, projCount, ac) {
-      var nameColor = ac || '#f0f0f6';
       return '<div style="padding:18px 20px 14px;">'+
-        '<div style="font-size:17px;font-weight:700;color:'+nameColor+';letter-spacing:-.01em;">'+name+'</div>'+
+        '<div style="font-size:17px;font-weight:700;color:#7dd3fc;letter-spacing:-.01em;">'+name+'</div>'+
         '<div style="font-size:11px;color:#5a6270;margin-top:5px;font-family:\'DM Mono\',monospace;">'+
           projCount+' '+(projCount===1?'project':'projects')+' · '+tot+' '+(tot===1?'finding':'findings')+
         '</div>'+
