@@ -2861,6 +2861,115 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
   const allMainTasks = Object.entries(progress.phases || {})
     .flatMap(([ph, obj]) => obj.tasks.map(t => ({ ...t, _phase: ph })));
 
+  // ── GENERAL checks: run for ALL projects (standard and non-standard) ──
+
+  // Missing / invalid dates — every non-completed task in the project
+  allProjectTasks.forEach(t => {
+    const lbl = (t.status?.label || '').toLowerCase();
+    if (lbl.includes('complet')) return;
+    if (!t.dueDate)
+      issues.push({ severity:'medium', category:'dates', task:t.taskName, phase:null, issue:'No due date set' });
+    else if (!t.startDate)
+      issues.push({ severity:'low', category:'dates', task:t.taskName, phase:null, issue:'No start date set' });
+    // Not-started tasks whose planned start has already passed
+    const notStarted = ['todo','to do','not started','planned'].includes(lbl);
+    if (notStarted && t.startDate) {
+      const st = new Date(t.startDate);
+      if (st < today) {
+        const daysLate = Math.floor((today - st) / 86400000);
+        issues.push({ severity:'medium', category:'dates', task:t.taskName, phase:null,
+          issue:`Start date was ${daysLate}d ago — task still not started` });
+      }
+    }
+  });
+
+  // Overdue: In Progress tasks past their due date
+  allProjectTasks.forEach(t => {
+    const lbl = t.status?.label || '';
+    if ((lbl === 'In Progress' || lbl === 'In progress') && t.dueDate) {
+      const due = new Date(t.dueDate);
+      if (due < today) {
+        const days = Math.floor((today - due) / 86400000);
+        issues.push({ severity:'high', category:'overdue', task:t.taskName, phase:null, issue:`In-progress, ${days}d overdue` });
+      }
+    }
+  });
+
+  // Extended overdue: all other non-complete statuses (Blocked, On Hold, Todo…) past due
+  allProjectTasks.forEach(t => {
+    const lbl = (t.status?.label || '').trim();
+    const isDone = lbl.toLowerCase().includes('complet');
+    const isInProg = lbl === 'In Progress' || lbl === 'In progress';
+    if (!isDone && !isInProg && t.dueDate) {
+      const due = new Date(t.dueDate);
+      if (due < today) {
+        const days = Math.floor((today - due) / 86400000);
+        issues.push({ severity:'high', category:'overdue', task:t.taskName, phase:null,
+          issue:`${lbl||'Open'} task — ${days}d past due date` });
+      }
+    }
+  });
+
+  // Blocked tasks
+  allProjectTasks.forEach(t => {
+    if ((t.status?.label||'') === 'Blocked')
+      issues.push({ severity:'high', category:'blocked', task:t.taskName, phase:null, issue:'Task is blocked' });
+  });
+
+  // Business day gaps > 5 between consecutive task due dates
+  {
+    const tasksWithDates = allProjectTasks
+      .filter(t => { const l=(t.status?.label||'').toLowerCase(); return !l.includes('complet') && t.dueDate; })
+      .sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+    for (let i = 1; i < tasksWithDates.length; i++) {
+      const prev = new Date(tasksWithDates[i-1].dueDate);
+      const curr = new Date(tasksWithDates[i].dueDate);
+      if (curr <= prev) continue;
+      let bizDays = 0, d = new Date(prev);
+      d.setDate(d.getDate()+1);
+      while (d < curr) { if (d.getDay()!==0&&d.getDay()!==6) bizDays++; d.setDate(d.getDate()+1); }
+      if (bizDays > 5)
+        issues.push({ severity:'low', category:'gaps', task:`${tasksWithDates[i-1].taskName} → ${tasksWithDates[i].taskName}`, phase:null,
+          issue:`${bizDays} business day gap between consecutive task due dates` });
+    }
+  }
+
+  // Weekend due dates
+  allProjectTasks.forEach(t => {
+    const lbl = (t.status?.label || '').toLowerCase();
+    if (lbl.includes('complet') || !t.dueDate) return;
+    const day = new Date(t.dueDate).getDay();
+    if (day === 0 || day === 6)
+      issues.push({ severity:'low', category:'weekend', task:t.taskName, phase:null,
+        issue:`Due date falls on a ${day === 0 ? 'Sunday' : 'Saturday'} — consider shifting to a weekday` });
+  });
+
+  // Long-running: In Progress tasks started > 14 days ago without completion
+  allProjectTasks.forEach(t => {
+    const lbl = t.status?.label || '';
+    if ((lbl === 'In Progress' || lbl === 'In progress') && t.startDate) {
+      const start = new Date(t.startDate);
+      const ageDays = Math.floor((today - start) / 86400000);
+      if (ageDays > 14)
+        issues.push({ severity:'medium', category:'stale', task:t.taskName, phase:null,
+          issue:`In Progress for ${ageDays} days without completion` });
+    }
+  });
+
+  // Unowned active tasks: In Progress or Blocked with no assignee
+  allProjectTasks.forEach(t => {
+    const lbl = t.status?.label || '';
+    const isActive = lbl === 'In Progress' || lbl === 'In progress' || lbl === 'Blocked';
+    const hasOwner = (t.assignees || []).length > 0;
+    if (isActive && !hasOwner) {
+      const alreadyFlagged = issues.some(i => i.task === t.taskName && i.category === 'ownership');
+      if (!alreadyFlagged)
+        issues.push({ severity:'high', category:'ownership', task:t.taskName, phase:null,
+          issue:`${lbl} task has no owner assigned` });
+    }
+  });
+
+  // ── STRUCTURE check: non-standard projects exit here ──
   if (!progress.isStandard) {
     const matchedOrders = new Set(mainFound.map(t => t._mt?.order).filter(Boolean));
     const matchedPhases = new Set(mainFound.map(t => t._mt?.phase).filter(Boolean));
@@ -2878,56 +2987,52 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
       const mt = RL_METHODOLOGY.find(m => m.order === parseInt(o));
       if (mt) issues.push({ severity:'medium', category:'structure', task:null, phase:mt.phase, issue:`Duplicate task slot: "${mt.key}"` });
     });
-    if (!issues.length)
+    const hasStructureIssue = issues.some(i => i.category === 'structure');
+    if (!hasStructureIssue)
       issues.push({ severity:'medium', category:'structure', task:null, phase:null, issue:'Non-standard structure — fewer than 7 methodology tasks found' });
     return issues;
   }
 
-  allMainTasks.filter(t => !t.owner && !t.completed).forEach(t =>
-    issues.push({ severity:'medium', category:'ownership', task:t.taskName, phase:t._phase, issue:'No owner assigned' })
-  );
+  // ── STANDARD-ONLY checks ──
 
-  allProjectTasks.forEach(t => {
-    const lbl = t.status?.label || '';
-    if ((lbl === 'In Progress' || lbl === 'In progress') && t.dueDate) {
-      const due = new Date(t.dueDate * 1000);
-      if (due < today) {
-        const days = Math.floor((today - due) / 86400000);
-        issues.push({ severity:'high', category:'overdue', task:t.taskName, phase:null, issue:`In-progress, ${days}d overdue` });
-      }
-    }
+  // Methodology task ownership
+  allMainTasks.filter(t => !t.owner && !t.completed).forEach(t => {
+    const alreadyFlagged = issues.some(i => i.task === t.taskName && i.category === 'ownership');
+    if (!alreadyFlagged)
+      issues.push({ severity:'medium', category:'ownership', task:t.taskName, phase:t._phase, issue:'No owner assigned' });
   });
 
-  allProjectTasks.forEach(t => {
-    if ((t.status?.label||'') === 'Blocked')
-      issues.push({ severity:'high', category:'blocked', task:t.taskName, phase:null, issue:'Task is blocked' });
-  });
-
-  allMainTasks.filter(t => !t.completed).forEach(t => {
-    if (!t.dueDate)
-      issues.push({ severity:'medium', category:'dates', task:t.taskName, phase:t._phase, issue:'No due date set' });
-    else if (!t.startDate)
-      issues.push({ severity:'low', category:'dates', task:t.taskName, phase:t._phase, issue:'No start date set' });
-  });
-
+  // Tasks due after project deadline
   if (project.dueDate) {
-    const projDue = new Date(project.dueDate * 1000);
+    const projDue = new Date(project.dueDate);
     allMainTasks.filter(t => !t.completed && t.dueDate).forEach(t => {
-      if (new Date(t.dueDate * 1000) > projDue)
+      if (new Date(t.dueDate) > projDue)
         issues.push({ severity:'medium', category:'dates', task:t.taskName, phase:t._phase, issue:'Due after project deadline' });
     });
   }
 
+  // Date sequencing: start date on or after due date (methodology tasks)
+  allMainTasks.filter(t => t.startDate && t.dueDate && !t.completed).forEach(t => {
+    const start = new Date(t.startDate), due = new Date(t.dueDate);
+    if (start >= due)
+      issues.push({ severity:'medium', category:'dates', task:t.taskName, phase:t._phase,
+        issue:'Start date is on or after due date' });
+  });
+
+  // Stale: no methodology progress since last snapshot
   if (prevSnapProject && prevSnapProject.completionPct != null && progress.overallPct != null
       && prevSnapProject.completionPct === progress.overallPct && progress.overallPct < 100)
     issues.push({ severity:'medium', category:'stale', task:null, phase:null, issue:'No methodology progress since last snapshot' });
 
+  // Completion: project marked done but standard tasks still open
   if (projectStatus.includes('complet') || projectStatus.includes('done')) {
     const openMain = allMainTasks.filter(t => !t.completed);
-    if (openMain.length)
-      issues.push({ severity:'high', category:'completion', task:null, phase:null, issue:`Project marked complete — ${openMain.length} standard task(s) still open` });
+    openMain.forEach(t => {
+      issues.push({ severity:'high', category:'completion', task:t.taskName, phase:t._phase, issue:`Still open (${t.status || 'Unknown'}) — project marked complete` });
+    });
   }
 
+  // Closure: all methodology tasks done but Project Closure task not complete
   if (progress.overallPct === 100) {
     const cTask = allProjectTasks.find(t => {
       const n = (t.taskName||'').toLowerCase().trim();
@@ -2937,6 +3042,40 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
       issues.push({ severity:'low', category:'closure', task:null, phase:null, issue:'All delivery tasks complete — Project Closure task not found' });
     else if ((cTask.status?.label||'') !== 'Completed')
       issues.push({ severity:'medium', category:'closure', task:'Project Closure', phase:null, issue:`Delivery complete but Project Closure is ${cTask.status?.label||'open'}` });
+  }
+
+  // Premature completion: later-phase task done while earlier phase has open tasks
+  {
+    const phOrder = ['engage','drive','enable','convert'];
+    phOrder.forEach((laterPh, laterIdx) => {
+      if (laterIdx === 0) return;
+      const doneInLater = (progress.phases[laterPh]?.tasks||[]).filter(t => t.completed);
+      if (!doneInLater.length) return;
+      for (let ei = 0; ei < laterIdx; ei++) {
+        const earlyPh = phOrder[ei];
+        const openInEarly = (progress.phases[earlyPh]?.tasks||[]).filter(t => !t.completed);
+        if (openInEarly.length) {
+          doneInLater.forEach(t => {
+            const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+            issues.push({ severity:'medium', category:'premature', task:t.taskName, phase:laterPh,
+              issue:`${cap(laterPh)} task completed while ${openInEarly.length} ${cap(earlyPh)} task(s) still open` });
+          });
+          break;
+        }
+      }
+    });
+  }
+
+  // Inactive: In Progress project with 0% methodology completion
+  if (projectStatus.includes('progress') && (progress.overallPct||0) === 0) {
+    issues.push({ severity:'medium', category:'inactive', task:null, phase:null,
+      issue:'Project In Progress with 0% methodology completion — possible stale or abandoned project' });
+  }
+
+  // All methodology tasks complete but project still In Progress
+  if (progress.overallPct === 100 && projectStatus.includes('progress')) {
+    issues.push({ severity:'medium', category:'closure', task:null, phase:null,
+      issue:'All methodology tasks complete — project status should be updated from In Progress' });
   }
 
   return issues;
@@ -3199,7 +3338,25 @@ function ensureRL() {
 
 app.get('/api/rocketlane/snapshots', (req, res) => {
   ensureRL();
-  res.json({ snapshots: [...db.rocketlane.snapshots].reverse() });
+  // Build owner lookup from the full data cache so historical snapshots
+  // (captured before projectOwner was stored) get retroactively enriched.
+  const ownerLookup = {};
+  const fullProjects = (rlFullCache || db.rocketlane.fullData)?.projects || [];
+  fullProjects.forEach(p => {
+    if (p.projectId && p.projectOwner) ownerLookup[String(p.projectId)] = p.projectOwner;
+  });
+  const enrich = Object.keys(ownerLookup).length > 0;
+  const snapshots = enrich
+    ? db.rocketlane.snapshots.map(snap => ({
+        ...snap,
+        projects: (snap.projects || []).map(p => {
+          if (p.projectOwner) return p;
+          const owner = ownerLookup[String(p.projectId)];
+          return owner ? { ...p, projectOwner: owner } : p;
+        })
+      }))
+    : db.rocketlane.snapshots;
+  res.json({ snapshots: [...snapshots].reverse() });
 });
 
 app.post('/api/rocketlane/snapshots', async (req, res) => {
@@ -3226,6 +3383,8 @@ app.delete('/api/rocketlane/snapshots/:id', async (req, res) => {
 });
 
 // ── Rocketlane Findings ───────────────────────────────────────────────────────
+// ── Temporary diagnostic: inspect raw task fields ──────────────────────────
+
 app.get('/api/rocketlane/findings', (req, res) => {
   ensureRL();
   res.json({ findings: db.rocketlane.findings });
@@ -3264,6 +3423,70 @@ app.delete('/api/rocketlane/findings/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Schedule & task-level metrics per project ─────────────────────────────────
+function rlComputeScheduleMetrics(project, progress, tasks) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayMs = today.getTime();
+  const statusLbl = (project.status?.label || '').toLowerCase();
+
+  const overdueTaskCount = tasks.filter(t => {
+    const l = (t.status?.label || '').toLowerCase();
+    return !l.includes('complet') && t.dueDate && new Date(t.dueDate).getTime() < todayMs;
+  }).length;
+
+  const blockedTaskCount = tasks.filter(t =>
+    (t.status?.label || '').toLowerCase().includes('block')
+  ).length;
+
+  let expectedProgressPct = null, scheduleVarianceDays = null, onSchedule = 'no-date';
+  if (statusLbl.includes('complet') || statusLbl.includes('cancel')) {
+    onSchedule = 'completed';
+  } else if (project.startDate && project.dueDate) {
+    const start = new Date(project.startDate).getTime();
+    const due   = new Date(project.dueDate).getTime();
+    const totalDays = Math.max(1, (due - start) / 86400000);
+    const elapsed   = Math.min(totalDays, Math.max(0, (todayMs - start) / 86400000));
+    expectedProgressPct = Math.round(elapsed / totalDays * 100);
+    const actual = progress.overallPct ?? 0;
+    const variance = actual - expectedProgressPct;
+    scheduleVarianceDays = Math.round(variance / 100 * totalDays);
+    onSchedule = scheduleVarianceDays >= 0 ? 'on-track' : scheduleVarianceDays >= -14 ? 'at-risk' : 'delayed';
+  } else if (project.dueDate) {
+    onSchedule = new Date(project.dueDate).getTime() < todayMs ? 'delayed' : 'no-date';
+  }
+
+  // Current active phase for standard projects
+  let currentPhase = null;
+  if (progress.isStandard && progress.phases) {
+    for (const ph of ['engage','drive','enable','convert']) {
+      if ((progress.phases[ph]?.pct ?? 0) < 100) { currentPhase = ph; break; }
+    }
+    if (!currentPhase) currentPhase = 'completed';
+  }
+
+  // Planned duration per completed phase (using task startDate/dueDate span as proxy)
+  const phaseDurations = {};
+  if (progress.isStandard && progress.phases) {
+    for (const ph of ['engage','drive','enable','convert']) {
+      const pTasks = progress.phases[ph]?.tasks || [];
+      if (!pTasks.length || !pTasks.every(t => t.completed)) { phaseDurations[ph] = null; continue; }
+      const dates = pTasks.filter(t => t.startDate && t.dueDate)
+        .map(t => [new Date(t.startDate).getTime(), new Date(t.dueDate).getTime()]);
+      if (!dates.length) { phaseDurations[ph] = null; continue; }
+      phaseDurations[ph] = Math.max(1, Math.round(
+        (Math.max(...dates.map(d => d[1])) - Math.min(...dates.map(d => d[0]))) / 86400000
+      ));
+    }
+  }
+
+  return {
+    startDate: project.startDate || null,
+    overdueTaskCount, blockedTaskCount,
+    expectedProgressPct, scheduleVarianceDays, onSchedule,
+    currentPhase, phaseDurations
+  };
+}
+
 // ── Rocketlane Projects Full (methodology-based) ──────────────────────────────
 async function rlDoFullFetch(apiKey) {
   const now = Date.now();
@@ -3289,17 +3512,34 @@ async function rlDoFullFetch(apiKey) {
     const progress = rlBuildProjectProgress(tasksByProject[p.projectId] || []);
     const prevSnapProject = prevSnap?.projects?.find(proj => proj.projectId === p.projectId) || null;
     const issues = rlBuildCompliance(p, progress, tasksByProject[p.projectId] || [], prevSnapProject);
+    // Rocketlane exposes the project owner as a direct top-level `owner` field
+    // with { firstName, lastName, emailId, userId } — not derivable from teamMembers
+    const projectOwner = (() => {
+      const o = p.owner;
+      if (!o) return null;
+      return [o.firstName, o.lastName].filter(Boolean).join(' ').trim() || o.emailId || null;
+    })();
+    const metrics = rlComputeScheduleMetrics(p, progress, tasksByProject[p.projectId] || []);
     return {
       projectId: p.projectId, projectName: p.projectName,
       status: p.status?.label || 'Unknown',
       customer: p.customer?.companyName || null,
+      projectOwner,
+      startDate: metrics.startDate,
       dueDate: p.dueDate || null,
       isStandard: progress.isStandard,
       overallPct: progress.overallPct,
       phases: progress.phases,
       mainTaskCount: progress.mainTaskCount,
       totalTasks: progress.totalTasks,
-      compliance: { issues, issueCount: issues.length }
+      compliance: { issues, issueCount: issues.length },
+      overdueTaskCount: metrics.overdueTaskCount,
+      blockedTaskCount: metrics.blockedTaskCount,
+      expectedProgressPct: metrics.expectedProgressPct,
+      scheduleVarianceDays: metrics.scheduleVarianceDays,
+      onSchedule: metrics.onSchedule,
+      currentPhase: metrics.currentPhase,
+      phaseDurations: metrics.phaseDurations
     };
   });
   const standard = projects.filter(p => p.isStandard);
@@ -4756,8 +4996,9 @@ async function rlAutoSnapshot() {
   mondayUTC.setUTCHours(0, 0, 0, 0);
   const thisWeekKey = mondayUTC.toISOString().slice(0, 10);
 
+  // Dedup by weekKey (not capturedAt prefix) so manual retriggers on non-Monday days don't duplicate
   const alreadyDone = db.rocketlane.snapshots.some(s =>
-    s.type === 'weekly' && s.capturedAt && s.capturedAt.startsWith(thisWeekKey)
+    s.type === 'weekly' && s.weekKey === thisWeekKey
   );
   if (alreadyDone) return { ok: true, skipped: true, reason: 'already_captured_this_week' };
 
@@ -4780,20 +5021,28 @@ async function rlAutoSnapshot() {
 
     const projects = allProjects.map(p => {
       const progress = rlBuildProjectProgress(tasksByProject[p.projectId] || []);
+      const o = p.owner;
+      const projectOwner = o ? ([o.firstName, o.lastName].filter(Boolean).join(' ').trim() || o.emailId || null) : null;
+      // Capture per-category compliance counts so trends can be computed from snapshots
+      const issues = rlBuildCompliance(p, progress, tasksByProject[p.projectId] || [], null);
+      const byCategory = {};
+      issues.forEach(i => { byCategory[i.category] = (byCategory[i.category] || 0) + 1; });
       return {
         projectId: p.projectId, projectName: p.projectName,
         status: p.status?.label || 'Unknown',
         isStandard: progress.isStandard,
         completionPct: progress.overallPct,
         dueDate: p.dueDate || null,
-        customer: p.customer?.companyName || null
+        customer: p.customer?.companyName || null,
+        projectOwner,
+        compliance: { issueCount: issues.length, byCategory }
       };
     });
 
     const label = `Week of ${mondayUTC.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} (auto)`;
     const snap = {
       id: db.rocketlane.nextSnapshotId++,
-      type: 'weekly', label,
+      type: 'weekly', label, weekKey: thisWeekKey,
       capturedAt: now.toISOString(),
       projects, auto: true
     };

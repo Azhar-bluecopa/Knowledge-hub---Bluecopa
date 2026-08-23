@@ -26,7 +26,7 @@ html.dw-restoring #dwCover{display:block;position:fixed;top:0;left:0;right:0;bot
   <noscript>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
-  <link rel="stylesheet" href="/style.css?v=90">
+  <link rel="stylesheet" href="/style.css?v=96">
   <link rel="stylesheet" href="/uat.css?v=26">
   <link rel="stylesheet" href="/ews.css?v=8">
   <script src="https://accounts.google.com/gsi/client" async></script>
@@ -4310,7 +4310,6 @@ async function updateFeedbackStatus(id) {
           <div class="mc-drop-text"><div class="mc-drop-title">My Learning</div><div class="mc-drop-sub">Structured courses across AR, AP & more</div></div>
           <span class="mc-drop-badge mc-drop-live">Live</span>
         </div>
-
         <div class="mc-drop-item" onclick="mcGoTo('knowledge');mcCloseBrowse()">
           <div class="mc-drop-icon" style="background:rgba(0,200,204,.1);">📚</div>
           <div class="mc-drop-text"><div class="mc-drop-title">Knowledge Articles</div><div class="mc-drop-sub">Guides, how-tos & best practices</div></div>
@@ -10399,18 +10398,18 @@ var RL_PHASES = {
 };
 
 var RL_TABS = [
+  { id: 'overview',   label: '360° Overall Dashboard' },
   { id: 'executive',  label: 'Executive Overview' },
-  { id: 'progress',   label: 'Project Progress' },
+  { id: 'trends',     label: 'Historical Trends' },
   { id: 'compliance', label: 'Project Compliance' },
   { id: 'timeline',   label: 'Timeline Changes' },
-  { id: 'trends',     label: 'Historical Trends' },
-  { id: 'findings',   label: 'Compliance Findings' }
+  { id: 'health',     label: 'Health Dashboard' }
 ];
 
 function rlInitDashboard() {
   var el = document.getElementById('rlContent');
   if (!el) return;
-  _rlData = null; _rlDrillProject = null; _rlTab = 'executive'; _rlFilter = 'all';
+  _rlData = null; _rlDrillProject = null; _rlTab = 'overview'; _rlFilter = 'all';
   _rlLoading = true;
   el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px;gap:16px;"><div class="rl-spin"></div><div style="font-size:13px;color:rgba(255,255,255,.3);">Loading Rocketlane data…</div></div>';
   fetch('/api/rocketlane/projects-full')
@@ -10469,7 +10468,7 @@ function rlRenderActiveTab() {
   var body = document.getElementById('rlTabBody');
   if (!body || !_rlData) return;
   try {
-    ({ executive: rlTabExecutive, progress: rlTabProgress, compliance: rlTabCompliance, timeline: rlTabTimeline, trends: rlTabTrends, findings: rlTabFindings })[_rlTab](body);
+    ({ overview: rlTabOverview, executive: rlTabExecutive, compliance: rlTabCompliance, timeline: rlTabTimeline, trends: rlTabTrends, health: rlTabHealth })[_rlTab](body);
   } catch(e) {
     body.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626;font-size:13px;">Tab render error: ' + (e && e.message || String(e)) + '</div>';
   }
@@ -10882,85 +10881,415 @@ function rlCloseDrill() {
 window.rlCloseDrill = rlCloseDrill;
 
 // ─── Tab 3: Project Compliance ────────────────────────────────────────────────
-function rlTabCompliance(body) {
-  var d=_rlData, allIssues=[];
-  d.projects.forEach(function(p){
+var RL_COMP_CATEGORIES = [
+  {key:'structure',  label:'Phase & Task Structure',     color:'#f59e0b', icon:'⚠️',  desc:'Projects not aligned with the required Engage→Drive→Enable→Convert methodology'},
+  {key:'ownership',  label:'Unowned Tasks',              color:'#60a5fa', icon:'👤',  desc:'Tasks with no assigned owner'},
+  {key:'overdue',    label:'Overdue Tasks',              color:'#dc2626', icon:'🔴',  desc:'Non-complete tasks past their due date (all statuses including Blocked & On Hold)'},
+  {key:'blocked',    label:'Blocked Tasks',              color:'#ef4444', icon:'🚫',  desc:'Tasks currently in Blocked status'},
+  {key:'dates',      label:'Missing / Invalid Dates',    color:'#8b5cf6', icon:'📅',  desc:'Tasks with no due date, no start date, or start after due'},
+  {key:'premature',  label:'Premature Completion',       color:'#f97316', icon:'⚡',  desc:'Later-phase tasks marked complete while earlier-phase tasks are still open'},
+  {key:'gaps',       label:'Task Date Gaps',             color:'#a78bfa', icon:'⏱️', desc:'Consecutive tasks with more than 5 business days between due dates'},
+  {key:'stale',      label:'Stale Progress',             color:'#fb923c', icon:'⏸️', desc:'No methodology progress since last weekly snapshot'},
+  {key:'completion', label:'Project Completion Issues',  color:'#dc2626', icon:'✅',  desc:'Project marked complete but standard tasks remain open'},
+  {key:'inactive',   label:'Inactive Projects',          color:'#6b7280', icon:'💤',  desc:'In-Progress projects with 0% methodology completion'},
+  {key:'weekend',    label:'Weekend Due Dates',          color:'#94a3b8', icon:'📆',  desc:'Tasks with due dates on Saturday or Sunday — likely a planning oversight'},
+  {key:'closure',    label:'Closure Pending',            color:'#c9a227', icon:'🔒',  desc:'Delivery complete but Project Closure task missing or not done'}
+];
+
+function rlBuildAllIssues() {
+  var allIssues = [];
+  (_rlData.projects||[]).forEach(function(p){
+    // Build a task-name→details lookup from methodology phases (standard projects only)
+    var taskLookup = {};
+    if (p.phases) {
+      Object.keys(p.phases).forEach(function(ph){
+        (p.phases[ph].tasks||[]).forEach(function(t){
+          if (t.taskName) taskLookup[t.taskName] = {
+            owner: t.owner||null,
+            startDate: t.startDate||null,
+            dueDate: t.dueDate||null,
+            status: t.status||null
+          };
+        });
+      });
+    }
     (p.compliance.issues||[]).forEach(function(iss){
-      allIssues.push({project:p.projectName,status:p.status,severity:iss.severity,category:iss.category,phase:iss.phase,task:iss.task,issue:iss.issue,projectId:p.projectId});
+      // Expand completion summary into one row per open task using phase data
+      if (iss.category==='completion' && !iss.task && p.phases) {
+        var expanded = false;
+        Object.keys(p.phases).forEach(function(ph){
+          (p.phases[ph].tasks||[]).forEach(function(t){
+            if (!t.completed) {
+              expanded = true;
+              allIssues.push({
+                project: p.projectName, projectId: p.projectId,
+                customer: p.customer||'', projectOwner: p.projectOwner||null,
+                status: p.status, severity: iss.severity,
+                category: 'completion', phase: ph,
+                task: t.taskName,
+                issue: 'Still open (' + (t.status||'Unknown') + ') — project marked complete',
+                taskOwner: t.owner||null,
+                taskStartDate: t.startDate||null,
+                taskDueDate: t.dueDate||null,
+                taskStatus: t.status||null
+              });
+            }
+          });
+        });
+        if (!expanded) allIssues.push({ project:p.projectName, projectId:p.projectId, customer:p.customer||'', projectOwner:p.projectOwner||null, status:p.status, severity:iss.severity, category:'completion', phase:null, task:null, issue:iss.issue, taskOwner:null, taskStartDate:null, taskDueDate:null, taskStatus:null });
+        return;
+      }
+      var td = (iss.task && taskLookup[iss.task]) || null;
+      allIssues.push({
+        project: p.projectName, projectId: p.projectId,
+        customer: p.customer||'', projectOwner: p.projectOwner||null,
+        status: p.status, severity: iss.severity,
+        category: iss.category, phase: iss.phase,
+        task: iss.task, issue: iss.issue,
+        taskOwner:     td ? td.owner     : null,
+        taskStartDate: td ? td.startDate : null,
+        taskDueDate:   td ? td.dueDate   : null,
+        taskStatus:    td ? td.status    : null
+      });
     });
   });
-  var high=allIssues.filter(function(i){return i.severity==='high';}),
-      med=allIssues.filter(function(i){return i.severity==='medium';}),
-      low=allIssues.filter(function(i){return i.severity==='low';});
+  return allIssues;
+}
 
-  var CATEGORIES=[
-    {key:'structure',  label:'Phase & Task Structure',  color:'#f59e0b', icon:'⚠️'},
-    {key:'ownership',  label:'Task Ownership',          color:'#60a5fa', icon:'👤'},
-    {key:'overdue',    label:'Overdue Tasks',           color:'#dc2626', icon:'🔴'},
-    {key:'blocked',    label:'Blocked Tasks',           color:'#ef4444', icon:'🚫'},
-    {key:'dates',      label:'Missing / Invalid Dates', color:'#8b5cf6', icon:'📅'},
-    {key:'stale',      label:'Stale Progress',          color:'#f97316', icon:'⏸️'},
-    {key:'completion', label:'Premature Completion',    color:'#dc2626', icon:'⚡'},
-    {key:'closure',    label:'Project Closure Pending', color:'#c9a227', icon:'🔒'}
-  ];
+function rlTabCompliance(body) {
+  var allIssues     = rlBuildAllIssues();
+  var totalProjects = (_rlData.projects||[]).length;
 
-  function catSection(cat){
-    var issues=allIssues.filter(function(i){return i.category===cat.key;});
-    if(!issues.length) return '';
-    var byProject={};
-    issues.forEach(function(i){
-      if(!byProject[i.project]) byProject[i.project]={status:i.status,items:[]};
-      byProject[i.project].items.push(i);
-    });
-    return '<div id="rl-cat-'+cat.key+'">'+rlCard(
-      '<div style="padding:12px 16px 0;">'+
-        '<div style="font-size:12px;font-weight:700;color:'+cat.color+';text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">'+cat.icon+' '+cat.label+' ('+issues.length+')</div>'+
-        Object.keys(byProject).map(function(projName){
-          var proj=byProject[projName];
-          return '<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,.04);">'+
-            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">'+
-              '<div style="font-size:12px;font-weight:500;color:#f0f0f6;flex:1;">'+projName+'</div>'+
-              rlStatus(proj.status)+
-            '</div>'+
-            proj.items.map(function(i){
-              var meta=[i.phase&&('Phase: '+i.phase),i.task&&('Task: '+i.task)].filter(Boolean).join(' / ');
-              return '<div style="font-size:11px;color:'+cat.color+';padding:2px 0 2px 10px;border-left:2px solid rgba(255,255,255,.1);margin:1px 0;">'+
-                (meta?'<span style="color:#8a92a0;">'+meta+'</span> — ':'')+i.issue+
-              '</div>';
-            }).join('')+
-          '</div>';
-        }).join('')+
-      '</div><div style="height:12px;"></div>',
-      'margin-bottom:16px;'
-    )+'</div>';
+  var timeAgoStr = '';
+  var fetchedAt  = _rlData&&(_rlData.fetchedAt||_rlData.cachedAt);
+  if (fetchedAt) {
+    var ago = Math.round((Date.now()-new Date(fetchedAt).getTime())/1000);
+    timeAgoStr = ago<60 ? ago+'s ago' : ago<3600 ? Math.round(ago/60)+' min ago' : Math.round(ago/3600)+'h ago';
   }
 
-  var activeCats=CATEGORIES.filter(function(cat){return allIssues.some(function(i){return i.category===cat.key;});});
+  var catData = RL_COMP_CATEGORIES.map(function(cat){
+    var ci = allIssues.filter(function(i){return i.category===cat.key;});
+    return {key:cat.key, label:cat.label, icon:cat.icon, color:cat.color, total:ci.length};
+  }).filter(function(c){return c.total>0;});
 
-  body.innerHTML=
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">'+
-      [{label:'Critical Issues',count:high.length,color:'#dc2626',bg:'rgba(220,38,38,.08)',bc:'rgba(220,38,38,.2)'},
-       {label:'Warnings',count:med.length,color:'#f59e0b',bg:'rgba(245,158,11,.08)',bc:'rgba(245,158,11,.2)'},
-       {label:'Info',count:low.length,color:'#60a5fa',bg:'rgba(96,165,250,.08)',bc:'rgba(96,165,250,.2)'}
-      ].map(function(k){
-        return '<div style="background:'+k.bg+';border:1px solid '+k.bc+';border-radius:12px;padding:20px;text-align:center;">'+
-          '<div style="font-size:32px;font-weight:800;color:'+k.color+';line-height:1;">'+k.count+'</div>'+
-          '<div style="font-size:11px;color:#8a92a0;margin-top:6px;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">'+k.label+'</div>'+
-        '</div>';
+  var headerHtml =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:8px;">'+
+      '<div>'+
+        '<div style="font-size:9px;font-family:\'DM Mono\',monospace;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.14em;margin-bottom:4px;">Project Compliance</div>'+
+        '<div style="font-size:12px;color:#5a6270;">'+totalProjects+' projects · '+allIssues.length+' total findings across '+catData.length+' categories</div>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:10px;">'+
+        (_rlData&&_rlData.stale?'<span style="font-size:9px;background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.2);border-radius:5px;padding:2px 8px;font-family:\'DM Mono\',monospace;font-weight:700;letter-spacing:.06em;">STALE</span>':'')+
+        (timeAgoStr?'<span style="font-size:11px;color:#5a6270;font-family:\'DM Mono\',monospace;">Refreshed '+timeAgoStr+'</span>':'')+
+      '</div>'+
+    '</div>';
+
+  if (!allIssues.length) {
+    body.innerHTML = headerHtml+
+      '<div style="background:#0f0f16;border:1px solid rgba(34,197,94,.2);border-radius:14px;padding:48px;text-align:center;">'+
+        '<div style="font-size:32px;margin-bottom:12px;">✅</div>'+
+        '<div style="font-size:16px;font-weight:700;color:#22c55e;margin-bottom:6px;">All Clear</div>'+
+        '<div style="font-size:13px;color:#5a6270;">No compliance issues found across all '+totalProjects+' projects</div>'+
+      '</div>';
+    return;
+  }
+
+  var gridHtml =
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;">'+
+      catData.slice().sort(function(a,b){return b.total-a.total;}).map(function(cat){
+        return '<button onclick="rlOpenCatDetail(\''+cat.key+'\')" '+
+          'style="background:#0f0f16;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:20px;text-align:left;cursor:pointer;'+
+          'font-family:\'DM Sans\',sans-serif;transition:background .15s,border-color .15s;width:100%;" '+
+          'onmouseover="this.style.background=\'rgba(255,255,255,.04)\';this.style.borderColor=\'rgba(255,255,255,.18)\';" '+
+          'onmouseout="this.style.background=\'#0f0f16\';this.style.borderColor=\'rgba(255,255,255,.08)\';">'+
+          '<div style="display:flex;align-items:center;gap:9px;margin-bottom:16px;">'+
+            '<span style="font-size:19px;line-height:1;">'+cat.icon+'</span>'+
+            '<span style="font-size:13px;font-weight:600;color:#f0f0f6;line-height:1.3;">'+cat.label+'</span>'+
+          '</div>'+
+          '<div style="font-size:30px;font-weight:800;color:#e8c97a;letter-spacing:-.5px;font-family:\'DM Sans\',sans-serif;line-height:1;">'+cat.total+'</div>'+
+          '<div style="font-size:11px;color:#5a6270;margin-top:5px;font-family:\'DM Mono\',monospace;">'+(cat.total===1?'finding':'findings')+'</div>'+
+        '</button>';
       }).join('')+
-    '</div>'+
-    (activeCats.length?
-      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">'+
-        activeCats.map(function(cat){
-          var cnt=allIssues.filter(function(i){return i.category===cat.key;}).length;
-          return '<button onclick="var e=document.getElementById(\'rl-cat-'+cat.key+'\');if(e)e.scrollIntoView({behavior:\'smooth\',block:\'start\'});" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;font-size:11px;color:'+cat.color+';display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:background .15s,border-color .15s;" onmouseover="this.style.background=\'rgba(255,255,255,.1)\';this.style.borderColor=\''+cat.color+'40\';" onmouseout="this.style.background=\'rgba(255,255,255,.04)\';this.style.borderColor=\'rgba(255,255,255,.12)\';">'+
-            cat.icon+' '+cat.label+' <span style="font-weight:700;font-family:\'DM Mono\',monospace;">('+cnt+')</span></button>';
-        }).join('')+
-      '</div>'
-    :'')+
-    CATEGORIES.map(function(cat){return catSection(cat);}).join('')+
-    (!allIssues.length?rlCard('<div style="padding:48px;text-align:center;font-size:13px;color:#22c55e;">✅ No compliance issues found across all projects</div>'):'');
+    '</div>';
+
+  body.innerHTML = headerHtml + gridHtml;
 }
+
+function rlOpenCatDetail(catKey) {
+  var cat = RL_COMP_CATEGORIES.find(function(c){return c.key===catKey;});
+  if (!cat) return;
+  var allIssues = rlBuildAllIssues();
+  var catIssues = allIssues.filter(function(i){return i.category===catKey;});
+  var body = document.getElementById('rlTabBody');
+  if (!body) return;
+
+  window._rlCatGroup    = 'project';
+  window._rlCatExpanded = {};
+  window._rlCatDetailed = {};
+  window._rlNoIssuesOpen = false;
+
+  function na(v){ return (v&&String(v).trim()) ? String(v).trim() : null; }
+  function naCell(v, tdStyle){
+    var val = na(v);
+    return val
+      ? '<td style="'+tdStyle+'">'+val+'</td>'
+      : '<td style="'+tdStyle+'"><span style="font-style:italic;color:#5a6270;">Not applicable</span></td>';
+  }
+  function fmtDate(d){
+    if (!d) return null;
+    try{ return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return d; }
+  }
+
+  function buildProjectMap(){
+    var byProj = {};
+    // Seed with ALL projects so compliant ones (0 issues) are visible too
+    (_rlData.projects||[]).forEach(function(p){
+      byProj[String(p.projectId)] = {
+        projectId:p.projectId, project:p.projectName,
+        customer:p.customer||'', projectOwner:p.projectOwner||null,
+        status:p.status, items:[]
+      };
+    });
+    catIssues.forEach(function(i){
+      var key=String(i.projectId);
+      if(byProj[key]) byProj[key].items.push(i);
+      else byProj[key]={projectId:i.projectId, project:i.project, customer:i.customer, projectOwner:i.projectOwner, status:i.status, items:[i]};
+    });
+    return Object.values(byProj).sort(function(a,b){return b.items.length-a.items.length||(a.project||'').localeCompare(b.project||'');});
+  }
+
+  function renderExpandedRows(items, key){
+    var isDetailed = !!window._rlCatDetailed[key];
+    var toggleBtn =
+      '<div style="display:flex;justify-content:flex-end;padding:8px 14px 4px;border-top:1px solid rgba(255,255,255,.05);">'+
+        '<button onclick="event.stopPropagation();window._rlCatDetailed[\''+key+'\']=!window._rlCatDetailed[\''+key+'\'];window.rlRenderCatDetail();" '+
+          'style="background:transparent;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.35);border-radius:6px;padding:4px 11px;font-size:10px;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;transition:all .15s;" '+
+          'onmouseover="this.style.borderColor=\'rgba(255,255,255,.22)\';this.style.color=\'rgba(255,255,255,.6)\';" '+
+          'onmouseout="this.style.borderColor=\'rgba(255,255,255,.1)\';this.style.color=\'rgba(255,255,255,.35)\';">'+
+          (isDetailed ? '− Minimise details' : '+ Show details')+
+        '</button>'+
+      '</div>';
+
+    if (!isDetailed) {
+      // Compact view — Phase › Parent Task › Sub Task › Issue
+      var rows = items.map(function(iss){
+        var crumbs = [];
+        if (na(iss.phase)) crumbs.push('<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:rgba(255,255,255,.3);text-transform:capitalize;letter-spacing:.03em;">'+iss.phase+'</span>');
+        if (na(iss.task))  crumbs.push('<span style="font-size:11px;color:rgba(255,255,255,.48);">'+iss.task+'</span>');
+        var crumbRow = crumbs.length ? '<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">'+crumbs.join('<span style="color:rgba(255,255,255,.18);font-size:11px;"> › </span>')+'</div>' : '';
+        var status = na(iss.taskStatus);
+        return '<div style="padding:9px 14px;border-top:1px solid rgba(255,255,255,.04);">'+
+          crumbRow+
+          '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;">'+
+            '<span style="font-size:12px;color:rgba(255,255,255,.72);line-height:1.5;flex:1;min-width:0;">'+(na(iss.issue)||'—')+'</span>'+
+            (status ? '<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:rgba(255,255,255,.3);white-space:nowrap;flex-shrink:0;">'+status+'</span>' : '')+
+          '</div>'+
+        '</div>';
+      }).join('');
+      return toggleBtn+rows;
+    }
+
+    // Detailed view — full table
+    var tdS = 'padding:9px 12px;font-size:11.5px;color:rgba(255,255,255,.62);vertical-align:top;border-top:1px solid rgba(255,255,255,.04);line-height:1.5;';
+    var thS = 'padding:7px 12px;font-size:9px;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.22);font-weight:600;white-space:nowrap;text-align:left;';
+    var cols = ['Phase','Parent Task','Subtask','Issue','Status','Task Owner','Start Date','Due Date'];
+    var tableRows = items.map(function(iss){
+      return '<tr>'+
+        naCell(iss.phase, tdS)+
+        naCell(iss.task, tdS)+
+        '<td style="'+tdS+'"><span style="font-style:italic;color:#5a6270;">Not applicable</span></td>'+
+        '<td style="'+tdS+';color:rgba(255,255,255,.82);">'+(na(iss.issue)||'—')+'</td>'+
+        naCell(iss.taskStatus, tdS)+
+        naCell(iss.taskOwner, tdS)+
+        naCell(fmtDate(iss.taskStartDate), tdS)+
+        naCell(fmtDate(iss.taskDueDate), tdS)+
+      '</tr>';
+    }).join('');
+    return toggleBtn+
+      '<div style="overflow-x:auto;">'+
+        '<table style="width:100%;border-collapse:collapse;min-width:720px;">'+
+          '<thead><tr style="background:rgba(255,255,255,.02);">'+cols.map(function(c){return '<th style="'+thS+'">'+c+'</th>';}).join('')+'</tr></thead>'+
+          '<tbody>'+tableRows+'</tbody>'+
+        '</table>'+
+      '</div>';
+  }
+
+  function renderProjectRow(proj){
+    var key = 'p'+String(proj.projectId);
+    var isOpen = !!window._rlCatExpanded[key];
+    var ownerVal = na(proj.projectOwner);
+    var clientVal = na(proj.customer);
+    var metaItems = [];
+    if (clientVal) metaItems.push('<span style="font-size:11px;color:rgba(255,255,255,.45);">'+clientVal+'</span>');
+    if (ownerVal)  metaItems.push('<span style="font-size:11px;color:rgba(255,255,255,.45);">'+ownerVal+'</span>');
+    var sep = '<span style="color:rgba(255,255,255,.14);font-size:10px;margin:0 1px;">·</span>';
+    var metaHtml = '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;">'+
+      rlStatus(proj.status)+
+      (metaItems.length ? sep+metaItems.join(sep) : '')+
+    '</div>';
+    var hasIssues = proj.items.length > 0;
+    var rightHtml = hasIssues
+      ? '<div style="display:flex;align-items:center;gap:14px;flex-shrink:0;">'+
+          '<div style="text-align:right;">'+
+            '<div style="font-size:16px;font-weight:700;color:#e8c97a;font-family:\'DM Mono\',monospace;line-height:1;">'+proj.items.length+'</div>'+
+            '<div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;margin-top:2px;text-align:right;">'+(proj.items.length===1?'finding':'findings')+'</div>'+
+          '</div>'+
+          '<div style="font-size:11px;color:rgba(255,255,255,.25);white-space:nowrap;min-width:68px;text-align:right;">'+(isOpen?'▲ Collapse':'▼ Expand')+'</div>'+
+        '</div>'
+      : '<div style="flex-shrink:0;display:flex;align-items:center;gap:5px;">'+
+          '<span style="font-size:13px;color:#22c55e;">✓</span>'+
+          '<span style="font-size:11px;font-weight:600;color:#22c55e;white-space:nowrap;">No issues</span>'+
+        '</div>';
+    var borderColor = hasIssues ? 'rgba(255,255,255,.07)' : 'rgba(34,197,94,.12)';
+    return '<div style="background:#0c0c14;border:1px solid '+borderColor+';border-radius:10px;margin-bottom:8px;overflow:hidden;">'+
+      '<div style="display:flex;align-items:center;gap:16px;padding:14px 18px;'+(hasIssues?'cursor:pointer;':'')+'" '+
+        (hasIssues?'onclick="window._rlCatExpanded[\''+key+'\']=!window._rlCatExpanded[\''+key+'\'];window.rlRenderCatDetail();"':'')+'>'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-size:14px;font-weight:600;color:#bae6fd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(na(proj.project)||'—')+'</div>'+
+          metaHtml+
+        '</div>'+
+        rightHtml+
+      '</div>'+
+      (isOpen && hasIssues ? renderExpandedRows(proj.items, key) : '')+
+    '</div>';
+  }
+
+  function renderGrouped(groupBy){
+    var projects = buildProjectMap();
+    var html = '';
+    function groupHeader(name, tot, projCount, ac) {
+      var statsColor = tot===0 ? '#22c55e' : '#e8c97a';
+      var statsText = projCount+' '+(projCount===1?'project':'projects')+' · '+(tot===0?'✓ No issues':tot+' '+(tot===1?'finding':'findings'));
+      return '<div style="padding:18px 20px 14px;">'+
+        '<div style="font-size:17px;font-weight:700;color:#38bdf8;letter-spacing:-.01em;">'+name+'</div>'+
+        '<div style="font-size:11px;color:'+statsColor+';margin-top:5px;font-family:\'DM Mono\',monospace;font-weight:600;">'+statsText+'</div>'+
+      '</div>'+
+      '<div style="border-bottom:1px solid rgba(255,255,255,.06);margin:0 8px 10px;"></div>';
+    }
+    function renderNoIssuesSummary(noItems, viewType) {
+      var isOpen = !!window._rlNoIssuesOpen;
+      var count = noItems.length;
+      var unit = viewType==='project'?(count===1?'project':'projects'):viewType==='client'?(count===1?'client':'clients'):(count===1?'owner':'owners');
+      var inner = '';
+      if (isOpen) {
+        if (viewType==='project') {
+          inner = noItems.map(renderProjectRow).join('');
+        } else {
+          noItems.forEach(function(g){
+            inner+='<div style="background:#0f0f16;border:1px solid rgba(34,197,94,.1);border-radius:14px;margin-bottom:10px;overflow:hidden;padding:0 8px 10px;">'+groupHeader(g.k,0,g.ps.length)+g.ps.map(renderProjectRow).join('')+'</div>';
+          });
+        }
+      }
+      return '<div style="background:rgba(34,197,94,.04);border:1px solid rgba(34,197,94,.18);border-radius:12px;margin-top:10px;overflow:hidden;">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;cursor:pointer;" '+
+          'onclick="window._rlNoIssuesOpen=!window._rlNoIssuesOpen;window.rlRenderCatDetail();">'+
+          '<div style="display:flex;align-items:center;gap:8px;">'+
+            '<span style="font-size:15px;color:#22c55e;line-height:1;">✓</span>'+
+            '<span style="font-size:13px;font-weight:600;color:#22c55e;">'+count+' '+unit+' with no compliance issues</span>'+
+          '</div>'+
+          '<span style="font-size:11px;color:rgba(255,255,255,.3);white-space:nowrap;flex-shrink:0;">'+(isOpen?'▲ Collapse':'▼ Show all')+'</span>'+
+        '</div>'+
+        (isOpen?'<div style="padding:0 8px 8px;">'+inner+'</div>':'')+
+      '</div>';
+    }
+    if (groupBy==='client') {
+      var cmap = {};
+      projects.forEach(function(p){ var k=na(p.customer)||'No Client'; if(!cmap[k])cmap[k]=[]; cmap[k].push(p); });
+      var withIss=[], noIss=[];
+      Object.keys(cmap).sort().forEach(function(k){ var ps=cmap[k],tot=ps.reduce(function(s,p){return s+p.items.length;},0); (tot>0?withIss:noIss).push({k:k,ps:ps,tot:tot}); });
+      withIss.forEach(function(g){ html+='<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:14px;margin-bottom:14px;overflow:hidden;padding:0 8px 10px;">'+groupHeader(g.k,g.tot,g.ps.length)+g.ps.map(renderProjectRow).join('')+'</div>'; });
+      if (noIss.length) html+=renderNoIssuesSummary(noIss,'client');
+    } else if (groupBy==='owner') {
+      var omap = {};
+      projects.forEach(function(p){ var k=na(p.projectOwner)||'Unassigned'; if(!omap[k])omap[k]=[]; omap[k].push(p); });
+      var withIss=[], noIss=[];
+      Object.keys(omap).sort().forEach(function(k){ var ps=omap[k],tot=ps.reduce(function(s,p){return s+p.items.length;},0); (tot>0?withIss:noIss).push({k:k,ps:ps,tot:tot}); });
+      withIss.forEach(function(g){ html+='<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:14px;margin-bottom:14px;overflow:hidden;padding:0 8px 10px;">'+groupHeader(g.k,g.tot,g.ps.length,'#93c5fd')+g.ps.map(renderProjectRow).join('')+'</div>'; });
+      if (noIss.length) html+=renderNoIssuesSummary(noIss,'owner');
+    } else {
+      var withIss=projects.filter(function(p){return p.items.length>0;}), noIss=projects.filter(function(p){return p.items.length===0;});
+      html=withIss.map(renderProjectRow).join('');
+      if (noIss.length) html+=renderNoIssuesSummary(noIss,'project');
+    }
+    return html || '<div style="padding:40px;text-align:center;font-size:13px;color:#5a6270;">No issues found</div>';
+  }
+
+  window.rlRenderCatDetail = function(){
+    var el = document.getElementById('rlCatDetailBody');
+    if (!el) return;
+    var g = window._rlCatGroup || 'project';
+    var groups = [
+      {id:'project', label:'Project'},
+      {id:'client',  label:'Client'},
+      {id:'owner',   label:'Project Owner'}
+    ];
+    var toolbarHtml =
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">'+
+        '<span style="font-size:11px;color:#5a6270;font-family:\'DM Mono\',monospace;white-space:nowrap;">Group by</span>'+
+        '<div style="display:flex;gap:4px;">'+
+          groups.map(function(gr){
+            var isAct = g===gr.id;
+            return '<button onclick="window.rlCatDetailFilter(\'group\',\''+gr.id+'\')" '+
+              'style="background:'+(isAct?'rgba(201,162,39,.12)':'transparent')+';border:1px solid '+(isAct?'rgba(201,162,39,.32)':'rgba(255,255,255,.08)')+';'+
+              'color:'+(isAct?'#e8c97a':'rgba(255,255,255,.32)')+';border-radius:7px;padding:5px 12px;font-size:12px;'+
+              'font-weight:'+(isAct?'600':'400')+';cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .15s;white-space:nowrap;">'+gr.label+'</button>';
+          }).join('')+
+        '</div>'+
+        '<div style="margin-left:auto;font-size:11px;color:#5a6270;font-family:\'DM Mono\',monospace;">'+catIssues.length+' finding'+(catIssues.length!==1?'s':'')+'</div>'+
+      '</div>';
+    el.innerHTML = toolbarHtml + renderGrouped(g);
+  };
+
+  window.rlCatDetailFilter = function(type, val){
+    if (type==='group'){ window._rlCatGroup=val; window._rlCatExpanded={}; window._rlCatDetailed={}; window._rlNoIssuesOpen=false; }
+    window.rlRenderCatDetail();
+  };
+
+  var affectedProjs = new Set(catIssues.map(function(i){return i.projectId;})).size;
+
+  body.innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:22px;">'+
+      '<button onclick="rlBackToCompliance()" '+
+        'style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.45);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif;transition:all .15s;" '+
+        'onmouseover="this.style.background=\'rgba(255,255,255,.1)\'" onmouseout="this.style.background=\'rgba(255,255,255,.05)\'">'+
+        '← Compliance Overview'+
+      '</button>'+
+      '<span style="color:rgba(255,255,255,.1);font-size:16px;">›</span>'+
+      '<span style="font-size:12px;color:rgba(255,255,255,.32);">'+cat.icon+' '+cat.label+'</span>'+
+    '</div>'+
+    '<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:20px 24px;margin-bottom:22px;">'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'+
+        '<span style="font-size:22px;line-height:1;">'+cat.icon+'</span>'+
+        '<span style="font-size:17px;font-weight:700;color:#f0f0f6;">'+cat.label+'</span>'+
+      '</div>'+
+      '<div style="font-size:12px;color:#5a6270;margin-bottom:14px;line-height:1.55;">'+cat.desc+'</div>'+
+      '<div style="display:flex;gap:24px;align-items:baseline;flex-wrap:wrap;">'+
+        '<div style="display:flex;align-items:baseline;gap:8px;">'+
+          '<span style="font-size:28px;font-weight:800;color:#e8c97a;letter-spacing:-.5px;font-family:\'DM Sans\',sans-serif;line-height:1;">'+catIssues.length+'</span>'+
+          '<span style="font-size:12px;color:#5a6270;font-family:\'DM Mono\',monospace;">'+(catIssues.length===1?'finding':'findings')+'</span>'+
+        '</div>'+
+        '<div style="font-size:12px;color:#5a6270;">across <strong style="color:rgba(255,255,255,.45);">'+affectedProjs+'</strong> project'+(affectedProjs!==1?'s':'')+'</div>'+
+      '</div>'+
+    '</div>'+
+    '<div id="rlCatDetailBody"></div>';
+
+  window.rlRenderCatDetail();
+}
+window.rlOpenCatDetail = rlOpenCatDetail;
+
+function rlBackToCompliance() {
+  _rlTab = 'compliance';
+  var bar = document.getElementById('rlTabBar');
+  if (bar) RL_TABS.forEach(function(t, i) {
+    var btn = bar.children[i]; if (!btn) return;
+    var a = t.id === 'compliance';
+    btn.style.fontWeight = a ? '600' : '400';
+    btn.style.color = a ? '#c9a227' : 'rgba(255,255,255,.4)';
+    btn.style.borderBottom = '2px solid ' + (a ? '#c9a227' : 'transparent');
+  });
+  rlTabCompliance(document.getElementById('rlTabBody'));
+}
+window.rlBackToCompliance = rlBackToCompliance;
 
 // ─── Tab 4: Timeline Changes ──────────────────────────────────────────────────
 function rlTabTimeline(body) {
@@ -11003,6 +11332,1174 @@ function rlTabTimeline(body) {
     rlCard('<div style="padding:12px 16px 0;"><div style="font-size:12px;font-weight:700;color:#22c55e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">✅ Active Projects (on track)</div></div>'+pRows(active,'No active on-track projects'));
 }
 
+// ─── Tab 6: Health Dashboard ──────────────────────────────────────────────────
+// ─── Tab 0: 360° Overall Dashboard ─────────────────────────────────────────
+function rlTabOverview(body) {
+  // ── State ──
+  var _clientF = '', _ownerF = '', _statusF = 'all', _stdF = 'all';
+  var _ownerView = 'client'; // 'client' | 'owner'
+
+  // ── Helper: median ──
+  function median(arr) {
+    if (!arr.length) return null;
+    var s = arr.slice().sort(function(a,b){return a-b;});
+    var m = Math.floor(s.length/2);
+    return s.length%2 ? s[m] : Math.round((s[m-1]+s[m])/2);
+  }
+
+  // ── Filtered project set ──
+  function fps() {
+    var ps = (_rlData && _rlData.projects) || [];
+    if (_clientF) ps = ps.filter(function(p){ return p.customer === _clientF; });
+    if (_ownerF)  ps = ps.filter(function(p){ return p.projectOwner === _ownerF; });
+    if (_statusF !== 'all') {
+      ps = ps.filter(function(p){
+        var s = (p.status||'').toLowerCase();
+        if (_statusF === 'active')    return s.includes('progress') || s.includes('active');
+        if (_statusF === 'complete')  return s.includes('complet');
+        if (_statusF === 'hold')      return s.includes('hold');
+        if (_statusF === 'blocked')   return s.includes('block');
+        if (_statusF === 'cancelled') return s.includes('cancel');
+        return true;
+      });
+    }
+    if (_stdF === 'standard')    ps = ps.filter(function(p){ return p.isStandard; });
+    if (_stdF === 'nonstandard') ps = ps.filter(function(p){ return !p.isStandard; });
+    return ps;
+  }
+
+  // ── Section header ──
+  function sh(n, title, sub) {
+    return '<div style="display:flex;align-items:baseline;gap:10px;margin:22px 0 10px;">' +
+      '<div style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#c9a227,#8b6914);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#000;flex-shrink:0;">' + n + '</div>' +
+      '<div>' +
+        '<div style="font-size:14px;font-weight:700;color:#f0f0f6;letter-spacing:-.2px;">' + title + '</div>' +
+        (sub ? '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;margin-top:1px;">' + sub + '</div>' : '') +
+      '</div>' +
+    '</div>';
+  }
+
+  // ── KPI mini-card ──
+  function kpi(val, label, sub, color) {
+    return '<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px 16px;flex:1;min-width:110px;">' +
+      '<div style="font-size:24px;font-weight:800;color:' + (color||'#f0f0f6') + ';font-family:\'DM Mono\',monospace;line-height:1;letter-spacing:-.5px;">' + val + '</div>' +
+      '<div style="font-size:11px;font-weight:600;color:#c9d0da;margin-top:5px;">' + label + '</div>' +
+      (sub ? '<div style="font-size:9px;color:#5a6270;margin-top:2px;font-family:\'DM Mono\',monospace;">' + sub + '</div>' : '') +
+    '</div>';
+  }
+
+  // ── Toggle button ──
+  function togBtn(v, cur, fn, label) {
+    var a = v === cur;
+    return '<button onclick="' + fn + '(\'' + v + '\')" style="background:' + (a?'rgba(255,255,255,.1)':'transparent') + ';border:1px solid ' + (a?'rgba(255,255,255,.2)':'rgba(255,255,255,.07)') + ';color:' + (a?'#f0f0f6':'rgba(255,255,255,.35)') + ';border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;transition:all .15s;">' + label + '</button>';
+  }
+
+  // ── Filters ──
+  function buildFilters() {
+    var allPs = (_rlData && _rlData.projects) || [];
+    var clients = [], owners = [];
+    allPs.forEach(function(p){
+      if (p.customer && clients.indexOf(p.customer)<0) clients.push(p.customer);
+      if (p.projectOwner && owners.indexOf(p.projectOwner)<0) owners.push(p.projectOwner);
+    });
+    clients.sort(); owners.sort();
+    var sel = 'background:#161620;border:1px solid rgba(255,255,255,.14);color:#f0f0f6;border-radius:7px;padding:5px 9px;font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer;outline:none;';
+    var lb  = 'font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;';
+    var clientOpts = '<option value="">All Clients</option>' + clients.map(function(c){
+      return '<option value="' + c.replace(/"/g,'&quot;') + '"' + (c===_clientF?' selected':'') + '>' + c + '</option>';
+    }).join('');
+    var ownerOpts = '<option value="">All Owners</option>' + owners.map(function(o){
+      return '<option value="' + o.replace(/"/g,'&quot;') + '"' + (o===_ownerF?' selected':'') + '>' + o + '</option>';
+    }).join('');
+    return rlCard(
+      '<div style="padding:12px 16px 10px;">' +
+        '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
+          '<div style="display:flex;align-items:center;gap:6px;">' +
+            '<span style="' + lb + '">Status</span>' +
+            '<div style="display:flex;gap:3px;">' +
+              togBtn('all',_statusF,'window.rlOVSt','All') +
+              togBtn('active',_statusF,'window.rlOVSt','Active') +
+              togBtn('complete',_statusF,'window.rlOVSt','Completed') +
+              togBtn('hold',_statusF,'window.rlOVSt','On Hold') +
+            '</div>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:6px;">' +
+            '<span style="' + lb + '">Client</span>' +
+            '<select onchange="window.rlOVCl(this.value)" style="' + sel + '">' + clientOpts + '</select>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:6px;">' +
+            '<span style="' + lb + '">Owner</span>' +
+            '<select onchange="window.rlOVOw(this.value)" style="' + sel + '">' + ownerOpts + '</select>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:6px;">' +
+            '<span style="' + lb + '">Type</span>' +
+            '<div style="display:flex;gap:3px;">' +
+              togBtn('all',_stdF,'window.rlOVStd','All') +
+              togBtn('standard',_stdF,'window.rlOVStd','Standard') +
+              togBtn('nonstandard',_stdF,'window.rlOVStd','Non-standard') +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>',
+      'margin-bottom:14px;'
+    );
+  }
+
+  // ─── SECTION 1: Portfolio Overview ────────────────────────────────────────
+  function buildPortfolioOverview(ps) {
+    var total = ps.length;
+    if (!total) return rlCard('<div style="padding:40px;text-align:center;color:#5a6270;">No projects match current filters.</div>', 'margin-bottom:14px;');
+
+    function matchSt(p, key) {
+      var s = (p.status||'').toLowerCase();
+      if (key==='active')     return s.includes('progress')||s.includes('active');
+      if (key==='complete')   return s.includes('complet');
+      if (key==='hold')       return s.includes('hold');
+      if (key==='blocked')    return s.includes('block');
+      if (key==='cancelled')  return s.includes('cancel');
+      if (key==='notstarted') return s.includes('yet')||s.includes('not start')||s.includes('planned');
+      return false;
+    }
+    var STATUS_GROUPS = [
+      {key:'notstarted', label:'Yet to Start',  color:'#8a92a0'},
+      {key:'active',     label:'In Progress',   color:'#38bdf8'},
+      {key:'complete',   label:'Completed',     color:'#22c55e'},
+      {key:'hold',       label:'On Hold',       color:'#f59e0b'},
+      {key:'blocked',    label:'Blocked',       color:'#ef4444'},
+      {key:'cancelled',  label:'Cancelled',     color:'#6b7280'}
+    ];
+    STATUS_GROUPS.forEach(function(g){ g.count = ps.filter(function(p){ return matchSt(p,g.key); }).length; });
+
+    var compliant   = ps.filter(function(p){ return (p.compliance&&p.compliance.issueCount||0)===0; }).length;
+    var totalMisses = ps.reduce(function(s,p){ return s+(p.compliance&&p.compliance.issueCount||0); },0);
+    var compPct     = Math.round(compliant/total*100);
+
+    var onTrack = ps.filter(function(p){ return p.onSchedule==='on-track'; }).length;
+    var atRisk  = ps.filter(function(p){ return p.onSchedule==='at-risk'; }).length;
+    var delayed = ps.filter(function(p){ return p.onSchedule==='delayed'; }).length;
+    var noDate  = ps.filter(function(p){ return !p.onSchedule||p.onSchedule==='no-date'; }).length;
+
+    var stdPs   = ps.filter(function(p){ return p.isStandard && p.overallPct!=null; });
+    var avgPct  = stdPs.length ? Math.round(stdPs.reduce(function(s,p){return s+p.overallPct;},0)/stdPs.length) : null;
+    var activeC = ps.filter(function(p){ return matchSt(p,'active'); }).length;
+    var doneC   = ps.filter(function(p){ return matchSt(p,'complete'); }).length;
+    var holdC   = ps.filter(function(p){ return matchSt(p,'hold')||matchSt(p,'blocked'); }).length;
+
+    var maxC = Math.max(1, Math.max.apply(null, STATUS_GROUPS.map(function(g){return g.count;})));
+    var statusBars = STATUS_GROUPS.filter(function(g){return g.count>0;}).map(function(g){
+      var pct = Math.round(g.count/total*100);
+      var w   = Math.round(g.count/maxC*180);
+      return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">' +
+        '<div style="width:80px;font-size:11px;color:#8a92a0;text-align:right;flex-shrink:0;">' + g.label + '</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<div style="height:18px;border-radius:3px;background:' + g.color + ';opacity:.8;width:' + w + 'px;min-width:3px;"></div>' +
+          '<span style="font-size:12px;font-weight:700;color:' + g.color + ';font-family:\'DM Mono\',monospace;">' + g.count + '</span>' +
+          '<span style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;">' + pct + '%</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    function pill(label, n, col) {
+      if (!n) return '';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;background:' + col + '18;border:1px solid ' + col + '33;flex:1;min-width:90px;">' +
+        '<div style="font-size:20px;font-weight:800;color:' + col + ';font-family:\'DM Mono\',monospace;">' + n + '</div>' +
+        '<div style="font-size:11px;color:' + col + ';font-weight:600;">' + label + '</div>' +
+      '</div>';
+    }
+
+    return rlCard(
+      '<div style="padding:14px 18px 16px;">' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">' +
+          kpi(total, 'Total Projects', 'across all statuses', '#f0f0f6') +
+          kpi(activeC, 'In Progress', 'currently active', '#38bdf8') +
+          kpi(doneC, 'Completed', 'successfully delivered', '#22c55e') +
+          kpi(holdC, 'On Hold / Blocked', 'paused projects', '#f59e0b') +
+          kpi(compPct + '%', 'Portfolio Compliance', compliant + ' projects · 0 misses', compPct>=70?'#22c55e':compPct>=40?'#f59e0b':'#ef4444') +
+          (avgPct!=null ? kpi(avgPct + '%', 'Avg Delivery Progress', stdPs.length + ' standard projects', '#a78bfa') : '') +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Status Distribution</div>' +
+            statusBars +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Schedule Health</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">' +
+              pill('On Track', onTrack, '#22c55e') +
+              pill('At Risk', atRisk, '#f59e0b') +
+              pill('Delayed', delayed, '#ef4444') +
+              (noDate ? pill('No Date', noDate, '#5a6270') : '') +
+            '</div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Compliance</div>' +
+            '<div style="display:flex;gap:3px;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.06);">' +
+              (compliant ? '<div style="flex:' + compliant + ';background:#22c55e;"></div>' : '') +
+              (total-compliant ? '<div style="flex:' + (total-compliant) + ';background:#ef4444;opacity:.6;"></div>' : '') +
+            '</div>' +
+            '<div style="display:flex;justify-content:space-between;margin-top:5px;">' +
+              '<span style="font-size:10px;color:#22c55e;font-family:\'DM Mono\',monospace;">' + compliant + ' compliant</span>' +
+              '<span style="font-size:10px;color:#ef4444;font-family:\'DM Mono\',monospace;">' + totalMisses + ' total misses</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>',
+      'margin-bottom:14px;'
+    );
+  }
+
+  // ─── SECTION 2: Delivery Progress & Phase Performance ─────────────────────
+  function buildDeliveryProgress(ps) {
+    var std    = ps.filter(function(p){ return p.isStandard; });
+    var nonStd = ps.filter(function(p){ return !p.isStandard; });
+    if (!std.length) return rlCard(
+      '<div style="padding:24px 18px;"><div style="font-size:12px;color:#8a92a0;">No standard projects in current filter. Standard projects follow the Engage → Drive → Enable → Convert methodology.</div></div>',
+      'margin-bottom:14px;'
+    );
+
+    var phaseCounts = {engage:0,drive:0,enable:0,convert:0,completed:0};
+    var phaseAvgPct = {engage:[],drive:[],enable:[],convert:[]};
+    std.forEach(function(p){
+      if (p.currentPhase) phaseCounts[p.currentPhase] = (phaseCounts[p.currentPhase]||0)+1;
+      ['engage','drive','enable','convert'].forEach(function(ph){
+        var pct = p.phases&&p.phases[ph] ? p.phases[ph].pct : 0;
+        phaseAvgPct[ph].push(pct||0);
+      });
+    });
+
+    var PH_COLOR = {engage:'#22c55e',drive:'#38bdf8',enable:'#a78bfa',convert:'#f97316',completed:'#c9a227'};
+    var PH_LABEL = {engage:'Engage',drive:'Drive',enable:'Enable',convert:'Convert',completed:'Completed'};
+    var PH_ORDER = ['engage','drive','enable','convert','completed'];
+
+    var maxPC = Math.max(1, Math.max.apply(null, PH_ORDER.map(function(ph){return phaseCounts[ph]||0;})));
+
+    var distBars = PH_ORDER.map(function(ph){
+      var cnt = phaseCounts[ph]||0;
+      var pct = Math.round(cnt/std.length*100);
+      var w   = Math.round(cnt/maxPC*160);
+      return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">' +
+        '<div style="width:65px;font-size:11px;color:#8a92a0;text-align:right;flex-shrink:0;">' + PH_LABEL[ph] + '</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<div style="height:20px;border-radius:3px;background:' + PH_COLOR[ph] + ';opacity:.8;width:' + w + 'px;min-width:3px;"></div>' +
+          '<span style="font-size:13px;font-weight:700;color:' + PH_COLOR[ph] + ';font-family:\'DM Mono\',monospace;">' + cnt + '</span>' +
+          '<span style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;">' + pct + '%</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    var avgBars = ['engage','drive','enable','convert'].map(function(ph){
+      var arr = phaseAvgPct[ph];
+      var avg = arr.length ? Math.round(arr.reduce(function(s,v){return s+v;},0)/arr.length) : 0;
+      var col = PH_COLOR[ph];
+      return '<div style="margin-bottom:9px;">' +
+        '<div style="display:flex;justify-content:space-between;margin-bottom:3px;">' +
+          '<span style="font-size:11px;color:#8a92a0;">' + PH_LABEL[ph] + '</span>' +
+          '<span style="font-size:11px;font-weight:700;color:' + col + ';font-family:\'DM Mono\',monospace;">' + avg + '%</span>' +
+        '</div>' +
+        '<div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px;">' +
+          '<div style="background:' + col + ';height:6px;border-radius:3px;width:' + avg + '%;opacity:.85;"></div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    var durRows = ['engage','drive','enable','convert'].map(function(ph){
+      var durs = std.filter(function(p){ return p.phaseDurations&&p.phaseDurations[ph]!=null; }).map(function(p){return p.phaseDurations[ph];});
+      var col = PH_COLOR[ph];
+      if (!durs.length) return '<tr><td style="padding:7px 10px;font-size:11px;color:' + col + ';">' + PH_LABEL[ph] + '</td><td style="padding:7px 10px;font-size:10px;color:#4b5460;font-family:\'DM Mono\',monospace;" colspan="3">Insufficient data</td></tr>';
+      var avg = Math.round(durs.reduce(function(s,v){return s+v;},0)/durs.length);
+      var med = median(durs);
+      return '<tr style="border-bottom:1px solid rgba(255,255,255,.04);">' +
+        '<td style="padding:7px 10px;font-size:11px;color:' + col + ';">' + PH_LABEL[ph] + '</td>' +
+        '<td style="padding:7px 10px;font-size:12px;font-weight:700;color:#c9d0da;font-family:\'DM Mono\',monospace;text-align:right;">' + avg + 'd</td>' +
+        '<td style="padding:7px 10px;font-size:12px;color:#8a92a0;font-family:\'DM Mono\',monospace;text-align:right;">' + med + 'd</td>' +
+        '<td style="padding:7px 10px;font-size:11px;color:#5a6270;font-family:\'DM Mono\',monospace;text-align:right;">' + durs.length + '</td>' +
+      '</tr>';
+    }).join('');
+
+    return rlCard(
+      '<div style="padding:14px 18px 16px;">' +
+        '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;margin-bottom:14px;">' +
+          std.length + ' standard projects · ' + nonStd.length + ' non-standard excluded from phase analysis' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:start;">' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Current Phase Distribution</div>' +
+            distBars +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Avg Phase Completion %</div>' +
+            avgBars +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Phase Duration · completed phases</div>' +
+            '<table style="width:100%;border-collapse:collapse;">' +
+              '<thead><tr>' +
+                '<th style="padding:5px 10px;font-size:9px;color:#4b5460;text-align:left;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Phase</th>' +
+                '<th style="padding:5px 10px;font-size:9px;color:#4b5460;text-align:right;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Avg</th>' +
+                '<th style="padding:5px 10px;font-size:9px;color:#4b5460;text-align:right;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Median</th>' +
+                '<th style="padding:5px 10px;font-size:9px;color:#4b5460;text-align:right;font-family:\'DM Mono\',monospace;text-transform:uppercase;">n</th>' +
+              '</tr></thead>' +
+              '<tbody>' + durRows + '</tbody>' +
+            '</table>' +
+            '<div style="font-size:9px;color:#3a4050;margin-top:6px;font-family:\'DM Mono\',monospace;">Derived from task planned dates · active phases excluded</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>',
+      'margin-bottom:14px;'
+    );
+  }
+
+  // ─── SECTION 3: Schedule Health ─────────────────────────────────────────
+  function buildScheduleHealth(ps) {
+    var onTrack = ps.filter(function(p){ return p.onSchedule==='on-track'; });
+    var atRisk  = ps.filter(function(p){ return p.onSchedule==='at-risk'; });
+    var delayed = ps.filter(function(p){ return p.onSchedule==='delayed'; });
+
+    var varArr = ps.filter(function(p){ return p.scheduleVarianceDays!=null; }).map(function(p){return p.scheduleVarianceDays;});
+    var avgVar = varArr.length ? Math.round(varArr.reduce(function(s,v){return s+v;},0)/varArr.length) : null;
+
+    var mostDelayed = delayed.concat(atRisk)
+      .filter(function(p){ return p.scheduleVarianceDays!=null; })
+      .sort(function(a,b){ return a.scheduleVarianceDays-b.scheduleVarianceDays; })
+      .slice(0,8);
+    var withOverdue = ps.filter(function(p){ return (p.overdueTaskCount||0)>0; })
+      .sort(function(a,b){ return (b.overdueTaskCount||0)-(a.overdueTaskCount||0); })
+      .slice(0,8);
+
+    var maxDelay = mostDelayed.length ? Math.abs(mostDelayed[0].scheduleVarianceDays||1) : 1;
+
+    var delayRows = mostDelayed.map(function(p){
+      var v   = p.scheduleVarianceDays||0;
+      var col = v>=0?'#22c55e':v>=-14?'#f59e0b':'#ef4444';
+      var w   = Math.round(Math.abs(v)/Math.max(1,maxDelay)*100);
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding:6px 10px;background:rgba(255,255,255,.03);border-radius:6px;">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:11px;color:#c9d0da;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.projectName + '</div>' +
+          '<div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;">' + (p.customer||'No client') + '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
+          '<div style="width:100px;height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;">' +
+            '<div style="height:5px;background:' + col + ';width:' + w + 'px;opacity:.8;"></div>' +
+          '</div>' +
+          '<span style="font-size:11px;font-weight:700;color:' + col + ';font-family:\'DM Mono\',monospace;width:48px;text-align:right;">' + (v>=0?'+':'') + v + 'd</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    var overdueRows = withOverdue.map(function(p){
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding:6px 10px;background:rgba(255,255,255,.03);border-radius:6px;">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:11px;color:#c9d0da;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.projectName + '</div>' +
+          '<div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;">' + (p.customer||'No client') + '</div>' +
+        '</div>' +
+        '<div style="font-size:11px;font-weight:700;color:#ef4444;font-family:\'DM Mono\',monospace;flex-shrink:0;">' + p.overdueTaskCount + ' overdue</div>' +
+      '</div>';
+    }).join('');
+
+    return rlCard(
+      '<div style="padding:14px 18px 16px;">' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">' +
+          kpi(onTrack.length,'On Track','ahead or matching plan','#22c55e') +
+          kpi(atRisk.length,'At Risk','up to 2 weeks behind','#f59e0b') +
+          kpi(delayed.length,'Delayed','>2 weeks behind plan','#ef4444') +
+          kpi(ps.filter(function(p){return(p.overdueTaskCount||0)>0;}).length,'Have Overdue Tasks','require immediate action','#dc2626') +
+          (avgVar!=null ? kpi((avgVar>=0?'+':'') + avgVar+'d','Avg Schedule Variance',varArr.length+' dated projects',avgVar>=0?'#22c55e':'#f59e0b') : '') +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Most Delayed Projects</div>' +
+            (mostDelayed.length ? delayRows : '<div style="font-size:12px;color:#22c55e;padding:20px 0;">✓ No delayed or at-risk projects</div>') +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Projects with Overdue Tasks</div>' +
+            (withOverdue.length ? overdueRows : '<div style="font-size:12px;color:#22c55e;padding:20px 0;">✓ No overdue tasks found</div>') +
+          '</div>' +
+        '</div>' +
+      '</div>',
+      'margin-bottom:14px;'
+    );
+  }
+
+  // ─── SECTION 4: Compliance, Risks & Issues ──────────────────────────────
+  function buildComplianceRisks(ps) {
+    var CATS = [
+      {key:'dates',     label:'Missing Dates',       color:'#8b5cf6'},
+      {key:'overdue',   label:'Overdue Tasks',        color:'#dc2626'},
+      {key:'structure', label:'Phase Structure',      color:'#f59e0b'},
+      {key:'ownership', label:'Unowned Tasks',        color:'#60a5fa'},
+      {key:'gaps',      label:'Date Gaps',            color:'#a78bfa'},
+      {key:'stale',     label:'Stale Progress',       color:'#fb923c'},
+      {key:'blocked',   label:'Blocked Tasks',        color:'#ef4444'},
+      {key:'premature', label:'Premature Completion', color:'#f97316'},
+      {key:'weekend',   label:'Weekend Dates',        color:'#94a3b8'},
+      {key:'completion',label:'Completion Issues',    color:'#e879f9'},
+      {key:'closure',   label:'Closure Pending',      color:'#c9a227'},
+      {key:'inactive',  label:'Inactive Projects',    color:'#6b7280'}
+    ];
+
+    var totalMisses  = ps.reduce(function(s,p){return s+(p.compliance&&p.compliance.issueCount||0);},0);
+    var compliant    = ps.filter(function(p){return (p.compliance&&p.compliance.issueCount||0)===0;}).length;
+    var highRisk     = ps.filter(function(p){return (p.compliance&&p.compliance.issueCount||0)>=6;}).length;
+    var totalBlocked = ps.reduce(function(s,p){return s+(p.blockedTaskCount||0);},0);
+    var compPct      = ps.length ? Math.round(compliant/ps.length*100) : 100;
+
+    var catData = CATS.map(function(c){
+      var n = ps.reduce(function(s,p){
+        return s+(p.compliance&&p.compliance.issues||[]).filter(function(i){return i.category===c.key;}).length;
+      },0);
+      return {key:c.key,label:c.label,color:c.color,count:n};
+    }).filter(function(c){return c.count>0;}).sort(function(a,b){return b.count-a.count;});
+
+    var maxCat = catData.length ? catData[0].count : 1;
+
+    var catBars = catData.map(function(c){
+      var w = Math.round(c.count/maxCat*140);
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">' +
+        '<div style="width:120px;font-size:10px;color:#8a92a0;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + c.label + '</div>' +
+        '<div style="height:14px;border-radius:2px;background:' + c.color + ';opacity:.85;width:' + w + 'px;min-width:3px;"></div>' +
+        '<span style="font-size:11px;font-weight:700;color:' + c.color + ';font-family:\'DM Mono\',monospace;">' + c.count + '</span>' +
+      '</div>';
+    }).join('');
+
+    var topRisk = ps.slice().sort(function(a,b){
+      return (b.compliance&&b.compliance.issueCount||0)-(a.compliance&&a.compliance.issueCount||0);
+    }).slice(0,6).filter(function(p){return(p.compliance&&p.compliance.issueCount||0)>0;});
+
+    var riskRows = topRisk.map(function(p){
+      var n   = p.compliance&&p.compliance.issueCount||0;
+      var col = n>=6?'#ef4444':n>=3?'#f59e0b':'#8a92a0';
+      var lbl = n>=6?'Critical Attention':n>=3?'Needs Attention':'Monitored';
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding:7px 10px;background:rgba(255,255,255,.03);border-radius:6px;">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:11px;color:#c9d0da;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.projectName + '</div>' +
+          '<div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;">' + (p.customer||'No client') + ' · ' + (p.projectOwner||'No owner') + '</div>' +
+        '</div>' +
+        '<div style="text-align:right;flex-shrink:0;">' +
+          '<div style="font-size:12px;font-weight:700;color:' + col + ';font-family:\'DM Mono\',monospace;">' + n + ' misses</div>' +
+          '<div style="font-size:9px;color:' + col + ';opacity:.7;">' + lbl + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    return rlCard(
+      '<div style="padding:14px 18px 16px;">' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">' +
+          kpi(totalMisses,'Total Compliance Misses','across all categories','#e8c97a') +
+          kpi(compPct+'%','Portfolio Compliance',compliant+' of '+ps.length+' projects · 0 misses',compPct>=70?'#22c55e':compPct>=40?'#f59e0b':'#ef4444') +
+          kpi(highRisk,'High Risk Projects','≥ 6 misses each',highRisk>0?'#ef4444':'#22c55e') +
+          kpi(totalBlocked,'Blocked Tasks','across all projects',totalBlocked>0?'#ef4444':'#22c55e') +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Findings by Category</div>' +
+            (catBars||'<div style="font-size:12px;color:#22c55e;padding:12px 0;">✓ No compliance misses</div>') +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Highest Risk Projects</div>' +
+            (riskRows||'<div style="font-size:12px;color:#22c55e;padding:12px 0;">✓ All projects compliant</div>') +
+          '</div>' +
+        '</div>' +
+      '</div>',
+      'margin-bottom:14px;'
+    );
+  }
+
+  // ─── SECTION 5: Client & Project Owner Analysis ──────────────────────────
+  function buildOwnership(ps) {
+    function groupBy(key) {
+      var gmap = {};
+      ps.forEach(function(p){
+        var k = (key==='client' ? p.customer : p.projectOwner) || (key==='client'?'No Client':'Unassigned');
+        if (!gmap[k]) gmap[k] = {name:k,n:0,miss:0,comp:0,delayed:0,overdue:0,pctSum:0,pctN:0};
+        gmap[k].n++;
+        gmap[k].miss += (p.compliance&&p.compliance.issueCount||0);
+        if ((p.compliance&&p.compliance.issueCount||0)===0) gmap[k].comp++;
+        if (p.onSchedule==='delayed') gmap[k].delayed++;
+        gmap[k].overdue += (p.overdueTaskCount||0);
+        if (p.overallPct!=null&&p.isStandard){ gmap[k].pctSum+=p.overallPct; gmap[k].pctN++; }
+      });
+      return Object.values(gmap).sort(function(a,b){return b.miss-a.miss;});
+    }
+
+    var groups = groupBy(_ownerView);
+
+    function viewBtn(v, label) {
+      var a = v === _ownerView;
+      return '<button onclick="window.rlOVView(\'' + v + '\')" style="background:' + (a?'rgba(56,189,248,.18)':'transparent') + ';border:1px solid ' + (a?'#38bdf8':'rgba(255,255,255,.1)') + ';color:' + (a?'#38bdf8':'rgba(255,255,255,.4)') + ';border-radius:5px;padding:3px 10px;font-size:10px;font-weight:' + (a?'700':'400') + ';cursor:pointer;font-family:\'DM Sans\',sans-serif;">' + label + '</button>';
+    }
+
+    var rows = groups.map(function(g){
+      var avg = g.pctN ? Math.round(g.pctSum/g.pctN) : null;
+      var cPct = Math.round(g.comp/g.n*100);
+      var health = (g.miss===0&&g.delayed===0) ? 'Strong Health' : (g.miss>=6||g.delayed>=2) ? 'Critical Attention' : 'Needs Attention';
+      var hCol   = health==='Strong Health'?'#22c55e':health==='Critical Attention'?'#ef4444':'#f59e0b';
+      return '<tr style="border-bottom:1px solid rgba(255,255,255,.04);">' +
+        '<td style="padding:9px 10px;font-size:11px;color:#c9d0da;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + g.name + '</td>' +
+        '<td style="padding:9px 10px;font-size:12px;font-weight:700;color:#f0f0f6;font-family:\'DM Mono\',monospace;text-align:center;">' + g.n + '</td>' +
+        '<td style="padding:9px 10px;text-align:center;">' + (avg!=null?'<span style="font-size:11px;color:#a78bfa;font-family:\'DM Mono\',monospace;font-weight:700;">' + avg + '%</span>':'<span style="font-size:10px;color:#4b5460;">—</span>') + '</td>' +
+        '<td style="padding:9px 10px;text-align:center;font-size:11px;color:' + (cPct>=80?'#22c55e':cPct>=50?'#f59e0b':'#ef4444') + ';font-family:\'DM Mono\',monospace;font-weight:700;">' + cPct + '%</td>' +
+        '<td style="padding:9px 10px;text-align:center;font-size:11px;color:' + (g.delayed>0?'#ef4444':'#22c55e') + ';font-family:\'DM Mono\',monospace;font-weight:700;">' + (g.delayed||'0') + '</td>' +
+        '<td style="padding:9px 10px;text-align:center;font-size:11px;color:' + (g.overdue>0?'#f59e0b':'#22c55e') + ';font-family:\'DM Mono\',monospace;font-weight:700;">' + (g.overdue||'0') + '</td>' +
+        '<td style="padding:9px 10px;text-align:center;font-size:11px;color:#e8c97a;font-family:\'DM Mono\',monospace;font-weight:700;">' + (g.miss||'0') + '</td>' +
+        '<td style="padding:9px 10px;text-align:center;"><span style="font-size:10px;color:' + hCol + ';font-weight:600;white-space:nowrap;">' + health + '</span></td>' +
+      '</tr>';
+    }).join('');
+
+    return rlCard(
+      '<div style="padding:14px 18px 16px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">' +
+          '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;">Group by</div>' +
+          '<div style="display:flex;gap:3px;">' + viewBtn('client','Client') + viewBtn('owner','Project Owner') + '</div>' +
+        '</div>' +
+        '<div style="overflow-x:auto;">' +
+          '<table style="width:100%;border-collapse:collapse;min-width:560px;">' +
+            '<thead><tr style="border-bottom:1px solid rgba(255,255,255,.08);">' +
+              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:left;font-family:\'DM Mono\',monospace;text-transform:uppercase;">' + (_ownerView==='client'?'Client':'Project Owner') + '</th>' +
+              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Projects</th>' +
+              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Avg Progress</th>' +
+              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Compliance</th>' +
+              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Delayed</th>' +
+              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Overdue Tasks</th>' +
+              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Misses</th>' +
+              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Health</th>' +
+            '</tr></thead>' +
+            '<tbody>' + rows + '</tbody>' +
+          '</table>' +
+        '</div>' +
+        '<div style="font-size:9px;color:#3a4050;margin-top:10px;font-family:\'DM Mono\',monospace;">Health labels reflect compliance misses and schedule delays only — not individual performance conclusions.</div>' +
+      '</div>',
+      'margin-bottom:14px;'
+    );
+  }
+
+  // ─── Main render ────────────────────────────────────────────────────────
+  function render() {
+    var ps = fps();
+    body.innerHTML =
+      buildFilters() +
+      sh('1','Portfolio Overview','project count · status distribution · compliance · schedule') +
+      buildPortfolioOverview(ps) +
+      sh('2','Delivery Progress & Phase Performance','standard projects · Engage → Drive → Enable → Convert') +
+      buildDeliveryProgress(ps) +
+      sh('3','Schedule Health','on-track vs delayed · schedule variance · overdue tasks') +
+      buildScheduleHealth(ps) +
+      sh('4','Compliance, Risks & Issues','misses by category · high-risk projects · blocked tasks') +
+      buildComplianceRisks(ps) +
+      sh('5','Client & Project Owner Analysis','grouped metrics · health classification') +
+      buildOwnership(ps);
+  }
+
+  // ─── Event handlers ──────────────────────────────────────────────────────
+  window.rlOVCl   = function(v){ _clientF=v; render(); };
+  window.rlOVOw   = function(v){ _ownerF=v; render(); };
+  window.rlOVSt   = function(v){ _statusF=v; render(); };
+  window.rlOVStd  = function(v){ _stdF=v; render(); };
+  window.rlOVView = function(v){ _ownerView=v; render(); };
+
+  render();
+}
+
+function rlTabHealth(body) {
+  // ── State ──
+  var _level = 'project'; // 'project' | 'client' | 'owner'
+  var _clientF = '', _ownerF = '', _statusF = 'all', _weeks = 8;
+  var _hideCats = {}, _drillInfo = null, _snapData = null;
+
+  var HCATS = [
+    {key:'dates',      label:'Missing Dates',       color:'#8b5cf6'},
+    {key:'overdue',    label:'Overdue Tasks',        color:'#dc2626'},
+    {key:'structure',  label:'Phase Structure',      color:'#f59e0b'},
+    {key:'ownership',  label:'Unowned Tasks',        color:'#60a5fa'},
+    {key:'gaps',       label:'Date Gaps',            color:'#a78bfa'},
+    {key:'stale',      label:'Stale Progress',       color:'#fb923c'},
+    {key:'blocked',    label:'Blocked Tasks',        color:'#ef4444'},
+    {key:'premature',  label:'Premature Completion', color:'#f97316'},
+    {key:'weekend',    label:'Weekend Dates',        color:'#94a3b8'},
+    {key:'completion', label:'Completion Issues',    color:'#e879f9'},
+    {key:'closure',    label:'Closure Pending',      color:'#c9a227'},
+    {key:'inactive',   label:'Inactive Projects',    color:'#6b7280'}
+  ];
+
+  // ── Data helpers ──
+  function fps() {
+    var ps = (_rlData && _rlData.projects) || [];
+    if (_clientF) ps = ps.filter(function(p){ return p.customer === _clientF; });
+    if (_ownerF)  ps = ps.filter(function(p){ return p.projectOwner === _ownerF; });
+    if (_statusF === 'active')   ps = ps.filter(function(p){ var s=(p.status&&p.status.label||p.status||'').toLowerCase(); return s.includes('active')||s.includes('progress'); });
+    if (_statusF === 'complete') ps = ps.filter(function(p){ return (p.status&&p.status.label||p.status||'').toLowerCase().includes('complet'); });
+    return ps;
+  }
+
+  function catCount(p, catKey) {
+    return (p.compliance && p.compliance.issues || []).filter(function(i){ return i.category === catKey; }).length;
+  }
+
+  function projTotal(p) {
+    return (p.compliance && p.compliance.issues || []).filter(function(i){ return !_hideCats[i.category]; }).length;
+  }
+
+  // ── KPI Cards with week-over-week delta ──
+  function buildKPIs(ps) {
+    var total = ps.reduce(function(s,p){ return s + projTotal(p); }, 0);
+    var healthy = ps.filter(function(p){ return projTotal(p) === 0; }).length;
+    var score = ps.length ? Math.round(healthy / ps.length * 100) : 100;
+    var scoreColor = score >= 70 ? '#22c55e' : score >= 40 ? '#f59e0b' : '#ef4444';
+    var atRisk = ps.filter(function(p){ return projTotal(p) >= 6; }).length;
+
+    var prevScore = null, prevTotal = null;
+    var snaps = _snapData || [];
+    for (var si = 0; si < snaps.length; si++) {
+      var sn = snaps[si];
+      if (sn.projects && sn.projects.length && sn.projects[0] && sn.projects[0].compliance) {
+        var prevPs = sn.projects.filter(function(p){
+          return (!_clientF || p.customer === _clientF) && (!_ownerF || p.projectOwner === _ownerF);
+        });
+        if (prevPs.length) {
+          var prevTot = prevPs.reduce(function(s,p){
+            var bc = p.compliance.byCategory || {};
+            return s + Object.keys(bc).reduce(function(a,k){ return a+bc[k]; }, 0);
+          }, 0);
+          var prevH = prevPs.filter(function(p){
+            var bc = p.compliance.byCategory || {};
+            return Object.keys(bc).reduce(function(a,k){ return a+bc[k]; }, 0) === 0;
+          }).length;
+          prevTotal = prevTot;
+          prevScore = prevPs.length ? Math.round(prevH / prevPs.length * 100) : 100;
+        }
+        break;
+      }
+    }
+
+    function deltaTag(curr, prev, lowerIsBetter) {
+      if (prev === null || curr === null) return '';
+      var d = curr - prev;
+      if (d === 0) return '<span style="font-size:10px;color:#5a6270;display:block;margin-top:6px;">→ No change vs last week</span>';
+      var improving = lowerIsBetter ? d < 0 : d > 0;
+      var col = improving ? '#22c55e' : '#ef4444';
+      var arrow = d > 0 ? '↑' : '↓';
+      return '<span style="font-size:11px;color:'+col+';font-family:\'DM Mono\',monospace;font-weight:700;display:block;margin-top:6px;">'+arrow+' '+Math.abs(d)+' <span style="font-size:9px;font-weight:400;color:#5a6270;">vs last week</span></span>';
+    }
+
+    function kCard(val, label, sub, color, dHtml) {
+      return '<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px 18px;flex:1;min-width:125px;">'+
+        '<div style="font-size:28px;font-weight:800;color:'+(color||'#f0f0f6')+';font-family:\'DM Mono\',monospace;line-height:1;letter-spacing:-.5px;">'+val+'</div>'+
+        '<div style="font-size:12px;font-weight:600;color:#c9d0da;margin-top:6px;">'+label+'</div>'+
+        '<div style="font-size:10px;color:#5a6270;margin-top:2px;">'+sub+'</div>'+
+        (dHtml||'')+
+      '</div>';
+    }
+
+    return '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">'+
+      kCard(score+'%', 'Portfolio Health', ps.length+' projects', scoreColor, deltaTag(score, prevScore, false))+
+      kCard(total, 'Total Findings', 'active categories', '#e8c97a', deltaTag(total, prevTotal, true))+
+      kCard(healthy, 'Fully Compliant', 'projects — 0 findings', '#22c55e', null)+
+      kCard(atRisk, 'Projects at Risk', '≥ 6 findings each', atRisk > 0 ? '#ef4444' : '#22c55e', null)+
+    '</div>';
+  }
+
+  // ── Filters (level toggle + client/owner/status/category/trend window) ──
+  function buildFilters() {
+    var allPs = (_rlData && _rlData.projects) || [];
+    var clients = [], owners = [];
+    allPs.forEach(function(p){
+      if (p.customer && clients.indexOf(p.customer) < 0) clients.push(p.customer);
+      if (p.projectOwner && owners.indexOf(p.projectOwner) < 0) owners.push(p.projectOwner);
+    });
+    clients.sort(); owners.sort();
+
+    var selSt = 'background:#161620;border:1px solid rgba(255,255,255,.14);color:#f0f0f6;border-radius:7px;padding:5px 9px;font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer;outline:none;';
+    var lbSt  = 'font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;';
+
+    var statusBtns = [{v:'all',l:'All'},{v:'active',l:'Active'},{v:'complete',l:'Completed'}].map(function(o){
+      var a = o.v === _statusF;
+      return '<button onclick="window.rlHSt(\''+o.v+'\')" style="background:'+(a?'rgba(255,255,255,.1)':'transparent')+';border:1px solid '+(a?'rgba(255,255,255,.2)':'rgba(255,255,255,.07)')+';color:'+(a?'#f0f0f6':'rgba(255,255,255,.35)')+';border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;transition:all .15s;">'+o.l+'</button>';
+    }).join('');
+
+    var weekBtns = [4,6,8,12].map(function(n){
+      var a = n === _weeks;
+      return '<button onclick="window.rlHW('+n+')" style="background:'+(a?'rgba(255,255,255,.1)':'transparent')+';border:1px solid '+(a?'rgba(255,255,255,.2)':'rgba(255,255,255,.07)')+';color:'+(a?'#f0f0f6':'rgba(255,255,255,.35)')+';border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;transition:all .15s;">'+n+'w</button>';
+    }).join('');
+
+    var clientOpts = '<option value="">All Clients</option>'+clients.map(function(c){ return '<option value="'+c.replace(/"/g,'&quot;')+'"'+(c===_clientF?' selected':'')+'>'+c+'</option>'; }).join('');
+    var ownerOpts  = '<option value="">All Owners</option>'+owners.map(function(o){ return '<option value="'+o.replace(/"/g,'&quot;')+'"'+(o===_ownerF?' selected':'')+'>'+o+'</option>'; }).join('');
+
+    var catChips = HCATS.map(function(c){
+      var on = !_hideCats[c.key];
+      return '<button onclick="window.rlHCat(\''+c.key+'\')" title="'+(on?'Hide':'Show')+' '+c.label+'" style="background:'+(on?c.color+'22':'transparent')+';border:1px solid '+(on?c.color:'rgba(255,255,255,.07)')+';color:'+(on?c.color:'rgba(255,255,255,.22)')+';border-radius:6px;padding:3px 9px;font-size:10px;font-family:\'DM Mono\',monospace;cursor:pointer;white-space:nowrap;transition:all .15s;line-height:1.5;">'+c.label+'</button>';
+    }).join('');
+
+    return rlCard(
+      '<div style="padding:14px 16px 10px;">'+
+        '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">'+
+          '<div style="display:flex;align-items:center;gap:6px;">'+
+            '<span style="'+lbSt+'">Status</span>'+
+            '<div style="display:flex;gap:3px;">'+statusBtns+'</div>'+
+          '</div>'+
+          '<div style="display:flex;align-items:center;gap:6px;">'+
+            '<span style="'+lbSt+'">Client</span>'+
+            '<select onchange="window.rlHCl(this.value)" style="'+selSt+'">'+clientOpts+'</select>'+
+          '</div>'+
+          '<div style="display:flex;align-items:center;gap:6px;">'+
+            '<span style="'+lbSt+'">Owner</span>'+
+            '<select onchange="window.rlHOw(this.value)" style="'+selSt+'">'+ownerOpts+'</select>'+
+          '</div>'+
+          '<div style="display:flex;align-items:center;gap:6px;margin-left:auto;">'+
+            '<span style="'+lbSt+'">Trend</span>'+
+            '<div style="display:flex;gap:3px;">'+weekBtns+'</div>'+
+          '</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">'+
+          '<span style="'+lbSt+'">Categories</span>'+catChips+
+        '</div>'+
+      '</div>',
+      'margin-bottom:16px;'
+    );
+  }
+
+  // ── Category Compliance Bar (all 12, sorted worst-first, shows compliance %) ──
+  function buildCatBar(ps) {
+    var activeCats = HCATS.filter(function(c){ return !_hideCats[c.key]; });
+    var data = activeCats.map(function(c){
+      var findings = ps.reduce(function(s,p){ return s + catCount(p, c.key); }, 0);
+      var compliant = ps.filter(function(p){ return catCount(p, c.key) === 0; }).length;
+      var compRate = ps.length ? Math.round(compliant / ps.length * 100) : 100;
+      return {key:c.key, label:c.label, color:c.color, findings:findings, compliant:compliant, compRate:compRate};
+    }).sort(function(a,b){ return a.compRate - b.compRate; });
+
+    if (!data.length) return rlCard('<div style="padding:40px;text-align:center;font-size:13px;color:#5a6270;">No categories selected</div>', '');
+
+    var W=540, rowH=30, ML=155, MR=96, MT=4, MB=4;
+    var H = data.length * rowH + MT + MB;
+    var plotW = W - ML - MR;
+    var maxF = data.reduce(function(m,d){ return Math.max(m,d.findings); }, 1);
+    var svgP = [];
+
+    data.forEach(function(d,i){
+      var y = MT + i * rowH;
+      svgP.push('<rect x="'+ML+'" y="'+(y+5)+'" width="'+plotW+'" height="'+(rowH-10)+'" fill="rgba(255,255,255,.025)" rx="3"/>');
+      var compW = Math.round((d.compRate/100)*plotW);
+      var fillColor = d.compRate===100?'rgba(22,163,74,.45)':d.compRate>=80?'rgba(22,163,74,.3)':d.compRate>=60?'rgba(245,158,11,.2)':'rgba(220,38,38,.2)';
+      if (compW > 0) svgP.push('<rect x="'+ML+'" y="'+(y+5)+'" width="'+compW+'" height="'+(rowH-10)+'" fill="'+fillColor+'" rx="3"/>');
+      if (d.findings > 0) {
+        var fW = Math.max(2, Math.round((d.findings/maxF)*plotW));
+        svgP.push('<rect x="'+ML+'" y="'+(y+rowH-9)+'" width="'+fW+'" height="3" fill="'+d.color+'" rx="1" opacity=".9"><title>'+d.label+': '+d.findings+' finding'+(d.findings>1?'s':'')+' across '+ps.length+' projects</title></rect>');
+      }
+      svgP.push('<text x="'+(ML-8)+'" y="'+(y+rowH/2)+'" dominant-baseline="middle" text-anchor="end" font-size="11" fill="'+(d.findings===0?'#22c55e':'#8a92a0')+'" font-family="DM Sans,sans-serif">'+d.label+'</text>');
+      var compColor = d.compRate===100?'#22c55e':d.compRate>=80?'#86efac':d.compRate>=60?'#f59e0b':'#ef4444';
+      svgP.push('<text x="'+(ML+plotW+8)+'" y="'+(y+rowH/2-4)+'" dominant-baseline="middle" font-size="13" fill="'+compColor+'" font-family="DM Mono,monospace" font-weight="700">'+d.compRate+'%</text>');
+      svgP.push('<text x="'+(ML+plotW+8)+'" y="'+(y+rowH/2+9)+'" dominant-baseline="middle" font-size="9" fill="rgba(255,255,255,.3)" font-family="DM Mono,monospace">'+(d.findings>0?d.findings+' miss':'✓ clear')+'</text>');
+    });
+
+    return rlCard(
+      '<div style="padding:12px 16px 4px;display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px;">'+
+        '<div style="font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Category Compliance Rate</div>'+
+        '<div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;">green fill = % compliant · bar = finding count</div>'+
+      '</div>'+
+      '<div style="padding:6px 16px 14px;overflow-x:auto;">'+
+        '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:'+W+'px;max-width:100%;height:auto;display:block;">'+svgP.join('')+'</svg>'+
+      '</div>', ''
+    );
+  }
+
+  // ── Finding Distribution Donut ──
+  function buildDonut(ps) {
+    var data = HCATS
+      .filter(function(c){ return !_hideCats[c.key]; })
+      .map(function(c){
+        var n = ps.reduce(function(s,p){ return s + catCount(p, c.key); }, 0);
+        return {label:c.label, color:c.color, value:n};
+      })
+      .filter(function(d){ return d.value > 0; })
+      .sort(function(a,b){ return b.value - a.value; });
+    var total = data.reduce(function(s,d){ return s+d.value; }, 0);
+    if (!total) return rlCard(
+      '<div style="padding:12px 16px 4px;font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Finding Distribution</div>'+
+      '<div style="padding:50px;text-align:center;font-size:14px;color:#22c55e;font-weight:700;">✓ All compliant</div>', ''
+    );
+    // Large centered donut
+    var cx=160, cy=160, R=120, r=62;
+    var angle = -Math.PI/2;
+    var svgP = [];
+    data.forEach(function(d){
+      var sweep = (d.value/total)*2*Math.PI;
+      if (sweep < 0.015){ angle+=sweep; return; }
+      var lg = sweep>Math.PI?1:0;
+      var x1=(cx+R*Math.cos(angle)).toFixed(2), y1=(cy+R*Math.sin(angle)).toFixed(2);
+      var x2=(cx+R*Math.cos(angle+sweep)).toFixed(2), y2=(cy+R*Math.sin(angle+sweep)).toFixed(2);
+      var x3=(cx+r*Math.cos(angle+sweep)).toFixed(2), y3=(cy+r*Math.sin(angle+sweep)).toFixed(2);
+      var x4=(cx+r*Math.cos(angle)).toFixed(2), y4=(cy+r*Math.sin(angle)).toFixed(2);
+      svgP.push('<path d="M '+x1+' '+y1+' A '+R+' '+R+' 0 '+lg+' 1 '+x2+' '+y2+' L '+x3+' '+y3+' A '+r+' '+r+' 0 '+lg+' 0 '+x4+' '+y4+' Z" fill="'+d.color+'" opacity=".88"><title>'+d.label+': '+d.value+' findings ('+Math.round(d.value/total*100)+'%)</title></path>');
+      angle += sweep;
+    });
+    // Center total
+    svgP.push('<text x="'+cx+'" y="'+(cy-12)+'" text-anchor="middle" font-size="34" font-weight="800" fill="#f0f0f6" font-family="DM Mono,monospace">'+total+'</text>');
+    svgP.push('<text x="'+cx+'" y="'+(cy+10)+'" text-anchor="middle" font-size="11" fill="#5a6270" font-family="DM Sans,sans-serif">total findings</text>');
+    svgP.push('<text x="'+cx+'" y="'+(cy+28)+'" text-anchor="middle" font-size="10" fill="#8a92a0" font-family="DM Sans,sans-serif">'+data.length+' categor'+(data.length===1?'y':'ies')+'</text>');
+    // 2-column legend below the donut
+    var legendItems = data.map(function(d){
+      return '<div style="display:flex;align-items:center;gap:6px;min-width:0;">'+
+        '<div style="width:9px;height:9px;border-radius:2px;background:'+d.color+';flex-shrink:0;"></div>'+
+        '<span style="color:#8a92a0;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+d.label+'</span>'+
+        '<span style="color:'+d.color+';font-family:\'DM Mono\',monospace;font-weight:700;font-size:11px;flex-shrink:0;margin-left:4px;">'+Math.round(d.value/total*100)+'%</span>'+
+      '</div>';
+    }).join('');
+    return rlCard(
+      '<div style="padding:12px 16px 4px;font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Finding Distribution</div>'+
+      '<div style="display:flex;justify-content:center;padding:8px 16px 4px;">'+
+        '<svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" style="width:220px;height:220px;display:block;">'+svgP.join('')+'</svg>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;padding:6px 18px 16px;">'+legendItems+'</div>', ''
+    );
+  }
+
+  // ── Heat Map (all projects, zero-miss in green, click to drill) ──
+  function buildHeatMap(ps) {
+    var activeCats = HCATS.filter(function(c){ return !_hideCats[c.key]; });
+    if (!activeCats.length || !ps.length) return '';
+    var sorted = ps.slice().sort(function(a,b){
+      var af = projTotal(a), bf = projTotal(b);
+      if (af !== bf) return bf - af;
+      return (a.projectName||'').localeCompare(b.projectName||'');
+    });
+    var cellW=44, cellH=22, ML=188, MT=66, MR=10, MB=8;
+    var W = ML + activeCats.length*cellW + MR;
+    var maxVisible = 40;
+    var visible = Math.min(sorted.length, maxVisible);
+    var H = MT + visible*cellH + MB;
+    var svgP = [];
+
+    activeCats.forEach(function(c,ci){
+      var x = ML + ci*cellW + cellW/2, y = MT - 8;
+      svgP.push('<text x="'+x+'" y="'+y+'" text-anchor="start" font-size="9" fill="'+c.color+'" font-family="DM Mono,monospace" transform="rotate(-42,'+x+','+y+')">'+c.label+'</text>');
+    });
+
+    sorted.slice(0,visible).forEach(function(p,ri){
+      var y = MT + ri*cellH;
+      var rowTotal = projTotal(p);
+      if (ri%2===0) svgP.push('<rect x="0" y="'+y+'" width="'+W+'" height="'+cellH+'" fill="rgba(255,255,255,.012)"/>');
+      var nm = p.projectName||'—'; if (nm.length > 24) nm = nm.substring(0,23)+'…';
+      svgP.push('<text x="'+(ML-8)+'" y="'+(y+cellH/2)+'" dominant-baseline="middle" text-anchor="end" font-size="10" fill="'+(rowTotal===0?'#4ade80':'#8a92a0')+'" font-family="DM Sans,sans-serif">'+nm+'</text>');
+
+      activeCats.forEach(function(c,ci){
+        var count = catCount(p, c.key);
+        var x = ML + ci*cellW + 1;
+        var fill = count===0 ? 'rgba(34,197,94,.08)' : count<=2 ? 'rgba(245,158,11,.3)' : count<=5 ? 'rgba(249,115,22,.58)' : 'rgba(220,38,38,.75)';
+        var tc   = count===0 ? 'rgba(74,222,128,.35)' : count<=2 ? '#f59e0b' : count<=5 ? '#fb923c' : '#f87171';
+        var tip  = (p.projectName||'—')+' · '+c.label+': '+(count===0?'✓ Compliant':count+' finding'+(count>1?'s':''));
+        var click = count > 0 ? 'onclick="window.rlHDrill(\''+p.projectId+'\',\''+c.key+'\')"' : '';
+        svgP.push('<rect x="'+x+'" y="'+(y+1)+'" width="'+(cellW-2)+'" height="'+(cellH-2)+'" fill="'+fill+'" rx="2" style="cursor:'+(count>0?'pointer':'default')+';" '+click+'><title>'+tip+'</title></rect>');
+        if (count > 0) svgP.push('<text x="'+(x+(cellW-2)/2)+'" y="'+(y+cellH/2)+'" dominant-baseline="middle" text-anchor="middle" font-size="10" fill="'+tc+'" font-family="DM Mono,monospace" font-weight="700" style="pointer-events:none;">'+count+'</text>');
+      });
+    });
+
+    var hiddenNote = sorted.length > maxVisible ? ' · '+(sorted.length - maxVisible)+' more projects not shown' : '';
+    var scale = [['✓ 0','rgba(34,197,94,.12)','rgba(74,222,128,.6)'],['1–2','rgba(245,158,11,.3)','#f59e0b'],['3–5','rgba(249,115,22,.58)','#fb923c'],['6+','rgba(220,38,38,.75)','#f87171']].map(function(s){
+      return '<div style="display:flex;align-items:center;gap:4px;"><div style="width:20px;height:11px;background:'+s[1]+';border-radius:2px;"></div><span style="font-size:10px;color:'+s[2]+';font-family:\'DM Mono\',monospace;">'+s[0]+'</span></div>';
+    }).join('');
+    return rlCard(
+      '<div style="padding:12px 16px 4px;display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px;">'+
+        '<div style="font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Project × Category Heat Map</div>'+
+        '<div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;">'+sorted.length+' projects · click a cell to drill down'+hiddenNote+'</div>'+
+      '</div>'+
+      '<div style="overflow-x:auto;">'+
+        '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:'+Math.min(W,560)+'px;height:auto;display:block;overflow:visible;">'+svgP.join('')+'</svg>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:10px;padding:6px 16px 12px;flex-wrap:wrap;">'+
+        '<span style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;">Scale</span>'+scale+
+      '</div>',
+      'margin-bottom:16px;'
+    );
+  }
+
+  // ── Risk Ranking Bar (Project / Client / Owner level) ──
+  function buildRanked(ps) {
+    var activeCats = HCATS.filter(function(c){ return !_hideCats[c.key]; });
+    var gmap = {};
+    function getKey(p){ return _level==='owner' ? (p.projectOwner||'Unassigned') : _level==='client' ? (p.customer||'No Client') : (p.projectName||('' + p.projectId)); }
+
+    ps.forEach(function(p){
+      var k = getKey(p);
+      if (!gmap[k]) gmap[k] = {name:k, counts:{}, total:0, projects:0, compliant:0};
+      gmap[k].projects++;
+      if (projTotal(p) === 0) gmap[k].compliant++;
+      (p.compliance&&p.compliance.issues||[]).forEach(function(i){
+        if (!_hideCats[i.category]){ gmap[k].counts[i.category]=(gmap[k].counts[i.category]||0)+1; gmap[k].total++; }
+      });
+    });
+
+    var allGroups = Object.keys(gmap).map(function(k){ return gmap[k]; }).sort(function(a,b){ return b.total - a.total; });
+    if (!allGroups.length) return '';
+
+    // In project view cap at 15 (most at-risk first); client/owner show all
+    var maxShow = _level === 'project' ? 15 : 40;
+    var groups = allGroups.slice(0, maxShow);
+    var hiddenCount = allGroups.length - groups.length;
+    var maxT = groups.reduce(function(m,g){ return Math.max(m,g.total); }, 1);
+
+    // Slot width: wider for fewer groups so bars are always readable
+    var n = groups.length;
+    var slotW = n <= 2 ? 180 : n <= 4 ? 150 : n <= 7 ? 120 : n <= 12 ? 95 : Math.max(72, Math.floor(1080 / n));
+    slotW = Math.min(slotW, 180);
+    var barW = Math.round(slotW * 0.52);
+    var ML = 36, MR = 20, MT = 20, MB = 100;
+    var plotH = 220;
+    var W = ML + n * slotW + MR;
+    var H = plotH + MT + MB;
+    var svgP = [];
+
+    // Y-axis gridlines + labels
+    [0, 0.25, 0.5, 0.75, 1].forEach(function(f){
+      var y = MT + plotH*(1-f);
+      svgP.push('<line x1="'+ML+'" y1="'+y+'" x2="'+(W-MR)+'" y2="'+y+'" stroke="rgba(255,255,255,'+(f===0?'.06':'.03)')+'" stroke-dasharray="'+(f===0?'none':'4 3')+'"/>');
+      svgP.push('<text x="'+(ML-6)+'" y="'+y+'" dominant-baseline="middle" text-anchor="end" font-size="10" fill="#5a6270" font-family="DM Mono,monospace">'+Math.round(maxT*f)+'</text>');
+    });
+
+    groups.forEach(function(g,gi){
+      var cx = ML + gi*slotW + slotW/2;
+      var yBase = MT+plotH, stackH = 0;
+      var compRate = g.projects ? Math.round(g.compliant/g.projects*100) : 100;
+      var compColor = compRate===100?'#22c55e':compRate>=70?'#86efac':compRate>=40?'#f59e0b':'#ef4444';
+
+      // Alternating column background for readability
+      if (gi%2===0) svgP.push('<rect x="'+(ML+gi*slotW)+'" y="'+MT+'" width="'+slotW+'" height="'+plotH+'" fill="rgba(255,255,255,.012)" rx="0"/>');
+
+      if (g.total === 0) {
+        // Compliant — green indicator bar + check mark
+        var bx = (cx - barW/2).toFixed(1);
+        svgP.push('<rect x="'+bx+'" y="'+(MT+plotH-6)+'" width="'+barW+'" height="6" fill="#22c55e" rx="2" opacity=".8"><title>'+g.name+': ✓ Fully compliant</title></rect>');
+        svgP.push('<text x="'+cx+'" y="'+(MT+plotH-14)+'" text-anchor="middle" font-size="13" fill="#22c55e">✓</text>');
+      } else {
+        activeCats.forEach(function(c){
+          var count = g.counts[c.key]||0; if (!count) return;
+          var bH = Math.max(3, Math.round((count/maxT)*plotH));
+          yBase -= bH; stackH += bH;
+          svgP.push('<rect x="'+(cx-barW/2).toFixed(1)+'" y="'+yBase+'" width="'+barW+'" height="'+bH+'" fill="'+c.color+'" opacity=".88" rx="'+(bH>6?'2':'1')+'"><title>'+g.name+'\n'+c.label+': '+count+' findings</title></rect>');
+        });
+        if (stackH > 0) {
+          svgP.push('<text x="'+cx+'" y="'+(MT+plotH-stackH-7)+'" text-anchor="middle" font-size="11" fill="#e8c97a" font-family="DM Mono,monospace" font-weight="700">'+g.total+'</text>');
+        }
+      }
+
+      // Compliance % badge
+      svgP.push('<text x="'+cx+'" y="'+(MT+plotH+4)+'" dominant-baseline="hanging" text-anchor="middle" font-size="10" fill="'+compColor+'" font-family="DM Mono,monospace" font-weight="700">'+compRate+'%</text>');
+
+      // Project/group name — two lines if needed
+      var nm = g.name;
+      var maxChars = Math.max(10, Math.floor(slotW / 5.5));
+      var line1, line2 = '';
+      if (nm.length <= maxChars) {
+        line1 = nm;
+      } else {
+        // Try to break at a space
+        var breakAt = nm.lastIndexOf(' ', maxChars);
+        if (breakAt > 3) {
+          line1 = nm.substring(0, breakAt);
+          line2 = nm.substring(breakAt+1);
+          if (line2.length > maxChars) line2 = line2.substring(0, maxChars-1) + '…';
+        } else {
+          line1 = nm.substring(0, maxChars-1) + '…';
+        }
+      }
+      var ly1 = MT+plotH+20;
+      svgP.push('<text x="'+cx+'" y="'+ly1+'" text-anchor="middle" font-size="10.5" fill="#c9d0da" font-family="DM Sans,sans-serif" font-weight="500">'+line1+'</text>');
+      if (line2) svgP.push('<text x="'+cx+'" y="'+(ly1+14)+'" text-anchor="middle" font-size="10" fill="#8a92a0" font-family="DM Sans,sans-serif">'+line2+'</text>');
+
+      // Project count sub-label (for client/owner views)
+      if (_level !== 'project' && g.projects > 1) {
+        svgP.push('<text x="'+cx+'" y="'+(ly1+28)+'" text-anchor="middle" font-size="9" fill="#4b5460" font-family="DM Mono,monospace">'+g.projects+' proj</text>');
+      }
+    });
+
+    var usedCats = activeCats.filter(function(c){ return groups.some(function(g){ return (g.counts[c.key]||0)>0; }); });
+    var legend = usedCats.map(function(c){
+      return '<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#8a92a0;">'+
+        '<div style="width:9px;height:9px;border-radius:2px;background:'+c.color+'"></div>'+c.label+'</div>';
+    }).join('');
+
+    var groupBtns = [{v:'project',l:'Project'},{v:'client',l:'Client'},{v:'owner',l:'Owner'}].map(function(o){
+      var a = o.v === _level;
+      return '<button onclick="window.rlHL(\''+o.v+'\')" style="background:'+(a?'rgba(56,189,248,.18)':'transparent')+';border:1px solid '+(a?'#38bdf8':'rgba(255,255,255,.1)')+';color:'+(a?'#38bdf8':'rgba(255,255,255,.4)')+';border-radius:5px;padding:3px 10px;font-size:10px;font-weight:'+(a?'700':'400')+';cursor:pointer;transition:all .15s;font-family:\'DM Sans\',sans-serif;">'+o.l+'</button>';
+    }).join('');
+
+    var subtitle = (hiddenCount > 0 ? 'Showing top '+groups.length+' of '+allGroups.length+' · ' : '') + 'sorted by total findings';
+
+    return rlCard(
+      '<div style="padding:14px 18px 8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">'+
+        '<div>'+
+          '<div style="font-size:12px;color:#c9d0da;font-weight:700;letter-spacing:.04em;">Risk Ranking</div>'+
+          '<div style="font-size:10px;color:#4b5460;margin-top:2px;font-family:\'DM Mono\',monospace;">'+subtitle+'</div>'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:6px;">'+
+          '<span style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.06em;">Group by</span>'+
+          '<div style="display:flex;gap:3px;">'+groupBtns+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="overflow-x:auto;padding-bottom:4px;">'+
+        '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:'+W+'px;height:'+H+'px;display:block;">'+svgP.join('')+'</svg>'+
+      '</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 18px 14px;border-top:1px solid rgba(255,255,255,.05);margin-top:4px;">'+legend+'</div>',
+      'margin-bottom:16px;'
+    );
+  }
+
+  // ── Compliance Rate Trend (from snapshot compliance data) ──
+  function buildComplianceTrend(snaps) {
+    var compSnaps = snaps.filter(function(s){
+      return s.projects && s.projects.length && s.projects[0] && s.projects[0].compliance && s.projects[0].compliance.byCategory;
+    });
+    var shown = compSnaps.slice(0, _weeks).reverse();
+
+    if (shown.length < 2) {
+      var captured = compSnaps.length;
+      return rlCard(
+        '<div style="padding:12px 16px 4px;font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Compliance Rate Trend</div>'+
+        '<div style="padding:16px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">'+
+          '<div style="font-size:32px;opacity:.4;">&#128197;</div>'+
+          '<div>'+
+            '<div style="font-size:13px;color:#c9d0da;font-weight:600;margin-bottom:4px;">Building compliance history…</div>'+
+            '<div style="font-size:11px;color:#5a6270;">Snapshots capture every Monday. This chart appears after 2 weeks of data.<br>'+
+              (captured?'<span style="color:#38bdf8;">'+captured+' snapshot'+(captured>1?'s':'')+' captured — 1 more needed.</span>':'Next snapshot: this Monday at 9:50 AM IST.')+
+            '</div>'+
+          '</div>'+
+        '</div>',
+        'margin-bottom:16px;'
+      );
+    }
+
+    var activeCats = HCATS.filter(function(c){ return !_hideCats[c.key]; });
+    var catTotals = activeCats.map(function(c){
+      var n = shown.reduce(function(s,sn){
+        return s + (sn.projects||[]).reduce(function(ss,p){
+          return ss + ((p.compliance&&p.compliance.byCategory&&p.compliance.byCategory[c.key])||0);
+        }, 0);
+      }, 0);
+      return {cat:c, total:n};
+    }).sort(function(a,b){ return b.total - a.total; });
+    var topCats = catTotals.filter(function(x){ return x.total > 0; }).slice(0,5).map(function(x){ return x.cat; });
+    if (!topCats.length) topCats = activeCats.slice(0,4);
+
+    function snapCompRate(snap, catKey) {
+      var ps = (snap.projects||[]).filter(function(p){
+        return (!_clientF||p.customer===_clientF) && (!_ownerF||p.projectOwner===_ownerF);
+      });
+      if (!ps.length) return null;
+      var compliant = ps.filter(function(p){
+        var bc = p.compliance && p.compliance.byCategory;
+        return !bc || (bc[catKey]||0) === 0;
+      }).length;
+      return Math.round(compliant / ps.length * 100);
+    }
+
+    var W=820, H=200, ML=38, MR=130, MT=14, MB=30;
+    var plotW=W-ML-MR, plotH=H-MT-MB;
+    var n=shown.length;
+    function xP(i){ return ML+(i/Math.max(n-1,1))*plotW; }
+    function yP(v){ return MT+plotH-(v/100)*plotH; }
+    var svgP=[];
+
+    [0,25,50,75,100].forEach(function(v){
+      var y=yP(v);
+      svgP.push('<line x1="'+ML+'" y1="'+y+'" x2="'+(W-MR)+'" y2="'+y+'" stroke="rgba(255,255,255,.04)"/>');
+      svgP.push('<text x="'+(ML-5)+'" y="'+y+'" dominant-baseline="middle" text-anchor="end" font-size="9" fill="#5a6270" font-family="DM Mono,monospace">'+v+'%</text>');
+    });
+
+    topCats.forEach(function(c){
+      var vals = shown.map(function(s){ return snapCompRate(s, c.key); });
+      var pts = vals.map(function(v,i){ return v!=null ? [xP(i),yP(v)] : null; }).filter(Boolean);
+      if (pts.length < 2) return;
+      svgP.push('<polyline points="'+pts.map(function(p){ return p[0]+','+p[1]; }).join(' ')+'" fill="none" stroke="'+c.color+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity=".85"/>');
+      var lp=pts[pts.length-1], lv=vals[vals.length-1];
+      svgP.push('<circle cx="'+lp[0]+'" cy="'+lp[1]+'" r="3" fill="'+c.color+'" opacity=".9"/>');
+      if (lv != null) svgP.push('<text x="'+(lp[0]+7)+'" y="'+lp[1]+'" dominant-baseline="middle" font-size="9.5" fill="'+c.color+'" font-family="DM Mono,monospace">'+c.label+' '+lv+'%</text>');
+    });
+
+    shown.forEach(function(s,i){
+      if (n>8 && i%2!==0 && i!==n-1) return;
+      var d=new Date(s.capturedAt);
+      svgP.push('<text x="'+xP(i)+'" y="'+(H-6)+'" text-anchor="middle" font-size="9" fill="#5a6270" font-family="DM Mono,monospace">'+(isNaN(d)?'—':d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}))+'</text>');
+    });
+
+    return rlCard(
+      '<div style="padding:12px 16px 4px;font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Compliance Rate Trend — by Category <span style="font-size:9px;font-weight:400;color:#5a6270;">(top 5 worst-performing)</span></div>'+
+      '<div style="padding:4px 16px;">'+
+        '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;overflow:visible;">'+svgP.join('')+'</svg>'+
+      '</div>',
+      'margin-bottom:16px;'
+    );
+  }
+
+  // ── Drill-down panel ──
+  function buildDrillDown() {
+    if (!_drillInfo) return '';
+    var p = (_rlData&&_rlData.projects||[]).filter(function(p){ return String(p.projectId)===String(_drillInfo.projectId); })[0];
+    var cat = HCATS.filter(function(c){ return c.key===_drillInfo.catKey; })[0];
+    if (!p||!cat) return '';
+    var issues = (p.compliance&&p.compliance.issues||[]).filter(function(i){ return i.category===cat.key; });
+    var rows = issues.map(function(iss){
+      var crumb = '';
+      if (iss.phase) crumb += '<span style="font-size:10px;color:rgba(255,255,255,.35);text-transform:capitalize;">'+iss.phase+'</span><span style="color:rgba(255,255,255,.18);font-size:11px;"> › </span>';
+      if (iss.task)  crumb += '<span style="font-size:10px;color:rgba(255,255,255,.5);">'+iss.task+'</span><span style="color:rgba(255,255,255,.18);font-size:11px;"> › </span>';
+      var sevColor = iss.severity==='high'?'#ef4444':iss.severity==='medium'?'#f59e0b':'#60a5fa';
+      return '<div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);">'+
+        (crumb?'<div style="margin-bottom:4px;">'+crumb+'</div>':'')+
+        '<div style="font-size:12px;color:#e8e8f0;">'+iss.issue+'</div>'+
+        '<div style="font-size:10px;color:'+sevColor+';margin-top:3px;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.05em;">'+iss.severity+'</div>'+
+      '</div>';
+    }).join('');
+    var statusLabel = p.status&&p.status.label ? p.status.label : (p.status||'');
+    return '<div id="rl-drill">'+rlCard(
+      '<div style="padding:12px 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">'+
+        '<div>'+
+          '<div style="font-size:13px;font-weight:700;color:#bae6fd;">'+p.projectName+'</div>'+
+          '<div style="font-size:11px;color:'+cat.color+';margin-top:3px;font-weight:600;">'+cat.label+' — '+issues.length+' finding'+(issues.length!==1?'s':'')+'</div>'+
+          '<div style="font-size:10px;color:#5a6270;margin-top:2px;">'+statusLabel+
+            (p.customer?' · <span style="color:rgba(255,255,255,.4);">'+p.customer+'</span>':'')+
+          '</div>'+
+        '</div>'+
+        '<button onclick="window.rlHDrillClose()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#8a92a0;border-radius:7px;padding:5px 12px;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0;">✕ Close</button>'+
+      '</div>'+
+      (rows||'<div style="padding:20px;text-align:center;font-size:13px;color:#22c55e;">✓ No issues found</div>'),
+      'border-color:'+cat.color+'55;margin-bottom:16px;'
+    )+'</div>';
+  }
+
+  // ── Main render ──
+  function render() {
+    var ps = fps();
+    var snaps = _snapData || [];
+    body.innerHTML =
+      buildKPIs(ps)+
+      buildFilters()+
+      buildDrillDown()+
+      '<div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px;">'+
+        buildCatBar(ps)+buildDonut(ps)+
+      '</div>'+
+      buildHeatMap(ps)+
+      buildRanked(ps)+
+      buildComplianceTrend(snaps);
+    if (_drillInfo) {
+      setTimeout(function(){
+        var el = document.getElementById('rl-drill');
+        if (el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+      }, 60);
+    }
+  }
+
+  // ── Event handlers ──
+  window.rlHL         = function(v){ _level=v; render(); };
+  window.rlHCl        = function(v){ _clientF=v; render(); };
+  window.rlHOw        = function(v){ _ownerF=v; render(); };
+  window.rlHW         = function(n){ _weeks=n; render(); };
+  window.rlHSt        = function(v){ _statusF=v; render(); };
+  window.rlHCat       = function(k){ _hideCats[k]=!_hideCats[k]; render(); };
+  window.rlHDrill     = function(pid,cat){ _drillInfo={projectId:pid,catKey:cat}; render(); };
+  window.rlHDrillClose= function(){ _drillInfo=null; render(); };
+
+  render();
+  fetch('/api/rocketlane/snapshots')
+    .then(function(r){ return r.json(); })
+    .then(function(d){ _snapData=d.snapshots||[]; render(); })
+    .catch(function(){ _snapData=[]; });
+}
+
 // ─── Tab 5: Historical Trends ─────────────────────────────────────────────────
 function rlTabTrends(body) {
   body.innerHTML='<div style="text-align:center;padding:40px;"><div class="rl-spin" style="margin:0 auto;"></div></div>';
@@ -11010,7 +12507,7 @@ function rlTabTrends(body) {
     var allSnaps=(d.snapshots||[]);
     if(!allSnaps.length){body.innerHTML=rlCard('<div style="padding:48px;text-align:center;font-size:13px;color:#8a92a0;">No snapshots yet. Snapshots auto-capture every Monday at 9:50 AM IST.</div>');return;}
 
-    var _period='weekly', _count=4, _view='portfolio';
+    var _period='weekly', _count=4, _view='portfolio', _clientFilter='';
 
     function avg(s){if(!s||!s.projects||!s.projects.length)return null;var std=s.projects.filter(function(p){return p.completionPct!=null;});if(!std.length)return null;return Math.round(std.reduce(function(a,p){return a+p.completionPct;},0)/std.length);}
     function fmtDate(s){return new Date(s.capturedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
@@ -11029,13 +12526,14 @@ function rlTabTrends(body) {
       return Object.values(map);
     }
 
-    function buildTrendChart(pts, view){
+    function buildTrendChart(pts, view, clientFilter){
       if(pts.length<2) return '<div style="padding:24px;text-align:center;font-size:12px;color:#8a92a0;">Need at least 2 snapshots to show chart.</div>';
       var W=900, H=180, ML=40, MR=16, MT=16, MB=28;
       var plotW=W-ML-MR, plotH=H-MT-MB;
-      var COLORS=['#c9a227','#60a5fa','#22c55e','#a78bfa','#f97316','#34d399','#f59e0b','#e879f9'];
-      function xP(i){return ML+(pts.length<2?plotW/2:(i/(pts.length-1))*plotW);}
+      var COLORS=['#60a5fa','#22c55e','#a78bfa','#f97316','#34d399','#f59e0b','#e879f9','#f43f5e'];
       function yP(v){return MT+plotH-(v/100)*plotH;}
+      var groupW=plotW/pts.length;
+      function xCenter(i){return ML+(i+0.5)*groupW;}
       var parts=[];
       [0,25,50,75,100].forEach(function(v){
         var y=yP(v);
@@ -11045,32 +12543,58 @@ function rlTabTrends(body) {
       var legendItems=[];
       if(view==='portfolio'){
         var vals=pts.map(avg);
-        var valid=[];
-        vals.forEach(function(v,i){if(v!=null)valid.push({x:xP(i),y:yP(v),v:v,s:pts[i]});});
-        if(valid.length>=2){
-          var botY=MT+plotH;
-          parts.push('<path d="M'+valid[0].x+','+botY+' '+valid.map(function(p){return'L'+p.x+','+p.y;}).join(' ')+' L'+valid[valid.length-1].x+','+botY+' Z" fill="rgba(201,162,39,.1)"/>');
-          parts.push('<polyline points="'+valid.map(function(p){return p.x+','+p.y;}).join(' ')+'" fill="none" stroke="#c9a227" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>');
-          valid.forEach(function(p){
-            parts.push('<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="#c9a227" stroke="#0f0f16" stroke-width="2"><title>'+fmtDate(p.s)+': '+p.v+'%</title></circle>');
-          });
-        }
-      } else {
-        var projMap={};
-        pts.forEach(function(s,si){(s.projects||[]).filter(function(p){return p.completionPct!=null;}).forEach(function(p){if(!projMap[p.projectId])projMap[p.projectId]={name:p.projectName||p.name||'Unknown',customer:p.customer||'',vals:new Array(pts.length).fill(null)};});});
-        pts.forEach(function(s,si){Object.keys(projMap).forEach(function(id){var m=(s.projects||[]).find(function(x){return String(x.id||x.projectId)===String(id);});if(m&&m.completionPct!=null)projMap[id].vals[si]=m.completionPct;});});
-        Object.values(projMap).slice(0,10).forEach(function(proj,ci){
-          var col=COLORS[ci%COLORS.length];
-          var segs=[],cur=[];
-          proj.vals.forEach(function(v,i){if(v!=null)cur.push({x:xP(i),y:yP(v)});else{if(cur.length>=2)segs.push(cur);cur=[];}});
-          if(cur.length>=2)segs.push(cur);
-          segs.forEach(function(seg){parts.push('<polyline points="'+seg.map(function(p){return p.x+','+p.y;}).join(' ')+'" fill="none" stroke="'+col+'" stroke-width="1.8" stroke-linejoin="round" opacity=".8"/>');});
-          proj.vals.forEach(function(v,i){if(v==null)return;parts.push('<circle cx="'+xP(i)+'" cy="'+yP(v)+'" r="3" fill="'+col+'" stroke="#0f0f16" stroke-width="1.5"><title>'+proj.name+': '+v+'%</title></circle>');});
-          legendItems.push('<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#8a92a0;"><div style="width:12px;height:2px;background:'+col+';flex-shrink:0;border-radius:1px;"></div><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;" title="'+proj.name+'">'+proj.name+'</span></div>');
+        var barW=Math.max(8,Math.min(60,groupW*0.65));
+        vals.forEach(function(v,i){
+          if(v==null)return;
+          var cx=xCenter(i);
+          var bH=(v/100)*plotH, bY=yP(v);
+          var col=v>=70?'#22c55e':v>=40?'#c9a227':'#ef4444';
+          parts.push('<rect x="'+(cx-barW/2)+'" y="'+bY+'" width="'+barW+'" height="'+bH+'" fill="'+col+'" rx="3" opacity=".85"/>');
+          parts.push('<text x="'+cx+'" y="'+(bY-4)+'" text-anchor="middle" font-size="9" fill="'+col+'" font-family="monospace" font-weight="600">'+v+'%</text>');
         });
+      } else {
+        var ownerLookup={};
+        if(_rlData&&_rlData.projects){_rlData.projects.forEach(function(lp){if(lp.projectId&&lp.projectOwner)ownerLookup[String(lp.projectId)]=lp.projectOwner;});}
+        var groupMap={};
+        pts.forEach(function(s,si){
+          (s.projects||[]).filter(function(p){
+            return p.completionPct!=null&&(!clientFilter||p.customer===clientFilter);
+          }).forEach(function(p){
+            var key,name;
+            if(view==='client'){key=p.customer||'(No Client)';name=key;}
+            else if(view==='project'){key=String(p.projectId);name=p.projectName||p.name||'Unknown';}
+            else{var o=p.projectOwner||ownerLookup[String(p.projectId)]||'(Unassigned)';key=o;name=o;}
+            if(!groupMap[key])groupMap[key]={name:name,sums:new Array(pts.length).fill(0),counts:new Array(pts.length).fill(0)};
+            groupMap[key].sums[si]+=p.completionPct;
+            groupMap[key].counts[si]++;
+          });
+        });
+        var series=Object.values(groupMap).map(function(g){
+          var vals=g.sums.map(function(s,i){return g.counts[i]>0?Math.round(s/g.counts[i]):null;});
+          return {name:g.name,vals:vals,filled:vals.filter(function(v){return v!=null;}).length};
+        }).sort(function(a,b){
+          if(view==='owner'&&a.name==='(Unassigned)')return 1;
+          if(view==='owner'&&b.name==='(Unassigned)')return -1;
+          return b.filled-a.filled||a.name.localeCompare(b.name);
+        }).slice(0,8);
+        var n=series.length;
+        var barW=n>0?Math.max(3,Math.min(20,(groupW*0.82)/n)):10;
+        series.forEach(function(ser,ci){
+          var col=COLORS[ci%COLORS.length];
+          ser.vals.forEach(function(v,si){
+            if(v==null)return;
+            var cx=xCenter(si);
+            var bx=cx-(n*barW/2)+ci*barW+barW/2;
+            var bH=(v/100)*plotH, bY=yP(v);
+            parts.push('<rect x="'+(bx-barW/2+0.5)+'" y="'+bY+'" width="'+(barW-1)+'" height="'+bH+'" fill="'+col+'" rx="2" opacity=".85"/>');
+            parts.push('<text x="'+bx+'" y="'+(bY-3)+'" text-anchor="middle" font-size="8" fill="'+col+'" font-family="monospace" font-weight="600">'+v+'%</text>');
+          });
+          legendItems.push('<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#8a92a0;"><div style="width:10px;height:10px;border-radius:2px;background:'+col+';flex-shrink:0;"></div><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;" title="'+ser.name+'">'+ser.name+'</span></div>');
+        });
+        if(!series.length)parts.push('<text x="'+(ML+plotW/2)+'" y="'+(MT+plotH/2)+'" text-anchor="middle" font-size="12" fill="#5a6270" font-family="monospace">No data for this view</text>');
       }
       var step=Math.max(1,Math.ceil(pts.length/7));
-      for(var i=0;i<pts.length;i+=step){parts.push('<text x="'+xP(i)+'" y="'+(H-5)+'" text-anchor="middle" font-size="9" fill="#5a6270" font-family="monospace">'+fmtDate(pts[i])+'</text>');}
+      for(var i=0;i<pts.length;i+=step){parts.push('<text x="'+xCenter(i)+'" y="'+(H-5)+'" text-anchor="middle" font-size="9" fill="#5a6270" font-family="monospace">'+fmtDate(pts[i])+'</text>');}
       return '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;overflow:visible;">'+parts.join('')+'</svg>'+(legendItems.length?'<div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0 2px;">'+legendItems.join('')+'</div>':'');
     }
 
@@ -11139,10 +12663,80 @@ function rlTabTrends(body) {
       );
     }
 
+    function buildBreakdownGrid(cols, view){
+      if(view==='portfolio'||view==='client') return buildClientGrid(cols);
+      if(!cols.length||!cols[0].projects||!cols[0].projects.length) return '';
+      var ownerLookup={};
+      if(_rlData&&_rlData.projects){_rlData.projects.forEach(function(lp){if(lp.projectId&&lp.projectOwner)ownerLookup[String(lp.projectId)]=lp.projectOwner;});}
+      var dateHeaders=cols.map(function(s,i){return'<th style="padding:8px 8px;font-size:10px;color:'+(i===0?'#c9a227':'#8a92a0')+';font-weight:600;text-align:center;font-family:\'DM Mono\',monospace;">'+fmtDate(s)+'</th>';}).join('');
+      if(view==='project'){
+        var projMap={};
+        cols.forEach(function(snap,ci){
+          (snap.projects||[]).filter(function(p){return p.completionPct!=null&&(!_clientFilter||p.customer===_clientFilter);}).forEach(function(p){
+            var key=String(p.projectId);
+            if(!projMap[key]) projMap[key]={name:p.projectName||p.name||'Unknown',client:p.customer||'(No Client)',vals:new Array(cols.length).fill(null)};
+            projMap[key].vals[ci]=Math.round(p.completionPct);
+          });
+        });
+        var projList=Object.values(projMap).sort(function(a,b){var av=a.vals[0]!=null?a.vals[0]:-1,bv=b.vals[0]!=null?b.vals[0]:-1;return bv-av||a.name.localeCompare(b.name);});
+        var rows=projList.map(function(proj){
+          var dv=proj.vals[0]!=null&&proj.vals[1]!=null?proj.vals[0]-proj.vals[1]:null;
+          var dvColor=dv===null?'#8a92a0':dv>0?'#22c55e':dv<0?'#ef4444':'#8a92a0';
+          var cellsHTML=proj.vals.map(function(v,i){var c=v==null?'#5a6270':v>=70?'#22c55e':v>=40?'#c9a227':'#ef4444';return'<td style="padding:9px 8px;text-align:center;font-size:12px;font-family:\'DM Mono\',monospace;color:'+c+';font-weight:'+(i===0?'700':'400')+';">'+(v!=null?v+'%':'—')+'</td>';}).join('');
+          var dvCell=dv!==null?'<td style="padding:9px 8px;text-align:center;font-size:11px;font-family:\'DM Mono\',monospace;color:'+dvColor+';font-weight:700;">'+(dv>0?'+':'')+dv+'%</td>':'<td style="padding:9px 8px;text-align:center;color:#5a6270;">—</td>';
+          return'<tr style="border-top:1px solid rgba(255,255,255,.04);"><td style="padding:9px 16px;"><div style="font-size:12px;color:#f0f0f6;white-space:nowrap;">'+proj.name+'</div><div style="font-size:10px;color:#8a92a0;margin-top:1px;">'+proj.client+'</div></td>'+cellsHTML+dvCell+'</tr>';
+        }).join('');
+        return rlCard(
+          '<div style="padding:12px 16px 4px;font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Project Breakdown</div>'+
+          '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr>'+
+            '<th style="padding:8px 16px;font-size:10px;color:#8a92a0;font-weight:600;text-align:left;font-family:\'DM Mono\',monospace;">Project</th>'+
+            dateHeaders+
+            '<th style="padding:8px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-align:center;font-family:\'DM Mono\',monospace;">Change</th>'+
+          '</tr></thead><tbody>'+rows+'</tbody></table></div>',
+          'margin-bottom:0;'
+        );
+      }
+      var ownerMap={};
+      cols.forEach(function(snap,ci){
+        (snap.projects||[]).filter(function(p){return p.completionPct!=null&&(!_clientFilter||p.customer===_clientFilter);}).forEach(function(p){
+          var o=p.projectOwner||ownerLookup[String(p.projectId)]||'(Unassigned)';
+          if(!ownerMap[o]) ownerMap[o]={sums:new Array(cols.length).fill(0),counts:new Array(cols.length).fill(0)};
+          ownerMap[o].sums[ci]+=p.completionPct;
+          ownerMap[o].counts[ci]++;
+        });
+      });
+      var ownerList=Object.keys(ownerMap).sort(function(a,b){if(a==='(Unassigned)')return 1;if(b==='(Unassigned)')return -1;return a.localeCompare(b);});
+      var rows2=ownerList.map(function(owner){
+        var vals=ownerMap[owner].sums.map(function(s,i){return ownerMap[owner].counts[i]>0?Math.round(s/ownerMap[owner].counts[i]):null;});
+        var dv=vals[0]!=null&&vals[1]!=null?vals[0]-vals[1]:null;
+        var dvColor=dv===null?'#8a92a0':dv>0?'#22c55e':dv<0?'#ef4444':'#8a92a0';
+        var cellsHTML=vals.map(function(v,i){var c=v==null?'#5a6270':v>=70?'#22c55e':v>=40?'#c9a227':'#ef4444';return'<td style="padding:9px 8px;text-align:center;font-size:12px;font-family:\'DM Mono\',monospace;color:'+c+';font-weight:'+(i===0?'700':'400')+';">'+(v!=null?v+'%':'—')+'</td>';}).join('');
+        var dvCell=dv!==null?'<td style="padding:9px 8px;text-align:center;font-size:11px;font-family:\'DM Mono\',monospace;color:'+dvColor+';font-weight:700;">'+(dv>0?'+':'')+dv+'%</td>':'<td style="padding:9px 8px;text-align:center;color:#5a6270;">—</td>';
+        var projCount=ownerMap[owner].counts[0]||0;
+        return'<tr style="border-top:1px solid rgba(255,255,255,.04);"><td style="padding:9px 16px;"><div style="font-size:12px;color:#f0f0f6;white-space:nowrap;">'+owner+'</div><div style="font-size:10px;color:#8a92a0;margin-top:1px;">'+projCount+' proj</div></td>'+cellsHTML+dvCell+'</tr>';
+      }).join('');
+      return rlCard(
+        '<div style="padding:12px 16px 4px;font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Owner Breakdown</div>'+
+        '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr>'+
+          '<th style="padding:8px 16px;font-size:10px;color:#8a92a0;font-weight:600;text-align:left;font-family:\'DM Mono\',monospace;">Owner</th>'+
+          dateHeaders+
+          '<th style="padding:8px 8px;font-size:10px;color:#8a92a0;font-weight:600;text-align:center;font-family:\'DM Mono\',monospace;">Change</th>'+
+        '</tr></thead><tbody>'+rows2+'</tbody></table></div>',
+        'margin-bottom:0;'
+      );
+    }
+
     function render(period, count, view){
       var snaps=periodSnaps(period).slice(0,20);
       var chron=snaps.slice().reverse();
       var cols=snaps.slice(0,count);
+
+      var allClients=[];
+      chron.forEach(function(s){(s.projects||[]).forEach(function(p){if(p.customer&&allClients.indexOf(p.customer)<0)allClients.push(p.customer);});});
+      allClients.sort();
+      var clientSelectHtml=view!=='portfolio'
+        ?'<select onchange="rlTrendClient(this.value)" style="background:#161620;border:1px solid rgba(255,255,255,.15);color:#f0f0f6;border-radius:6px;padding:4px 10px;font-size:11px;font-family:\'DM Sans\',sans-serif;cursor:pointer;"><option value=""'+(_clientFilter===''?' selected':'')+'>All Clients</option>'+allClients.map(function(c){return'<option value="'+c.replace(/"/g,'&quot;')+'"'+(c===_clientFilter?' selected':'')+'>'+c+'</option>';}).join('')+'</select>'
+        :'';
 
       function pBtn(p,lbl){var a=p===period;return'<button onclick="rlTrendPeriod(\''+p+'\')" style="background:'+(a?'rgba(201,162,39,.15)':'transparent')+';border:1px solid '+(a?'rgba(201,162,39,.45)':'rgba(255,255,255,.1)')+';color:'+(a?'#c9a227':'rgba(255,255,255,.38)')+';border-radius:6px;padding:5px 14px;font-size:12px;font-family:\'DM Sans\',sans-serif;font-weight:'+(a?'600':'400')+';cursor:pointer;">'+lbl+'</button>';}
       function cBtn(n,lbl){var a=n===count;return'<button onclick="rlTrendCount('+n+')" style="background:'+(a?'rgba(255,255,255,.1)':'transparent')+';border:1px solid '+(a?'rgba(255,255,255,.2)':'rgba(255,255,255,.07)')+';color:'+(a?'#f0f0f6':'rgba(255,255,255,.35)')+';border-radius:6px;padding:4px 11px;font-size:11px;font-family:\'DM Sans\',sans-serif;font-weight:'+(a?'600':'400')+';cursor:pointer;">'+lbl+'</button>';}
@@ -11163,17 +12757,18 @@ function rlTabTrends(body) {
         rlCard(
           '<div style="padding:12px 16px 8px;display:flex;align-items:center;justify-content:space-between;">'+
             '<div style="font-size:11px;color:#8a92a0;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-family:\'DM Mono\',monospace;">Progress Trend</div>'+
-            '<div style="display:flex;gap:5px;">'+vBtn('portfolio','Portfolio')+vBtn('client','Client')+'</div>'+
+            '<div style="display:flex;align-items:center;gap:8px;">'+clientSelectHtml+'<div style="display:flex;gap:5px;">'+vBtn('portfolio','Portfolio')+vBtn('client','Client')+vBtn('project','Project')+vBtn('owner','Owner')+'</div></div>'+
           '</div>'+
-          '<div style="padding:0 16px 16px;">'+buildTrendChart(chron,view)+'</div>',
+          '<div style="padding:0 16px 16px;">'+buildTrendChart(cols.slice().reverse(),view,_clientFilter)+'</div>',
           'margin-bottom:16px;'
         )+
-        buildClientGrid(cols);
+        buildBreakdownGrid(cols, view);
     }
 
     window.rlTrendPeriod=function(p){_period=p;render(_period,_count,_view);};
     window.rlTrendCount=function(n){_count=n;render(_period,_count,_view);};
-    window.rlTrendView=function(v){_view=v;render(_period,_count,_view);};
+    window.rlTrendView=function(v){_view=v;if(v==='portfolio')_clientFilter='';render(_period,_count,_view);};
+    window.rlTrendClient=function(c){_clientFilter=c;render(_period,_count,_view);};
     render(_period,_count,_view);
   }).catch(function(e){body.innerHTML='<div style="text-align:center;padding:32px;color:#dc2626;font-size:13px;">'+e.message+'</div>';});
 }
