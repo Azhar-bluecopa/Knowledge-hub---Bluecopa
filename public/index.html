@@ -11102,6 +11102,7 @@ function rlOpenCatDetail(catKey) {
   window._rlCatGroup    = 'project';
   window._rlCatExpanded = {};
   window._rlCatDetailed = {};
+  window._rlNoIssuesOpen = false;
 
   function na(v){ return (v&&String(v).trim()) ? String(v).trim() : null; }
   function naCell(v, tdStyle){
@@ -11241,22 +11242,50 @@ function rlOpenCatDetail(catKey) {
       '</div>'+
       '<div style="border-bottom:1px solid rgba(255,255,255,.06);margin:0 8px 10px;"></div>';
     }
+    function renderNoIssuesSummary(noItems, viewType) {
+      var isOpen = !!window._rlNoIssuesOpen;
+      var count = noItems.length;
+      var unit = viewType==='project'?(count===1?'project':'projects'):viewType==='client'?(count===1?'client':'clients'):(count===1?'owner':'owners');
+      var inner = '';
+      if (isOpen) {
+        if (viewType==='project') {
+          inner = noItems.map(renderProjectRow).join('');
+        } else {
+          noItems.forEach(function(g){
+            inner+='<div style="background:#0f0f16;border:1px solid rgba(34,197,94,.1);border-radius:14px;margin-bottom:10px;overflow:hidden;padding:0 8px 10px;">'+groupHeader(g.k,0,g.ps.length)+g.ps.map(renderProjectRow).join('')+'</div>';
+          });
+        }
+      }
+      return '<div style="background:rgba(34,197,94,.04);border:1px solid rgba(34,197,94,.18);border-radius:12px;margin-top:10px;overflow:hidden;">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;cursor:pointer;" '+
+          'onclick="window._rlNoIssuesOpen=!window._rlNoIssuesOpen;window.rlRenderCatDetail();">'+
+          '<div style="display:flex;align-items:center;gap:8px;">'+
+            '<span style="font-size:15px;color:#22c55e;line-height:1;">✓</span>'+
+            '<span style="font-size:13px;font-weight:600;color:#22c55e;">'+count+' '+unit+' with no compliance issues</span>'+
+          '</div>'+
+          '<span style="font-size:11px;color:rgba(255,255,255,.3);white-space:nowrap;flex-shrink:0;">'+(isOpen?'▲ Collapse':'▼ Show all')+'</span>'+
+        '</div>'+
+        (isOpen?'<div style="padding:0 8px 8px;">'+inner+'</div>':'')+
+      '</div>';
+    }
     if (groupBy==='client') {
       var cmap = {};
       projects.forEach(function(p){ var k=na(p.customer)||'No Client'; if(!cmap[k])cmap[k]=[]; cmap[k].push(p); });
-      Object.keys(cmap).sort().forEach(function(k){
-        var ps=cmap[k]; var tot=ps.reduce(function(s,p){return s+p.items.length;},0);
-        html+='<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:14px;margin-bottom:14px;overflow:hidden;padding:0 8px 10px;">'+groupHeader(k,tot,ps.length)+ps.map(renderProjectRow).join('')+'</div>';
-      });
+      var withIss=[], noIss=[];
+      Object.keys(cmap).sort().forEach(function(k){ var ps=cmap[k],tot=ps.reduce(function(s,p){return s+p.items.length;},0); (tot>0?withIss:noIss).push({k:k,ps:ps,tot:tot}); });
+      withIss.forEach(function(g){ html+='<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:14px;margin-bottom:14px;overflow:hidden;padding:0 8px 10px;">'+groupHeader(g.k,g.tot,g.ps.length)+g.ps.map(renderProjectRow).join('')+'</div>'; });
+      if (noIss.length) html+=renderNoIssuesSummary(noIss,'client');
     } else if (groupBy==='owner') {
       var omap = {};
       projects.forEach(function(p){ var k=na(p.projectOwner)||'Unassigned'; if(!omap[k])omap[k]=[]; omap[k].push(p); });
-      Object.keys(omap).sort().forEach(function(k){
-        var ps=omap[k]; var tot=ps.reduce(function(s,p){return s+p.items.length;},0);
-        html+='<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:14px;margin-bottom:14px;overflow:hidden;padding:0 8px 10px;">'+groupHeader(k,tot,ps.length,'#93c5fd')+ps.map(renderProjectRow).join('')+'</div>';
-      });
+      var withIss=[], noIss=[];
+      Object.keys(omap).sort().forEach(function(k){ var ps=omap[k],tot=ps.reduce(function(s,p){return s+p.items.length;},0); (tot>0?withIss:noIss).push({k:k,ps:ps,tot:tot}); });
+      withIss.forEach(function(g){ html+='<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:14px;margin-bottom:14px;overflow:hidden;padding:0 8px 10px;">'+groupHeader(g.k,g.tot,g.ps.length,'#93c5fd')+g.ps.map(renderProjectRow).join('')+'</div>'; });
+      if (noIss.length) html+=renderNoIssuesSummary(noIss,'owner');
     } else {
-      html = projects.map(renderProjectRow).join('');
+      var withIss=projects.filter(function(p){return p.items.length>0;}), noIss=projects.filter(function(p){return p.items.length===0;});
+      html=withIss.map(renderProjectRow).join('');
+      if (noIss.length) html+=renderNoIssuesSummary(noIss,'project');
     }
     return html || '<div style="padding:40px;text-align:center;font-size:13px;color:#5a6270;">No issues found</div>';
   }
@@ -11288,7 +11317,7 @@ function rlOpenCatDetail(catKey) {
   };
 
   window.rlCatDetailFilter = function(type, val){
-    if (type==='group'){ window._rlCatGroup=val; window._rlCatExpanded={}; window._rlCatDetailed={}; }
+    if (type==='group'){ window._rlCatGroup=val; window._rlCatExpanded={}; window._rlCatDetailed={}; window._rlNoIssuesOpen=false; }
     window.rlRenderCatDetail();
   };
 
