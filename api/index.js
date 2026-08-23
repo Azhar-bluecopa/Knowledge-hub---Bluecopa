@@ -3423,6 +3423,70 @@ app.delete('/api/rocketlane/findings/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Schedule & task-level metrics per project ─────────────────────────────────
+function rlComputeScheduleMetrics(project, progress, tasks) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayMs = today.getTime();
+  const statusLbl = (project.status?.label || '').toLowerCase();
+
+  const overdueTaskCount = tasks.filter(t => {
+    const l = (t.status?.label || '').toLowerCase();
+    return !l.includes('complet') && t.dueDate && new Date(t.dueDate).getTime() < todayMs;
+  }).length;
+
+  const blockedTaskCount = tasks.filter(t =>
+    (t.status?.label || '').toLowerCase().includes('block')
+  ).length;
+
+  let expectedProgressPct = null, scheduleVarianceDays = null, onSchedule = 'no-date';
+  if (statusLbl.includes('complet') || statusLbl.includes('cancel')) {
+    onSchedule = 'completed';
+  } else if (project.startDate && project.dueDate) {
+    const start = new Date(project.startDate).getTime();
+    const due   = new Date(project.dueDate).getTime();
+    const totalDays = Math.max(1, (due - start) / 86400000);
+    const elapsed   = Math.min(totalDays, Math.max(0, (todayMs - start) / 86400000));
+    expectedProgressPct = Math.round(elapsed / totalDays * 100);
+    const actual = progress.overallPct ?? 0;
+    const variance = actual - expectedProgressPct;
+    scheduleVarianceDays = Math.round(variance / 100 * totalDays);
+    onSchedule = scheduleVarianceDays >= 0 ? 'on-track' : scheduleVarianceDays >= -14 ? 'at-risk' : 'delayed';
+  } else if (project.dueDate) {
+    onSchedule = new Date(project.dueDate).getTime() < todayMs ? 'delayed' : 'no-date';
+  }
+
+  // Current active phase for standard projects
+  let currentPhase = null;
+  if (progress.isStandard && progress.phases) {
+    for (const ph of ['engage','drive','enable','convert']) {
+      if ((progress.phases[ph]?.pct ?? 0) < 100) { currentPhase = ph; break; }
+    }
+    if (!currentPhase) currentPhase = 'completed';
+  }
+
+  // Planned duration per completed phase (using task startDate/dueDate span as proxy)
+  const phaseDurations = {};
+  if (progress.isStandard && progress.phases) {
+    for (const ph of ['engage','drive','enable','convert']) {
+      const pTasks = progress.phases[ph]?.tasks || [];
+      if (!pTasks.length || !pTasks.every(t => t.completed)) { phaseDurations[ph] = null; continue; }
+      const dates = pTasks.filter(t => t.startDate && t.dueDate)
+        .map(t => [new Date(t.startDate).getTime(), new Date(t.dueDate).getTime()]);
+      if (!dates.length) { phaseDurations[ph] = null; continue; }
+      phaseDurations[ph] = Math.max(1, Math.round(
+        (Math.max(...dates.map(d => d[1])) - Math.min(...dates.map(d => d[0]))) / 86400000
+      ));
+    }
+  }
+
+  return {
+    startDate: project.startDate || null,
+    overdueTaskCount, blockedTaskCount,
+    expectedProgressPct, scheduleVarianceDays, onSchedule,
+    currentPhase, phaseDurations
+  };
+}
+
 // ── Rocketlane Projects Full (methodology-based) ──────────────────────────────
 async function rlDoFullFetch(apiKey) {
   const now = Date.now();
@@ -3455,18 +3519,27 @@ async function rlDoFullFetch(apiKey) {
       if (!o) return null;
       return [o.firstName, o.lastName].filter(Boolean).join(' ').trim() || o.emailId || null;
     })();
+    const metrics = rlComputeScheduleMetrics(p, progress, tasksByProject[p.projectId] || []);
     return {
       projectId: p.projectId, projectName: p.projectName,
       status: p.status?.label || 'Unknown',
       customer: p.customer?.companyName || null,
       projectOwner,
+      startDate: metrics.startDate,
       dueDate: p.dueDate || null,
       isStandard: progress.isStandard,
       overallPct: progress.overallPct,
       phases: progress.phases,
       mainTaskCount: progress.mainTaskCount,
       totalTasks: progress.totalTasks,
-      compliance: { issues, issueCount: issues.length }
+      compliance: { issues, issueCount: issues.length },
+      overdueTaskCount: metrics.overdueTaskCount,
+      blockedTaskCount: metrics.blockedTaskCount,
+      expectedProgressPct: metrics.expectedProgressPct,
+      scheduleVarianceDays: metrics.scheduleVarianceDays,
+      onSchedule: metrics.onSchedule,
+      currentPhase: metrics.currentPhase,
+      phaseDurations: metrics.phaseDurations
     };
   });
   const standard = projects.filter(p => p.isStandard);

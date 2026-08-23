@@ -10475,6 +10475,7 @@ var RL_PHASES = {
 };
 
 var RL_TABS = [
+  { id: 'overview',   label: '360° Overall Dashboard' },
   { id: 'executive',  label: 'Executive Overview' },
   { id: 'progress',   label: 'Project Progress' },
   { id: 'compliance', label: 'Project Compliance' },
@@ -10486,7 +10487,7 @@ var RL_TABS = [
 function rlInitDashboard() {
   var el = document.getElementById('rlContent');
   if (!el) return;
-  _rlData = null; _rlDrillProject = null; _rlTab = 'executive'; _rlFilter = 'all';
+  _rlData = null; _rlDrillProject = null; _rlTab = 'overview'; _rlFilter = 'all';
   _rlLoading = true;
   el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px;gap:16px;"><div class="rl-spin"></div><div style="font-size:13px;color:rgba(255,255,255,.3);">Loading Rocketlane data…</div></div>';
   fetch('/api/rocketlane/projects-full')
@@ -10545,7 +10546,7 @@ function rlRenderActiveTab() {
   var body = document.getElementById('rlTabBody');
   if (!body || !_rlData) return;
   try {
-    ({ executive: rlTabExecutive, progress: rlTabProgress, compliance: rlTabCompliance, timeline: rlTabTimeline, trends: rlTabTrends, health: rlTabHealth })[_rlTab](body);
+    ({ overview: rlTabOverview, executive: rlTabExecutive, progress: rlTabProgress, compliance: rlTabCompliance, timeline: rlTabTimeline, trends: rlTabTrends, health: rlTabHealth })[_rlTab](body);
   } catch(e) {
     body.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626;font-size:13px;">Tab render error: ' + (e && e.message || String(e)) + '</div>';
   }
@@ -11410,6 +11411,570 @@ function rlTabTimeline(body) {
 }
 
 // ─── Tab 6: Health Dashboard ──────────────────────────────────────────────────
+// ─── Tab 0: 360° Overall Dashboard ─────────────────────────────────────────
+function rlTabOverview(body) {
+  // ── State ──
+  var _clientF = '', _ownerF = '', _statusF = 'all', _stdF = 'all';
+  var _ownerView = 'client'; // 'client' | 'owner'
+
+  // ── Helper: median ──
+  function median(arr) {
+    if (!arr.length) return null;
+    var s = arr.slice().sort(function(a,b){return a-b;});
+    var m = Math.floor(s.length/2);
+    return s.length%2 ? s[m] : Math.round((s[m-1]+s[m])/2);
+  }
+
+  // ── Filtered project set ──
+  function fps() {
+    var ps = (_rlData && _rlData.projects) || [];
+    if (_clientF) ps = ps.filter(function(p){ return p.customer === _clientF; });
+    if (_ownerF)  ps = ps.filter(function(p){ return p.projectOwner === _ownerF; });
+    if (_statusF !== 'all') {
+      ps = ps.filter(function(p){
+        var s = (p.status||'').toLowerCase();
+        if (_statusF === 'active')    return s.includes('progress') || s.includes('active');
+        if (_statusF === 'complete')  return s.includes('complet');
+        if (_statusF === 'hold')      return s.includes('hold');
+        if (_statusF === 'blocked')   return s.includes('block');
+        if (_statusF === 'cancelled') return s.includes('cancel');
+        return true;
+      });
+    }
+    if (_stdF === 'standard')    ps = ps.filter(function(p){ return p.isStandard; });
+    if (_stdF === 'nonstandard') ps = ps.filter(function(p){ return !p.isStandard; });
+    return ps;
+  }
+
+  // ── Section header ──
+  function sh(n, title, sub) {
+    return '<div style="display:flex;align-items:baseline;gap:10px;margin:22px 0 10px;">' +
+      '<div style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#c9a227,#8b6914);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#000;flex-shrink:0;">' + n + '</div>' +
+      '<div>' +
+        '<div style="font-size:14px;font-weight:700;color:#f0f0f6;letter-spacing:-.2px;">' + title + '</div>' +
+        (sub ? '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;margin-top:1px;">' + sub + '</div>' : '') +
+      '</div>' +
+    '</div>';
+  }
+
+  // ── KPI mini-card ──
+  function kpi(val, label, sub, color) {
+    return '<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px 16px;flex:1;min-width:110px;">' +
+      '<div style="font-size:24px;font-weight:800;color:' + (color||'#f0f0f6') + ';font-family:\'DM Mono\',monospace;line-height:1;letter-spacing:-.5px;">' + val + '</div>' +
+      '<div style="font-size:11px;font-weight:600;color:#c9d0da;margin-top:5px;">' + label + '</div>' +
+      (sub ? '<div style="font-size:9px;color:#5a6270;margin-top:2px;font-family:\'DM Mono\',monospace;">' + sub + '</div>' : '') +
+    '</div>';
+  }
+
+  // ── Toggle button ──
+  function togBtn(v, cur, fn, label) {
+    var a = v === cur;
+    return '<button onclick="' + fn + '(\'' + v + '\')" style="background:' + (a?'rgba(255,255,255,.1)':'transparent') + ';border:1px solid ' + (a?'rgba(255,255,255,.2)':'rgba(255,255,255,.07)') + ';color:' + (a?'#f0f0f6':'rgba(255,255,255,.35)') + ';border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;transition:all .15s;">' + label + '</button>';
+  }
+
+  // ── Filters ──
+  function buildFilters() {
+    var allPs = (_rlData && _rlData.projects) || [];
+    var clients = [], owners = [];
+    allPs.forEach(function(p){
+      if (p.customer && clients.indexOf(p.customer)<0) clients.push(p.customer);
+      if (p.projectOwner && owners.indexOf(p.projectOwner)<0) owners.push(p.projectOwner);
+    });
+    clients.sort(); owners.sort();
+    var sel = 'background:#161620;border:1px solid rgba(255,255,255,.14);color:#f0f0f6;border-radius:7px;padding:5px 9px;font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer;outline:none;';
+    var lb  = 'font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;';
+    var clientOpts = '<option value="">All Clients</option>' + clients.map(function(c){
+      return '<option value="' + c.replace(/"/g,'&quot;') + '"' + (c===_clientF?' selected':'') + '>' + c + '</option>';
+    }).join('');
+    var ownerOpts = '<option value="">All Owners</option>' + owners.map(function(o){
+      return '<option value="' + o.replace(/"/g,'&quot;') + '"' + (o===_ownerF?' selected':'') + '>' + o + '</option>';
+    }).join('');
+    return rlCard(
+      '<div style="padding:12px 16px 10px;">' +
+        '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
+          '<div style="display:flex;align-items:center;gap:6px;">' +
+            '<span style="' + lb + '">Status</span>' +
+            '<div style="display:flex;gap:3px;">' +
+              togBtn('all',_statusF,'window.rlOVSt','All') +
+              togBtn('active',_statusF,'window.rlOVSt','Active') +
+              togBtn('complete',_statusF,'window.rlOVSt','Completed') +
+              togBtn('hold',_statusF,'window.rlOVSt','On Hold') +
+            '</div>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:6px;">' +
+            '<span style="' + lb + '">Client</span>' +
+            '<select onchange="window.rlOVCl(this.value)" style="' + sel + '">' + clientOpts + '</select>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:6px;">' +
+            '<span style="' + lb + '">Owner</span>' +
+            '<select onchange="window.rlOVOw(this.value)" style="' + sel + '">' + ownerOpts + '</select>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:6px;">' +
+            '<span style="' + lb + '">Type</span>' +
+            '<div style="display:flex;gap:3px;">' +
+              togBtn('all',_stdF,'window.rlOVStd','All') +
+              togBtn('standard',_stdF,'window.rlOVStd','Standard') +
+              togBtn('nonstandard',_stdF,'window.rlOVStd','Non-standard') +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>',
+      'margin-bottom:14px;'
+    );
+  }
+
+  // ─── SECTION 1: Portfolio Overview ────────────────────────────────────────
+  function buildPortfolioOverview(ps) {
+    var total = ps.length;
+    if (!total) return rlCard('<div style="padding:40px;text-align:center;color:#5a6270;">No projects match current filters.</div>', 'margin-bottom:14px;');
+
+    function matchSt(p, key) {
+      var s = (p.status||'').toLowerCase();
+      if (key==='active')     return s.includes('progress')||s.includes('active');
+      if (key==='complete')   return s.includes('complet');
+      if (key==='hold')       return s.includes('hold');
+      if (key==='blocked')    return s.includes('block');
+      if (key==='cancelled')  return s.includes('cancel');
+      if (key==='notstarted') return s.includes('yet')||s.includes('not start')||s.includes('planned');
+      return false;
+    }
+    var STATUS_GROUPS = [
+      {key:'notstarted', label:'Yet to Start',  color:'#8a92a0'},
+      {key:'active',     label:'In Progress',   color:'#38bdf8'},
+      {key:'complete',   label:'Completed',     color:'#22c55e'},
+      {key:'hold',       label:'On Hold',       color:'#f59e0b'},
+      {key:'blocked',    label:'Blocked',       color:'#ef4444'},
+      {key:'cancelled',  label:'Cancelled',     color:'#6b7280'}
+    ];
+    STATUS_GROUPS.forEach(function(g){ g.count = ps.filter(function(p){ return matchSt(p,g.key); }).length; });
+
+    var compliant   = ps.filter(function(p){ return (p.compliance&&p.compliance.issueCount||0)===0; }).length;
+    var totalMisses = ps.reduce(function(s,p){ return s+(p.compliance&&p.compliance.issueCount||0); },0);
+    var compPct     = Math.round(compliant/total*100);
+
+    var onTrack = ps.filter(function(p){ return p.onSchedule==='on-track'; }).length;
+    var atRisk  = ps.filter(function(p){ return p.onSchedule==='at-risk'; }).length;
+    var delayed = ps.filter(function(p){ return p.onSchedule==='delayed'; }).length;
+    var noDate  = ps.filter(function(p){ return !p.onSchedule||p.onSchedule==='no-date'; }).length;
+
+    var stdPs   = ps.filter(function(p){ return p.isStandard && p.overallPct!=null; });
+    var avgPct  = stdPs.length ? Math.round(stdPs.reduce(function(s,p){return s+p.overallPct;},0)/stdPs.length) : null;
+    var activeC = ps.filter(function(p){ return matchSt(p,'active'); }).length;
+    var doneC   = ps.filter(function(p){ return matchSt(p,'complete'); }).length;
+    var holdC   = ps.filter(function(p){ return matchSt(p,'hold')||matchSt(p,'blocked'); }).length;
+
+    var maxC = Math.max(1, Math.max.apply(null, STATUS_GROUPS.map(function(g){return g.count;})));
+    var statusBars = STATUS_GROUPS.filter(function(g){return g.count>0;}).map(function(g){
+      var pct = Math.round(g.count/total*100);
+      var w   = Math.round(g.count/maxC*180);
+      return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">' +
+        '<div style="width:80px;font-size:11px;color:#8a92a0;text-align:right;flex-shrink:0;">' + g.label + '</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<div style="height:18px;border-radius:3px;background:' + g.color + ';opacity:.8;width:' + w + 'px;min-width:3px;"></div>' +
+          '<span style="font-size:12px;font-weight:700;color:' + g.color + ';font-family:\'DM Mono\',monospace;">' + g.count + '</span>' +
+          '<span style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;">' + pct + '%</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    function pill(label, n, col) {
+      if (!n) return '';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;background:' + col + '18;border:1px solid ' + col + '33;flex:1;min-width:90px;">' +
+        '<div style="font-size:20px;font-weight:800;color:' + col + ';font-family:\'DM Mono\',monospace;">' + n + '</div>' +
+        '<div style="font-size:11px;color:' + col + ';font-weight:600;">' + label + '</div>' +
+      '</div>';
+    }
+
+    return rlCard(
+      '<div style="padding:14px 18px 16px;">' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">' +
+          kpi(total, 'Total Projects', 'across all statuses', '#f0f0f6') +
+          kpi(activeC, 'In Progress', 'currently active', '#38bdf8') +
+          kpi(doneC, 'Completed', 'successfully delivered', '#22c55e') +
+          kpi(holdC, 'On Hold / Blocked', 'paused projects', '#f59e0b') +
+          kpi(compPct + '%', 'Portfolio Compliance', compliant + ' projects · 0 misses', compPct>=70?'#22c55e':compPct>=40?'#f59e0b':'#ef4444') +
+          (avgPct!=null ? kpi(avgPct + '%', 'Avg Delivery Progress', stdPs.length + ' standard projects', '#a78bfa') : '') +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Status Distribution</div>' +
+            statusBars +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Schedule Health</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">' +
+              pill('On Track', onTrack, '#22c55e') +
+              pill('At Risk', atRisk, '#f59e0b') +
+              pill('Delayed', delayed, '#ef4444') +
+              (noDate ? pill('No Date', noDate, '#5a6270') : '') +
+            '</div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Compliance</div>' +
+            '<div style="display:flex;gap:3px;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.06);">' +
+              (compliant ? '<div style="flex:' + compliant + ';background:#22c55e;"></div>' : '') +
+              (total-compliant ? '<div style="flex:' + (total-compliant) + ';background:#ef4444;opacity:.6;"></div>' : '') +
+            '</div>' +
+            '<div style="display:flex;justify-content:space-between;margin-top:5px;">' +
+              '<span style="font-size:10px;color:#22c55e;font-family:\'DM Mono\',monospace;">' + compliant + ' compliant</span>' +
+              '<span style="font-size:10px;color:#ef4444;font-family:\'DM Mono\',monospace;">' + totalMisses + ' total misses</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>',
+      'margin-bottom:14px;'
+    );
+  }
+
+  // ─── SECTION 2: Delivery Progress & Phase Performance ─────────────────────
+  function buildDeliveryProgress(ps) {
+    var std    = ps.filter(function(p){ return p.isStandard; });
+    var nonStd = ps.filter(function(p){ return !p.isStandard; });
+    if (!std.length) return rlCard(
+      '<div style="padding:24px 18px;"><div style="font-size:12px;color:#8a92a0;">No standard projects in current filter. Standard projects follow the Engage → Drive → Enable → Convert methodology.</div></div>',
+      'margin-bottom:14px;'
+    );
+
+    var phaseCounts = {engage:0,drive:0,enable:0,convert:0,completed:0};
+    var phaseAvgPct = {engage:[],drive:[],enable:[],convert:[]};
+    std.forEach(function(p){
+      if (p.currentPhase) phaseCounts[p.currentPhase] = (phaseCounts[p.currentPhase]||0)+1;
+      ['engage','drive','enable','convert'].forEach(function(ph){
+        var pct = p.phases&&p.phases[ph] ? p.phases[ph].pct : 0;
+        phaseAvgPct[ph].push(pct||0);
+      });
+    });
+
+    var PH_COLOR = {engage:'#22c55e',drive:'#38bdf8',enable:'#a78bfa',convert:'#f97316',completed:'#c9a227'};
+    var PH_LABEL = {engage:'Engage',drive:'Drive',enable:'Enable',convert:'Convert',completed:'Completed'};
+    var PH_ORDER = ['engage','drive','enable','convert','completed'];
+
+    var maxPC = Math.max(1, Math.max.apply(null, PH_ORDER.map(function(ph){return phaseCounts[ph]||0;})));
+
+    var distBars = PH_ORDER.map(function(ph){
+      var cnt = phaseCounts[ph]||0;
+      var pct = Math.round(cnt/std.length*100);
+      var w   = Math.round(cnt/maxPC*160);
+      return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">' +
+        '<div style="width:65px;font-size:11px;color:#8a92a0;text-align:right;flex-shrink:0;">' + PH_LABEL[ph] + '</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<div style="height:20px;border-radius:3px;background:' + PH_COLOR[ph] + ';opacity:.8;width:' + w + 'px;min-width:3px;"></div>' +
+          '<span style="font-size:13px;font-weight:700;color:' + PH_COLOR[ph] + ';font-family:\'DM Mono\',monospace;">' + cnt + '</span>' +
+          '<span style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;">' + pct + '%</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    var avgBars = ['engage','drive','enable','convert'].map(function(ph){
+      var arr = phaseAvgPct[ph];
+      var avg = arr.length ? Math.round(arr.reduce(function(s,v){return s+v;},0)/arr.length) : 0;
+      var col = PH_COLOR[ph];
+      return '<div style="margin-bottom:9px;">' +
+        '<div style="display:flex;justify-content:space-between;margin-bottom:3px;">' +
+          '<span style="font-size:11px;color:#8a92a0;">' + PH_LABEL[ph] + '</span>' +
+          '<span style="font-size:11px;font-weight:700;color:' + col + ';font-family:\'DM Mono\',monospace;">' + avg + '%</span>' +
+        '</div>' +
+        '<div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px;">' +
+          '<div style="background:' + col + ';height:6px;border-radius:3px;width:' + avg + '%;opacity:.85;"></div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    var durRows = ['engage','drive','enable','convert'].map(function(ph){
+      var durs = std.filter(function(p){ return p.phaseDurations&&p.phaseDurations[ph]!=null; }).map(function(p){return p.phaseDurations[ph];});
+      var col = PH_COLOR[ph];
+      if (!durs.length) return '<tr><td style="padding:7px 10px;font-size:11px;color:' + col + ';">' + PH_LABEL[ph] + '</td><td style="padding:7px 10px;font-size:10px;color:#4b5460;font-family:\'DM Mono\',monospace;" colspan="3">Insufficient data</td></tr>';
+      var avg = Math.round(durs.reduce(function(s,v){return s+v;},0)/durs.length);
+      var med = median(durs);
+      return '<tr style="border-bottom:1px solid rgba(255,255,255,.04);">' +
+        '<td style="padding:7px 10px;font-size:11px;color:' + col + ';">' + PH_LABEL[ph] + '</td>' +
+        '<td style="padding:7px 10px;font-size:12px;font-weight:700;color:#c9d0da;font-family:\'DM Mono\',monospace;text-align:right;">' + avg + 'd</td>' +
+        '<td style="padding:7px 10px;font-size:12px;color:#8a92a0;font-family:\'DM Mono\',monospace;text-align:right;">' + med + 'd</td>' +
+        '<td style="padding:7px 10px;font-size:11px;color:#5a6270;font-family:\'DM Mono\',monospace;text-align:right;">' + durs.length + '</td>' +
+      '</tr>';
+    }).join('');
+
+    return rlCard(
+      '<div style="padding:14px 18px 16px;">' +
+        '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;margin-bottom:14px;">' +
+          std.length + ' standard projects · ' + nonStd.length + ' non-standard excluded from phase analysis' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:start;">' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Current Phase Distribution</div>' +
+            distBars +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Avg Phase Completion %</div>' +
+            avgBars +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Phase Duration · completed phases</div>' +
+            '<table style="width:100%;border-collapse:collapse;">' +
+              '<thead><tr>' +
+                '<th style="padding:5px 10px;font-size:9px;color:#4b5460;text-align:left;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Phase</th>' +
+                '<th style="padding:5px 10px;font-size:9px;color:#4b5460;text-align:right;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Avg</th>' +
+                '<th style="padding:5px 10px;font-size:9px;color:#4b5460;text-align:right;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Median</th>' +
+                '<th style="padding:5px 10px;font-size:9px;color:#4b5460;text-align:right;font-family:\'DM Mono\',monospace;text-transform:uppercase;">n</th>' +
+              '</tr></thead>' +
+              '<tbody>' + durRows + '</tbody>' +
+            '</table>' +
+            '<div style="font-size:9px;color:#3a4050;margin-top:6px;font-family:\'DM Mono\',monospace;">Derived from task planned dates · active phases excluded</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>',
+      'margin-bottom:14px;'
+    );
+  }
+
+  // ─── SECTION 3: Schedule Health ─────────────────────────────────────────
+  function buildScheduleHealth(ps) {
+    var onTrack = ps.filter(function(p){ return p.onSchedule==='on-track'; });
+    var atRisk  = ps.filter(function(p){ return p.onSchedule==='at-risk'; });
+    var delayed = ps.filter(function(p){ return p.onSchedule==='delayed'; });
+
+    var varArr = ps.filter(function(p){ return p.scheduleVarianceDays!=null; }).map(function(p){return p.scheduleVarianceDays;});
+    var avgVar = varArr.length ? Math.round(varArr.reduce(function(s,v){return s+v;},0)/varArr.length) : null;
+
+    var mostDelayed = delayed.concat(atRisk)
+      .filter(function(p){ return p.scheduleVarianceDays!=null; })
+      .sort(function(a,b){ return a.scheduleVarianceDays-b.scheduleVarianceDays; })
+      .slice(0,8);
+    var withOverdue = ps.filter(function(p){ return (p.overdueTaskCount||0)>0; })
+      .sort(function(a,b){ return (b.overdueTaskCount||0)-(a.overdueTaskCount||0); })
+      .slice(0,8);
+
+    var maxDelay = mostDelayed.length ? Math.abs(mostDelayed[0].scheduleVarianceDays||1) : 1;
+
+    var delayRows = mostDelayed.map(function(p){
+      var v   = p.scheduleVarianceDays||0;
+      var col = v>=0?'#22c55e':v>=-14?'#f59e0b':'#ef4444';
+      var w   = Math.round(Math.abs(v)/Math.max(1,maxDelay)*100);
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding:6px 10px;background:rgba(255,255,255,.03);border-radius:6px;">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:11px;color:#c9d0da;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.projectName + '</div>' +
+          '<div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;">' + (p.customer||'No client') + '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
+          '<div style="width:100px;height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;">' +
+            '<div style="height:5px;background:' + col + ';width:' + w + 'px;opacity:.8;"></div>' +
+          '</div>' +
+          '<span style="font-size:11px;font-weight:700;color:' + col + ';font-family:\'DM Mono\',monospace;width:48px;text-align:right;">' + (v>=0?'+':'') + v + 'd</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    var overdueRows = withOverdue.map(function(p){
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding:6px 10px;background:rgba(255,255,255,.03);border-radius:6px;">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:11px;color:#c9d0da;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.projectName + '</div>' +
+          '<div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;">' + (p.customer||'No client') + '</div>' +
+        '</div>' +
+        '<div style="font-size:11px;font-weight:700;color:#ef4444;font-family:\'DM Mono\',monospace;flex-shrink:0;">' + p.overdueTaskCount + ' overdue</div>' +
+      '</div>';
+    }).join('');
+
+    return rlCard(
+      '<div style="padding:14px 18px 16px;">' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">' +
+          kpi(onTrack.length,'On Track','ahead or matching plan','#22c55e') +
+          kpi(atRisk.length,'At Risk','up to 2 weeks behind','#f59e0b') +
+          kpi(delayed.length,'Delayed','>2 weeks behind plan','#ef4444') +
+          kpi(ps.filter(function(p){return(p.overdueTaskCount||0)>0;}).length,'Have Overdue Tasks','require immediate action','#dc2626') +
+          (avgVar!=null ? kpi((avgVar>=0?'+':'') + avgVar+'d','Avg Schedule Variance',varArr.length+' dated projects',avgVar>=0?'#22c55e':'#f59e0b') : '') +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Most Delayed Projects</div>' +
+            (mostDelayed.length ? delayRows : '<div style="font-size:12px;color:#22c55e;padding:20px 0;">✓ No delayed or at-risk projects</div>') +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Projects with Overdue Tasks</div>' +
+            (withOverdue.length ? overdueRows : '<div style="font-size:12px;color:#22c55e;padding:20px 0;">✓ No overdue tasks found</div>') +
+          '</div>' +
+        '</div>' +
+      '</div>',
+      'margin-bottom:14px;'
+    );
+  }
+
+  // ─── SECTION 4: Compliance, Risks & Issues ──────────────────────────────
+  function buildComplianceRisks(ps) {
+    var CATS = [
+      {key:'dates',     label:'Missing Dates',       color:'#8b5cf6'},
+      {key:'overdue',   label:'Overdue Tasks',        color:'#dc2626'},
+      {key:'structure', label:'Phase Structure',      color:'#f59e0b'},
+      {key:'ownership', label:'Unowned Tasks',        color:'#60a5fa'},
+      {key:'gaps',      label:'Date Gaps',            color:'#a78bfa'},
+      {key:'stale',     label:'Stale Progress',       color:'#fb923c'},
+      {key:'blocked',   label:'Blocked Tasks',        color:'#ef4444'},
+      {key:'premature', label:'Premature Completion', color:'#f97316'},
+      {key:'weekend',   label:'Weekend Dates',        color:'#94a3b8'},
+      {key:'completion',label:'Completion Issues',    color:'#e879f9'},
+      {key:'closure',   label:'Closure Pending',      color:'#c9a227'},
+      {key:'inactive',  label:'Inactive Projects',    color:'#6b7280'}
+    ];
+
+    var totalMisses  = ps.reduce(function(s,p){return s+(p.compliance&&p.compliance.issueCount||0);},0);
+    var compliant    = ps.filter(function(p){return (p.compliance&&p.compliance.issueCount||0)===0;}).length;
+    var highRisk     = ps.filter(function(p){return (p.compliance&&p.compliance.issueCount||0)>=6;}).length;
+    var totalBlocked = ps.reduce(function(s,p){return s+(p.blockedTaskCount||0);},0);
+    var compPct      = ps.length ? Math.round(compliant/ps.length*100) : 100;
+
+    var catData = CATS.map(function(c){
+      var n = ps.reduce(function(s,p){
+        return s+(p.compliance&&p.compliance.issues||[]).filter(function(i){return i.category===c.key;}).length;
+      },0);
+      return {key:c.key,label:c.label,color:c.color,count:n};
+    }).filter(function(c){return c.count>0;}).sort(function(a,b){return b.count-a.count;});
+
+    var maxCat = catData.length ? catData[0].count : 1;
+
+    var catBars = catData.map(function(c){
+      var w = Math.round(c.count/maxCat*140);
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">' +
+        '<div style="width:120px;font-size:10px;color:#8a92a0;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + c.label + '</div>' +
+        '<div style="height:14px;border-radius:2px;background:' + c.color + ';opacity:.85;width:' + w + 'px;min-width:3px;"></div>' +
+        '<span style="font-size:11px;font-weight:700;color:' + c.color + ';font-family:\'DM Mono\',monospace;">' + c.count + '</span>' +
+      '</div>';
+    }).join('');
+
+    var topRisk = ps.slice().sort(function(a,b){
+      return (b.compliance&&b.compliance.issueCount||0)-(a.compliance&&a.compliance.issueCount||0);
+    }).slice(0,6).filter(function(p){return(p.compliance&&p.compliance.issueCount||0)>0;});
+
+    var riskRows = topRisk.map(function(p){
+      var n   = p.compliance&&p.compliance.issueCount||0;
+      var col = n>=6?'#ef4444':n>=3?'#f59e0b':'#8a92a0';
+      var lbl = n>=6?'Critical Attention':n>=3?'Needs Attention':'Monitored';
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding:7px 10px;background:rgba(255,255,255,.03);border-radius:6px;">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:11px;color:#c9d0da;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.projectName + '</div>' +
+          '<div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;">' + (p.customer||'No client') + ' · ' + (p.projectOwner||'No owner') + '</div>' +
+        '</div>' +
+        '<div style="text-align:right;flex-shrink:0;">' +
+          '<div style="font-size:12px;font-weight:700;color:' + col + ';font-family:\'DM Mono\',monospace;">' + n + ' misses</div>' +
+          '<div style="font-size:9px;color:' + col + ';opacity:.7;">' + lbl + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    return rlCard(
+      '<div style="padding:14px 18px 16px;">' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">' +
+          kpi(totalMisses,'Total Compliance Misses','across all categories','#e8c97a') +
+          kpi(compPct+'%','Portfolio Compliance',compliant+' of '+ps.length+' projects · 0 misses',compPct>=70?'#22c55e':compPct>=40?'#f59e0b':'#ef4444') +
+          kpi(highRisk,'High Risk Projects','≥ 6 misses each',highRisk>0?'#ef4444':'#22c55e') +
+          kpi(totalBlocked,'Blocked Tasks','across all projects',totalBlocked>0?'#ef4444':'#22c55e') +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Findings by Category</div>' +
+            (catBars||'<div style="font-size:12px;color:#22c55e;padding:12px 0;">✓ No compliance misses</div>') +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Highest Risk Projects</div>' +
+            (riskRows||'<div style="font-size:12px;color:#22c55e;padding:12px 0;">✓ All projects compliant</div>') +
+          '</div>' +
+        '</div>' +
+      '</div>',
+      'margin-bottom:14px;'
+    );
+  }
+
+  // ─── SECTION 5: Client & Project Owner Analysis ──────────────────────────
+  function buildOwnership(ps) {
+    function groupBy(key) {
+      var gmap = {};
+      ps.forEach(function(p){
+        var k = (key==='client' ? p.customer : p.projectOwner) || (key==='client'?'No Client':'Unassigned');
+        if (!gmap[k]) gmap[k] = {name:k,n:0,miss:0,comp:0,delayed:0,overdue:0,pctSum:0,pctN:0};
+        gmap[k].n++;
+        gmap[k].miss += (p.compliance&&p.compliance.issueCount||0);
+        if ((p.compliance&&p.compliance.issueCount||0)===0) gmap[k].comp++;
+        if (p.onSchedule==='delayed') gmap[k].delayed++;
+        gmap[k].overdue += (p.overdueTaskCount||0);
+        if (p.overallPct!=null&&p.isStandard){ gmap[k].pctSum+=p.overallPct; gmap[k].pctN++; }
+      });
+      return Object.values(gmap).sort(function(a,b){return b.miss-a.miss;});
+    }
+
+    var groups = groupBy(_ownerView);
+
+    function viewBtn(v, label) {
+      var a = v === _ownerView;
+      return '<button onclick="window.rlOVView(\'' + v + '\')" style="background:' + (a?'rgba(56,189,248,.18)':'transparent') + ';border:1px solid ' + (a?'#38bdf8':'rgba(255,255,255,.1)') + ';color:' + (a?'#38bdf8':'rgba(255,255,255,.4)') + ';border-radius:5px;padding:3px 10px;font-size:10px;font-weight:' + (a?'700':'400') + ';cursor:pointer;font-family:\'DM Sans\',sans-serif;">' + label + '</button>';
+    }
+
+    var rows = groups.map(function(g){
+      var avg = g.pctN ? Math.round(g.pctSum/g.pctN) : null;
+      var cPct = Math.round(g.comp/g.n*100);
+      var health = (g.miss===0&&g.delayed===0) ? 'Strong Health' : (g.miss>=6||g.delayed>=2) ? 'Critical Attention' : 'Needs Attention';
+      var hCol   = health==='Strong Health'?'#22c55e':health==='Critical Attention'?'#ef4444':'#f59e0b';
+      return '<tr style="border-bottom:1px solid rgba(255,255,255,.04);">' +
+        '<td style="padding:9px 10px;font-size:11px;color:#c9d0da;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + g.name + '</td>' +
+        '<td style="padding:9px 10px;font-size:12px;font-weight:700;color:#f0f0f6;font-family:\'DM Mono\',monospace;text-align:center;">' + g.n + '</td>' +
+        '<td style="padding:9px 10px;text-align:center;">' + (avg!=null?'<span style="font-size:11px;color:#a78bfa;font-family:\'DM Mono\',monospace;font-weight:700;">' + avg + '%</span>':'<span style="font-size:10px;color:#4b5460;">—</span>') + '</td>' +
+        '<td style="padding:9px 10px;text-align:center;font-size:11px;color:' + (cPct>=80?'#22c55e':cPct>=50?'#f59e0b':'#ef4444') + ';font-family:\'DM Mono\',monospace;font-weight:700;">' + cPct + '%</td>' +
+        '<td style="padding:9px 10px;text-align:center;font-size:11px;color:' + (g.delayed>0?'#ef4444':'#22c55e') + ';font-family:\'DM Mono\',monospace;font-weight:700;">' + (g.delayed||'0') + '</td>' +
+        '<td style="padding:9px 10px;text-align:center;font-size:11px;color:' + (g.overdue>0?'#f59e0b':'#22c55e') + ';font-family:\'DM Mono\',monospace;font-weight:700;">' + (g.overdue||'0') + '</td>' +
+        '<td style="padding:9px 10px;text-align:center;font-size:11px;color:#e8c97a;font-family:\'DM Mono\',monospace;font-weight:700;">' + (g.miss||'0') + '</td>' +
+        '<td style="padding:9px 10px;text-align:center;"><span style="font-size:10px;color:' + hCol + ';font-weight:600;white-space:nowrap;">' + health + '</span></td>' +
+      '</tr>';
+    }).join('');
+
+    return rlCard(
+      '<div style="padding:14px 18px 16px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">' +
+          '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;">Group by</div>' +
+          '<div style="display:flex;gap:3px;">' + viewBtn('client','Client') + viewBtn('owner','Project Owner') + '</div>' +
+        '</div>' +
+        '<div style="overflow-x:auto;">' +
+          '<table style="width:100%;border-collapse:collapse;min-width:560px;">' +
+            '<thead><tr style="border-bottom:1px solid rgba(255,255,255,.08);">' +
+              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:left;font-family:\'DM Mono\',monospace;text-transform:uppercase;">' + (_ownerView==='client'?'Client':'Project Owner') + '</th>' +
+              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Projects</th>' +
+              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Avg Progress</th>' +
+              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Compliance</th>' +
+              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Delayed</th>' +
+              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Overdue Tasks</th>' +
+              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Misses</th>' +
+              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Health</th>' +
+            '</tr></thead>' +
+            '<tbody>' + rows + '</tbody>' +
+          '</table>' +
+        '</div>' +
+        '<div style="font-size:9px;color:#3a4050;margin-top:10px;font-family:\'DM Mono\',monospace;">Health labels reflect compliance misses and schedule delays only — not individual performance conclusions.</div>' +
+      '</div>',
+      'margin-bottom:14px;'
+    );
+  }
+
+  // ─── Main render ────────────────────────────────────────────────────────
+  function render() {
+    var ps = fps();
+    body.innerHTML =
+      buildFilters() +
+      sh('1','Portfolio Overview','project count · status distribution · compliance · schedule') +
+      buildPortfolioOverview(ps) +
+      sh('2','Delivery Progress & Phase Performance','standard projects · Engage → Drive → Enable → Convert') +
+      buildDeliveryProgress(ps) +
+      sh('3','Schedule Health','on-track vs delayed · schedule variance · overdue tasks') +
+      buildScheduleHealth(ps) +
+      sh('4','Compliance, Risks & Issues','misses by category · high-risk projects · blocked tasks') +
+      buildComplianceRisks(ps) +
+      sh('5','Client & Project Owner Analysis','grouped metrics · health classification') +
+      buildOwnership(ps);
+  }
+
+  // ─── Event handlers ──────────────────────────────────────────────────────
+  window.rlOVCl   = function(v){ _clientF=v; render(); };
+  window.rlOVOw   = function(v){ _ownerF=v; render(); };
+  window.rlOVSt   = function(v){ _statusF=v; render(); };
+  window.rlOVStd  = function(v){ _stdF=v; render(); };
+  window.rlOVView = function(v){ _ownerView=v; render(); };
+
+  render();
+}
+
 function rlTabHealth(body) {
   // ── State ──
   var _level = 'project'; // 'project' | 'client' | 'owner'
