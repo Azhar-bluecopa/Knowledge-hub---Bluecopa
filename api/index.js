@@ -3136,19 +3136,20 @@ app.get('/api/rocketlane/debug-task-fields', async (req, res) => {
     });
     if (!r.ok) return res.status(r.status).json({ error: 'api_error' });
     const d = await r.json();
-    const samples = (d.data || []).slice(0, 3).map(t => ({
+    const allTasks = d.data || [];
+    // Prefer In-Progress tasks to see active task fields
+    const inprog = allTasks.filter(t => (t.status?.label||'').toLowerCase().includes('progress'));
+    const pick = inprog.length ? inprog.slice(0, 3) : allTasks.slice(0, 3);
+    const samples = pick.map(t => ({
       keys: Object.keys(t),
       taskId: t.taskId,
       taskName: t.taskName,
       status: t.status,
-      assignees: t.assignees,
-      members: t.members,
-      owner: t.owner,
-      assignee: t.assignee,
-      teamMembers: t.teamMembers,
-      users: t.users,
+      fields: t.fields,
+      createdBy: t.createdBy,
+      updatedBy: t.updatedBy,
     }));
-    res.json({ count: (d.data || []).length, samples });
+    res.json({ count: allTasks.length, inProgressCount: inprog.length, samples });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
