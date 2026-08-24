@@ -3126,6 +3126,35 @@ async function rlFetchAllTasks(apiKey) {
   return tasks.length > 0 ? tasks : (rlAllTasksCache || []);
 }
 
+// ── TEMP DEBUG: inspect raw task field structure ──────────────────────────────
+app.get('/api/rocketlane/debug-task-fields', async (req, res) => {
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) return res.status(503).json({ error: 'not_configured' });
+  try {
+    const r = await fetch('https://api.rocketlane.com/api/1.0/tasks?pageSize=5', {
+      headers: { 'api-key': apiKey, 'Accept': 'application/json' }
+    });
+    if (!r.ok) return res.status(r.status).json({ error: 'api_error' });
+    const d = await r.json();
+    const samples = (d.data || []).slice(0, 3).map(t => ({
+      keys: Object.keys(t),
+      taskId: t.taskId,
+      taskName: t.taskName,
+      status: t.status,
+      assignees: t.assignees,
+      members: t.members,
+      owner: t.owner,
+      assignee: t.assignee,
+      teamMembers: t.teamMembers,
+      users: t.users,
+    }));
+    res.json({ count: (d.data || []).length, samples });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+// ── END TEMP DEBUG ─────────────────────────────────────────────────────────────
+
 async function rlFetchCompletionMap(apiKey) {
   const map = {}; // projectId -> { total, completed, inprogress, todo }
   let pageToken = null;
