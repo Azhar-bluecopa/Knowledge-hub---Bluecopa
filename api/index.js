@@ -3596,6 +3596,12 @@ app.get('/api/rocketlane/projects-full', async (req, res) => {
   const now = Date.now();
   const isRefresh = !!req.query.refresh;
 
+  // On forced refresh, also clear the tasks cache so it re-fetches with the latest flags
+  if (isRefresh) {
+    rlAllTasksCache = null;
+    rlAllTasksCacheAt = 0;
+  }
+
   // Layer 1: in-memory cache (fastest, survives within the same serverless instance)
   if (!isRefresh && rlFullCache && (now - rlFullCacheAt) < RL_FULL_CACHE_TTL)
     return res.json({ ...rlFullCache, cached: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
