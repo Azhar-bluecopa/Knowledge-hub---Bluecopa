@@ -3736,6 +3736,9 @@ app.post('/api/auth/google', async (req, res) => {
   ensureUsers();
   const { name, email, picture, googleId } = req.body;
   if (!email) return res.status(400).json({ error: 'email required' });
+  if (!email.toLowerCase().endsWith('@bluecopa.com')) {
+    return res.status(403).json({ error: 'access_denied', message: 'Access is restricted to @bluecopa.com accounts.' });
+  }
   let user = db.users.find(u => u.email === email);
   if (!user) {
     user = {
