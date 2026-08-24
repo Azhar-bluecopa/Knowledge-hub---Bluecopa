@@ -926,8 +926,18 @@ function parseJwt(token) {
   return JSON.parse(decodeURIComponent(atob(base64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')));
 }
 
+function gsiShowError(msg) {
+  var el = document.getElementById('gsi-error');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
 async function handleGoogleSignIn(response) {
   const { name, email, picture, sub } = parseJwt(response.credential);
+  if (!email || !email.toLowerCase().endsWith('@bluecopa.com')) {
+    if (typeof google !== 'undefined') google.accounts.id.disableAutoSelect();
+    gsiShowError('Access denied. Only @bluecopa.com accounts are permitted. Please sign in with your Bluecopa work email.');
+    return;
+  }
   let role = 'member';
   try {
     const r = await fetch('/api/auth/google', {
@@ -935,6 +945,11 @@ async function handleGoogleSignIn(response) {
       body: JSON.stringify({ name, email, picture, googleId: sub })
     });
     if (r.ok) { const d = await r.json(); role = d.user?.role || 'member'; }
+    else if (r.status === 403) {
+      if (typeof google !== 'undefined') google.accounts.id.disableAutoSelect();
+      gsiShowError('Access denied. Only @bluecopa.com accounts are permitted.');
+      return;
+    }
   } catch(e) {}
   localStorage.setItem('kb_user', JSON.stringify({ name, email, picture, googleId: sub, initials: initials(name), role }));
   const overlay = document.getElementById('gSigninOverlay');
@@ -952,11 +967,18 @@ function gsiInit() {
   const overlay = document.getElementById('gSigninOverlay');
   if (!overlay) { setTimeout(gsiInit, 100); return; } // DOM not fully parsed yet
   const u = getUser();
-  if (u && u.googleId) { overlay.style.display = 'none'; return; } // valid Google session
+  if (u && u.googleId) {
+    // Enforce domain restriction on stored sessions — evict any pre-restriction non-Bluecopa user
+    if (!u.email || !u.email.toLowerCase().endsWith('@bluecopa.com')) {
+      localStorage.removeItem('kb_user');
+    } else {
+      overlay.style.display = 'none'; return; // valid Bluecopa Google session
+    }
+  }
   if (u && !u.googleId) localStorage.removeItem('kb_user'); // clear old pre-Google sessions
   overlay.style.display = 'flex';
   if (typeof google === 'undefined') { setTimeout(gsiInit, 300); return; } // GIS script not loaded yet
-  google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleSignIn, auto_select: false });
+  google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleSignIn, hd: 'bluecopa.com', auto_select: false });
   const btnEl = document.getElementById('g_id_signin');
   if (btnEl) google.accounts.id.renderButton(btnEl, {
     theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'rectangular', width: 280
@@ -4197,7 +4219,8 @@ async function updateFeedbackStatus(id) {
     <div class="gsi-title">Delivery Wikipedia</div>
     <div class="gsi-sub">Everything You Need, In One Place</div>
     <div id="g_id_signin"></div>
-    <p class="gsi-hint">Sign in with your Google account to continue</p>
+    <p class="gsi-hint">Sign in with your <strong>@bluecopa.com</strong> account</p>
+    <p id="gsi-error" style="display:none;margin-top:12px;padding:10px 14px;background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.35);border-radius:8px;color:#f87171;font-size:12px;line-height:1.5;text-align:center;max-width:280px;"></p>
   </div>
 </div>
 <script>
