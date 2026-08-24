@@ -3131,6 +3131,23 @@ async function rlFetchAllTasks(apiKey) {
 }
 
 
+// TEMP DEBUG: verify includeAllFields=true returns assignees
+app.get('/api/rocketlane/debug-assignees', async (req, res) => {
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) return res.status(503).json({ error: 'not_configured' });
+  const h = { 'api-key': apiKey, 'Accept': 'application/json' };
+  try {
+    const r = await fetch('https://api.rocketlane.com/api/1.0/tasks?pageSize=5&includeAllFields=true', { headers: h });
+    const d = await r.json();
+    const tasks = (d.data || []).slice(0, 3).map(t => ({
+      taskId: t.taskId, taskName: t.taskName, status: t.status?.label,
+      keys: Object.keys(t),
+      assignees: t.assignees,
+    }));
+    res.json({ httpStatus: r.status, tasks });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 async function rlFetchCompletionMap(apiKey) {
   const map = {}; // projectId -> { total, completed, inprogress, todo }
   let pageToken = null;
