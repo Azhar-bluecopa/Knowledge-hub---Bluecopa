@@ -10996,7 +10996,7 @@ function rlTabCompliance(body) {
   var catData = RL_COMP_CATEGORIES.map(function(cat){
     var ci = allIssues.filter(function(i){return i.category===cat.key;});
     return {key:cat.key, label:cat.label, icon:cat.icon, color:cat.color, total:ci.length};
-  }).filter(function(c){return c.total>0;});
+  }).filter(function(c){return c.total>0 || c.key==='ownership';});
 
   var headerHtml =
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:8px;">'+
@@ -11022,18 +11022,30 @@ function rlTabCompliance(body) {
 
   var gridHtml =
     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;">'+
-      catData.slice().sort(function(a,b){return b.total-a.total;}).map(function(cat){
+      catData.slice().sort(function(a,b){
+        // ownership tile always last when clean (0 findings)
+        if(a.key==='ownership'&&a.total===0) return 1;
+        if(b.key==='ownership'&&b.total===0) return -1;
+        return b.total-a.total;
+      }).map(function(cat){
+        var isClean = cat.key==='ownership' && cat.total===0;
+        var tileBg   = isClean ? 'rgba(34,197,94,.06)' : '#0f0f16';
+        var tileBdr  = isClean ? 'rgba(34,197,94,.25)' : 'rgba(255,255,255,.08)';
+        var hoverBg  = isClean ? 'rgba(34,197,94,.10)' : 'rgba(255,255,255,.04)';
+        var hoverBdr = isClean ? 'rgba(34,197,94,.4)'  : 'rgba(255,255,255,.18)';
+        var numColor = isClean ? '#22c55e' : '#e8c97a';
+        var subText  = isClean ? 'All tasks owned' : (cat.total===1?'finding':'findings');
         return '<button onclick="rlOpenCatDetail(\''+cat.key+'\')" '+
-          'style="background:#0f0f16;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:20px;text-align:left;cursor:pointer;'+
+          'style="background:'+tileBg+';border:1px solid '+tileBdr+';border-radius:12px;padding:20px;text-align:left;cursor:pointer;'+
           'font-family:\'DM Sans\',sans-serif;transition:background .15s,border-color .15s;width:100%;" '+
-          'onmouseover="this.style.background=\'rgba(255,255,255,.04)\';this.style.borderColor=\'rgba(255,255,255,.18)\';" '+
-          'onmouseout="this.style.background=\'#0f0f16\';this.style.borderColor=\'rgba(255,255,255,.08)\';">'+
+          'onmouseover="this.style.background=\''+hoverBg+'\';this.style.borderColor=\''+hoverBdr+'\';" '+
+          'onmouseout="this.style.background=\''+tileBg+'\';this.style.borderColor=\''+tileBdr+'\';">'+
           '<div style="display:flex;align-items:center;gap:9px;margin-bottom:16px;">'+
             '<span style="font-size:19px;line-height:1;">'+cat.icon+'</span>'+
             '<span style="font-size:13px;font-weight:600;color:#f0f0f6;line-height:1.3;">'+cat.label+'</span>'+
           '</div>'+
-          '<div style="font-size:30px;font-weight:800;color:#e8c97a;letter-spacing:-.5px;font-family:\'DM Sans\',sans-serif;line-height:1;">'+cat.total+'</div>'+
-          '<div style="font-size:11px;color:#5a6270;margin-top:5px;font-family:\'DM Mono\',monospace;">'+(cat.total===1?'finding':'findings')+'</div>'+
+          '<div style="font-size:30px;font-weight:800;color:'+numColor+';letter-spacing:-.5px;font-family:\'DM Sans\',sans-serif;line-height:1;">'+(isClean?'✓':cat.total)+'</div>'+
+          '<div style="font-size:11px;color:'+(isClean?'rgba(34,197,94,.7)':'#5a6270')+';margin-top:5px;font-family:\'DM Mono\',monospace;">'+subText+'</div>'+
         '</button>';
       }).join('')+
     '</div>';
