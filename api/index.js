@@ -3132,33 +3132,49 @@ async function rlFetchAllTasks(apiKey) {
   return tasks.length > 0 ? tasks : (rlAllTasksCache || []);
 }
 
-// TEMP DEBUG: compare list-API vs individual-task-API fields
-app.get('/api/rocketlane/debug-single-task', async (req, res) => {
+// TEMP DEBUG: probe alternative Rocketlane endpoints for task member data
+app.get('/api/rocketlane/debug-task-members', async (req, res) => {
   const apiKey = process.env.ROCKETLANE_API_KEY;
   if (!apiKey) return res.status(503).json({ error: 'not_configured' });
+  const h = { 'api-key': apiKey, 'Accept': 'application/json' };
   try {
-    // Step 1: get first task from list
-    const listR = await fetch('https://api.rocketlane.com/api/1.0/tasks?pageSize=20', {
-      headers: { 'api-key': apiKey, 'Accept': 'application/json' }
-    });
-    const listD = await listR.json();
-    const tasks = listD.data || [];
-    // Pick a task that is NOT completed, to see member data on active tasks
-    const t = tasks.find(t => (t.status?.label||'') !== 'Completed') || tasks[0];
-    if (!t) return res.json({ error: 'no tasks found' });
-    // Step 2: fetch individual task detail
-    const detailR = await fetch(`https://api.rocketlane.com/api/1.0/tasks/${t.taskId}`, {
-      headers: { 'api-key': apiKey, 'Accept': 'application/json' }
-    });
-    const detailD = await detailR.json();
-    res.json({
-      taskId: t.taskId,
-      taskName: t.taskName,
-      status: t.status?.label,
-      listApiKeys: Object.keys(t),
-      detailApiKeys: Object.keys(detailD?.data || detailD || {}),
-      detailRaw: detailD?.data || detailD,
-    });
+    // Get a sample project and task to probe with
+    const projR = await fetch('https://api.rocketlane.com/api/1.0/projects?pageSize=5', { headers: h });
+    const projD = await projR.json();
+    const proj  = (projD.data || [])[0];
+    if (!proj) return res.json({ error: 'no projects' });
+
+    const results = {};
+
+    // 1. Project-specific tasks endpoint
+    const ptR = await fetch(`https://api.rocketlane.com/api/1.0/projects/${proj.projectId}/tasks?pageSize=5`, { headers: h });
+    const ptD = await ptR.json();
+    const ptTasks = ptD.data || ptD.tasks || ptD;
+    const ptTask = Array.isArray(ptTasks) ? ptTasks[0] : null;
+    results.projectTasksEndpoint = {
+      status: ptR.status,
+      keys: ptTask ? Object.keys(ptTask) : null,
+      membersField: ptTask?.members || ptTask?.assignees || ptTask?.owner || null,
+    };
+
+    // 2. Task members sub-endpoint (if ptTask exists)
+    if (ptTask?.taskId) {
+      const memR = await fetch(`https://api.rocketlane.com/api/1.0/tasks/${ptTask.taskId}/members`, { headers: h });
+      const memD = await memR.json();
+      results.taskMembersEndpoint = { status: memR.status, body: memD };
+
+      // 3. Task with ?include=members param
+      const inclR = await fetch(`https://api.rocketlane.com/api/1.0/tasks/${ptTask.taskId}?include=members`, { headers: h });
+      const inclD = await inclR.json();
+      const inclKeys = Object.keys(inclD?.data || inclD || {});
+      results.taskWithInclude = {
+        status: inclR.status,
+        keys: inclKeys,
+        membersField: (inclD?.data || inclD)?.members || (inclD?.data || inclD)?.assignees || null,
+      };
+    }
+
+    res.json({ projectId: proj.projectId, projectName: proj.projectName, results });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 // END TEMP DEBUG
