@@ -2830,11 +2830,13 @@ function rlBuildProjectProgress(projectTasks) {
         countedOrders.add(t._mt.order);
         overallCompleted += t._mt.weight;
       }
+      const assigneeMembers = t.assignees?.members || [];
       phases[phase].tasks.push({
         taskId: t.taskId, taskName: t.taskName, order: t._mt.order,
         status: t.status?.label || 'Unknown',
         dueDate: t.dueDate || null, startDate: t.startDate || null,
-        completed: isDone
+        completed: isDone,
+        owner: assigneeMembers.map(a => [a.firstName, a.lastName].filter(Boolean).join(' ') || a.emailId || '').filter(Boolean).join(', ') || null
       });
     });
     Object.keys(phases).forEach(ph => {
@@ -2959,23 +2961,20 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
     }
   });
 
-  // Unowned active tasks: flag active tasks in projects with no project owner set.
-  // The Rocketlane task-list API does not return individual task assignees, so we use
-  // project.owner as the ownership signal — if the project has an owner, all tasks
-  // in it are considered owned.
-  const projectHasOwner = !!(project.owner && (project.owner.firstName || project.owner.lastName || project.owner.emailId));
-  if (!projectHasOwner) {
-    allProjectTasks.forEach(t => {
-      const lbl = t.status?.label || '';
-      const isActive = lbl === 'In Progress' || lbl === 'In progress' || lbl === 'Blocked';
-      if (isActive) {
-        const alreadyFlagged = issues.some(i => i.task === t.taskName && i.category === 'ownership');
-        if (!alreadyFlagged)
-          issues.push({ severity:'high', category:'ownership', task:t.taskName, phase:null,
-            issue:`${lbl} task — no project owner assigned` });
-      }
-    });
-  }
+  // Unowned active tasks: In Progress or Blocked tasks with no assignee
+  allProjectTasks.forEach(t => {
+    const lbl = t.status?.label || '';
+    const isActive = lbl === 'In Progress' || lbl === 'In progress' || lbl === 'Blocked';
+    const members = t.assignees?.members || [];
+    const placeholders = t.assignees?.placeholders || [];
+    const hasOwner = members.length > 0 || placeholders.length > 0;
+    if (isActive && !hasOwner) {
+      const alreadyFlagged = issues.some(i => i.task === t.taskName && i.category === 'ownership');
+      if (!alreadyFlagged)
+        issues.push({ severity:'high', category:'ownership', task:t.taskName, phase:null,
+          issue:`${lbl} task has no owner assigned` });
+    }
+  });
 
   // ── STRUCTURE check: non-standard projects exit here ──
   if (!progress.isStandard) {
@@ -3003,14 +3002,12 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
 
   // ── STANDARD-ONLY checks ──
 
-  // Methodology task ownership (standard projects): flag incomplete methodology tasks in unowned projects
-  if (!projectHasOwner) {
-    allMainTasks.filter(t => !t.completed).forEach(t => {
-      const alreadyFlagged = issues.some(i => i.task === t.taskName && i.category === 'ownership');
-      if (!alreadyFlagged)
-        issues.push({ severity:'medium', category:'ownership', task:t.taskName, phase:t._phase, issue:'No project owner assigned' });
-    });
-  }
+  // Methodology task ownership (standard projects): flag incomplete tasks with no assignee
+  allMainTasks.filter(t => !t.completed && !t.owner).forEach(t => {
+    const alreadyFlagged = issues.some(i => i.task === t.taskName && i.category === 'ownership');
+    if (!alreadyFlagged)
+      issues.push({ severity:'medium', category:'ownership', task:t.taskName, phase:t._phase, issue:'No owner assigned' });
+  });
 
   // Tasks due after project deadline
   if (project.dueDate) {
@@ -3103,7 +3100,8 @@ async function rlFetchAllTasks(apiKey) {
   let pageToken = null;
   let hasMore = true;
   while (hasMore) {
-    const url = 'https://api.rocketlane.com/api/1.0/tasks?pageSize=100' + (pageToken ? `&pageToken=${pageToken}` : '');
+    // includeAllFields=true ensures the API returns assignees.members/placeholders data
+    const url = 'https://api.rocketlane.com/api/1.0/tasks?pageSize=100&includeAllFields=true' + (pageToken ? `&pageToken=${pageToken}` : '');
     let pageOk = false;
     for (let attempt = 0; attempt < 3 && !pageOk; attempt++) {
       try {
