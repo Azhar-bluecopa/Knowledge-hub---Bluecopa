@@ -2857,6 +2857,10 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
   const issues = [];
   const today = new Date(); today.setHours(0,0,0,0);
   const projectStatus = (project.status?.label || '').toLowerCase();
+  // Pre-delivery projects are not yet being executed — compliance checks don't apply
+  if (projectStatus.includes('proposed') || projectStatus.includes('cancel') || projectStatus.includes('closed')) {
+    return issues;
+  }
   const mainFound = progress._mainFound || [];
   const allMainTasks = Object.entries(progress.phases || {})
     .flatMap(([ph, obj]) => obj.tasks.map(t => ({ ...t, _phase: ph })));

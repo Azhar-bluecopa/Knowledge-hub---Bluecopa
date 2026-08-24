@@ -10520,16 +10520,19 @@ function rlPhaseBar(phases, pct) {
 // ─── Tab 1: Executive Overview ────────────────────────────────────────────────
 function rlTabExecutive(body) {
   var d = _rlData, s = d.summary;
-  var totalIssues = d.projects.reduce(function(a,p){ return a+((p.compliance&&p.compliance.issueCount)||0); },0);
-  var compScore = Math.max(0, Math.round(100 - (d.projects.length ? totalIssues/d.projects.length*10 : 0)));
   var activeCount = (s.byStatus['In progress']||0);
+  // Exclude proposed/cancelled — not yet in delivery, compliance checks don't apply
+  var compProjects = d.projects.filter(function(p){ var st=(p.status||'').toLowerCase(); return !st.includes('proposed')&&!st.includes('cancel')&&!st.includes('closed'); });
+  var totalIssues = compProjects.reduce(function(a,p){ return a+((p.compliance&&p.compliance.issueCount)||0); },0);
+  var compCompliant = compProjects.filter(function(p){ return ((p.compliance&&p.compliance.issueCount)||0)===0; }).length;
+  var compScore = compProjects.length ? Math.round(compCompliant/compProjects.length*100) : 100;
 
   var kpisHTML = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">' +
     [
       { label:'Total Projects', val:s.total, sub:activeCount+' active', color:'#60a5fa' },
       { label:'Standard Projects', val:s.standard, sub:'of '+s.total+' projects', color:'#22c55e' },
       { label:'Avg. Progress', val:s.avgProgress+'%', sub:'standard only', color:'#c9a227' },
-      { label:'Compliance Score', val:compScore+'%', sub:totalIssues+' open issues', color:compScore>=80?'#22c55e':compScore>=50?'#f59e0b':'#dc2626' }
+      { label:'Compliance Score', val:compScore+'%', sub:compCompliant+' of '+compProjects.length+' projects · '+totalIssues+' issues', color:compScore>=80?'#22c55e':compScore>=50?'#f59e0b':'#dc2626' }
     ].map(function(k){
       return rlCard('<div style="padding:20px;"><div style="font-size:10px;color:#8a92a0;letter-spacing:.08em;text-transform:uppercase;font-family:\'DM Mono\',monospace;margin-bottom:10px;">'+k.label+'</div><div style="font-size:28px;font-weight:800;color:'+k.color+';letter-spacing:-.5px;line-height:1;">'+k.val+'</div><div style="font-size:11px;color:#8a92a0;margin-top:6px;">'+k.sub+'</div></div>');
     }).join('')+
@@ -11470,9 +11473,10 @@ function rlTabOverview(body) {
     ];
     STATUS_GROUPS.forEach(function(g){ g.count = ps.filter(function(p){ return matchSt(p,g.key); }).length; });
 
-    var compliant   = ps.filter(function(p){ return (p.compliance&&p.compliance.issueCount||0)===0; }).length;
-    var totalMisses = ps.reduce(function(s,p){ return s+(p.compliance&&p.compliance.issueCount||0); },0);
-    var compPct     = Math.round(compliant/total*100);
+    var compPs      = ps.filter(function(p){ var st=(p.status||'').toLowerCase(); return !st.includes('proposed')&&!st.includes('cancel')&&!st.includes('closed'); });
+    var compliant   = compPs.filter(function(p){ return (p.compliance&&p.compliance.issueCount||0)===0; }).length;
+    var totalMisses = compPs.reduce(function(s,p){ return s+(p.compliance&&p.compliance.issueCount||0); },0);
+    var compPct     = compPs.length ? Math.round(compliant/compPs.length*100) : 100;
 
     var onTrack = ps.filter(function(p){ return p.onSchedule==='on-track'; }).length;
     var atRisk  = ps.filter(function(p){ return p.onSchedule==='at-risk'; }).length;
@@ -11735,11 +11739,12 @@ function rlTabOverview(body) {
       {key:'inactive',  label:'Inactive Projects',    color:'#6b7280'}
     ];
 
-    var totalMisses  = ps.reduce(function(s,p){return s+(p.compliance&&p.compliance.issueCount||0);},0);
-    var compliant    = ps.filter(function(p){return (p.compliance&&p.compliance.issueCount||0)===0;}).length;
-    var highRisk     = ps.filter(function(p){return (p.compliance&&p.compliance.issueCount||0)>=6;}).length;
+    var compPs       = ps.filter(function(p){ var st=(p.status||'').toLowerCase(); return !st.includes('proposed')&&!st.includes('cancel')&&!st.includes('closed'); });
+    var totalMisses  = compPs.reduce(function(s,p){return s+(p.compliance&&p.compliance.issueCount||0);},0);
+    var compliant    = compPs.filter(function(p){return (p.compliance&&p.compliance.issueCount||0)===0;}).length;
+    var highRisk     = compPs.filter(function(p){return (p.compliance&&p.compliance.issueCount||0)>=6;}).length;
     var totalBlocked = ps.reduce(function(s,p){return s+(p.blockedTaskCount||0);},0);
-    var compPct      = ps.length ? Math.round(compliant/ps.length*100) : 100;
+    var compPct      = compPs.length ? Math.round(compliant/compPs.length*100) : 100;
 
     var catData = CATS.map(function(c){
       var n = ps.reduce(function(s,p){
