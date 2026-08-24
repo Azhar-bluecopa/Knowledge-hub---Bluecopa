@@ -3132,44 +3132,6 @@ async function rlFetchAllTasks(apiKey) {
   return tasks.length > 0 ? tasks : (rlAllTasksCache || []);
 }
 
-// TEMP DEBUG: probe Rocketlane endpoints for task member/assignee data
-app.get('/api/rocketlane/debug-task-members', async (req, res) => {
-  const apiKey = process.env.ROCKETLANE_API_KEY;
-  if (!apiKey) return res.status(503).json({ error: 'not_configured' });
-  const h = { 'api-key': apiKey, 'Accept': 'application/json' };
-  try {
-    // Get a task ID from the general list
-    const listR = await fetch('https://api.rocketlane.com/api/1.0/tasks?pageSize=10', { headers: h });
-    const listD = await listR.json();
-    const t = (listD.data || []).find(t => t.status?.label !== 'Completed') || (listD.data||[])[0];
-    if (!t) return res.json({ error: 'no tasks' });
-
-    const tid = t.taskId;
-    const results = { taskId: tid, taskName: t.taskName };
-
-    // 1. /tasks/{id}/members
-    const memR = await fetch(`https://api.rocketlane.com/api/1.0/tasks/${tid}/members`, { headers: h });
-    results.membersEndpoint = { status: memR.status, body: await memR.json() };
-
-    // 2. /tasks/{id}?include=members
-    const inclR = await fetch(`https://api.rocketlane.com/api/1.0/tasks/${tid}?include=members`, { headers: h });
-    const inclD = await inclR.json();
-    results.taskWithInclude = { status: inclR.status, keys: Object.keys(inclD?.data||inclD||{}), members: (inclD?.data||inclD)?.members };
-
-    // 3. /resources endpoint (resource allocations per task)
-    const resR = await fetch(`https://api.rocketlane.com/api/1.0/resources?taskId=${tid}`, { headers: h });
-    results.resourcesEndpoint = { status: resR.status, body: await resR.json() };
-
-    // 4. /tasks with ?members=true param
-    const mR = await fetch(`https://api.rocketlane.com/api/1.0/tasks?pageSize=3&members=true`, { headers: h });
-    const mD = await mR.json();
-    const mTask = (mD.data||[])[0];
-    results.tasksWithMembersParam = { status: mR.status, keys: mTask ? Object.keys(mTask) : null, members: mTask?.members };
-
-    res.json(results);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-// END TEMP DEBUG
 
 async function rlFetchCompletionMap(apiKey) {
   const map = {}; // projectId -> { total, completed, inprogress, todo }
