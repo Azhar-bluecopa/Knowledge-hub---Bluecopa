@@ -2959,7 +2959,23 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
     }
   });
 
-  // Note: Rocketlane task list API does not return assignee data — ownership check removed.
+  // Unowned active tasks: flag active tasks in projects with no project owner set.
+  // The Rocketlane task-list API does not return individual task assignees, so we use
+  // project.owner as the ownership signal — if the project has an owner, all tasks
+  // in it are considered owned.
+  const projectHasOwner = !!(project.owner && (project.owner.firstName || project.owner.lastName || project.owner.emailId));
+  if (!projectHasOwner) {
+    allProjectTasks.forEach(t => {
+      const lbl = t.status?.label || '';
+      const isActive = lbl === 'In Progress' || lbl === 'In progress' || lbl === 'Blocked';
+      if (isActive) {
+        const alreadyFlagged = issues.some(i => i.task === t.taskName && i.category === 'ownership');
+        if (!alreadyFlagged)
+          issues.push({ severity:'high', category:'ownership', task:t.taskName, phase:null,
+            issue:`${lbl} task — no project owner assigned` });
+      }
+    });
+  }
 
   // ── STRUCTURE check: non-standard projects exit here ──
   if (!progress.isStandard) {
@@ -2987,7 +3003,14 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
 
   // ── STANDARD-ONLY checks ──
 
-  // Note: Rocketlane task list API does not return assignee data — ownership check removed.
+  // Methodology task ownership (standard projects): flag incomplete methodology tasks in unowned projects
+  if (!projectHasOwner) {
+    allMainTasks.filter(t => !t.completed).forEach(t => {
+      const alreadyFlagged = issues.some(i => i.task === t.taskName && i.category === 'ownership');
+      if (!alreadyFlagged)
+        issues.push({ severity:'medium', category:'ownership', task:t.taskName, phase:t._phase, issue:'No project owner assigned' });
+    });
+  }
 
   // Tasks due after project deadline
   if (project.dueDate) {
