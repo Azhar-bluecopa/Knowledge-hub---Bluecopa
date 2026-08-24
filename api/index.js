@@ -2834,8 +2834,7 @@ function rlBuildProjectProgress(projectTasks) {
         taskId: t.taskId, taskName: t.taskName, order: t._mt.order,
         status: t.status?.label || 'Unknown',
         dueDate: t.dueDate || null, startDate: t.startDate || null,
-        completed: isDone,
-        owner: (t.assignees||[]).map(a => a.name||a.emailId||'').filter(Boolean).join(', ') || null
+        completed: isDone
       });
     });
     Object.keys(phases).forEach(ph => {
@@ -2960,18 +2959,7 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
     }
   });
 
-  // Unowned active tasks: In Progress or Blocked with no assignee
-  allProjectTasks.forEach(t => {
-    const lbl = t.status?.label || '';
-    const isActive = lbl === 'In Progress' || lbl === 'In progress' || lbl === 'Blocked';
-    const hasOwner = (t.assignees || []).length > 0;
-    if (isActive && !hasOwner) {
-      const alreadyFlagged = issues.some(i => i.task === t.taskName && i.category === 'ownership');
-      if (!alreadyFlagged)
-        issues.push({ severity:'high', category:'ownership', task:t.taskName, phase:null,
-          issue:`${lbl} task has no owner assigned` });
-    }
-  });
+  // Note: Rocketlane task list API does not return assignee data — ownership check removed.
 
   // ── STRUCTURE check: non-standard projects exit here ──
   if (!progress.isStandard) {
@@ -2999,12 +2987,7 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
 
   // ── STANDARD-ONLY checks ──
 
-  // Methodology task ownership
-  allMainTasks.filter(t => !t.owner && !t.completed).forEach(t => {
-    const alreadyFlagged = issues.some(i => i.task === t.taskName && i.category === 'ownership');
-    if (!alreadyFlagged)
-      issues.push({ severity:'medium', category:'ownership', task:t.taskName, phase:t._phase, issue:'No owner assigned' });
-  });
+  // Note: Rocketlane task list API does not return assignee data — ownership check removed.
 
   // Tasks due after project deadline
   if (project.dueDate) {
@@ -3125,36 +3108,6 @@ async function rlFetchAllTasks(apiKey) {
   }
   return tasks.length > 0 ? tasks : (rlAllTasksCache || []);
 }
-
-// ── TEMP DEBUG: inspect raw task field structure ──────────────────────────────
-app.get('/api/rocketlane/debug-task-fields', async (req, res) => {
-  const apiKey = process.env.ROCKETLANE_API_KEY;
-  if (!apiKey) return res.status(503).json({ error: 'not_configured' });
-  try {
-    const r = await fetch('https://api.rocketlane.com/api/1.0/tasks?pageSize=5', {
-      headers: { 'api-key': apiKey, 'Accept': 'application/json' }
-    });
-    if (!r.ok) return res.status(r.status).json({ error: 'api_error' });
-    const d = await r.json();
-    const allTasks = d.data || [];
-    // Prefer In-Progress tasks to see active task fields
-    const inprog = allTasks.filter(t => (t.status?.label||'').toLowerCase().includes('progress'));
-    const pick = inprog.length ? inprog.slice(0, 3) : allTasks.slice(0, 3);
-    const samples = pick.map(t => ({
-      keys: Object.keys(t),
-      taskId: t.taskId,
-      taskName: t.taskName,
-      status: t.status,
-      fields: t.fields,
-      createdBy: t.createdBy,
-      updatedBy: t.updatedBy,
-    }));
-    res.json({ count: allTasks.length, inProgressCount: inprog.length, samples });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-// ── END TEMP DEBUG ─────────────────────────────────────────────────────────────
 
 async function rlFetchCompletionMap(apiKey) {
   const map = {}; // projectId -> { total, completed, inprogress, todo }
