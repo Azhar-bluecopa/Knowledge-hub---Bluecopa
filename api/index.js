@@ -3132,6 +3132,37 @@ async function rlFetchAllTasks(apiKey) {
   return tasks.length > 0 ? tasks : (rlAllTasksCache || []);
 }
 
+// TEMP DEBUG: compare list-API vs individual-task-API fields
+app.get('/api/rocketlane/debug-single-task', async (req, res) => {
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) return res.status(503).json({ error: 'not_configured' });
+  try {
+    // Step 1: get first task from list
+    const listR = await fetch('https://api.rocketlane.com/api/1.0/tasks?pageSize=20', {
+      headers: { 'api-key': apiKey, 'Accept': 'application/json' }
+    });
+    const listD = await listR.json();
+    const tasks = listD.data || [];
+    // Pick a task that is NOT completed, to see member data on active tasks
+    const t = tasks.find(t => (t.status?.label||'') !== 'Completed') || tasks[0];
+    if (!t) return res.json({ error: 'no tasks found' });
+    // Step 2: fetch individual task detail
+    const detailR = await fetch(`https://api.rocketlane.com/api/1.0/tasks/${t.taskId}`, {
+      headers: { 'api-key': apiKey, 'Accept': 'application/json' }
+    });
+    const detailD = await detailR.json();
+    res.json({
+      taskId: t.taskId,
+      taskName: t.taskName,
+      status: t.status?.label,
+      listApiKeys: Object.keys(t),
+      detailApiKeys: Object.keys(detailD?.data || detailD || {}),
+      detailRaw: detailD?.data || detailD,
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// END TEMP DEBUG
+
 async function rlFetchCompletionMap(apiKey) {
   const map = {}; // projectId -> { total, completed, inprogress, todo }
   let pageToken = null;
