@@ -3340,8 +3340,8 @@ function ensureRL() {
   if (!db.rocketlane) db.rocketlane = { snapshots: [], nextSnapshotId: 1, findings: [], nextFindingId: 1 };
   if (!db.rocketlane.findings) db.rocketlane.findings = [];
   if (!db.rocketlane.nextFindingId) db.rocketlane.nextFindingId = 1;
-  if (!('fullData' in db.rocketlane)) db.rocketlane.fullData = null;
-  if (!('fullDataAt' in db.rocketlane)) db.rocketlane.fullDataAt = 0;
+  // Remove any previously stored fullData from MongoDB to reduce document size and data transfer costs
+  if ('fullData' in db.rocketlane) { delete db.rocketlane.fullData; delete db.rocketlane.fullDataAt; }
 }
 
 app.get('/api/rocketlane/snapshots', (req, res) => {
@@ -3349,7 +3349,7 @@ app.get('/api/rocketlane/snapshots', (req, res) => {
   // Build owner lookup from the full data cache so historical snapshots
   // (captured before projectOwner was stored) get retroactively enriched.
   const ownerLookup = {};
-  const fullProjects = (rlFullCache || db.rocketlane.fullData)?.projects || [];
+  const fullProjects = rlFullCache?.projects || [];
   fullProjects.forEach(p => {
     if (p.projectId && p.projectOwner) ownerLookup[String(p.projectId)] = p.projectOwner;
   });
@@ -3570,7 +3570,7 @@ async function rlDoFullFetch(apiKey) {
   };
   // Sanity check: if new fetch has far fewer tasks than the previous cache, it's likely
   // an incomplete paginated fetch (network error mid-way). Don't overwrite good data.
-  const prev = db.rocketlane.fullData;
+  const prev = rlFullCache;
   const prevStandard = prev?.summary?.standard || 0;
   const prevTasksFetched = prev?.tasksFetched || 0;
   const looksIncomplete =
@@ -3584,9 +3584,6 @@ async function rlDoFullFetch(apiKey) {
   }
   rlFullCache = result;
   rlFullCacheAt = now;
-  db.rocketlane.fullData = result;
-  db.rocketlane.fullDataAt = now;
-  await saveDB(db);
   return result;
 }
 
@@ -3606,39 +3603,16 @@ app.get('/api/rocketlane/projects-full', async (req, res) => {
   if (!isRefresh && rlFullCache && (now - rlFullCacheAt) < RL_FULL_CACHE_TTL)
     return res.json({ ...rlFullCache, cached: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
 
-  // Layer 2: persistent cache (survives cold starts)
   await getDbInitPromise();
   ensureRL();
-  if (!isRefresh && db.rocketlane.fullData) {
-    const cached = db.rocketlane.fullData;
-    // Detect corrupted cache: 0 standard projects with many total is clearly wrong
-    const isCorrupted = cached.summary && cached.summary.standard === 0 && (cached.summary.total || 0) > 10;
-    if (!isCorrupted) {
-      const persAge = now - (db.rocketlane.fullDataAt || 0);
-      rlFullCache = cached;
-      rlFullCacheAt = db.rocketlane.fullDataAt || 0;
-      if (persAge < RL_PERSIST_TTL) {
-        return res.json({ ...rlFullCache, cached: true, cacheAge: Math.round(persAge / 1000) });
-      }
-      // Stale — serve old data, client auto-refreshes via ?refresh=1
-      res.json({ ...rlFullCache, stale: true, cacheAge: Math.round(persAge / 1000) });
-      rlDoFullFetch(apiKey).catch(() => {});
-      return;
-    }
-    // Corrupted cache detected — clear it and fall through to a fresh fetch
-    db.rocketlane.fullData = null;
-    db.rocketlane.fullDataAt = 0;
-    rlFullCache = null;
-    rlFullCacheAt = 0;
-  }
 
-  // Layer 3: cold fetch — no cached data exists at all
+  // Cold fetch — no in-memory cache (cold start or forced refresh)
   try {
     const result = await rlDoFullFetch(apiKey);
     res.json({ ...result, cached: false });
   } catch (e) {
-    if (db.rocketlane?.fullData)
-      return res.json({ ...db.rocketlane.fullData, stale: true, error: e.message });
+    if (rlFullCache)
+      return res.json({ ...rlFullCache, stale: true, error: e.message });
     res.status(500).json({ error: 'fetch_failed', message: e.message });
   }
 });
