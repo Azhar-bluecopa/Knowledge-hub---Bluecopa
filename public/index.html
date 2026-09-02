@@ -10493,7 +10493,7 @@ function rlRenderShell() {
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'+
       '<div>'+
         '<div style="font-size:20px;font-weight:700;color:#f0f0f6;letter-spacing:-.3px;">Rocketlane Dashboard</div>'+
-        '<div style="font-size:12px;color:#8a92a0;margin-top:2px;font-family:\'DM Mono\',monospace;">'+s.total+' projects · '+s.standard+' standard · '+s.nonStandard+' non-standard</div>'+
+        '<div style="font-size:12px;color:#8a92a0;margin-top:2px;font-family:\'DM Mono\',monospace;">'+s.total+' projects · '+s.standard+' standard · '+s.nonStandard+' non-standard'+rlLastSyncedLabel()+'</div>'+
       '</div>'+
       '<button onclick="rlRefreshDashboard()" style="background:rgba(201,162,39,.08);border:1px solid rgba(201,162,39,.2);color:#c9a227;border-radius:8px;padding:8px 14px;font-family:\'DM Sans\',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:'+(_rlSyncing?'0.6':'1')+';">'+(_rlSyncing?'↻ Syncing…':'↻ Refresh')+'</button>'+
     '</div>'+
@@ -10527,6 +10527,7 @@ function rlRenderActiveTab() {
 }
 
 var _rlSyncing = false;
+var _rlLastSyncedAt = 0; // epoch ms of last successful fresh fetch
 
 function rlRefreshDashboard() {
   if (_rlLoading || _rlSyncing) return;
@@ -10535,11 +10536,12 @@ function rlRefreshDashboard() {
   fetch('/api/rocketlane/projects-full?refresh=1')
     .then(function(r){ return r.json(); })
     .then(function(data){
-      // Server returned immediately with current data + kicked a background Rocketlane fetch
+      // Server returned current data immediately; Rocketlane fetch running in background
       if (data.projects) { _rlData = data; rlRenderShell(); }
       if (data.refreshing) {
-        rlPollForFresh(0); // background fetch is running — poll until fresh data lands
+        rlPollForFresh(0); // background fetch is in progress — poll until fresh data lands
       } else {
+        _rlLastSyncedAt = Date.now();
         _rlSyncing = false; rlUpdateRefreshBtn(false);
       }
     })
@@ -10547,15 +10549,18 @@ function rlRefreshDashboard() {
 }
 
 function rlPollForFresh(attempt) {
-  if (attempt >= 20) { _rlSyncing = false; rlUpdateRefreshBtn(false); return; } // 60s timeout
+  // Poll up to 60×3s = 3 minutes — enough for even slow multi-page Rocketlane fetches
+  if (attempt >= 60) { _rlSyncing = false; rlUpdateRefreshBtn(false); return; }
   setTimeout(function() {
     fetch('/api/rocketlane/projects-full')
       .then(function(r){ return r.json(); })
       .then(function(data){
         if (data.loading) { rlPollForFresh(attempt + 1); return; }
-        // Fresh data has arrived (cacheAge is small = recently fetched)
-        var isFresh = !data.stale && data.projects && (data.cacheAge || 999) < 60;
+        // Fresh when cacheAge is small (data was just fetched in the background)
+        var age = data.cacheAge != null ? data.cacheAge : 9999;
+        var isFresh = !data.stale && data.projects && age < 120;
         if (isFresh) {
+          _rlLastSyncedAt = Date.now();
           _rlData = data; rlRenderShell();
           _rlSyncing = false; rlUpdateRefreshBtn(false);
         } else {
@@ -10570,7 +10575,15 @@ function rlUpdateRefreshBtn(syncing) {
   var btn = document.querySelector('[onclick="rlRefreshDashboard()"]');
   if (!btn) return;
   btn.textContent = syncing ? '↻ Syncing…' : '↻ Refresh';
-  btn.style.opacity = syncing ? '0.6' : '1';
+  btn.style.opacity = syncing ? '0.7' : '1';
+  btn.style.cursor = syncing ? 'default' : 'pointer';
+}
+
+function rlLastSyncedLabel() {
+  if (!_rlLastSyncedAt) return '';
+  var secs = Math.round((Date.now() - _rlLastSyncedAt) / 1000);
+  var label = secs < 60 ? 'just now' : Math.round(secs / 60) + 'm ago';
+  return ' · synced ' + label;
 }
 window.rlRefreshDashboard = rlRefreshDashboard;
 

@@ -3101,7 +3101,7 @@ async function rlFetchAllTasks(apiKey) {
   let hasMore = true;
   while (hasMore) {
     // includeAllFields=true ensures the API returns assignees.members/placeholders data
-    const url = 'https://api.rocketlane.com/api/1.0/tasks?pageSize=100&includeAllFields=true' + (pageToken ? `&pageToken=${pageToken}` : '');
+    const url = 'https://api.rocketlane.com/api/1.0/tasks?pageSize=200&includeAllFields=true' + (pageToken ? `&pageToken=${pageToken}` : '');
     let pageOk = false;
     for (let attempt = 0; attempt < 3 && !pageOk; attempt++) {
       try {
