@@ -3600,22 +3600,24 @@ app.get('/api/rocketlane/projects-full', async (req, res) => {
   const now = Date.now();
   const isRefresh = !!req.query.refresh;
 
-  // Forced refresh: clear all caches and kill any in-flight deduplication so the
-  // result truly comes from Rocketlane, not a stale shared promise
-  if (isRefresh) {
-    rlAllTasksCache = null;
-    rlAllTasksCacheAt = 0;
-    rlFetchInProgress = null;
-  }
-
   await getDbInitPromise();
   ensureRL();
 
-  // Fresh in-memory cache — return instantly (only for non-forced requests)
+  // Fresh in-memory cache — return instantly
   if (!isRefresh && rlFullCache && (now - rlFullCacheAt) < RL_FULL_CACHE_TTL)
     return res.json({ ...rlFullCache, cached: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
 
-  // Stale in-memory cache — return instantly, kick background refresh (non-forced only)
+  // Forced refresh with existing cache: return current data immediately so the UI stays
+  // responsive, kick a fresh Rocketlane fetch in the background, client polls for the result
+  if (isRefresh && rlFullCache) {
+    rlAllTasksCache = null;
+    rlAllTasksCacheAt = 0;
+    rlFetchInProgress = null;
+    rlDoFullFetch(apiKey).catch(() => {});
+    return res.json({ ...rlFullCache, stale: true, refreshing: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
+  }
+
+  // Stale in-memory cache (no explicit refresh) — return instantly, kick background refresh
   if (!isRefresh && rlFullCache) {
     res.json({ ...rlFullCache, stale: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
     rlDoFullFetch(apiKey).catch(() => {});
@@ -3628,7 +3630,8 @@ app.get('/api/rocketlane/projects-full', async (req, res) => {
     return res.json({ loading: true });
   }
 
-  // Forced refresh or true cold start: wait for a fresh fetch to complete
+  // True cold start (no cache at all): must wait for the first fetch
+  if (isRefresh) { rlAllTasksCache = null; rlAllTasksCacheAt = 0; rlFetchInProgress = null; }
   try {
     const result = await rlDoFullFetch(apiKey);
     res.json({ ...result, cached: false });
