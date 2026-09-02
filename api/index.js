@@ -2773,7 +2773,7 @@ const RL_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 // All-tasks cache shared across my-work requests
 let rlAllTasksCache = null;
 let rlAllTasksCacheAt = 0;
-const RL_TASKS_CACHE_TTL = 5 * 60 * 1000;
+const RL_TASKS_CACHE_TTL = 2 * 60 * 1000; // 2 min — matches full cache TTL
 
 // ── Bluecopa Delivery Methodology engine ──────────────────────────────────────
 const RL_METHODOLOGY = [
@@ -3090,8 +3090,8 @@ function rlBuildCompliance(project, progress, allProjectTasks, prevSnapProject) 
 
 let rlFullCache = null;
 let rlFullCacheAt = 0;
-const RL_FULL_CACHE_TTL  = 10 * 60 * 1000; // 10 min in-memory
-const RL_PERSIST_TTL     = 20 * 60 * 1000; // 20 min persistent (data.json)
+let rlFetchInProgress = null; // deduplication: shared promise across concurrent cold-start requests
+const RL_FULL_CACHE_TTL = 2 * 60 * 1000; // 2 min — stale after this, refresh in background
 
 async function rlFetchAllTasks(apiKey) {
   const now = Date.now();
@@ -3497,6 +3497,13 @@ function rlComputeScheduleMetrics(project, progress, tasks) {
 
 // ── Rocketlane Projects Full (methodology-based) ──────────────────────────────
 async function rlDoFullFetch(apiKey) {
+  // Deduplicate concurrent fetches — if one is already running, share its promise
+  if (rlFetchInProgress) return rlFetchInProgress;
+  rlFetchInProgress = _rlDoFullFetch(apiKey).finally(() => { rlFetchInProgress = null; });
+  return rlFetchInProgress;
+}
+
+async function _rlDoFullFetch(apiKey) {
   const now = Date.now();
   const [projResp, allTasks] = await Promise.all([
     fetch('https://api.rocketlane.com/api/1.0/projects?pageSize=100', { headers: { 'api-key': apiKey, 'Accept': 'application/json' } }),
@@ -3599,14 +3606,27 @@ app.get('/api/rocketlane/projects-full', async (req, res) => {
     rlAllTasksCacheAt = 0;
   }
 
-  // Layer 1: in-memory cache (fastest, survives within the same serverless instance)
-  if (!isRefresh && rlFullCache && (now - rlFullCacheAt) < RL_FULL_CACHE_TTL)
-    return res.json({ ...rlFullCache, cached: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
-
   await getDbInitPromise();
   ensureRL();
 
-  // Cold fetch — no in-memory cache (cold start or forced refresh)
+  // Fresh in-memory cache — return instantly
+  if (!isRefresh && rlFullCache && (now - rlFullCacheAt) < RL_FULL_CACHE_TTL)
+    return res.json({ ...rlFullCache, cached: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
+
+  // Stale in-memory cache — return instantly, refresh in background
+  if (!isRefresh && rlFullCache) {
+    res.json({ ...rlFullCache, stale: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
+    rlDoFullFetch(apiKey).catch(() => {});
+    return;
+  }
+
+  // Cold start with no cache: if a fetch is already running (another request got here first),
+  // tell the client to poll — they'll get data on the next attempt
+  if (rlFetchInProgress) {
+    return res.json({ loading: true });
+  }
+
+  // True cold start: wait for the fetch to complete (first request)
   try {
     const result = await rlDoFullFetch(apiKey);
     res.json({ ...result, cached: false });

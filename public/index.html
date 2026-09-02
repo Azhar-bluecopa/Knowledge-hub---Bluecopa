@@ -10429,27 +10429,45 @@ var RL_TABS = [
   { id: 'health',     label: 'Health Dashboard' }
 ];
 
+var _rlAutoRefreshTimer = null;
+
 function rlInitDashboard() {
   var el = document.getElementById('rlContent');
   if (!el) return;
   _rlData = null; _rlDrillProject = null; _rlTab = 'overview'; _rlFilter = 'all';
   _rlLoading = true;
+  // Clear any existing auto-refresh so it doesn't fire while loading
+  if (_rlAutoRefreshTimer) { clearInterval(_rlAutoRefreshTimer); _rlAutoRefreshTimer = null; }
   el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px;gap:16px;"><div class="rl-spin"></div><div style="font-size:13px;color:rgba(255,255,255,.3);">Loading Rocketlane data…</div></div>';
+  rlFetchWithPolling(0);
+}
+
+function rlFetchWithPolling(attempt) {
+  var el = document.getElementById('rlContent');
   fetch('/api/rocketlane/projects-full')
     .then(function(r){ return r.json(); })
     .then(function(data){
-      _rlData = data; _rlLoading = false; rlRenderShell();
-      // Server served stale cache — silently fetch fresh data in the background
-      if (data.stale) {
-        setTimeout(function() {
-          fetch('/api/rocketlane/projects-full?refresh=1')
-            .then(function(r){ return r.json(); })
-            .then(function(fresh){ _rlData = fresh; rlRenderShell(); })
-            .catch(function(){});
-        }, 800);
+      // Server is still initialising (cold start, another request got there first)
+      if (data.loading) {
+        if (attempt >= 30) { // 30 × 2s = 60s timeout
+          if (el) el.innerHTML = '<div style="text-align:center;padding:80px;color:#dc2626;font-size:13px;">Rocketlane is taking too long to respond. Try refreshing the page.</div>';
+          _rlLoading = false; return;
+        }
+        setTimeout(function(){ rlFetchWithPolling(attempt + 1); }, 2000);
+        return;
       }
+      _rlData = data; _rlLoading = false; rlRenderShell();
+      // Start auto-refresh every 2 minutes so status changes appear without manual refresh
+      if (_rlAutoRefreshTimer) clearInterval(_rlAutoRefreshTimer);
+      _rlAutoRefreshTimer = setInterval(function() {
+        fetch('/api/rocketlane/projects-full')
+          .then(function(r){ return r.json(); })
+          .then(function(fresh){
+            if (!fresh.loading && fresh.projects) { _rlData = fresh; rlRenderShell(); }
+          }).catch(function(){});
+      }, 2 * 60 * 1000); // every 2 minutes
     })
-    .catch(function(e){ el.innerHTML = '<div style="text-align:center;padding:80px;color:#dc2626;font-size:13px;">Failed to load: '+(e.message||'Unknown error')+'</div>'; _rlLoading = false; });
+    .catch(function(e){ var el2 = document.getElementById('rlContent'); if (el2) el2.innerHTML = '<div style="text-align:center;padding:80px;color:#dc2626;font-size:13px;">Failed to load: '+(e.message||'Unknown error')+'</div>'; _rlLoading = false; });
 }
 
 function rlRenderShell() {
