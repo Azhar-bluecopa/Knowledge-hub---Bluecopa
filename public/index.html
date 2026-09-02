@@ -10463,7 +10463,18 @@ function rlFetchWithPolling(attempt) {
         fetch('/api/rocketlane/projects-full')
           .then(function(r){ return r.json(); })
           .then(function(fresh){
-            if (!fresh.loading && fresh.projects) { _rlData = fresh; rlRenderShell(); }
+            if (fresh.loading) return; // cold start — ignore, next interval will try again
+            if (fresh.stale) {
+              // Server is refreshing in background — re-check in 8s to get the fresh result
+              setTimeout(function() {
+                fetch('/api/rocketlane/projects-full')
+                  .then(function(r){ return r.json(); })
+                  .then(function(f2){ if (!f2.loading && f2.projects) { _rlData = f2; rlRenderShell(); } })
+                  .catch(function(){});
+              }, 8000);
+            } else if (fresh.projects) {
+              _rlData = fresh; rlRenderShell();
+            }
           }).catch(function(){});
       }, 2 * 60 * 1000); // every 2 minutes
     })

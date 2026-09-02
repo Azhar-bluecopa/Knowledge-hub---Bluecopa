@@ -3600,33 +3600,35 @@ app.get('/api/rocketlane/projects-full', async (req, res) => {
   const now = Date.now();
   const isRefresh = !!req.query.refresh;
 
-  // On forced refresh, also clear the tasks cache so it re-fetches with the latest flags
+  // Forced refresh: clear all caches and kill any in-flight deduplication so the
+  // result truly comes from Rocketlane, not a stale shared promise
   if (isRefresh) {
     rlAllTasksCache = null;
     rlAllTasksCacheAt = 0;
+    rlFetchInProgress = null;
   }
 
   await getDbInitPromise();
   ensureRL();
 
-  // Fresh in-memory cache — return instantly
+  // Fresh in-memory cache — return instantly (only for non-forced requests)
   if (!isRefresh && rlFullCache && (now - rlFullCacheAt) < RL_FULL_CACHE_TTL)
     return res.json({ ...rlFullCache, cached: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
 
-  // Stale in-memory cache — return instantly, refresh in background
+  // Stale in-memory cache — return instantly, kick background refresh (non-forced only)
   if (!isRefresh && rlFullCache) {
     res.json({ ...rlFullCache, stale: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
     rlDoFullFetch(apiKey).catch(() => {});
     return;
   }
 
-  // Cold start with no cache: if a fetch is already running (another request got here first),
-  // tell the client to poll — they'll get data on the next attempt
-  if (rlFetchInProgress) {
+  // Cold start (no cache, not a forced refresh): if a fetch is already in flight,
+  // return loading so the client polls — it will get data once the fetch lands
+  if (!isRefresh && rlFetchInProgress) {
     return res.json({ loading: true });
   }
 
-  // True cold start: wait for the fetch to complete (first request)
+  // Forced refresh or true cold start: wait for a fresh fetch to complete
   try {
     const result = await rlDoFullFetch(apiKey);
     res.json({ ...result, cached: false });
