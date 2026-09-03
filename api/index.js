@@ -356,15 +356,18 @@ function filterSkillMatrixForUser(data, email) {
   const allowed = getAllowedEmployees(email);
   if (allowed === null) return data;
 
-  // Compute team averages across ALL employees for comparison in personal card
+  // Compute team averages across ALL employees for comparison in personal card.
+  // Only count scores in the valid grid range (1–4) to exclude any legacy 0–100
+  // style data that may still exist in currentScores from an earlier data format.
   const allEmps = data.employees || [];
   const processAreas = data.processAreas || [];
+  const isValidScore = v => Number.isFinite(v) && v >= 1 && v <= 4;
   const teamAvg = {};
   processAreas.forEach(pa => {
-    const vals = allEmps.map(e => (data.currentScores[e] || {})[pa] || 0).filter(v => v > 0);
+    const vals = allEmps.map(e => Number((data.currentScores[e] || {})[pa]) || 0).filter(isValidScore);
     teamAvg[pa] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
   });
-  const allVals = allEmps.flatMap(e => processAreas.map(pa => (data.currentScores[e] || {})[pa] || 0)).filter(v => v > 0);
+  const allVals = allEmps.flatMap(e => processAreas.map(pa => Number((data.currentScores[e] || {})[pa]) || 0)).filter(isValidScore);
   const teamAvgOverall = allVals.length ? allVals.reduce((a, b) => a + b, 0) / allVals.length : 0;
 
   const filteredScores = {};
