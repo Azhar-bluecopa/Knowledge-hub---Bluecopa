@@ -203,7 +203,7 @@ function smRenderPersonalCard(){
     '</div></div>':"";
 
   const cardHTML=
-    '<div style="padding:4px 2px;">'+
+    '<div style="flex:1;min-height:0;overflow-y:auto;padding:4px 2px;">'+
     heroHTML+
     insightsHTML+
     '<div style="font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;">Skill Breakdown</div>'+
