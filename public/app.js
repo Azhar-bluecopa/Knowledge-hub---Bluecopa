@@ -13,8 +13,8 @@ function smRenderPersonalCard(){
   const displayName=empName||"My Skills";
   const initials=empName?empName.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase():"?";
   const labels=["","Beginner","Developing","Proficient","Expert"];
-  const colors=["","#94a3b8","#60a5fa","#34d399","#f59e0b"];
-  const bgColors=["","rgba(148,163,184,.12)","rgba(96,165,250,.12)","rgba(52,211,153,.12)","rgba(245,158,11,.12)"];
+  const colors=["","#f97316","#f59e0b","#60a5fa","#22c55e"];
+  const bgColors=["","rgba(249,115,22,.15)","rgba(245,158,11,.15)","rgba(96,165,250,.15)","rgba(34,197,94,.15)"];
 
   const snapHTML=snapshots.length>1?
     '<div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border);">'+
@@ -23,7 +23,7 @@ function smRenderPersonalCard(){
     snapshots.slice(-10).map(s=>{
       const sv=processAreas.length?processAreas.reduce((a,p)=>a+(((s.scores||{})[empName]||{})[p]||0),0)/processAreas.length:0;
       const pct=Math.max(3,Math.round(sv/4*100));
-      const col=sv>=3?"#34d399":sv>=2?"#60a5fa":sv>=1?"#f59e0b":"#374151";
+      const col=sv>=3.5?"#22c55e":sv>=2.5?"#60a5fa":sv>=1.5?"#f59e0b":sv>=0.5?"#f97316":"#374151";
       return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">'+
         '<div style="font-size:9px;color:var(--muted);font-weight:600;">'+(sv>0?sv.toFixed(1):"")+'</div>'+
         '<div style="width:100%;background:var(--border);border-radius:4px 4px 0 0;flex:1;position:relative;overflow:hidden;">'+
@@ -44,7 +44,7 @@ function smRenderPersonalCard(){
     return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;">'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
       '<span style="font-size:13px;font-weight:500;color:var(--text);line-height:1.35;">'+a+'</span>'+
-      '<span style="font-size:11px;font-weight:700;color:'+col+';background:'+bg+';padding:2px 8px;border-radius:99px;white-space:nowrap;flex-shrink:0;">'+label+'</span>'+
+      '<span style="font-size:11px;font-weight:700;color:'+col+';background:'+bg+';padding:2px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0;">'+label+'</span>'+
       '</div>'+
       '<div style="background:var(--border);border-radius:99px;height:5px;overflow:hidden;">'+
       '<div style="background:'+col+';height:100%;width:'+pct+'%;border-radius:99px;transition:width .4s;"></div>'+
@@ -53,23 +53,23 @@ function smRenderPersonalCard(){
 
   const cardHTML=
     '<div style="padding:8px 4px;">'+
-    '<div style="display:flex;align-items:center;gap:20px;padding:24px;background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.05));border:1px solid rgba(99,102,241,.2);border-radius:14px;margin-bottom:20px;flex-wrap:wrap;gap:16px;">'+
-      '<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 4px 20px rgba(99,102,241,.35);">'+initials+'</div>'+
+    '<div style="display:flex;align-items:center;gap:20px;padding:24px;background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(96,165,250,.06));border:1px solid rgba(34,197,94,.2);border-radius:14px;margin-bottom:20px;flex-wrap:wrap;gap:16px;">'+
+      '<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#16a34a,#059669);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 4px 20px rgba(34,197,94,.3);">'+initials+'</div>'+
       '<div style="flex:1;min-width:160px;">'+
         '<div style="font-size:20px;font-weight:700;color:var(--text);">'+displayName+'</div>'+
         '<div style="font-size:12px;color:var(--muted);margin-top:3px;">Personal Skills Profile</div>'+
       '</div>'+
       '<div style="display:flex;gap:10px;flex-wrap:wrap;">'+
         '<div style="text-align:center;padding:10px 20px;background:rgba(0,0,0,.25);border-radius:10px;border:1px solid var(--border);">'+
-          '<div style="font-size:22px;font-weight:800;color:#6366f1;">'+avgStr+'</div>'+
+          '<div style="font-size:22px;font-weight:800;color:#60a5fa;">'+avgStr+'</div>'+
           '<div style="font-size:10px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-top:2px;">Avg Score</div>'+
         '</div>'+
         '<div style="text-align:center;padding:10px 20px;background:rgba(0,0,0,.25);border-radius:10px;border:1px solid var(--border);">'+
-          '<div style="font-size:22px;font-weight:800;color:#f59e0b;">'+level4Count+'</div>'+
+          '<div style="font-size:22px;font-weight:800;color:#22c55e;">'+level4Count+'</div>'+
           '<div style="font-size:10px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-top:2px;">Expert</div>'+
         '</div>'+
         '<div style="text-align:center;padding:10px 20px;background:rgba(0,0,0,.25);border-radius:10px;border:1px solid var(--border);">'+
-          '<div style="font-size:22px;font-weight:800;color:#34d399;">'+ratedCount+"/"+processAreas.length+'</div>'+
+          '<div style="font-size:22px;font-weight:800;color:#f59e0b;">'+ratedCount+"/"+processAreas.length+'</div>'+
           '<div style="font-size:10px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-top:2px;">Assessed</div>'+
         '</div>'+
       '</div>'+
