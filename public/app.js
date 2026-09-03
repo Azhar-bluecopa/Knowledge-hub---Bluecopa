@@ -32,7 +32,7 @@ function smRenderPersonalCard(){
   const initials=empName?empName.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase():"?";
   const labels=["","Beginner","Intermediate","Advanced","Expert"];
   const colors=["","#f97316","#f59e0b","#60a5fa","#22c55e"];
-  const bgColors=["","rgba(249,115,22,.15)","rgba(245,158,11,.15)","rgba(96,165,250,.15)","rgba(34,197,94,.15)"];
+  const bgColors=["","rgba(249,115,22,.12)","rgba(245,158,11,.12)","rgba(96,165,250,.12)","rgba(34,197,94,.12)"];
 
   const pendingMap={};
   (myUpgradeRequests||[]).forEach(r=>{if(r.status==='pending')pendingMap[r.processArea]=r;});
@@ -40,122 +40,174 @@ function smRenderPersonalCard(){
   (myUpgradeRequests||[]).forEach(r=>{if(r.status==='rejected')rejectedMap[r.processArea]=r;});
 
   const ratedAreas=processAreas.filter(a=>(scores[a]||0)>0);
-  const focusAreas=ratedAreas.slice().sort((a,b)=>(scores[a]||0)-(scores[b]||0)).slice(0,3).filter(a=>(scores[a]||0)<4);
   const unratedAreas=processAreas.filter(a=>!(scores[a]||0));
+  const focusAreas=ratedAreas.slice().sort((a,b)=>(scores[a]||0)-(scores[b]||0)).slice(0,3).filter(a=>(scores[a]||0)<4);
   const strengthAreas=ratedAreas.slice().sort((a,b)=>(scores[b]||0)-(scores[a]||0)).slice(0,3);
-  const belowTeam=teamAvg?processAreas.filter(a=>{const tv=(teamAvg[a]||0);return tv>0&&(scores[a]||0)<tv;}).sort((a,b)=>{const da=(teamAvg[a]||0)-(scores[a]||0),db=(teamAvg[b]||0)-(scores[b]||0);return db-da;}).slice(0,3):[];
+  const belowTeam=teamAvg?processAreas.filter(a=>{const tv=(teamAvg[a]||0);return tv>0&&(scores[a]||0)>0&&(scores[a]||0)<tv;}).sort((a,b)=>{return ((teamAvg[b]||0)-(scores[b]||0))-((teamAvg[a]||0)-(scores[a]||0));}).slice(0,3):[];
+  const sortedAreas=[...processAreas].sort((a,b)=>(scores[b]||0)-(scores[a]||0));
 
-  const insightItem=(name,v,extra)=>{
-    const col=colors[v]||"#4b5563";
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;gap:8px;">'+
-      '<span style="font-size:12px;color:var(--text);flex:1;">'+name+'</span>'+
-      '<span style="font-size:10px;font-weight:700;color:'+col+';background:'+bgColors[v||0]+';padding:2px 7px;border-radius:5px;white-space:nowrap;">'+(v?labels[v]:"Not rated")+'</span>'+
-      (extra?'<span style="font-size:10px;color:var(--muted);white-space:nowrap;">'+extra+'</span>':'')+
-      '</div>';
-  };
+  // Score ring (SVG)
+  const scorePercent=avg?(avg/4)*100:0;
+  const circumference=2*Math.PI*38;
+  const dash=Math.round(circumference*scorePercent/100);
+  const lvlColor=avg>=3.5?"#22c55e":avg>=2.5?"#60a5fa":avg>=1.5?"#f59e0b":avg>0?"#f97316":"#374151";
+  const levelLabel=avg>=3.5?"Expert":avg>=2.5?"Advanced":avg>=1.5?"Intermediate":avg>0?"Beginner":"No Rating";
 
-  const insightsHTML=
-    '<div style="margin-top:24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">'+
-    '<div style="background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.2);border-radius:12px;padding:16px;">'+
-      '<div style="font-size:10px;font-weight:700;color:#f97316;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">&#127919; Where to Focus</div>'+
-      (focusAreas.length?focusAreas.map(a=>insightItem(a,scores[a]||0,teamAvg&&teamAvg[a]?'Team: '+(teamAvg[a]).toFixed(1):'')).join('<div style="height:5px;"></div>'):
-       '<div style="font-size:12px;color:var(--muted);">All skills rated Expert!</div>')+
-      (unratedAreas.length?'<div style="margin-top:8px;font-size:11px;color:var(--muted);">'+unratedAreas.length+' skill'+(unratedAreas.length>1?'s':'')+' not yet rated</div>':'')+
+  const diffBadge=avgDiff!==null?
+    '<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:'+(avgDiff>=0?"#22c55e":"#f97316")+';background:'+(avgDiff>=0?"rgba(34,197,94,.1)":"rgba(249,115,22,.1)")+';border:1px solid '+(avgDiff>=0?"rgba(34,197,94,.25)":"rgba(249,115,22,.25)")+';border-radius:99px;padding:2px 8px;">'+(avgDiff>0?"▲":avgDiff<0?"▼":"=")+' '+(avgDiff>=0?"+":"")+avgDiff+' vs team</span>':
+    '';
+
+  // Hero
+  const heroHTML=
+    '<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:center;padding:28px 32px;background:linear-gradient(135deg,rgba(34,197,94,.07) 0%,rgba(96,165,250,.05) 50%,rgba(245,158,11,.04) 100%);border:1px solid rgba(255,255,255,.08);border-radius:18px;margin-bottom:20px;">'+
+    // Avatar + name
+    '<div style="display:flex;align-items:center;gap:18px;flex:1;min-width:200px;">'+
+      '<div style="position:relative;flex-shrink:0;">'+
+        '<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#16a34a,#0ea5e9);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;box-shadow:0 0 0 3px rgba(34,197,94,.2),0 8px 24px rgba(34,197,94,.2);">'+initials+'</div>'+
+        (level4Count>0?'<div style="position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:#22c55e;border:2px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:10px;">&#11088;</div>':'')+
+      '</div>'+
+      '<div>'+
+        '<div style="font-size:21px;font-weight:700;color:var(--text);line-height:1.2;">'+displayName+'</div>'+
+        '<div style="font-size:12px;color:var(--muted);margin-top:3px;">'+ratedCount+'/'+processAreas.length+' skills assessed</div>'+
+        (diffBadge?'<div style="margin-top:8px;">'+diffBadge+'</div>':'')+
+      '</div>'+
     '</div>'+
-    '<div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:16px;">'+
-      '<div style="font-size:10px;font-weight:700;color:#22c55e;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">&#11088; Your Strengths</div>'+
-      (strengthAreas.length?strengthAreas.map(a=>insightItem(a,scores[a]||0,'')).join('<div style="height:5px;"></div>'):
-       '<div style="font-size:12px;color:var(--muted);">Rate your skills to see strengths.</div>')+
+    // Score ring
+    '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;">'+
+      '<div style="position:relative;width:96px;height:96px;">'+
+        '<svg viewBox="0 0 96 96" width="96" height="96" style="transform:rotate(-90deg);">'+
+          '<circle cx="48" cy="48" r="38" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="9"/>'+
+          '<circle cx="48" cy="48" r="38" fill="none" stroke="'+lvlColor+'" stroke-width="9" stroke-linecap="round" stroke-dasharray="'+dash+' '+Math.round(circumference)+'" style="transition:stroke-dasharray .6s ease;"/>'+
+        '</svg>'+
+        '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">'+
+          '<div style="font-size:24px;font-weight:800;color:'+lvlColor+';line-height:1;">'+avgStr+'</div>'+
+          '<div style="font-size:9px;color:var(--muted);letter-spacing:.04em;margin-top:1px;">out of 4.0</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="font-size:10px;font-weight:700;color:'+lvlColor+';text-transform:uppercase;letter-spacing:.1em;">'+levelLabel+'</div>'+
     '</div>'+
-    (belowTeam.length?
-      '<div style="background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.2);border-radius:12px;padding:16px;">'+
-        '<div style="font-size:10px;font-weight:700;color:#60a5fa;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">&#128202; Below Team Average</div>'+
-        belowTeam.map(a=>{const gap=(teamAvg[a]||0)-(scores[a]||0);return insightItem(a,scores[a]||0,'-'+gap.toFixed(1)+' vs team');}).join('<div style="height:5px;"></div>')+
-      '</div>':'')+
+    // Stats row
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;">'+
+      (teamAvgNum?
+        '<div style="text-align:center;min-width:72px;padding:12px 16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;">'+
+          '<div style="font-size:20px;font-weight:800;color:#9ca3af;">'+teamAvgStr+'</div>'+
+          '<div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">Team Avg</div>'+
+        '</div>':'')+
+      '<div style="text-align:center;min-width:72px;padding:12px 16px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.15);border-radius:12px;">'+
+        '<div style="font-size:20px;font-weight:800;color:#22c55e;">'+level4Count+'</div>'+
+        '<div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">Expert</div>'+
+      '</div>'+
+      '<div style="text-align:center;min-width:72px;padding:12px 16px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:12px;">'+
+        '<div style="font-size:20px;font-weight:800;color:#f59e0b;">'+ratedCount+'/'+processAreas.length+'</div>'+
+        '<div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">Assessed</div>'+
+      '</div>'+
+    '</div>'+
     '</div>';
 
-  const snapHTML=snapshots.length>1?
-    '<div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border);">'+
-    '<div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;">Progress Over Time</div>'+
-    '<div style="display:flex;align-items:flex-end;gap:8px;height:90px;">'+
-    snapshots.slice(-10).map(s=>{
-      const sv=processAreas.length?processAreas.reduce((a,p)=>a+(((s.scores||{})[empName]||{})[p]||0),0)/processAreas.length:0;
-      const pct=Math.max(3,Math.round(sv/4*100));
-      const col=sv>=3.5?"#22c55e":sv>=2.5?"#60a5fa":sv>=1.5?"#f59e0b":sv>=0.5?"#f97316":"#374151";
-      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">'+
-        '<div style="font-size:9px;color:var(--muted);font-weight:600;">'+(sv>0?sv.toFixed(1):"")+'</div>'+
-        '<div style="width:100%;background:var(--border);border-radius:4px 4px 0 0;flex:1;position:relative;overflow:hidden;">'+
-        '<div style="position:absolute;bottom:0;left:0;right:0;background:'+col+';height:'+pct+'%;border-radius:4px 4px 0 0;"></div>'+
-        '</div>'+
-        '<div style="font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;max-width:40px;text-overflow:ellipsis;text-align:center;">'+((s.label||"").split(" ")[0])+'</div>'+
-        '</div>';
-    }).join("")+
-    '</div></div>'
-    :"";
+  // Insights row
+  const iItem=(name,v,extra)=>{
+    const col=colors[v]||"#6b7280";
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);">'+
+      '<span style="flex:1;font-size:12px;color:var(--text);line-height:1.3;">'+name+'</span>'+
+      '<span style="font-size:10px;font-weight:700;color:'+col+';background:'+col+'18;padding:2px 7px;border-radius:5px;white-space:nowrap;">'+(v?labels[v]:"—")+'</span>'+
+      (extra?'<span style="font-size:10px;color:var(--muted);white-space:nowrap;min-width:48px;text-align:right;">'+extra+'</span>':'')+
+    '</div>';
+  };
+  const insightsHTML=
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-bottom:20px;">'+
+    '<div style="background:rgba(249,115,22,.05);border:1px solid rgba(249,115,22,.18);border-radius:12px;padding:14px 16px;">'+
+      '<div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;">&#127919; Where to Focus</div>'+
+      (focusAreas.length?focusAreas.map(a=>iItem(a,scores[a]||0,teamAvg&&teamAvg[a]?"T:"+teamAvg[a].toFixed(1):"")).join(""):
+       '<div style="font-size:12px;color:var(--muted);padding:4px 0;">All skills at Expert &#127881;</div>')+
+      (unratedAreas.length?'<div style="margin-top:8px;font-size:10px;color:var(--muted);">+'+unratedAreas.length+' unrated</div>':"")+
+    '</div>'+
+    '<div style="background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.18);border-radius:12px;padding:14px 16px;">'+
+      '<div style="font-size:9px;font-weight:700;color:#22c55e;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;">&#11088; Your Strengths</div>'+
+      (strengthAreas.length?strengthAreas.map(a=>iItem(a,scores[a]||0,"")).join(""):
+       '<div style="font-size:12px;color:var(--muted);padding:4px 0;">Rate skills to reveal strengths.</div>')+
+    '</div>'+
+    (belowTeam.length?
+      '<div style="background:rgba(96,165,250,.05);border:1px solid rgba(96,165,250,.18);border-radius:12px;padding:14px 16px;">'+
+        '<div style="font-size:9px;font-weight:700;color:#60a5fa;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;">&#128202; Below Team Avg</div>'+
+        belowTeam.map(a=>{const gap=((teamAvg[a]||0)-(scores[a]||0));return iItem(a,scores[a]||0,"-"+gap.toFixed(1));}).join("")+
+      '</div>':"")+
+    '</div>';
 
-  const skillCards=processAreas.map(a=>{
+  // Skills table — sorted highest first; unrated at the bottom
+  const allSorted=[...sortedAreas.filter(a=>(scores[a]||0)>0),...unratedAreas];
+  const skillRows=allSorted.map(a=>{
     const v=scores[a]||0;
-    const pct=Math.round(v/4*100);
-    const col=colors[v]||"#4b5563";
-    const bg=bgColors[v]||"transparent";
+    const tv=teamAvg&&teamAvg[a]?teamAvg[a]:0;
+    const col=colors[v]||"#6b7280";
     const label=v?labels[v]:"Not rated";
-    const tv=teamAvg&&teamAvg[a]?teamAvg[a]:null;
-    const tvBar=tv?'<div style="display:flex;align-items:center;gap:6px;margin-top:4px;"><span style="font-size:9px;color:var(--muted);white-space:nowrap;">Team avg</span><div style="flex:1;background:var(--border);border-radius:99px;height:3px;overflow:hidden;"><div style="background:#6b7280;height:100%;width:'+Math.round(tv/4*100)+'%;border-radius:99px;"></div></div><span style="font-size:9px;color:var(--muted);">'+tv.toFixed(1)+'</span></div>':'';
+    const myPct=Math.round(v/4*100);
+    const tvPct=tv?Math.round(tv/4*100):0;
     const hasPending=!!pendingMap[a];
-    const wasRejected=!!rejectedMap[a];
-    const safeArea=a.replace(/[^a-z0-9]/gi,'_');
-    const upgradeBtn='<div style="margin-top:8px;"><button onclick="smShowUpgradePanel(this)" data-area="'+a.replace(/"/g,'&quot;')+'" data-level="'+v+'" style="width:100%;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.25);border-radius:6px;padding:5px 10px;font-size:11px;color:#60a5fa;cursor:pointer;font-weight:600;">&#8593; Request Upgrade</button></div>';
-    const pendingBadge='<div style="margin-top:8px;padding:5px 10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:6px;font-size:11px;color:#f59e0b;font-weight:600;text-align:center;">&#9203; Upgrade pending &#8594; '+labels[pendingMap[a]&&pendingMap[a].requestedLevel||v]+'</div>';
-    const rejectedBadge='<div style="margin-top:8px;padding:5px 10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:6px;font-size:11px;color:#f87171;font-weight:600;text-align:center;">&#10007; Last request rejected</div>';
-    const upgradeHTML=v>0&&v<4&&!hasPending?upgradeBtn:(hasPending?pendingBadge:(wasRejected?rejectedBadge:''));
-    return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;" id="smSkillCard_'+safeArea+'">'+
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
-      '<span style="font-size:13px;font-weight:500;color:var(--text);line-height:1.35;">'+a+'</span>'+
-      '<span style="font-size:11px;font-weight:700;color:'+col+';background:'+bg+';padding:2px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0;">'+label+'</span>'+
-      '</div>'+
-      '<div style="background:var(--border);border-radius:99px;height:5px;overflow:hidden;">'+
-      '<div style="background:'+col+';height:100%;width:'+pct+'%;border-radius:99px;transition:width .4s;"></div>'+
-      '</div>'+
-      tvBar+
-      upgradeHTML+
+    const wasRejected=!hasPending&&!!rejectedMap[a];
+
+    // Dual bar: personal score fill + team avg notch
+    const dualBar=
+      '<div style="position:relative;height:8px;background:rgba(255,255,255,.06);border-radius:99px;flex:1;min-width:80px;">'+
+        (v?'<div style="position:absolute;left:0;top:0;bottom:0;width:'+myPct+'%;background:'+col+';border-radius:99px;opacity:.9;"></div>':'')+
+        (tv?'<div title="Team avg: '+tv.toFixed(1)+'" style="position:absolute;top:-3px;bottom:-3px;left:'+tvPct+'%;transform:translateX(-50%);width:2.5px;background:#6b7280;border-radius:2px;"></div>':'')+
       '</div>';
+
+    let actionEl='';
+    if(v>0&&v<4&&!hasPending){
+      actionEl='<button onclick="smShowUpgradePanel(this)" data-area="'+a.replace(/"/g,'&quot;')+'" data-level="'+v+'" style="font-size:10px;color:#60a5fa;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);border-radius:6px;padding:3px 10px;cursor:pointer;white-space:nowrap;font-weight:600;">&#8593; Upgrade</button>';
+    } else if(hasPending){
+      actionEl='<span style="font-size:10px;color:#f59e0b;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:6px;padding:3px 10px;white-space:nowrap;font-weight:600;">&#9203; Pending</span>';
+    } else if(wasRejected){
+      actionEl='<span style="font-size:10px;color:#f87171;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:3px 10px;white-space:nowrap;">&#10007; Rejected</span>';
+    }
+
+    return '<div style="display:grid;grid-template-columns:minmax(120px,1fr) 90px 1fr 110px;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,.04);">'+
+      '<span style="font-size:13px;color:var(--text);font-weight:500;line-height:1.3;">'+a+'</span>'+
+      '<span style="font-size:10px;font-weight:700;color:'+col+';background:'+col+'18;padding:3px 8px;border-radius:6px;text-align:center;white-space:nowrap;">'+label+'</span>'+
+      '<div style="display:flex;align-items:center;gap:8px;">'+
+        dualBar+
+        (tv?'<span style="font-size:9px;color:var(--muted);white-space:nowrap;min-width:24px;">T:'+tv.toFixed(1)+'</span>':'')+
+      '</div>'+
+      '<div style="display:flex;justify-content:flex-end;">'+actionEl+'</div>'+
+    '</div>';
   }).join("");
 
-  const diffHtml=avgDiff!==null?
-    '<span style="font-size:12px;color:'+(avgDiff>=0?'#22c55e':'#f97316')+';">'+(avgDiff>=0?'&#8593;':'')+avgDiff+'</span>':'';
+  const skillsTable=
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px;">'+
+    '<div style="display:grid;grid-template-columns:minmax(120px,1fr) 90px 1fr 110px;gap:10px;padding:8px 16px;background:rgba(255,255,255,.025);border-bottom:1px solid var(--border);">'+
+      '<div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;">Skill Area</div>'+
+      '<div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;">Level</div>'+
+      '<div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;">You vs Team &#x25AE;</div>'+
+      '<div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;text-align:right;">Action</div>'+
+    '</div>'+
+    skillRows+
+    '</div>';
+
+  // Snapshot trend
+  const snapHTML=snapshots.length>1?
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 24px;">'+
+    '<div style="font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px;">&#128200; Progress Over Time</div>'+
+    '<div style="display:flex;align-items:flex-end;gap:6px;height:80px;">'+
+    snapshots.slice(-12).map(s=>{
+      const sv=processAreas.length?processAreas.reduce((a,p)=>a+(((s.scores||{})[empName]||{})[p]||0),0)/processAreas.length:0;
+      const pct=Math.max(4,Math.round(sv/4*100));
+      const col=sv>=3.5?"#22c55e":sv>=2.5?"#60a5fa":sv>=1.5?"#f59e0b":sv>=0.5?"#f97316":"#374151";
+      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;">'+
+        '<div style="font-size:9px;color:var(--muted);font-weight:600;">'+(sv>0?sv.toFixed(1):"")+'</div>'+
+        '<div style="width:100%;flex:1;background:rgba(255,255,255,.05);border-radius:4px 4px 0 0;position:relative;overflow:hidden;">'+
+        '<div style="position:absolute;bottom:0;left:0;right:0;background:'+col+';height:'+pct+'%;border-radius:3px 3px 0 0;"></div>'+
+        '</div>'+
+        '<div style="font-size:8px;color:var(--muted);white-space:nowrap;overflow:hidden;max-width:36px;text-overflow:ellipsis;text-align:center;">'+((s.label||"").split(" ")[0])+'</div>'+
+      '</div>';
+    }).join("")+
+    '</div></div>':"";
 
   const cardHTML=
-    '<div style="padding:8px 4px;">'+
-    '<div style="display:flex;align-items:center;padding:24px;background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(96,165,250,.06));border:1px solid rgba(34,197,94,.2);border-radius:14px;margin-bottom:20px;flex-wrap:wrap;gap:16px;">'+
-      '<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#16a34a,#059669);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 4px 20px rgba(34,197,94,.3);">'+initials+'</div>'+
-      '<div style="flex:1;min-width:160px;">'+
-        '<div style="font-size:20px;font-weight:700;color:var(--text);">'+displayName+'</div>'+
-        '<div style="font-size:12px;color:var(--muted);margin-top:3px;">Personal Skills Profile</div>'+
-      '</div>'+
-      '<div style="display:flex;gap:10px;flex-wrap:wrap;">'+
-        '<div style="text-align:center;padding:10px 20px;background:rgba(0,0,0,.25);border-radius:10px;border:1px solid var(--border);">'+
-          '<div style="font-size:22px;font-weight:800;color:#60a5fa;display:flex;align-items:baseline;gap:4px;justify-content:center;">'+avgStr+diffHtml+'</div>'+
-          '<div style="font-size:10px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-top:2px;">My Score</div>'+
-        '</div>'+
-        (teamAvgNum?'<div style="text-align:center;padding:10px 20px;background:rgba(0,0,0,.25);border-radius:10px;border:1px solid var(--border);">'+
-          '<div style="font-size:22px;font-weight:800;color:#6b7280;">'+teamAvgStr+'</div>'+
-          '<div style="font-size:10px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-top:2px;">Team Avg</div>'+
-        '</div>':'')+
-        '<div style="text-align:center;padding:10px 20px;background:rgba(0,0,0,.25);border-radius:10px;border:1px solid var(--border);">'+
-          '<div style="font-size:22px;font-weight:800;color:#22c55e;">'+level4Count+'</div>'+
-          '<div style="font-size:10px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-top:2px;">Expert</div>'+
-        '</div>'+
-        '<div style="text-align:center;padding:10px 20px;background:rgba(0,0,0,.25);border-radius:10px;border:1px solid var(--border);">'+
-          '<div style="font-size:22px;font-weight:800;color:#f59e0b;">'+ratedCount+"/"+processAreas.length+'</div>'+
-          '<div style="font-size:10px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-top:2px;">Assessed</div>'+
-        '</div>'+
-      '</div>'+
-    '</div>'+
-    '<div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;">Skill Areas</div>'+
-    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;">'+
-      skillCards+
-    '</div>'+
+    '<div style="padding:4px 2px;">'+
+    heroHTML+
     insightsHTML+
+    '<div style="font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;">Skill Breakdown</div>'+
+    skillsTable+
     snapHTML+
     '</div>';
 
