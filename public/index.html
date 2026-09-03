@@ -10661,6 +10661,11 @@ var _rlAutoRefreshTimer = null;
 function rlInitDashboard() {
   var el = document.getElementById('rlContent');
   if (!el) return;
+  // ACL: wait for ACL to load if not yet available, then re-run
+  if (!window._userACL && typeof loadUserACL === 'function') {
+    loadUserACL().then(function() { rlInitDashboard(); }).catch(function() { rlInitDashboard(); });
+    return;
+  }
   // ACL: check if user has any Rocketlane access
   var rlPerm = (window._userACL && window._userACL.rocketlane) || null;
   if (rlPerm && rlPerm.type === 'none') {
@@ -10675,9 +10680,13 @@ function rlInitDashboard() {
   rlFetchWithPolling(0);
 }
 
+function rlUserHeaders() {
+  var u = typeof getUser === 'function' ? getUser() : null;
+  return u && u.email ? {'x-user-email': u.email} : {};
+}
 function rlFetchWithPolling(attempt) {
   var el = document.getElementById('rlContent');
-  fetch('/api/rocketlane/projects-full')
+  fetch('/api/rocketlane/projects-full', {headers: rlUserHeaders()})
     .then(function(r){ return r.json(); })
     .then(function(data){
       // Server is still initialising (cold start, another request got there first)
@@ -10693,14 +10702,14 @@ function rlFetchWithPolling(attempt) {
       // Start auto-refresh every 2 minutes so status changes appear without manual refresh
       if (_rlAutoRefreshTimer) clearInterval(_rlAutoRefreshTimer);
       _rlAutoRefreshTimer = setInterval(function() {
-        fetch('/api/rocketlane/projects-full')
+        fetch('/api/rocketlane/projects-full', {headers: rlUserHeaders()})
           .then(function(r){ return r.json(); })
           .then(function(fresh){
             if (fresh.loading) return; // cold start — ignore, next interval will try again
             if (fresh.stale) {
               // Server is refreshing in background — re-check in 8s to get the fresh result
               setTimeout(function() {
-                fetch('/api/rocketlane/projects-full')
+                fetch('/api/rocketlane/projects-full', {headers: rlUserHeaders()})
                   .then(function(r){ return r.json(); })
                   .then(function(f2){ if (!f2.loading && f2.projects) { _rlData = f2; rlRenderShell(); } })
                   .catch(function(){});
@@ -10766,7 +10775,7 @@ function rlRefreshDashboard() {
   if (_rlLoading || _rlSyncing) return;
   _rlSyncing = true;
   rlUpdateRefreshBtn(true);
-  fetch('/api/rocketlane/projects-full?refresh=1')
+  fetch('/api/rocketlane/projects-full?refresh=1', {headers: rlUserHeaders()})
     .then(function(r){ return r.json(); })
     .then(function(data){
       // Server returned current data immediately; Rocketlane fetch running in background
@@ -10785,7 +10794,7 @@ function rlPollForFresh(attempt) {
   // Poll up to 60×3s = 3 minutes — enough for even slow multi-page Rocketlane fetches
   if (attempt >= 60) { _rlSyncing = false; rlUpdateRefreshBtn(false); return; }
   setTimeout(function() {
-    fetch('/api/rocketlane/projects-full')
+    fetch('/api/rocketlane/projects-full', {headers: rlUserHeaders()})
       .then(function(r){ return r.json(); })
       .then(function(data){
         if (data.loading) { rlPollForFresh(attempt + 1); return; }
