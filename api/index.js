@@ -3957,11 +3957,35 @@ app.get('/api/acl/users', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
   await getDbInitPromise(); ensureACL(); ensureUsers();
   const adminEmails = new Set(((db.settings && db.settings.adminEmails) || ['azhar.m@bluecopa.com']).map(e=>e.toLowerCase()));
-  const users = (db.users || []).map(u => ({
-    email: u.email, name: u.name, picture: u.picture, role: u.role,
-    isAdmin: adminEmails.has((u.email||'').toLowerCase()),
-    acl: getUserACL(u.email)
-  }));
+  // Build a merged map of all known team members (logged-in + skill matrix + learning emails)
+  const memberMap = new Map();
+  // 1. Logged-in users
+  (db.users || []).forEach(u => {
+    if (!u.email) return;
+    const lc = u.email.toLowerCase();
+    memberMap.set(lc, { email: lc, name: u.name || lc, picture: u.picture || null });
+  });
+  // 2. learning.memberEmails: { name -> email }
+  const memberEmails = db.learning?.memberEmails || {};
+  Object.entries(memberEmails).forEach(([name, email]) => {
+    if (!email) return;
+    const lc = email.toLowerCase().trim();
+    if (!memberMap.has(lc)) memberMap.set(lc, { email: lc, name, picture: null });
+  });
+  // 3. skillMatrix employees who have a known email
+  (db.skillMatrix?.employees || []).forEach(empName => {
+    const name = typeof empName === 'object' ? (empName.name || '') : empName;
+    if (!name) return;
+    const email = (memberEmails[name] || '').toLowerCase().trim();
+    if (email && !memberMap.has(email)) memberMap.set(email, { email, name, picture: null });
+  });
+  const users = [...memberMap.values()]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(u => ({
+      email: u.email, name: u.name, picture: u.picture,
+      isAdmin: adminEmails.has(u.email),
+      acl: getUserACL(u.email)
+    }));
   res.json({ ok: true, users });
 });
 
