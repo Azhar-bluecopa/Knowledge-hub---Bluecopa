@@ -188,7 +188,7 @@ function smShowUpgradePanel(btn){
     '<div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">Select target level</div>'+
     opts+
     '<div style="font-size:11px;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">Your request will be sent to the manager for approval.</div>'+
-    '<button onclick="document.getElementById('smUpgradePanel').remove()" style="margin-top:16px;width:100%;background:none;border:1px solid var(--border);border-radius:8px;padding:9px;font-size:13px;cursor:pointer;color:var(--muted);">Cancel</button>'+
+    '<button onclick="document.getElementById(\'smUpgradePanel\').remove()" style="margin-top:16px;width:100%;background:none;border:1px solid var(--border);border-radius:8px;padding:9px;font-size:13px;cursor:pointer;color:var(--muted);">Cancel</button>'+
     '</div>';
   document.body.appendChild(panel);
   panel.addEventListener('click',e=>{if(e.target===panel)panel.remove();});
