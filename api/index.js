@@ -355,13 +355,26 @@ function getAllowedRLProjectIds(email) {
 function filterSkillMatrixForUser(data, email) {
   const allowed = getAllowedEmployees(email);
   if (allowed === null) return data;
+
+  // Compute team averages across ALL employees for comparison in personal card
+  const allEmps = data.employees || [];
+  const processAreas = data.processAreas || [];
+  const teamAvg = {};
+  processAreas.forEach(pa => {
+    const vals = allEmps.map(e => (data.currentScores[e] || {})[pa] || 0).filter(v => v > 0);
+    teamAvg[pa] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+  });
+  const allVals = allEmps.flatMap(e => processAreas.map(pa => (data.currentScores[e] || {})[pa] || 0)).filter(v => v > 0);
+  const teamAvgOverall = allVals.length ? allVals.reduce((a, b) => a + b, 0) / allVals.length : 0;
+
   const filteredScores = {};
   allowed.forEach(n => { if (data.currentScores[n]) filteredScores[n] = data.currentScores[n]; });
   const filteredSnaps = (data.snapshots || []).map(s => ({
     ...s, scores: Object.fromEntries(Object.entries(s.scores || {}).filter(([n]) => allowed.includes(n)))
   }));
   return { ...data, employees: (data.employees || []).filter(e => allowed.includes(e)),
-    currentScores: filteredScores, snapshots: filteredSnaps, _restricted: true, _ownView: allowed.length <= 1 };
+    currentScores: filteredScores, snapshots: filteredSnaps, _restricted: true,
+    _ownView: allowed.length <= 1, teamAvg, teamAvgOverall };
 }
 
 function filterRLResponseForUser(data, email) {
@@ -5303,6 +5316,34 @@ app.get('/api/cron/rl-snapshot', async (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   const result = await rlAutoSnapshot();
   res.json(result);
+});
+
+// Monthly skill matrix snapshot — runs on 1st of each month at 12:00 AM UTC
+app.get('/api/cron/sm-snapshot', async (req, res) => {
+  const secret = process.env.CRON_SECRET;
+  if (secret && req.headers.authorization !== `Bearer ${secret}`)
+    return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    ensureSM();
+    const now = new Date();
+    const label = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    // Skip if a snapshot with this label already exists (idempotent)
+    if (db.skillMatrix.snapshots.some(s => s.label === label))
+      return res.json({ ok: true, skipped: true, reason: 'snapshot already exists for ' + label });
+    const snap = {
+      id: db.skillMatrix.nextSnapshotId++,
+      label,
+      date: now.toISOString(),
+      scores: JSON.parse(JSON.stringify(db.skillMatrix.currentScores))
+    };
+    db.skillMatrix.snapshots.push(snap);
+    await saveDB(db);
+    console.log('[cron sm-snapshot] captured:', label, 'employees:', Object.keys(snap.scores).length);
+    res.json({ ok: true, snapshot: snap });
+  } catch (e) {
+    console.error('[cron sm-snapshot]', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 module.exports = app;
