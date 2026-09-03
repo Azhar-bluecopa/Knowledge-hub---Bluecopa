@@ -266,6 +266,125 @@ function isAdmin(req) {
   return adminEmails.map(e => e.toLowerCase()).includes(email);
 }
 
+// ── Role-Based Access Control ─────────────────────────────────────────────────
+
+const ACL_DEFAULTS = {
+  skillMatrix: { type: 'own',  selected: [] },
+  kpis:        { type: 'own',  selected: [] },
+  uat:         { type: 'none', selected: [] },
+  ews:         { type: 'none', selected: [] },
+  rocketlane:  { type: 'none', selected: [] }
+};
+const ACL_ADMIN_FULL = {
+  skillMatrix: { type: 'all', selected: [] },
+  kpis:        { type: 'all', selected: [] },
+  uat:         { type: 'all', selected: [] },
+  ews:         { type: 'all', selected: [] },
+  rocketlane:  { type: 'all', selected: [] }
+};
+
+function ensureACL() {
+  if (!db.acl) db.acl = {};
+  if (!db.aclAudit) db.aclAudit = [];
+}
+
+function getUserACL(email) {
+  if (!email) return { ...ACL_DEFAULTS };
+  const lc = email.toLowerCase().trim();
+  const adminEmails = (db.settings && db.settings.adminEmails) || ['azhar.m@bluecopa.com'];
+  if (adminEmails.map(e => e.toLowerCase()).includes(lc)) return { ...ACL_ADMIN_FULL };
+  ensureACL();
+  const stored = db.acl[lc] || {};
+  return {
+    skillMatrix: stored.skillMatrix || ACL_DEFAULTS.skillMatrix,
+    kpis:        stored.kpis        || ACL_DEFAULTS.kpis,
+    uat:         stored.uat         || ACL_DEFAULTS.uat,
+    ews:         stored.ews         || ACL_DEFAULTS.ews,
+    rocketlane:  stored.rocketlane  || ACL_DEFAULTS.rocketlane
+  };
+}
+
+// Resolve a user's email to their Skill Matrix employee name
+function resolveNameFromEmail(email) {
+  if (!email) return null;
+  const lc = email.toLowerCase();
+  const memberEmails = db.learning?.memberEmails || {};
+  for (const [name, em] of Object.entries(memberEmails)) {
+    if (em && em.toLowerCase() === lc) return name;
+  }
+  const user = (db.users || []).find(u => u.email && u.email.toLowerCase() === lc);
+  if (user) {
+    const employees = db.skillMatrix?.employees || [];
+    if (employees.includes(user.name)) return user.name;
+    const firstName = (user.name || '').split(' ')[0].toLowerCase();
+    const match = employees.find(e => e.toLowerCase().startsWith(firstName));
+    if (match) return match;
+  }
+  return null;
+}
+
+// Returns null = unrestricted, [] = no access, [names] = allowed list
+function getAllowedEmployees(email) {
+  const perm = getUserACL(email).skillMatrix;
+  if (perm.type === 'all') return null;
+  if (perm.type === 'own') { const n = resolveNameFromEmail(email); return n ? [n] : []; }
+  return perm.selected || [];
+}
+
+function getAllowedUATProjectIds(email) {
+  const perm = getUserACL(email).uat;
+  if (perm.type === 'all') return null;
+  if (perm.type === 'none') return [];
+  return perm.selected || [];
+}
+
+function getAllowedEWSIds(email) {
+  const perm = getUserACL(email).ews;
+  if (perm.type === 'all') return null;
+  if (perm.type === 'none') return [];
+  return perm.selected || [];
+}
+
+function getAllowedRLProjectIds(email) {
+  const perm = getUserACL(email).rocketlane;
+  if (perm.type === 'all') return null;
+  if (perm.type === 'none') return [];
+  return perm.selected || [];
+}
+
+function filterSkillMatrixForUser(data, email) {
+  const allowed = getAllowedEmployees(email);
+  if (allowed === null) return data;
+  const filteredScores = {};
+  allowed.forEach(n => { if (data.currentScores[n]) filteredScores[n] = data.currentScores[n]; });
+  const filteredSnaps = (data.snapshots || []).map(s => ({
+    ...s, scores: Object.fromEntries(Object.entries(s.scores || {}).filter(([n]) => allowed.includes(n)))
+  }));
+  return { ...data, employees: (data.employees || []).filter(e => allowed.includes(e)),
+    currentScores: filteredScores, snapshots: filteredSnaps, _restricted: true, _ownView: allowed.length <= 1 };
+}
+
+function filterRLResponseForUser(data, email) {
+  const allowedIds = getAllowedRLProjectIds(email);
+  if (allowedIds === null) return data; // admin / all access — no filtering
+  const idSet = new Set(allowedIds);
+  const projects = (data.projects || []).filter(p => idSet.has(String(p.projectId)));
+  const standard = projects.filter(p => p.isStandard);
+  const avgProgress = standard.length ? Math.round(standard.reduce((s, p) => s + (p.overallPct || 0), 0) / standard.length) : 0;
+  const phaseAvg = { engage: 0, drive: 0, enable: 0, convert: 0 };
+  if (standard.length) {
+    ['engage','drive','enable','convert'].forEach(ph => {
+      phaseAvg[ph] = Math.round(standard.map(p => p.phases?.[ph]?.pct || 0).reduce((a, v) => a + v, 0) / standard.length);
+    });
+  }
+  const summary = {
+    total: projects.length, standard: standard.length, nonStandard: projects.length - standard.length,
+    avgProgress, phaseAvg,
+    byStatus: projects.reduce((m, p) => { m[p.status] = (m[p.status] || 0) + 1; return m; }, {})
+  };
+  return { ...data, projects, summary, _restricted: true };
+}
+
 function getWeekNumber(d) {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   const dayNum = date.getUTCDay() || 7;
@@ -956,8 +1075,12 @@ app.delete('/api/uat/clients/:id', async (req, res) => {
 
 // ── Projects ──────────────────────────────────────────────────────────────────
 app.get('/api/uat/projects', async (req, res) => {
-  await _dbReady; let list = uatDB().projects;
-  if (req.query.clientId) list=list.filter(p=>p.clientId===req.query.clientId);
+  await _dbReady; ensureACL();
+  const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  const allowedIds = getAllowedUATProjectIds(email);
+  let list = uatDB().projects;
+  if (allowedIds !== null) list = list.filter(p => allowedIds.includes(p.id));
+  if (req.query.clientId) list = list.filter(p => p.clientId === req.query.clientId);
   res.json({ ok:true, data:list });
 });
 app.post('/api/uat/projects', async (req, res) => {
@@ -1026,7 +1149,11 @@ app.post('/api/uat/projects/:id/signoff', async (req, res) => {
 });
 // ── Test Cases ────────────────────────────────────────────────────────────────
 app.get('/api/uat/testcases', async (req, res) => {
-  await _dbReady; let list = uatDB().testcases;
+  await _dbReady; ensureACL();
+  const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  const allowedIds = getAllowedUATProjectIds(email);
+  let list = uatDB().testcases;
+  if (allowedIds !== null) list = list.filter(t => allowedIds.includes(t.projectId));
   if (req.query.projectId) list=list.filter(t=>t.projectId===req.query.projectId);
   if (req.query.clientId)  list=list.filter(t=>t.clientId===req.query.clientId);
   if (req.query.category)  list=list.filter(t=>t.category===req.query.category);
@@ -1116,7 +1243,14 @@ app.put('/api/uat/issues/:id', async (req, res) => {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 app.get('/api/uat/dashboard', async (req, res) => {
-  await _dbReady; const u=uatDB();
+  await _dbReady; ensureACL(); const u=uatDB();
+  const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  const allowedIds = getAllowedUATProjectIds(email);
+  // Restrict dashboard to permitted projects so all stats recalculate correctly
+  const permittedProjects = allowedIds !== null ? u.projects.filter(p => allowedIds.includes(p.id)) : u.projects;
+  const permittedProjectIds = new Set(permittedProjects.map(p => p.id));
+  const permittedTCs = u.testcases.filter(t => permittedProjectIds.has(t.projectId));
+  const permittedIssues = u.issues.filter(i => permittedProjectIds.has(i.projectId));
   function projectStats(p) {
     const tc=u.testcases.filter(t=>t.projectId===p.id);
     const bPassed=tc.filter(t=>t.bluecopaStatus==='pass').length;
@@ -1134,16 +1268,17 @@ app.get('/api/uat/dashboard', async (req, res) => {
     const goLiveScore = tc.length ? Math.min(100, Math.round(((bPassed*0.6)+(cPassed*0.4))/tc.length*100)) : 0;
     return { ...p, clientName:client?.name||'', total:tc.length, bPassed, cPassed, failed:tc.filter(t=>t.bluecopaStatus==='fail'||t.clientStatus==='fail').length, blocked, goLiveScore, byCategory, openIssues:u.issues.filter(i=>i.projectId===p.id&&['open','in_progress'].includes(i.status)).length };
   }
-  const allTCs=u.testcases;
+  const allTCs=permittedTCs;
+  const permittedClientIds = new Set(permittedProjects.map(p=>p.clientId));
   const stats={
-    totalClients:u.clients.length,
-    activeProjects:u.projects.filter(p=>p.status==='active').length,
+    totalClients:u.clients.filter(c=>permittedClientIds.has(c.id)).length,
+    activeProjects:permittedProjects.filter(p=>p.status==='active').length,
     totalTests:allTCs.length,
     bPassRate:allTCs.length?Math.round(allTCs.filter(t=>t.bluecopaStatus==='pass').length/allTCs.length*100):0,
     cPassRate:allTCs.length?Math.round(allTCs.filter(t=>t.clientStatus==='pass').length/allTCs.length*100):0,
-    openIssues:u.issues.filter(i=>['open','in_progress'].includes(i.status)).length,
+    openIssues:permittedIssues.filter(i=>['open','in_progress'].includes(i.status)).length,
     criticalFails:allTCs.filter(t=>t.priority==='critical'&&(t.bluecopaStatus==='fail'||t.clientStatus==='fail')).length,
-    projects: u.projects.map(projectStats),
+    projects: permittedProjects.map(projectStats),
     activity: u.activity.slice(0,30),
   };
   res.json({ ok:true, data:stats });
@@ -1980,10 +2115,13 @@ function ewsLog(type, msg, meta={}) {
   if (u.activity.length > 200) u.activity.length = 200;
 }
 
-// GET all EWS (with optional query filters)
+// GET all EWS (with optional query filters) — filtered by ACL
 app.get('/api/ews', async (req, res) => {
-  await _dbReady;
+  await _dbReady; ensureACL();
+  const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  const allowedIds = getAllowedEWSIds(email);
   let list = ewsDB().ewsList;
+  if (allowedIds !== null) list = list.filter(e => allowedIds.includes(e.id));
   if (req.query.clientId)    list = list.filter(e => e.clientId    === req.query.clientId);
   if (req.query.projectId)   list = list.filter(e => e.projectId   === req.query.projectId);
   if (req.query.severity)    list = list.filter(e => e.severity    === req.query.severity);
@@ -1992,11 +2130,14 @@ app.get('/api/ews', async (req, res) => {
   res.json({ ok:true, data:list });
 });
 
-// GET single EWS — must come BEFORE /api/ews (handled already, but keep explicit)
+// GET single EWS — filtered by ACL
 app.get('/api/ews/:id', async (req, res) => {
-  await _dbReady;
+  await _dbReady; ensureACL();
+  const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  const allowedIds = getAllowedEWSIds(email);
   const e = ewsDB().ewsList.find(x => x.id === req.params.id);
   if (!e) return res.status(404).json({ ok:false, error:'not found' });
+  if (allowedIds !== null && !allowedIds.includes(e.id)) return res.status(403).json({ ok:false, error:'Access denied' });
   res.json({ ok:true, data:e });
 });
 
@@ -2281,10 +2422,11 @@ function ensureSM() {
   if (!db.processGame) db.processGame = { currentGame: null, attempts: [], gameHistory: [] };
 }
 
-// GET full skill matrix data
+// GET full skill matrix data — filtered by ACL
 app.get('/api/skillmatrix', (req, res) => {
-  ensureSM();
-  res.json(db.skillMatrix);
+  ensureSM(); ensureACL();
+  const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  res.json(filterSkillMatrixForUser(db.skillMatrix, email));
 });
 
 // PUT config (admin: update employees + process areas)
@@ -3162,9 +3304,18 @@ app.get('/api/rocketlane/projects', async (req, res) => {
   if (!apiKey) {
     return res.status(503).json({ error: 'not_configured', message: 'ROCKETLANE_API_KEY environment variable not set. Add it in Vercel → Project → Environment Variables.' });
   }
+  await getDbInitPromise(); ensureACL();
+  const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  const allowedRLIds = getAllowedRLProjectIds(email);
+  function applyRLProjectsACL(data) {
+    if (allowedRLIds === null) return data;
+    const idSet = new Set(allowedRLIds.map(String));
+    const filtered = (data.data || []).filter(p => idSet.has(String(p.projectId)));
+    return { ...data, data: filtered };
+  }
   const now = Date.now();
   if (rlCache && !req.query.refresh && (now - rlCacheAt) < RL_CACHE_TTL) {
-    return res.json({ ...rlCache, cached: true, cacheAge: Math.round((now - rlCacheAt) / 1000) });
+    return res.json({ ...applyRLProjectsACL(rlCache), cached: true, cacheAge: Math.round((now - rlCacheAt) / 1000) });
   }
   try {
     const [projResp, completionMap] = await Promise.all([
@@ -3194,7 +3345,7 @@ app.get('/api/rocketlane/projects', async (req, res) => {
     });
     rlCache = data;
     rlCacheAt = now;
-    res.json({ ...data, cached: false, fetchedAt: now });
+    res.json({ ...applyRLProjectsACL(data), cached: false, fetchedAt: now });
   } catch (e) {
     res.status(500).json({ error: 'fetch_failed', message: e.message });
   }
@@ -3599,13 +3750,14 @@ app.get('/api/rocketlane/projects-full', async (req, res) => {
   if (!apiKey) return res.status(503).json({ error: 'not_configured', message: 'ROCKETLANE_API_KEY not set.' });
   const now = Date.now();
   const isRefresh = !!req.query.refresh;
+  const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
 
   await getDbInitPromise();
-  ensureRL();
+  ensureACL(); ensureRL();
 
   // Fresh in-memory cache — return instantly
   if (!isRefresh && rlFullCache && (now - rlFullCacheAt) < RL_FULL_CACHE_TTL)
-    return res.json({ ...rlFullCache, cached: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
+    return res.json({ ...filterRLResponseForUser(rlFullCache, email), cached: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
 
   // Forced refresh with existing cache: return current data immediately so the UI stays
   // responsive, kick a fresh Rocketlane fetch in the background, client polls for the result
@@ -3614,12 +3766,12 @@ app.get('/api/rocketlane/projects-full', async (req, res) => {
     rlAllTasksCacheAt = 0;
     rlFetchInProgress = null;
     rlDoFullFetch(apiKey).catch(() => {});
-    return res.json({ ...rlFullCache, stale: true, refreshing: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
+    return res.json({ ...filterRLResponseForUser(rlFullCache, email), stale: true, refreshing: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
   }
 
   // Stale in-memory cache (no explicit refresh) — return instantly, kick background refresh
   if (!isRefresh && rlFullCache) {
-    res.json({ ...rlFullCache, stale: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
+    res.json({ ...filterRLResponseForUser(rlFullCache, email), stale: true, cacheAge: Math.round((now - rlFullCacheAt) / 1000) });
     rlDoFullFetch(apiKey).catch(() => {});
     return;
   }
@@ -3634,10 +3786,10 @@ app.get('/api/rocketlane/projects-full', async (req, res) => {
   if (isRefresh) { rlAllTasksCache = null; rlAllTasksCacheAt = 0; rlFetchInProgress = null; }
   try {
     const result = await rlDoFullFetch(apiKey);
-    res.json({ ...result, cached: false });
+    res.json({ ...filterRLResponseForUser(result, email), cached: false });
   } catch (e) {
     if (rlFullCache)
-      return res.json({ ...rlFullCache, stale: true, error: e.message });
+      return res.json({ ...filterRLResponseForUser(rlFullCache, email), stale: true, error: e.message });
     res.status(500).json({ error: 'fetch_failed', message: e.message });
   }
 });
@@ -3784,6 +3936,50 @@ app.patch('/api/users/:email/role', async (req, res) => {
   user.role = req.body.role;
   await saveDB(db);
   res.json({ email: user.email, name: user.name, role: user.role });
+});
+
+// ── ACL Routes ────────────────────────────────────────────────────────────────
+
+app.get('/api/acl', async (req, res) => {
+  await getDbInitPromise(); ensureACL();
+  const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  res.json({ ok: true, acl: getUserACL(email) });
+});
+
+app.get('/api/acl/audit', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  await getDbInitPromise(); ensureACL();
+  res.json({ ok: true, audit: db.aclAudit || [] });
+});
+
+// Must be before /api/acl/:email so it doesn't catch "audit"
+app.get('/api/acl/users', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  await getDbInitPromise(); ensureACL(); ensureUsers();
+  const adminEmails = new Set(((db.settings && db.settings.adminEmails) || ['azhar.m@bluecopa.com']).map(e=>e.toLowerCase()));
+  const users = (db.users || []).map(u => ({
+    email: u.email, name: u.name, picture: u.picture, role: u.role,
+    isAdmin: adminEmails.has((u.email||'').toLowerCase()),
+    acl: getUserACL(u.email)
+  }));
+  res.json({ ok: true, users });
+});
+
+app.put('/api/acl/:email', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  await getDbInitPromise(); ensureACL();
+  const targetEmail = decodeURIComponent(req.params.email).toLowerCase().trim();
+  const modules = ['skillMatrix','kpis','uat','ews','rocketlane'];
+  const prev = db.acl[targetEmail] || {};
+  const updated = { updatedAt: new Date().toISOString() };
+  const body = req.body.acl || req.body; // accept both { acl: {...} } and flat shape
+  modules.forEach(m => { updated[m] = body[m] || prev[m] || ACL_DEFAULTS[m]; });
+  db.acl[targetEmail] = updated;
+  const adminEmail = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  db.aclAudit.unshift({ changedBy: adminEmail, targetEmail, prev, next: updated, timestamp: new Date().toISOString() });
+  if (db.aclAudit.length > 500) db.aclAudit.length = 500;
+  await saveDB(db);
+  res.json({ ok: true, acl: updated });
 });
 
 // ── Learning Management ────────────────────────────────────────────────────────
