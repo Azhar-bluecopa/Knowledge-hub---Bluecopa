@@ -743,6 +743,14 @@ html.dw-restoring #dwCover{display:block;position:fixed;top:0;left:0;right:0;bot
           <div class="sm-adm-lbl">Snapshots</div>
           <div class="sm-snap-list" id="smAdmSnapList"><div style="color:var(--muted);font-size:13px;">No snapshots yet.</div></div>
         </div>
+        <!-- Upgrade Requests -->
+        <div class="sm-adm-section">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div class="sm-adm-lbl" style="margin-bottom:0;">Skill Upgrade Requests</div>
+            <button onclick="smAdmLoadUpgradeRequests()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--text);">↻ Refresh</button>
+          </div>
+          <div id="smAdmUpgradeList"><div style="color:var(--muted);font-size:13px;">Loading…</div></div>
+        </div>
       </div>
     </div>
 
@@ -7208,7 +7216,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=17" defer></script>
-  <script src="/app.js?v=87" defer></script>
+  <script src="/app.js?v=88" defer></script>
   <script src="/uat.js?v=58" defer></script>
   <script src="/ews.js?v=8" defer></script>
 

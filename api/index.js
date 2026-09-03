@@ -375,9 +375,12 @@ function filterSkillMatrixForUser(data, email) {
   const filteredSnaps = (data.snapshots || []).map(s => ({
     ...s, scores: Object.fromEntries(Object.entries(s.scores || {}).filter(([n]) => allowed.includes(n)))
   }));
+  // Include this user's own pending upgrade requests so the personal card can show them
+  const myRequests = (data.upgradeRequests || []).filter(r => allowed.includes(r.employeeName));
+
   return { ...data, employees: (data.employees || []).filter(e => allowed.includes(e)),
     currentScores: filteredScores, snapshots: filteredSnaps, _restricted: true,
-    _ownView: allowed.length <= 1, teamAvg, teamAvgOverall };
+    _ownView: allowed.length <= 1, teamAvg, teamAvgOverall, myUpgradeRequests: myRequests };
 }
 
 function filterRLResponseForUser(data, email) {
@@ -2435,6 +2438,8 @@ app.patch('/api/article-requests/:id', (req, res) => {
 // ── Skill Matrix ──────────────────────────────────────────────────────────────
 function ensureSM() {
   if (!db.skillMatrix) db.skillMatrix = { employees:[], processAreas:[], currentScores:{}, snapshots:[], nextSnapshotId:1 };
+  if (!db.skillMatrix.upgradeRequests) db.skillMatrix.upgradeRequests = [];
+  if (!db.skillMatrix.nextUpgradeRequestId) db.skillMatrix.nextUpgradeRequestId = 1;
   if (!db.processGame) db.processGame = { currentGame: null, attempts: [], gameHistory: [] };
 }
 
@@ -5319,6 +5324,92 @@ app.get('/api/cron/rl-snapshot', async (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   const result = await rlAutoSnapshot();
   res.json(result);
+});
+
+// ── Skill Matrix Upgrade Requests ──────────────────────────────────────────
+
+const SM_LEVELS_API = ['', 'Beginner', 'Intermediate', 'Advanced', 'Expert'];
+const SM_APPROVER_EMAIL = 'azhar.m@bluecopa.com';
+
+// POST — user submits an upgrade request
+app.post('/api/skillmatrix/upgrade-request', async (req, res) => {
+  ensureSM(); ensureACL();
+  const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  if (!email) return res.status(401).json({ error: 'Not logged in' });
+  const { processArea, requestedLevel } = req.body;
+  if (!processArea || !requestedLevel || requestedLevel < 2 || requestedLevel > 4)
+    return res.status(400).json({ error: 'Invalid request' });
+  // Resolve employee name from email
+  const allowed = getAllowedEmployees(email);
+  const employeeName = allowed && allowed.length === 1 ? allowed[0] : null;
+  if (!employeeName) return res.status(403).json({ error: 'Cannot identify employee' });
+  const currentLevel = Number((db.skillMatrix.currentScores[employeeName] || {})[processArea]) || 0;
+  if (requestedLevel <= currentLevel) return res.status(400).json({ error: 'Requested level must be higher than current' });
+  // Block duplicate pending requests for same area
+  const dup = (db.skillMatrix.upgradeRequests || []).find(
+    r => r.employeeName === employeeName && r.processArea === processArea && r.status === 'pending');
+  if (dup) return res.status(409).json({ error: 'A pending request already exists for this skill' });
+  const request = {
+    id: db.skillMatrix.nextUpgradeRequestId++,
+    employeeEmail: email,
+    employeeName,
+    processArea,
+    currentLevel,
+    requestedLevel,
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+    reviewedAt: null,
+    reviewedBy: null,
+    notes: ''
+  };
+  db.skillMatrix.upgradeRequests.push(request);
+  await saveDB(db);
+  console.log(`[sm upgrade-request] ${employeeName}: ${processArea} ${currentLevel}→${requestedLevel}`);
+  res.json({ ok: true, request });
+});
+
+// GET — admin fetches all upgrade requests
+app.get('/api/skillmatrix/upgrade-requests', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureSM();
+  const requests = (db.skillMatrix.upgradeRequests || []).slice().reverse();
+  res.json({ requests });
+});
+
+// POST — admin approves a request
+app.post('/api/skillmatrix/upgrade-requests/:id/approve', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureSM();
+  const id = Number(req.params.id);
+  const r = (db.skillMatrix.upgradeRequests || []).find(x => x.id === id);
+  if (!r) return res.status(404).json({ error: 'Request not found' });
+  if (r.status !== 'pending') return res.status(400).json({ error: 'Request already reviewed' });
+  // Apply the score change
+  if (!db.skillMatrix.currentScores[r.employeeName]) db.skillMatrix.currentScores[r.employeeName] = {};
+  db.skillMatrix.currentScores[r.employeeName][r.processArea] = r.requestedLevel;
+  r.status = 'approved';
+  r.reviewedAt = new Date().toISOString();
+  r.reviewedBy = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  r.notes = req.body.notes || '';
+  await saveDB(db);
+  console.log(`[sm upgrade approve] ${r.employeeName}: ${r.processArea} → ${r.requestedLevel}`);
+  res.json({ ok: true });
+});
+
+// POST — admin rejects a request
+app.post('/api/skillmatrix/upgrade-requests/:id/reject', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  ensureSM();
+  const id = Number(req.params.id);
+  const r = (db.skillMatrix.upgradeRequests || []).find(x => x.id === id);
+  if (!r) return res.status(404).json({ error: 'Request not found' });
+  if (r.status !== 'pending') return res.status(400).json({ error: 'Request already reviewed' });
+  r.status = 'rejected';
+  r.reviewedAt = new Date().toISOString();
+  r.reviewedBy = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  r.notes = req.body.notes || '';
+  await saveDB(db);
+  res.json({ ok: true });
 });
 
 // Monthly skill matrix snapshot — runs on 1st of each month at 12:00 AM UTC
