@@ -654,6 +654,7 @@ html.dw-restoring #dwCover{display:block;position:fixed;top:0;left:0;right:0;bot
       <button class="admin-tab" onclick="switchAdminTab('leadership',this)" id="leadershipAdminTab">👑 Leadership Access</button>
       <button class="admin-tab" onclick="switchAdminTab('feedback',this)" id="feedbackAdminTab">📋 Feedback <span id="fbOpenBadge" style="display:none;background:#f87171;color:#fff;border-radius:99px;padding:1px 7px;font-size:10px;margin-left:4px;font-weight:700;"></span></button>
       <button class="admin-tab" onclick="switchAdminTab('proxy',this)" id="proxyLoginTab">👁 Proxy Login</button>
+      <button class="admin-tab" onclick="switchAdminTab('acl',this)" id="aclAdminTab">🔐 Access Control</button>
     </div>
 
     <!-- Tab: Categories -->
@@ -830,6 +831,26 @@ html.dw-restoring #dwCover{display:block;position:fixed;top:0;left:0;right:0;bot
       </div>
     </div>
 
+    <!-- Tab: Access Control -->
+    <div class="admin-tab-panel" id="tab-acl">
+      <div style="margin-bottom:16px;">
+        <div class="settings-section-title" style="margin-bottom:4px;">🔐 Access Control</div>
+        <div style="font-size:12px;color:var(--muted)">Set per-module permissions for each user. Changes take effect immediately and are logged in the audit trail.</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+        <input type="text" class="form-input" id="aclSearchInput" placeholder="Search users…" oninput="aclFilterUsers(this.value)" style="max-width:300px;width:100%;"/>
+        <button class="btn-primary" onclick="aclShowAudit()" style="font-size:12px;padding:6px 14px;">🔍 Audit Log</button>
+      </div>
+      <div id="aclUserList" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <div id="aclAuditPanel" style="display:none;margin-top:20px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <div class="settings-section-title">Audit History</div>
+          <button onclick="document.getElementById('aclAuditPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;">✕</button>
+        </div>
+        <div id="aclAuditList" style="font-size:12px;max-height:300px;overflow-y:auto;"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -955,6 +976,7 @@ async function handleGoogleSignIn(response) {
   const overlay = document.getElementById('gSigninOverlay');
   if (overlay) overlay.style.display = 'none';
   renderUserInfo();
+  loadUserACL();
 }
 
 function signOut() {
@@ -972,7 +994,7 @@ function gsiInit() {
     if (!u.email || !u.email.toLowerCase().endsWith('@bluecopa.com')) {
       localStorage.removeItem('kb_user');
     } else {
-      overlay.style.display = 'none'; return; // valid Bluecopa Google session
+      overlay.style.display = 'none'; loadUserACL(); return; // valid Bluecopa Google session
     }
   }
   if (u && !u.googleId) localStorage.removeItem('kb_user'); // clear old pre-Google sessions
@@ -983,6 +1005,23 @@ function gsiInit() {
   if (btnEl) google.accounts.id.renderButton(btnEl, {
     theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'rectangular', width: 280
   });
+}
+
+window._userACL = null;
+
+async function apiFetch(url, opts) {
+  const u = getUser();
+  const headers = Object.assign({'x-user-email': (u && u.email) || ''}, (opts && opts.headers) || {});
+  const r = await fetch(url, Object.assign({}, opts || {}, { headers }));
+  if (!r.ok) throw new Error('API error ' + r.status);
+  return r.json();
+}
+
+async function loadUserACL() {
+  try {
+    const res = await apiFetch('/api/acl');
+    window._userACL = res.acl || null;
+  } catch(e) { /* non-fatal */ }
 }
 
 function openIdentityModal() { toggleUserMenu(); }
@@ -2310,6 +2349,7 @@ function switchAdminTab(tab, el) {
   if (tab === 'feedback') loadFeedbackTab();
   if (tab === 'admins')   renderAdminEmailsList();
   if (tab === 'proxy')    loadProxyTab();
+  if (tab === 'acl')      loadACLTab();
 }
 
 // ── Proxy Login ───────────────────────────────────────────────────────────────
@@ -2513,6 +2553,177 @@ function hideProxyBanner() {
   document.body.classList.remove('proxy-active');
   const el = document.getElementById('proxyBanner');
   if (el) el.classList.remove('active');
+}
+
+// ── Access Control (RBAC Admin Tab) ──────────────────────────────────────────
+let _aclUsers = [];
+let _aclRLProjects = [];
+let _aclUATProjects = [];
+let _aclEWSItems = [];
+let _aclEmployees = [];
+let _aclFiltered = [];
+
+async function loadACLTab() {
+  const listEl = document.getElementById('aclUserList');
+  listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">Loading users…</div>';
+  try {
+    const [usersRes, rlRes, uatRes, ewsRes, smRes] = await Promise.all([
+      apiFetch('/api/acl/users'),
+      apiFetch('/api/rocketlane/projects-full').catch(()=>({projects:[]})),
+      apiFetch('/api/uat/projects').catch(()=>({data:[]})),
+      apiFetch('/api/ews').catch(()=>({data:[]})),
+      apiFetch('/api/skillmatrix').catch(()=>({employees:[]}))
+    ]);
+    _aclUsers = usersRes.users || [];
+    _aclRLProjects = (rlRes.projects || []).map(p=>({ id: String(p.projectId), name: p.projectName || p.projectId }));
+    _aclUATProjects = (uatRes.data || []).map(p=>({ id: p.id, name: p.name || p.id }));
+    _aclEWSItems = (ewsRes.data || []).map(e=>({ id: e.id, name: e.name || e.id }));
+    _aclEmployees = smRes.employees || [];
+    _aclFiltered = _aclUsers;
+    aclRenderUsers();
+  } catch(e) {
+    listEl.innerHTML = '<div style="color:#f87171;font-size:13px;">Failed to load: '+e.message+'</div>';
+  }
+}
+
+function aclFilterUsers(q) {
+  const ql = q.toLowerCase();
+  _aclFiltered = q ? _aclUsers.filter(u=>(u.email||'').toLowerCase().includes(ql)||(u.name||'').toLowerCase().includes(ql)) : _aclUsers;
+  aclRenderUsers();
+}
+
+function aclRenderUsers() {
+  const listEl = document.getElementById('aclUserList');
+  if (!_aclFiltered.length) { listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">No users found.</div>'; return; }
+  listEl.innerHTML = _aclFiltered.map((u,i)=>aclUserCard(u,i)).join('');
+}
+
+function aclUserCard(u, i) {
+  const acl = u.acl || {};
+  const sm = acl.skillMatrix || { type:'own', selected:[] };
+  const kpi = acl.kpis || { type:'own', selected:[] };
+  const uat = acl.uat || { type:'none', selected:[] };
+  const ews = acl.ews || { type:'none', selected:[] };
+  const rl = acl.rocketlane || { type:'none', selected:[] };
+  const isAdmin = u.isAdmin || false;
+  function peopleRow(label, key, val) {
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+      <span style="min-width:90px;font-size:12px;color:var(--muted)">${label}</span>
+      <select onchange="aclOnTypeChange(this,'${u.email}','${key}')" style="font-size:12px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--text);">
+        ${['own','all','selected'].map(t=>`<option value="${t}"${val.type===t?' selected':''}>${{own:'Own Info',all:'All Employees',selected:'Selected'}[t]}</option>`).join('')}
+      </select>
+      ${val.type==='selected'?`<div class="acl-multi-picker" id="acl-${u.email.replace(/[@.]/g,'-')}-${key}">${aclMultiPicker(u.email,key,_aclEmployees,val.selected||[])}</div>`:''}
+    </div>`;
+  }
+  function projRow(label, key, val, items) {
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+      <span style="min-width:90px;font-size:12px;color:var(--muted)">${label}</span>
+      <select onchange="aclOnTypeChange(this,'${u.email}','${key}')" style="font-size:12px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--text);">
+        ${['none','all','selected'].map(t=>`<option value="${t}"${val.type===t?' selected':''}>${{none:'No Access',all:'All Projects',selected:'Selected'}[t]}</option>`).join('')}
+      </select>
+      ${val.type==='selected'?`<div class="acl-multi-picker" id="acl-${u.email.replace(/[@.]/g,'-')}-${key}">${aclMultiPicker(u.email,key,items,val.selected||[])}</div>`:''}
+    </div>`;
+  }
+  return `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;" id="acl-card-${i}">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+      <div style="font-weight:600;font-size:14px;">${u.name||u.email}</div>
+      <div style="font-size:12px;color:var(--muted);">${u.email}</div>
+      ${isAdmin?'<span style="background:#fbbf24;color:#1e1e1e;border-radius:99px;padding:1px 8px;font-size:11px;font-weight:700;">Admin</span>':''}
+    </div>
+    ${isAdmin?'<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Admins always have full access — permissions cannot be changed here.</div>':
+    `<div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px;letter-spacing:.04em;text-transform:uppercase;">People Modules</div>
+    ${peopleRow('Skill Matrix','skillMatrix',sm)}
+    ${peopleRow('KPIs','kpis',kpi)}
+    <div style="font-size:12px;font-weight:600;color:var(--muted);margin:10px 0 8px;letter-spacing:.04em;text-transform:uppercase;">Project Modules</div>
+    ${projRow('UAT','uat',uat,_aclUATProjects)}
+    ${projRow('EWS','ews',ews,_aclEWSItems)}
+    ${projRow('Rocketlane','rocketlane',rl,_aclRLProjects)}
+    <button class="btn-primary" onclick="aclSaveUser('${u.email}',${i})" style="margin-top:10px;font-size:12px;padding:5px 14px;">Save</button>`}
+  </div>`;
+}
+
+function aclMultiPicker(email, key, items, selected) {
+  if (!items.length) return '<span style="font-size:11px;color:var(--muted)">No items available</span>';
+  const selSet = new Set(selected.map(String));
+  return items.slice(0,100).map(item=>{
+    const id = String(item.id||item);
+    const nm = item.name||item;
+    const checked = selSet.has(id);
+    const eid = email.replace(/[@.]/g,'-');
+    return `<label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;white-space:nowrap;padding:2px 0;">
+      <input type="checkbox" value="${id}" ${checked?'checked':''} onchange="aclPickerChange('${email}','${key}')"> ${nm}
+    </label>`;
+  }).join('');
+}
+
+function aclOnTypeChange(selectEl, email, key) {
+  const type = selectEl.value;
+  const eid = email.replace(/[@.]/g,'-');
+  const pickerWrap = selectEl.parentElement.querySelector('.acl-multi-picker');
+  if (type === 'selected') {
+    if (!pickerWrap) {
+      const div = document.createElement('div');
+      div.className = 'acl-multi-picker';
+      div.id = `acl-${eid}-${key}`;
+      const items = key==='skillMatrix'||key==='kpis' ? _aclEmployees : key==='uat' ? _aclUATProjects : key==='ews' ? _aclEWSItems : _aclRLProjects;
+      div.innerHTML = aclMultiPicker(email, key, items, []);
+      selectEl.parentElement.appendChild(div);
+    }
+  } else if (pickerWrap) {
+    pickerWrap.remove();
+  }
+}
+
+function aclPickerChange(email, key) { /* live — nothing needed, values read on save */ }
+
+function aclGetCurrentACL(email) {
+  const u = _aclUsers.find(u=>u.email===email);
+  const old = (u && u.acl) || {};
+  const modules = ['skillMatrix','kpis','uat','ews','rocketlane'];
+  const result = {};
+  modules.forEach(key => {
+    const eid = email.replace(/[@.]/g,'-');
+    const wrap = document.getElementById(`acl-${eid}-${key}`);
+    const sel = document.querySelector(`[onchange*="'${email}','${key}'"]`);
+    const type = sel ? sel.value : (old[key]||{}).type || (key==='skillMatrix'||key==='kpis'?'own':'none');
+    let selected = [];
+    if (type === 'selected' && wrap) {
+      wrap.querySelectorAll('input[type=checkbox]:checked').forEach(cb=>selected.push(cb.value));
+    }
+    result[key] = { type, selected };
+  });
+  return result;
+}
+
+async function aclSaveUser(email, cardIdx) {
+  const acl = aclGetCurrentACL(email);
+  try {
+    await apiFetch(`/api/acl/${encodeURIComponent(email)}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ acl }) });
+    const u = _aclUsers.find(u=>u.email===email);
+    if (u) u.acl = acl;
+    showToast('Permissions saved for '+email);
+  } catch(e) {
+    showToast('Save failed: '+e.message, 'error');
+  }
+}
+
+async function aclShowAudit() {
+  const panel = document.getElementById('aclAuditPanel');
+  const listEl = document.getElementById('aclAuditList');
+  panel.style.display = 'block';
+  listEl.innerHTML = '<div style="color:var(--muted)">Loading…</div>';
+  try {
+    const res = await apiFetch('/api/acl/audit');
+    const entries = res.audit || [];
+    if (!entries.length) { listEl.innerHTML = '<div style="color:var(--muted)">No audit entries yet.</div>'; return; }
+    listEl.innerHTML = entries.slice(0,100).map(e=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);">
+      <span style="font-weight:600">${e.targetEmail}</span>
+      <span style="color:var(--muted);margin-left:8px;font-size:11px">${new Date(e.timestamp).toLocaleString()}</span>
+      <span style="margin-left:8px;font-size:11px;color:var(--muted)">by ${e.changedBy}</span>
+    </div>`).join('');
+  } catch(e) {
+    listEl.innerHTML = '<div style="color:#f87171">'+e.message+'</div>';
+  }
 }
 
 // ── Read-only fetch interceptor for proxy mode ────────────────────────────────
@@ -6989,7 +7200,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=17" defer></script>
-  <script src="/app.js?v=80" defer></script>
+  <script src="/app.js?v=81" defer></script>
   <script src="/uat.js?v=58" defer></script>
   <script src="/ews.js?v=8" defer></script>
 
@@ -9891,6 +10102,10 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
     if(typeof UAT!=='undefined' && typeof UAT.open==='function'){
       var _origUatOpen = UAT.open;
       UAT.open = function(){
+        var uatPerm = (window._userACL && window._userACL.uat) || null;
+        if (uatPerm && uatPerm.type === 'none') {
+          showToast('You do not have access to the UAT module. Contact your admin.', 'error'); return;
+        }
         history.pushState({screen:'uat'}, '');
         _origUatOpen.apply(this, arguments);
       };
@@ -9899,6 +10114,10 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
     if(typeof EWS!=='undefined' && typeof EWS.open==='function'){
       var _origEwsOpen = EWS.open;
       EWS.open = function(){
+        var ewsPerm = (window._userACL && window._userACL.ews) || null;
+        if (ewsPerm && ewsPerm.type === 'none') {
+          showToast('You do not have access to the EWS module. Contact your admin.', 'error'); return;
+        }
         history.pushState({screen:'ews'}, '');
         _origEwsOpen.apply(this, arguments);
       };
@@ -10429,27 +10648,62 @@ var RL_TABS = [
   { id: 'health',     label: 'Health Dashboard' }
 ];
 
+var _rlAutoRefreshTimer = null;
+
 function rlInitDashboard() {
   var el = document.getElementById('rlContent');
   if (!el) return;
+  // ACL: check if user has any Rocketlane access
+  var rlPerm = (window._userACL && window._userACL.rocketlane) || null;
+  if (rlPerm && rlPerm.type === 'none') {
+    el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px;gap:12px;"><div style="font-size:40px;">🔒</div><div style="font-size:15px;color:rgba(255,255,255,.6);text-align:center;">No projects assigned.<br>Contact your admin to request access.</div></div>';
+    return;
+  }
   _rlData = null; _rlDrillProject = null; _rlTab = 'overview'; _rlFilter = 'all';
   _rlLoading = true;
+  // Clear any existing auto-refresh so it doesn't fire while loading
+  if (_rlAutoRefreshTimer) { clearInterval(_rlAutoRefreshTimer); _rlAutoRefreshTimer = null; }
   el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px;gap:16px;"><div class="rl-spin"></div><div style="font-size:13px;color:rgba(255,255,255,.3);">Loading Rocketlane data…</div></div>';
+  rlFetchWithPolling(0);
+}
+
+function rlFetchWithPolling(attempt) {
+  var el = document.getElementById('rlContent');
   fetch('/api/rocketlane/projects-full')
     .then(function(r){ return r.json(); })
     .then(function(data){
-      _rlData = data; _rlLoading = false; rlRenderShell();
-      // Server served stale cache — silently fetch fresh data in the background
-      if (data.stale) {
-        setTimeout(function() {
-          fetch('/api/rocketlane/projects-full?refresh=1')
-            .then(function(r){ return r.json(); })
-            .then(function(fresh){ _rlData = fresh; rlRenderShell(); })
-            .catch(function(){});
-        }, 800);
+      // Server is still initialising (cold start, another request got there first)
+      if (data.loading) {
+        if (attempt >= 30) { // 30 × 2s = 60s timeout
+          if (el) el.innerHTML = '<div style="text-align:center;padding:80px;color:#dc2626;font-size:13px;">Rocketlane is taking too long to respond. Try refreshing the page.</div>';
+          _rlLoading = false; return;
+        }
+        setTimeout(function(){ rlFetchWithPolling(attempt + 1); }, 2000);
+        return;
       }
+      _rlData = data; _rlLoading = false; rlRenderShell();
+      // Start auto-refresh every 2 minutes so status changes appear without manual refresh
+      if (_rlAutoRefreshTimer) clearInterval(_rlAutoRefreshTimer);
+      _rlAutoRefreshTimer = setInterval(function() {
+        fetch('/api/rocketlane/projects-full')
+          .then(function(r){ return r.json(); })
+          .then(function(fresh){
+            if (fresh.loading) return; // cold start — ignore, next interval will try again
+            if (fresh.stale) {
+              // Server is refreshing in background — re-check in 8s to get the fresh result
+              setTimeout(function() {
+                fetch('/api/rocketlane/projects-full')
+                  .then(function(r){ return r.json(); })
+                  .then(function(f2){ if (!f2.loading && f2.projects) { _rlData = f2; rlRenderShell(); } })
+                  .catch(function(){});
+              }, 8000);
+            } else if (fresh.projects) {
+              _rlData = fresh; rlRenderShell();
+            }
+          }).catch(function(){});
+      }, 2 * 60 * 1000); // every 2 minutes
     })
-    .catch(function(e){ el.innerHTML = '<div style="text-align:center;padding:80px;color:#dc2626;font-size:13px;">Failed to load: '+(e.message||'Unknown error')+'</div>'; _rlLoading = false; });
+    .catch(function(e){ var el2 = document.getElementById('rlContent'); if (el2) el2.innerHTML = '<div style="text-align:center;padding:80px;color:#dc2626;font-size:13px;">Failed to load: '+(e.message||'Unknown error')+'</div>'; _rlLoading = false; });
 }
 
 function rlRenderShell() {
@@ -10464,9 +10718,9 @@ function rlRenderShell() {
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'+
       '<div>'+
         '<div style="font-size:20px;font-weight:700;color:#f0f0f6;letter-spacing:-.3px;">Rocketlane Dashboard</div>'+
-        '<div style="font-size:12px;color:#8a92a0;margin-top:2px;font-family:\'DM Mono\',monospace;">'+s.total+' projects · '+s.standard+' standard · '+s.nonStandard+' non-standard</div>'+
+        '<div style="font-size:12px;color:#8a92a0;margin-top:2px;font-family:\'DM Mono\',monospace;">'+s.total+' projects · '+s.standard+' standard · '+s.nonStandard+' non-standard'+rlLastSyncedLabel()+'</div>'+
       '</div>'+
-      '<button onclick="rlRefreshDashboard()" style="background:rgba(201,162,39,.08);border:1px solid rgba(201,162,39,.2);color:#c9a227;border-radius:8px;padding:8px 14px;font-family:\'DM Sans\',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">↻ Refresh</button>'+
+      '<button onclick="rlRefreshDashboard()" style="background:rgba(201,162,39,.08);border:1px solid rgba(201,162,39,.2);color:#c9a227;border-radius:8px;padding:8px 14px;font-family:\'DM Sans\',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:'+(_rlSyncing?'0.6':'1')+';">'+(_rlSyncing?'↻ Syncing…':'↻ Refresh')+'</button>'+
     '</div>'+
     '<div id="rlTabBar" style="display:flex;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:24px;overflow-x:auto;">'+tabsHTML+'</div>'+
     '<div id="rlTabBody"></div>';
@@ -10497,15 +10751,64 @@ function rlRenderActiveTab() {
   }
 }
 
+var _rlSyncing = false;
+var _rlLastSyncedAt = 0; // epoch ms of last successful fresh fetch
+
 function rlRefreshDashboard() {
-  if (_rlLoading) return;
-  _rlLoading = true;
-  var btn = document.querySelector('[onclick="rlRefreshDashboard()"]');
-  if (btn) btn.textContent = '↻ Refreshing…';
+  if (_rlLoading || _rlSyncing) return;
+  _rlSyncing = true;
+  rlUpdateRefreshBtn(true);
   fetch('/api/rocketlane/projects-full?refresh=1')
     .then(function(r){ return r.json(); })
-    .then(function(data){ _rlData = data; _rlLoading = false; rlRenderShell(); })
-    .catch(function(){ _rlLoading = false; });
+    .then(function(data){
+      // Server returned current data immediately; Rocketlane fetch running in background
+      if (data.projects) { _rlData = data; rlRenderShell(); }
+      if (data.refreshing) {
+        rlPollForFresh(0); // background fetch is in progress — poll until fresh data lands
+      } else {
+        _rlLastSyncedAt = Date.now();
+        _rlSyncing = false; rlUpdateRefreshBtn(false);
+      }
+    })
+    .catch(function(){ _rlSyncing = false; rlUpdateRefreshBtn(false); });
+}
+
+function rlPollForFresh(attempt) {
+  // Poll up to 60×3s = 3 minutes — enough for even slow multi-page Rocketlane fetches
+  if (attempt >= 60) { _rlSyncing = false; rlUpdateRefreshBtn(false); return; }
+  setTimeout(function() {
+    fetch('/api/rocketlane/projects-full')
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data.loading) { rlPollForFresh(attempt + 1); return; }
+        // Fresh when cacheAge is small (data was just fetched in the background)
+        var age = data.cacheAge != null ? data.cacheAge : 9999;
+        var isFresh = !data.stale && data.projects && age < 120;
+        if (isFresh) {
+          _rlLastSyncedAt = Date.now();
+          _rlData = data; rlRenderShell();
+          _rlSyncing = false; rlUpdateRefreshBtn(false);
+        } else {
+          rlPollForFresh(attempt + 1);
+        }
+      })
+      .catch(function(){ rlPollForFresh(attempt + 1); });
+  }, 3000);
+}
+
+function rlUpdateRefreshBtn(syncing) {
+  var btn = document.querySelector('[onclick="rlRefreshDashboard()"]');
+  if (!btn) return;
+  btn.textContent = syncing ? '↻ Syncing…' : '↻ Refresh';
+  btn.style.opacity = syncing ? '0.7' : '1';
+  btn.style.cursor = syncing ? 'default' : 'pointer';
+}
+
+function rlLastSyncedLabel() {
+  if (!_rlLastSyncedAt) return '';
+  var secs = Math.round((Date.now() - _rlLastSyncedAt) / 1000);
+  var label = secs < 60 ? 'just now' : Math.round(secs / 60) + 'm ago';
+  return ' · synced ' + label;
 }
 window.rlRefreshDashboard = rlRefreshDashboard;
 
