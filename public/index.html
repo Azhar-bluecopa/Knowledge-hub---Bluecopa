@@ -12854,7 +12854,7 @@ function rlTabHealth(body) {
   window.rlHDrillClose= function(){ _drillInfo=null; render(); };
 
   render();
-  fetch('/api/rocketlane/snapshots')
+  fetch('/api/rocketlane/snapshots', {headers: rlUserHeaders()})
     .then(function(r){ return r.json(); })
     .then(function(d){ _snapData=d.snapshots||[]; render(); })
     .catch(function(){ _snapData=[]; });
@@ -12863,7 +12863,7 @@ function rlTabHealth(body) {
 // ─── Tab 5: Historical Trends ─────────────────────────────────────────────────
 function rlTabTrends(body) {
   body.innerHTML='<div style="text-align:center;padding:40px;"><div class="rl-spin" style="margin:0 auto;"></div></div>';
-  fetch('/api/rocketlane/snapshots').then(function(r){return r.json();}).then(function(d){
+  fetch('/api/rocketlane/snapshots', {headers: rlUserHeaders()}).then(function(r){return r.json();}).then(function(d){
     var allSnaps=(d.snapshots||[]);
     if(!allSnaps.length){body.innerHTML=rlCard('<div style="padding:48px;text-align:center;font-size:13px;color:#8a92a0;">No snapshots yet. Snapshots auto-capture every Monday at 9:50 AM IST.</div>');return;}
 

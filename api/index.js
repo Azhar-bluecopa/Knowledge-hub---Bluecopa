@@ -3497,6 +3497,8 @@ function ensureRL() {
 
 app.get('/api/rocketlane/snapshots', (req, res) => {
   ensureRL();
+  const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  const allowedIds = getAllowedRLProjectIds(email); // null=all, []=none, [ids]=selected
   // Build owner lookup from the full data cache so historical snapshots
   // (captured before projectOwner was stored) get retroactively enriched.
   const ownerLookup = {};
@@ -3505,16 +3507,19 @@ app.get('/api/rocketlane/snapshots', (req, res) => {
     if (p.projectId && p.projectOwner) ownerLookup[String(p.projectId)] = p.projectOwner;
   });
   const enrich = Object.keys(ownerLookup).length > 0;
-  const snapshots = enrich
-    ? db.rocketlane.snapshots.map(snap => ({
-        ...snap,
-        projects: (snap.projects || []).map(p => {
-          if (p.projectOwner) return p;
-          const owner = ownerLookup[String(p.projectId)];
-          return owner ? { ...p, projectOwner: owner } : p;
-        })
-      }))
-    : db.rocketlane.snapshots;
+  const idSet = allowedIds ? new Set(allowedIds.map(String)) : null;
+  const snapshots = db.rocketlane.snapshots.map(snap => {
+    let projects = snap.projects || [];
+    // Apply ACL filter per snapshot
+    if (idSet !== null) projects = projects.filter(p => idSet.has(String(p.projectId)));
+    // Retroactively enrich owner
+    if (enrich) projects = projects.map(p => {
+      if (p.projectOwner) return p;
+      const owner = ownerLookup[String(p.projectId)];
+      return owner ? { ...p, projectOwner: owner } : p;
+    });
+    return { ...snap, projects };
+  });
   res.json({ snapshots: [...snapshots].reverse() });
 });
 
