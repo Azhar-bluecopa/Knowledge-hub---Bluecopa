@@ -17,9 +17,12 @@ const aiHistory=[];let aiStreaming=!1,aiPanelState="closed";function toggleAiPan
 function smRenderPersonalCard(){
   const wrap=document.getElementById("smAssessContent");
   const dashWrap=document.getElementById("smDashContent");
+  const panel=document.getElementById("smPanelAssess");
   if(!smData)return;
-  if(wrap){wrap.style.overflowY='auto';wrap.style.overflowX='hidden';}
-  if(dashWrap){dashWrap.style.overflowY='auto';dashWrap.style.overflowX='hidden';}
+  // Personal card: let the panel scroll, release height constraint on the content container
+  if(panel){panel.style.overflowY='auto';panel.style.overflowX='hidden';}
+  if(wrap){wrap.style.overflow='visible';wrap.style.flex='none';wrap.style.height='auto';wrap.style.display='block';}
+  if(dashWrap){dashWrap.style.overflow='visible';dashWrap.style.flex='none';dashWrap.style.height='auto';dashWrap.style.display='block';}
   const{employees,processAreas,currentScores,snapshots,teamAvg,teamAvgOverall,myUpgradeRequests}=smData;
   const empName=employees[0]||"";
   const scores=(currentScores[empName])||{};
