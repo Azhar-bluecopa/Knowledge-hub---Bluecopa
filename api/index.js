@@ -100,21 +100,37 @@ function migrate() {
     if (!db.skillMatrix.processAreas || !db.skillMatrix.processAreas.length)
       db.skillMatrix.processAreas = ['Data Ingestion','Reconciliation','Workflows','Portal Creation','Exports'];
     Object.assign(db.skillMatrix.currentScores, {
-      'Azhar':                      { 'Data Ingestion':92,'Reconciliation':88,'Workflows':90,'Portal Creation':82,'Exports':78 },
-      'Dharma Teja Taddi':          { 'Data Ingestion':82,'Reconciliation':75,'Workflows':78,'Portal Creation':70,'Exports':68 },
-      'Sai Kumar':                  { 'Data Ingestion':80,'Reconciliation':85,'Workflows':72,'Portal Creation':68,'Exports':75 },
-      'Divyam Pandey':              { 'Data Ingestion':65,'Reconciliation':62,'Workflows':70,'Portal Creation':58,'Exports':60 },
-      'Karthik Varma':              { 'Data Ingestion':72,'Reconciliation':68,'Workflows':65,'Portal Creation':75,'Exports':70 },
-      'Srikanth Ande':              { 'Data Ingestion':78,'Reconciliation':72,'Workflows':68,'Portal Creation':62,'Exports':65 },
-      'Srinivas Puneeth':           { 'Data Ingestion':70,'Reconciliation':68,'Workflows':72,'Portal Creation':65,'Exports':62 },
-      'Bhuvaneshwari Jangam':       { 'Data Ingestion':60,'Reconciliation':65,'Workflows':58,'Portal Creation':55,'Exports':62 },
-      'Sameera J':                  { 'Data Ingestion':68,'Reconciliation':62,'Workflows':65,'Portal Creation':70,'Exports':58 },
-      'Bhavana Priya':              { 'Data Ingestion':72,'Reconciliation':65,'Workflows':70,'Portal Creation':62,'Exports':68 },
-      'Jnanendra Avinash Golakoti': { 'Data Ingestion':75,'Reconciliation':70,'Workflows':68,'Portal Creation':65,'Exports':72 },
-      'Hemanth Varma Pakalapati':   { 'Data Ingestion':68,'Reconciliation':65,'Workflows':72,'Portal Creation':60,'Exports':65 },
-      'Pradyumn Vibhandik':         { 'Data Ingestion':62,'Reconciliation':58,'Workflows':65,'Portal Creation':55,'Exports':60 },
+      'Azhar':                      { 'Data Ingestion':4,'Reconciliation':4,'Workflows':4,'Portal Creation':3,'Exports':3 },
+      'Dharma Teja Taddi':          { 'Data Ingestion':3,'Reconciliation':3,'Workflows':3,'Portal Creation':3,'Exports':3 },
+      'Sai Kumar':                  { 'Data Ingestion':3,'Reconciliation':3,'Workflows':3,'Portal Creation':3,'Exports':3 },
+      'Divyam Pandey':              { 'Data Ingestion':2,'Reconciliation':2,'Workflows':2,'Portal Creation':2,'Exports':2 },
+      'Karthik Varma':              { 'Data Ingestion':3,'Reconciliation':3,'Workflows':2,'Portal Creation':3,'Exports':3 },
+      'Srikanth Ande':              { 'Data Ingestion':3,'Reconciliation':3,'Workflows':3,'Portal Creation':2,'Exports':2 },
+      'Srinivas Puneeth':           { 'Data Ingestion':3,'Reconciliation':3,'Workflows':3,'Portal Creation':2,'Exports':2 },
+      'Bhuvaneshwari Jangam':       { 'Data Ingestion':2,'Reconciliation':2,'Workflows':2,'Portal Creation':2,'Exports':2 },
+      'Sameera J':                  { 'Data Ingestion':2,'Reconciliation':2,'Workflows':2,'Portal Creation':3,'Exports':2 },
+      'Bhavana Priya':              { 'Data Ingestion':3,'Reconciliation':2,'Workflows':2,'Portal Creation':2,'Exports':2 },
+      'Jnanendra Avinash Golakoti': { 'Data Ingestion':3,'Reconciliation':3,'Workflows':2,'Portal Creation':2,'Exports':3 },
+      'Hemanth Varma Pakalapati':   { 'Data Ingestion':2,'Reconciliation':2,'Workflows':3,'Portal Creation':2,'Exports':2 },
+      'Pradyumn Vibhandik':         { 'Data Ingestion':2,'Reconciliation':2,'Workflows':2,'Portal Creation':2,'Exports':2 },
     });
     dirty = true;
+  }
+  // Migrate: scrub any legacy 0-100 style scores that are outside the valid 1-4 range
+  {
+    const _PAs = db.skillMatrix.processAreas || [];
+    let _migrated = false;
+    Object.keys(db.skillMatrix.currentScores).forEach(emp => {
+      const sc = db.skillMatrix.currentScores[emp];
+      _PAs.forEach(pa => {
+        const v = Number(sc[pa]);
+        if (sc[pa] !== undefined && (!Number.isFinite(v) || v < 1 || v > 4)) {
+          delete sc[pa];
+          _migrated = true;
+        }
+      });
+    });
+    if (_migrated) dirty = true;
   }
 
   // Process Puzzles — canary: attempt id 'pa_001'
