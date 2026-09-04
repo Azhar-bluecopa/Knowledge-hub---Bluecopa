@@ -7291,6 +7291,13 @@ async function updateFeedbackStatus(id) {
         <span class="uat-dash-filter-chip" id="dFiltChip"></span>
       </div>
 
+      <!-- No-data state: shown when user has no UAT projects assigned -->
+      <div id="uatDashNoData" style="display:none;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px;gap:16px;text-align:center;">
+        <span style="font-size:48px">📋</span>
+        <div style="font-size:18px;font-weight:600;color:var(--text)">No projects assigned</div>
+        <div style="font-size:13px;color:#9ca3af;max-width:320px">You don't have any UAT projects assigned to you yet. Contact your admin to get access.</div>
+      </div>
+
       <!-- Dashboard body -->
       <div class="uat-dash-body">
 

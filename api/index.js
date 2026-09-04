@@ -1231,7 +1231,11 @@ app.post('/api/uat/testcases/reorder', async (req, res) => {
 
 // ── Issues ────────────────────────────────────────────────────────────────────
 app.get('/api/uat/issues', async (req, res) => {
-  await _dbReady; let list=uatDB().issues;
+  await _dbReady;
+  const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  const allowedIds = getAllowedUATProjectIds(email);
+  let list=uatDB().issues;
+  if (allowedIds !== null) list = list.filter(i => allowedIds.includes(i.projectId));
   if (req.query.projectId) list=list.filter(i=>i.projectId===req.query.projectId);
   if (req.query.clientId)  list=list.filter(i=>i.clientId===req.query.clientId);
   if (req.query.status)    list=list.filter(i=>i.status===req.query.status);
