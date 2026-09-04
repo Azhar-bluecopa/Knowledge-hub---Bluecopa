@@ -387,7 +387,10 @@ function filterRLResponseForUser(data, email) {
   const allowedIds = getAllowedRLProjectIds(email);
   if (allowedIds === null) return data; // admin / all access — no filtering
   const idSet = new Set(allowedIds);
-  const projects = (data.projects || []).filter(p => idSet.has(String(p.projectId)));
+  const ownerName = resolveNameFromEmail(email);
+  const projects = (data.projects || []).filter(p =>
+    idSet.has(String(p.projectId)) || (ownerName && p.projectOwner === ownerName)
+  );
   const standard = projects.filter(p => p.isStandard);
   const avgProgress = standard.length ? Math.round(standard.reduce((s, p) => s + (p.overallPct || 0), 0) / standard.length) : 0;
   const phaseAvg = { engage: 0, drive: 0, enable: 0, convert: 0 };
