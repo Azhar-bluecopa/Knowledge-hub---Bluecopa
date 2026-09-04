@@ -1305,7 +1305,7 @@ app.get('/api/uat/dashboard', async (req, res) => {
     openIssues:permittedIssues.filter(i=>['open','in_progress'].includes(i.status)).length,
     criticalFails:allTCs.filter(t=>t.priority==='critical'&&(t.bluecopaStatus==='fail'||t.clientStatus==='fail')).length,
     projects: permittedProjects.map(projectStats),
-    activity: u.activity.slice(0,30),
+    activity: u.activity.filter(a => !a.projectId || permittedProjectIds.has(a.projectId)).slice(0,30),
   };
   res.json({ ok:true, data:stats });
 });
