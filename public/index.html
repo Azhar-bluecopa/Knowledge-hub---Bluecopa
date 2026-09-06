@@ -2546,7 +2546,7 @@ function hideProxyBanner() {
 
 // ── Access Control (RBAC Admin Tab) ──────────────────────────────────────────
 const ACL_MODULES = [
-  { key:'skillMatrix', label:'Skill Matrix', icon:'📈', types:['own','all','selected'], typeLabels:{own:'Own Info',all:'All Employees',selected:'Specific Employees'}, itemsKey:'employees' },
+  { key:'skillMatrix', label:'Skill Matrix', icon:'📈', types:['own','team','all','selected'], typeLabels:{own:'Own Info',team:'Own + Team',all:'All Employees',selected:'Specific Employees'}, itemsKey:'employees' },
   { key:'uat',         label:'UAT',          icon:'🧪', types:['none','all','selected'], typeLabels:{none:'No Access',all:'All Projects',selected:'Specific Projects'}, itemsKey:'uatProjects' },
   { key:'ews',         label:'EWS',          icon:'⚠️', types:['none','all','selected'], typeLabels:{none:'No Access',all:'All Projects',selected:'Specific Projects'}, itemsKey:'ewsItems' },
   { key:'rocketlane',  label:'Rocketlane',   icon:'🚀', types:['none','all','selected'], typeLabels:{none:'No Access',all:'All Projects',selected:'Specific Projects'}, itemsKey:'rlProjects' },
@@ -2556,6 +2556,8 @@ const ACL_ROLES = [
     acl:{ skillMatrix:{type:'none',selected:[]}, uat:{type:'none',selected:[]}, ews:{type:'none',selected:[]}, rocketlane:{type:'none',selected:[]} } },
   { id:'delivery',      label:'Delivery Member',icon:'👤', color:'#6366f1', bg:'rgba(99,102,241,.1)',   border:'rgba(99,102,241,.25)',  desc:'Own Skill Matrix profile. Other modules not accessible.',
     acl:{ skillMatrix:{type:'own',selected:[]},  uat:{type:'none',selected:[]}, ews:{type:'none',selected:[]}, rocketlane:{type:'none',selected:[]} } },
+  { id:'team-manager',  label:'Team Manager',   icon:'👨‍👩‍👧', color:'#f59e0b', bg:'rgba(245,158,11,.1)',   border:'rgba(245,158,11,.25)',  desc:'Own profile + selected reportees in Skill Matrix.',
+    acl:{ skillMatrix:{type:'team',selected:[]}, uat:{type:'none',selected:[]}, ews:{type:'none',selected:[]}, rocketlane:{type:'none',selected:[]} } },
   { id:'delivery-lead', label:'Delivery Lead',  icon:'👥', color:'#22c55e', bg:'rgba(34,197,94,.1)',    border:'rgba(34,197,94,.25)',   desc:'Full access — all modules, all data.',
     acl:{ skillMatrix:{type:'all',selected:[]},  uat:{type:'all',selected:[]},  ews:{type:'all',selected:[]},  rocketlane:{type:'all',selected:[]}  } },
 ];
@@ -2624,7 +2626,7 @@ function aclRenderFull() {
   const selectedUser = _aclUsers.find(u=>u.email===_aclSelectedEmail) || null;
 
   // Role overview cards
-  const roleCounts = { org:0, delivery:0, 'delivery-lead':0, unset:0, admin:0 };
+  const roleCounts = { org:0, delivery:0, 'team-manager':0, 'delivery-lead':0, unset:0, admin:0 };
   _aclUsers.forEach(u => {
     if (u.isAdmin) { roleCounts.admin++; return; }
     if (u.role && roleCounts[u.role] !== undefined) roleCounts[u.role]++;
@@ -2635,7 +2637,7 @@ function aclRenderFull() {
       <div style="font-size:20px;margin-bottom:4px;">${r.icon}</div>
       <div style="font-size:12px;font-weight:700;color:${r.color};">${r.label}</div>
       <div style="font-size:11px;color:var(--muted);margin:3px 0 8px;line-height:1.4;">${r.desc}</div>
-      <div style="font-size:18px;font-weight:700;color:var(--text);">${r.id==='org'?roleCounts.org:r.id==='delivery'?roleCounts.delivery:roleCounts['delivery-lead']}</div>
+      <div style="font-size:18px;font-weight:700;color:var(--text);">${roleCounts[r.id]||0}</div>
       <div style="font-size:10px;color:var(--muted);">users</div>
     </div>`).join('');
 
@@ -2758,14 +2760,17 @@ function aclBuildDetail(u) {
     const selectedItems = items.filter(it=>selIds.has(String(it.id)));
     const availItems = items.filter(it=>!selIds.has(String(it.id)) && (!tsq || it.name.toLowerCase().includes(tsq)));
 
-    const tagPicker = cur.type==='selected' ? `
+    const showTagPicker = cur.type === 'selected' || cur.type === 'team';
+    const teamHint = cur.type === 'team' ? `<div style="padding:8px 12px;background:rgba(245,158,11,.06);border-bottom:1px solid var(--border);font-size:11px;color:#d97706;">👨‍👩‍👧 Their own profile is always included. Add reportees below.</div>` : '';
+    const tagPicker = showTagPicker ? `
       <div style="margin-top:12px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+        ${teamHint}
         ${selectedItems.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg);">
           ${selectedItems.map(it=>`<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);color:#818cf8;border-radius:99px;padding:3px 10px;font-size:12px;font-weight:500;">
             ${it.name}
             <button onclick="aclRemoveTag('${u.email}','${m.key}','${it.id}')" style="background:none;border:none;color:inherit;cursor:pointer;font-size:14px;padding:0;line-height:1;opacity:.7;">×</button>
           </span>`).join('')}
-        </div>` : `<div style="padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg);font-size:12px;color:var(--muted);">None selected — pick from the list below</div>`}
+        </div>` : `<div style="padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg);font-size:12px;color:var(--muted);">${cur.type==='team'?'No reportees added yet — pick from the list below':'None selected — pick from the list below'}</div>`}
         <div style="padding:8px 12px;border-bottom:1px solid var(--border);">
           <input type="text" placeholder="Search ${m.label.toLowerCase()}…" value="${_aclTagSearch[m.key]||''}"
             oninput="_aclTagSearch['${m.key}']=this.value;aclRefreshDetail()"
@@ -2779,7 +2784,7 @@ function aclBuildDetail(u) {
             + ${it.name}
           </button>`).join('') : `<span style="font-size:12px;color:var(--muted);">${tsq?'No matches':'All items already selected'}</span>`}
         </div>
-      </div>` : '';
+      </div>` : '';  // end tagPicker
 
     return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">

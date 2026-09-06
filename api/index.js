@@ -298,6 +298,13 @@ const ROLE_TEMPLATES = {
     ews:         { type: 'none', selected: [] },
     rocketlane:  { type: 'none', selected: [] }
   },
+  'team-manager': {
+    skillMatrix: { type: 'team', selected: [] }, // own + selected reportees
+    kpis:        { type: 'own',  selected: [] },
+    uat:         { type: 'none', selected: [] },
+    ews:         { type: 'none', selected: [] },
+    rocketlane:  { type: 'none', selected: [] }
+  },
   'delivery-lead': {
     skillMatrix: { type: 'all', selected: [] },
     kpis:        { type: 'all', selected: [] },
@@ -352,6 +359,13 @@ function getAllowedEmployees(email) {
   const perm = getUserACL(email).skillMatrix;
   if (perm.type === 'all') return null;
   if (perm.type === 'own') { const n = resolveNameFromEmail(email); return n ? [n] : []; }
+  if (perm.type === 'team') {
+    // own profile + selected reportees
+    const ownName = resolveNameFromEmail(email);
+    const selected = perm.selected || [];
+    return ownName ? [ownName, ...selected.filter(n => n !== ownName)] : [...selected];
+  }
+  if (perm.type === 'none') return [];
   return perm.selected || [];
 }
 
