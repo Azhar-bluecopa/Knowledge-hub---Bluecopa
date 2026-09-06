@@ -423,12 +423,15 @@ function getAllowedEWSIds(email) {
   return perm.selected || [];
 }
 
-function getAllowedRLProjectIds(email) {
+// Returns null (all), [] (none), or array of allowed client names
+function getAllowedRLClients(email) {
   const perm = getUserACL(email).rocketlane;
   if (perm.type === 'all') return null;
   if (perm.type === 'none') return [];
   return perm.selected || [];
 }
+// Legacy alias used in /api/rocketlane/projects ACL filter
+function getAllowedRLProjectIds(email) { return getAllowedRLClients(email); }
 
 function filterSkillMatrixForUser(data, email) {
   const allowed = getAllowedEmployees(email);
@@ -443,10 +446,11 @@ function filterSkillMatrixForUser(data, email) {
 }
 
 function filterRLResponseForUser(data, email) {
-  const allowedIds = getAllowedRLProjectIds(email);
-  if (allowedIds === null) return data; // admin / all access — no filtering
-  const idSet = new Set(allowedIds);
-  const projects = (data.projects || []).filter(p => idSet.has(String(p.projectId)));
+  const allowedClients = getAllowedRLClients(email);
+  if (allowedClients === null) return data; // admin / all access — no filtering
+  const clientSet = new Set(allowedClients);
+  // data.projects have customer as a string (already mapped from companyName)
+  const projects = (data.projects || []).filter(p => clientSet.has(p.customer || ''));
   const standard = projects.filter(p => p.isStandard);
   const avgProgress = standard.length ? Math.round(standard.reduce((s, p) => s + (p.overallPct || 0), 0) / standard.length) : 0;
   const phaseAvg = { engage: 0, drive: 0, enable: 0, convert: 0 };
@@ -3385,14 +3389,15 @@ app.get('/api/rocketlane/projects', async (req, res) => {
   await getDbInitPromise(); ensureACL();
   const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
   if (!email) console.warn('[RL] /api/rocketlane/projects called without x-user-email header — returning no data');
-  const allowedRLIds = getAllowedRLProjectIds(email);
+  const allowedRLClients = getAllowedRLClients(email);
   function applyRLProjectsACL(data) {
-    if (allowedRLIds === null) return data;
+    if (allowedRLClients === null) return data;
     const projects = data.data || [];
-    const idSet = new Set(allowedRLIds.map(String));
+    const clientSet = new Set(allowedRLClients);
     const ownerName = resolveNameFromEmail(email);
+    // customer on raw RL API objects is { companyName: '...' }
     const filtered = projects.filter(p =>
-      idSet.has(String(p.projectId)) ||
+      clientSet.has(p.customer?.companyName || '') ||
       (ownerName && (p.projectOwner === ownerName || (p.owner && [p.owner.firstName, p.owner.lastName].filter(Boolean).join(' ').trim() === ownerName)))
     );
     return { ...data, data: filtered, _restricted: true, _email: email || null };

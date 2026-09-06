@@ -2554,6 +2554,7 @@ const DT_ROLES = [
 let _dtMembers   = [];
 let _dtOrgCount  = 0;
 let _dtRLProjects = [];
+let _dtRLClients  = [];
 let _dtEWSItems  = [];
 let _dtSearch    = '';
 let _dtSelEmail  = null;   // email of selected member in left panel
@@ -2576,7 +2577,9 @@ async function loadACLTab() {
     ]);
     _dtMembers    = dtRes.members    || [];
     _dtOrgCount   = dtRes.orgCount   || 0;
-    _dtRLProjects = (rlRes.data||[]).map(p=>({id:String(p.projectId), name:p.projectName||String(p.projectId)}));
+    _dtRLProjects = (rlRes.data||[]).map(p=>({id:String(p.projectId), name:p.projectName||String(p.projectId), customer:p.customer?.companyName||null}));
+    const _rlClientNames = [...new Set(_dtRLProjects.map(p=>p.customer).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    _dtRLClients = _rlClientNames.map(name=>({id:name, name}));
     _dtEWSItems   = (ewsRes.data||[]).map(e=>({id:e.id, name:e.name||e.id}));
     _dtUATClients = (uatRes.data||[]).map(c=>({id:c.id, name:c.name}));
     if (!_dtSelEmail && _dtMembers.length) _dtSelEmail = _dtMembers[0].email;
@@ -2898,7 +2901,7 @@ function dtBuildForm() {
     ${card('📊','KPIs Access', peopleSection('kpis','people',kpiAcl))}
     ${card('🧪','UAT Platform — Accessible Clients', projectSection('uat','UAT clients',uatAcl,_dtUATClients))}
     ${card('⚠️','Early Warning System — Accessible Entries', projectSection('ews','EWS entries',ewsAcl,_dtEWSItems))}
-    ${card('🚀','Rocketlane — Accessible Projects', projectSection('rocketlane','projects',rlAcl,_dtRLProjects))}`;
+    ${card('🚀','Rocketlane — Accessible Clients', projectSection('rocketlane','clients',rlAcl,_dtRLClients))}`;
 }
 
 async function dtSave() {
