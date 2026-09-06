@@ -2566,13 +2566,14 @@ async function loadACLTab() {
   if (!wrap) return;
   wrap.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:20px">Loading…</div>';
   try {
-    const [dtRes, ewsRes] = await Promise.all([
+    const [dtRes, ewsRes, rlRes] = await Promise.all([
       apiFetch('/api/delivery-team'),
-      apiFetch('/api/ews').catch(()=>({data:[]}))
+      apiFetch('/api/ews').catch(()=>({data:[]})),
+      apiFetch('/api/rocketlane/projects').catch(()=>({data:[]}))
     ]);
     _dtMembers   = dtRes.members    || [];
     _dtOrgCount  = dtRes.orgCount   || 0;
-    _dtRLProjects = (dtRes.rlProjects||[]);
+    _dtRLProjects = (rlRes.data||[]).map(p=>({id:String(p.projectId), name:p.projectName||String(p.projectId)}));
     _dtEWSItems  = (ewsRes.data||[]).map(e=>({id:e.id, name:e.name||e.id}));
     if (!_dtSelEmail && _dtMembers.length) _dtSelEmail = _dtMembers[0].email;
     dtRenderFull();

@@ -4030,8 +4030,9 @@ app.get('/api/delivery-team', async (req, res) => {
   const totalUsers = (db.users || []).length;
   const dtEmails = new Set((db.deliveryTeam||[]).map(m=>(m.email||'').toLowerCase()));
   const orgCount = (db.users||[]).filter(u=>!dtEmails.has((u.email||'').toLowerCase())).length;
-  // Get RL projects for client pickers
-  const rlProjects = (db.rlCache?.projects || []).map(p=>({ id:String(p.projectId), name:p.projectName||String(p.projectId) }));
+  // Get RL projects from in-memory cache (populated by /api/rocketlane/projects)
+  const rlRaw = rlCache ? (rlCache.data || rlCache.projects || []) : [];
+  const rlProjects = rlRaw.map(p=>({ id:String(p.projectId), name:p.projectName||String(p.projectId) }));
   res.json({ ok:true, members: db.deliveryTeam||[], orgCount, totalUsers, rlProjects });
 });
 
