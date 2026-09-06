@@ -284,33 +284,37 @@ const ACL_ADMIN_FULL = {
 };
 // Predefined role templates — applied when a role is assigned to a user
 const ROLE_TEMPLATES = {
+  // No access to any restricted module
   org: {
-    skillMatrix: { type: 'none', selected: [] },
-    kpis:        { type: 'none', selected: [] },
-    uat:         { type: 'none', selected: [] },
-    ews:         { type: 'none', selected: [] },
-    rocketlane:  { type: 'none', selected: [] }
+    skillMatrix: { type: 'none',     selected: [] },
+    kpis:        { type: 'none',     selected: [] },
+    uat:         { type: 'none',     selected: [] },
+    ews:         { type: 'none',     selected: [] },
+    rocketlane:  { type: 'none',     selected: [] }
   },
+  // Own SM & KPI data; admin picks specific UAT/EWS/RL clients per person
   delivery: {
-    skillMatrix: { type: 'own',  selected: [] },
-    kpis:        { type: 'own',  selected: [] },
-    uat:         { type: 'none', selected: [] },
-    ews:         { type: 'none', selected: [] },
-    rocketlane:  { type: 'none', selected: [] }
+    skillMatrix: { type: 'own',      selected: [] },
+    kpis:        { type: 'own',      selected: [] },
+    uat:         { type: 'selected', selected: [] },
+    ews:         { type: 'selected', selected: [] },
+    rocketlane:  { type: 'selected', selected: [] }
   },
+  // Own + team SM & KPI; admin picks specific UAT/EWS/RL clients per manager
   'team-manager': {
-    skillMatrix: { type: 'team', selected: [] }, // own + selected reportees
-    kpis:        { type: 'own',  selected: [] },
-    uat:         { type: 'none', selected: [] },
-    ews:         { type: 'none', selected: [] },
-    rocketlane:  { type: 'none', selected: [] }
+    skillMatrix: { type: 'team',     selected: [] },
+    kpis:        { type: 'team',     selected: [] },
+    uat:         { type: 'selected', selected: [] },
+    ews:         { type: 'selected', selected: [] },
+    rocketlane:  { type: 'selected', selected: [] }
   },
+  // Full access to all modules (no admin panel)
   'delivery-lead': {
-    skillMatrix: { type: 'all', selected: [] },
-    kpis:        { type: 'all', selected: [] },
-    uat:         { type: 'all', selected: [] },
-    ews:         { type: 'all', selected: [] },
-    rocketlane:  { type: 'all', selected: [] }
+    skillMatrix: { type: 'all',      selected: [] },
+    kpis:        { type: 'all',      selected: [] },
+    uat:         { type: 'all',      selected: [] },
+    ews:         { type: 'all',      selected: [] },
+    rocketlane:  { type: 'all',      selected: [] }
   }
 };
 
@@ -354,19 +358,27 @@ function resolveNameFromEmail(email) {
   return null;
 }
 
-// Returns null = unrestricted, [] = no access, [names] = allowed list
-function getAllowedEmployees(email) {
-  const perm = getUserACL(email).skillMatrix;
+// Shared helper: resolves 'own', 'team', 'all', 'none', 'selected' for a people-based ACL field
+function resolveEmployeeACL(perm, email) {
   if (perm.type === 'all') return null;
   if (perm.type === 'own') { const n = resolveNameFromEmail(email); return n ? [n] : []; }
   if (perm.type === 'team') {
-    // own profile + selected reportees
     const ownName = resolveNameFromEmail(email);
     const selected = perm.selected || [];
     return ownName ? [ownName, ...selected.filter(n => n !== ownName)] : [...selected];
   }
   if (perm.type === 'none') return [];
   return perm.selected || [];
+}
+
+// Returns null = unrestricted, [] = no access, [names] = allowed list
+function getAllowedEmployees(email) {
+  return resolveEmployeeACL(getUserACL(email).skillMatrix, email);
+}
+
+// Same logic for KPIs (people-scoped, same employee dimension)
+function getAllowedKPIEmployees(email) {
+  return resolveEmployeeACL(getUserACL(email).kpis, email);
 }
 
 function getAllowedUATProjectIds(email) {

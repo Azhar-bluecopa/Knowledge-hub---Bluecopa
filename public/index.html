@@ -2546,20 +2546,34 @@ function hideProxyBanner() {
 
 // ── Access Control (RBAC Admin Tab) ──────────────────────────────────────────
 const ACL_MODULES = [
-  { key:'skillMatrix', label:'Skill Matrix', icon:'📈', types:['own','team','all','selected'], typeLabels:{own:'Own Info',team:'Own + Team',all:'All Employees',selected:'Specific Employees'}, itemsKey:'employees' },
-  { key:'uat',         label:'UAT',          icon:'🧪', types:['none','all','selected'], typeLabels:{none:'No Access',all:'All Projects',selected:'Specific Projects'}, itemsKey:'uatProjects' },
-  { key:'ews',         label:'EWS',          icon:'⚠️', types:['none','all','selected'], typeLabels:{none:'No Access',all:'All Projects',selected:'Specific Projects'}, itemsKey:'ewsItems' },
-  { key:'rocketlane',  label:'Rocketlane',   icon:'🚀', types:['none','all','selected'], typeLabels:{none:'No Access',all:'All Projects',selected:'Specific Projects'}, itemsKey:'rlProjects' },
+  { key:'skillMatrix', label:'Skill Matrix', icon:'📈', types:['none','own','team','all','selected'], typeLabels:{none:'No Access',own:'Own Info',team:'Own + Team',all:'All Employees',selected:'Specific Employees'}, itemsKey:'employees',
+    hint:'Which employees this user can view in Skill Matrix' },
+  { key:'kpis',        label:'KPIs',         icon:'📊', types:['none','own','team','all','selected'], typeLabels:{none:'No Access',own:'Own KPIs',team:'Own + Team KPIs',all:'All Employees',selected:'Specific Employees'}, itemsKey:'employees',
+    hint:'Which employee KPI data this user can access (takes effect once KPI data is live)' },
+  { key:'uat',         label:'UAT Platform', icon:'🧪', types:['none','all','selected'], typeLabels:{none:'No Access',all:'All Clients',selected:'Specific Clients'}, itemsKey:'uatProjects',
+    hint:'Which UAT client projects this user can access' },
+  { key:'ews',         label:'Early Warning', icon:'⚠️', types:['none','all','selected'], typeLabels:{none:'No Access',all:'All Entries',selected:'Specific Entries'}, itemsKey:'ewsItems',
+    hint:'Which Early Warning System entries this user can view' },
+  { key:'rocketlane',  label:'Rocketlane',   icon:'🚀', types:['none','all','selected'], typeLabels:{none:'No Access',all:'All Projects',selected:'Specific Projects'}, itemsKey:'rlProjects',
+    hint:'Which Rocketlane projects appear in this user\'s dashboard' },
 ];
 const ACL_ROLES = [
-  { id:'org',           label:'Org Member',    icon:'🏢', color:'#64748b', bg:'rgba(100,116,139,.1)',  border:'rgba(100,116,139,.25)', desc:'Access to wiki only. No Skill Matrix, Rocketlane, UAT, or EWS.',
-    acl:{ skillMatrix:{type:'none',selected:[]}, uat:{type:'none',selected:[]}, ews:{type:'none',selected:[]}, rocketlane:{type:'none',selected:[]} } },
-  { id:'delivery',      label:'Delivery Member',icon:'👤', color:'#6366f1', bg:'rgba(99,102,241,.1)',   border:'rgba(99,102,241,.25)',  desc:'Own Skill Matrix profile. Other modules not accessible.',
-    acl:{ skillMatrix:{type:'own',selected:[]},  uat:{type:'none',selected:[]}, ews:{type:'none',selected:[]}, rocketlane:{type:'none',selected:[]} } },
-  { id:'team-manager',  label:'Team Manager',   icon:'👨‍👩‍👧', color:'#f59e0b', bg:'rgba(245,158,11,.1)',   border:'rgba(245,158,11,.25)',  desc:'Own profile + selected reportees in Skill Matrix.',
-    acl:{ skillMatrix:{type:'team',selected:[]}, uat:{type:'none',selected:[]}, ews:{type:'none',selected:[]}, rocketlane:{type:'none',selected:[]} } },
-  { id:'delivery-lead', label:'Delivery Lead',  icon:'👥', color:'#22c55e', bg:'rgba(34,197,94,.1)',    border:'rgba(34,197,94,.25)',   desc:'Full access — all modules, all data.',
-    acl:{ skillMatrix:{type:'all',selected:[]},  uat:{type:'all',selected:[]},  ews:{type:'all',selected:[]},  rocketlane:{type:'all',selected:[]}  } },
+  { id:'org',
+    label:'Org Member', icon:'🏢', color:'#64748b', bg:'rgba(100,116,139,.1)', border:'rgba(100,116,139,.25)',
+    desc:'Wiki only. No access to Skill Matrix, KPIs, UAT, EWS, or Rocketlane.',
+    acl:{ skillMatrix:{type:'none',selected:[]}, kpis:{type:'none',selected:[]}, uat:{type:'none',selected:[]}, ews:{type:'none',selected:[]}, rocketlane:{type:'none',selected:[]} } },
+  { id:'delivery',
+    label:'Delivery Member', icon:'👤', color:'#6366f1', bg:'rgba(99,102,241,.1)', border:'rgba(99,102,241,.25)',
+    desc:'Own SM & KPI data. UAT, EWS, Rocketlane access set per-person by admin.',
+    acl:{ skillMatrix:{type:'own',selected:[]}, kpis:{type:'own',selected:[]}, uat:{type:'selected',selected:[]}, ews:{type:'selected',selected:[]}, rocketlane:{type:'selected',selected:[]} } },
+  { id:'team-manager',
+    label:'Team Manager', icon:'👨‍👩‍👧', color:'#f59e0b', bg:'rgba(245,158,11,.1)', border:'rgba(245,158,11,.25)',
+    desc:'Own + team SM & KPI data. UAT, EWS, Rocketlane access set per-person by admin.',
+    acl:{ skillMatrix:{type:'team',selected:[]}, kpis:{type:'team',selected:[]}, uat:{type:'selected',selected:[]}, ews:{type:'selected',selected:[]}, rocketlane:{type:'selected',selected:[]} } },
+  { id:'delivery-lead',
+    label:'Delivery Lead', icon:'👥', color:'#22c55e', bg:'rgba(34,197,94,.1)', border:'rgba(34,197,94,.25)',
+    desc:'Full access to all modules — SM, KPIs, UAT, EWS, Rocketlane. No admin panel.',
+    acl:{ skillMatrix:{type:'all',selected:[]}, kpis:{type:'all',selected:[]}, uat:{type:'all',selected:[]}, ews:{type:'all',selected:[]}, rocketlane:{type:'all',selected:[]} } },
 ];
 let _aclUsers = [];
 let _aclItems = { employees:[], rlProjects:[], uatProjects:[], ewsItems:[] };
@@ -2598,13 +2612,16 @@ async function loadACLTab() {
 
 function aclUserSummary(u) {
   if (u.isAdmin) return 'Admin — full access';
+  const r = ACL_ROLES.find(r => r.id === u.role);
+  if (r) return r.label + (u.role === 'delivery' || u.role === 'team-manager' ? ' · configured' : '');
   const acl = u.acl || {};
   const parts = ACL_MODULES.map(m => {
     const p = acl[m.key] || { type: m.types[0] };
     if (p.type === 'all') return m.label + ': All';
     if (p.type === 'own') return m.label + ': Own';
+    if (p.type === 'team') return m.label + ': Team';
     if (p.type === 'none') return null;
-    if (p.type === 'selected') return m.label + ': ' + (p.selected||[]).length + ' selected';
+    if (p.type === 'selected') return (p.selected||[]).length ? m.label + ': ' + p.selected.length : null;
     return null;
   }).filter(Boolean);
   return parts.length ? parts.join(' · ') : 'No access';
@@ -2761,7 +2778,9 @@ function aclBuildDetail(u) {
     const availItems = items.filter(it=>!selIds.has(String(it.id)) && (!tsq || it.name.toLowerCase().includes(tsq)));
 
     const showTagPicker = cur.type === 'selected' || cur.type === 'team';
-    const teamHint = cur.type === 'team' ? `<div style="padding:8px 12px;background:rgba(245,158,11,.06);border-bottom:1px solid var(--border);font-size:11px;color:#d97706;">👨‍👩‍👧 Their own profile is always included. Add reportees below.</div>` : '';
+    const isTeamType = cur.type === 'team';
+    const teamHint = isTeamType ? `<div style="padding:8px 12px;background:rgba(245,158,11,.06);border-bottom:1px solid var(--border);font-size:11px;color:#d97706;">👨‍👩‍👧 Their own data is always included. Add team members whose data should also be visible.</div>` : '';
+    const emptyPickerMsg = isTeamType ? 'No team members added yet — search and add below' : 'None selected — add from the list below';
     const tagPicker = showTagPicker ? `
       <div style="margin-top:12px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
         ${teamHint}
@@ -2770,9 +2789,9 @@ function aclBuildDetail(u) {
             ${it.name}
             <button onclick="aclRemoveTag('${u.email}','${m.key}','${it.id}')" style="background:none;border:none;color:inherit;cursor:pointer;font-size:14px;padding:0;line-height:1;opacity:.7;">×</button>
           </span>`).join('')}
-        </div>` : `<div style="padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg);font-size:12px;color:var(--muted);">${cur.type==='team'?'No reportees added yet — pick from the list below':'None selected — pick from the list below'}</div>`}
+        </div>` : `<div style="padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg);font-size:12px;color:var(--muted);">${emptyPickerMsg}</div>`}
         <div style="padding:8px 12px;border-bottom:1px solid var(--border);">
-          <input type="text" placeholder="Search ${m.label.toLowerCase()}…" value="${_aclTagSearch[m.key]||''}"
+          <input type="text" placeholder="Search…" value="${_aclTagSearch[m.key]||''}"
             oninput="_aclTagSearch['${m.key}']=this.value;aclRefreshDetail()"
             style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);box-sizing:border-box;outline:none;"/>
         </div>
@@ -2788,17 +2807,12 @@ function aclBuildDetail(u) {
 
     return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-        <div>
+        <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:600;color:var(--text);">${m.icon} ${m.label}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;">
-            ${m.key==='skillMatrix'?'Which employees this user can view in Skill Matrix':
-              m.key==='uat'?'Which UAT client projects this user can access':
-              m.key==='ews'?'Which EWS entries this user can view':
-              'Which Rocketlane projects appear in the dashboard'}
-          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">${m.hint||''}</div>
         </div>
         <select onchange="aclOnChange('${u.email}','${m.key}',this.value)"
-          style="padding:7px 12px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);cursor:pointer;outline:none;">
+          style="padding:7px 12px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);cursor:pointer;outline:none;flex-shrink:0;">
           ${m.types.map(t=>`<option value="${t}"${cur.type===t?' selected':''}>${m.typeLabels[t]}</option>`).join('')}
         </select>
       </div>
