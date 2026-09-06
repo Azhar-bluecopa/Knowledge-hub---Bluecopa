@@ -282,6 +282,30 @@ const ACL_ADMIN_FULL = {
   ews:         { type: 'all', selected: [] },
   rocketlane:  { type: 'all', selected: [] }
 };
+// Predefined role templates — applied when a role is assigned to a user
+const ROLE_TEMPLATES = {
+  org: {
+    skillMatrix: { type: 'none', selected: [] },
+    kpis:        { type: 'none', selected: [] },
+    uat:         { type: 'none', selected: [] },
+    ews:         { type: 'none', selected: [] },
+    rocketlane:  { type: 'none', selected: [] }
+  },
+  delivery: {
+    skillMatrix: { type: 'own',  selected: [] },
+    kpis:        { type: 'own',  selected: [] },
+    uat:         { type: 'none', selected: [] },
+    ews:         { type: 'none', selected: [] },
+    rocketlane:  { type: 'none', selected: [] }
+  },
+  'delivery-lead': {
+    skillMatrix: { type: 'all', selected: [] },
+    kpis:        { type: 'all', selected: [] },
+    uat:         { type: 'all', selected: [] },
+    ews:         { type: 'all', selected: [] },
+    rocketlane:  { type: 'all', selected: [] }
+  }
+};
 
 function ensureACL() {
   if (!db.acl) db.acl = {};
@@ -3971,16 +3995,68 @@ app.get('/api/acl/users', async (req, res) => {
   res.json({ ok: true, users });
 });
 
+app.delete('/api/acl/:email', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  await getDbInitPromise(); ensureACL(); ensureUsers();
+  const targetEmail = decodeURIComponent(req.params.email).toLowerCase().trim();
+  const adminEmails = ((db.settings && db.settings.adminEmails) || ['azhar.m@bluecopa.com']).map(e=>e.toLowerCase());
+  if (adminEmails.includes(targetEmail)) return res.status(400).json({ error: 'Cannot remove an admin account' });
+  db.users = (db.users||[]).filter(u=>(u.email||'').toLowerCase() !== targetEmail);
+  delete db.acl[targetEmail];
+  const memberEmails = db.learning?.memberEmails || {};
+  for (const [name, em] of Object.entries(memberEmails)) {
+    if (em && em.toLowerCase().trim() === targetEmail) delete memberEmails[name];
+  }
+  const adminEmail = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  if (!db.aclAudit) db.aclAudit = [];
+  db.aclAudit.unshift({ changedBy: adminEmail, targetEmail, action: 'delete', timestamp: new Date().toISOString() });
+  if (db.aclAudit.length > 500) db.aclAudit.length = 500;
+  await saveDB(db);
+  res.json({ ok: true });
+});
+
+app.post('/api/acl/bulk-assign', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  await getDbInitPromise(); ensureACL(); ensureUsers();
+  const { emails, role } = req.body;
+  if (!Array.isArray(emails) || !emails.length) return res.status(400).json({ error: 'emails required' });
+  const template = ROLE_TEMPLATES[role];
+  if (!template) return res.status(400).json({ error: 'Invalid role: ' + role });
+  const adminEmail = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  const adminEmails = ((db.settings && db.settings.adminEmails) || ['azhar.m@bluecopa.com']).map(e=>e.toLowerCase());
+  let count = 0;
+  for (const email of emails) {
+    const lc = (email||'').toLowerCase().trim();
+    if (!lc || adminEmails.includes(lc)) continue;
+    const prev = db.acl[lc] || {};
+    const updated = { ...template, updatedAt: new Date().toISOString() };
+    db.acl[lc] = updated;
+    const userRecord = (db.users||[]).find(u=>(u.email||'').toLowerCase()===lc);
+    if (userRecord) userRecord.role = role;
+    db.aclAudit.unshift({ changedBy: adminEmail, targetEmail: lc, action: 'bulk-assign', role, prev, next: updated, timestamp: new Date().toISOString() });
+    count++;
+  }
+  if (db.aclAudit.length > 500) db.aclAudit.length = 500;
+  await saveDB(db);
+  res.json({ ok: true, count });
+});
+
 app.put('/api/acl/:email', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
-  await getDbInitPromise(); ensureACL();
+  await getDbInitPromise(); ensureACL(); ensureUsers();
   const targetEmail = decodeURIComponent(req.params.email).toLowerCase().trim();
   const modules = ['skillMatrix','kpis','uat','ews','rocketlane'];
   const prev = db.acl[targetEmail] || {};
   const updated = { updatedAt: new Date().toISOString() };
-  const body = req.body.acl || req.body; // accept both { acl: {...} } and flat shape
+  const body = req.body.acl || req.body;
   modules.forEach(m => { updated[m] = body[m] || prev[m] || ACL_DEFAULTS[m]; });
   db.acl[targetEmail] = updated;
+  // persist role to user record if provided
+  const role = req.body.role;
+  if (role) {
+    const userRecord = (db.users||[]).find(u=>(u.email||'').toLowerCase()===targetEmail);
+    if (userRecord) userRecord.role = role;
+  }
   const adminEmail = (req.headers['x-user-email'] || '').toLowerCase().trim();
   db.aclAudit.unshift({ changedBy: adminEmail, targetEmail, prev, next: updated, timestamp: new Date().toISOString() });
   if (db.aclAudit.length > 500) db.aclAudit.length = 500;

@@ -2551,10 +2551,20 @@ const ACL_MODULES = [
   { key:'ews',         label:'EWS',          icon:'⚠️', types:['none','all','selected'], typeLabels:{none:'No Access',all:'All Projects',selected:'Specific Projects'}, itemsKey:'ewsItems' },
   { key:'rocketlane',  label:'Rocketlane',   icon:'🚀', types:['none','all','selected'], typeLabels:{none:'No Access',all:'All Projects',selected:'Specific Projects'}, itemsKey:'rlProjects' },
 ];
+const ACL_ROLES = [
+  { id:'org',           label:'Org Member',    icon:'🏢', color:'#64748b', bg:'rgba(100,116,139,.1)',  border:'rgba(100,116,139,.25)', desc:'Access to wiki only. No Skill Matrix, Rocketlane, UAT, or EWS.',
+    acl:{ skillMatrix:{type:'none',selected:[]}, uat:{type:'none',selected:[]}, ews:{type:'none',selected:[]}, rocketlane:{type:'none',selected:[]} } },
+  { id:'delivery',      label:'Delivery Member',icon:'👤', color:'#6366f1', bg:'rgba(99,102,241,.1)',   border:'rgba(99,102,241,.25)',  desc:'Own Skill Matrix profile. Other modules not accessible.',
+    acl:{ skillMatrix:{type:'own',selected:[]},  uat:{type:'none',selected:[]}, ews:{type:'none',selected:[]}, rocketlane:{type:'none',selected:[]} } },
+  { id:'delivery-lead', label:'Delivery Lead',  icon:'👥', color:'#22c55e', bg:'rgba(34,197,94,.1)',    border:'rgba(34,197,94,.25)',   desc:'Full access — all modules, all data.',
+    acl:{ skillMatrix:{type:'all',selected:[]},  uat:{type:'all',selected:[]},  ews:{type:'all',selected:[]},  rocketlane:{type:'all',selected:[]}  } },
+];
 let _aclUsers = [];
 let _aclItems = { employees:[], rlProjects:[], uatProjects:[], ewsItems:[] };
 let _aclSelectedEmail = null;
 let _aclSearch = '';
+let _aclBulkMode = false;
+let _aclBulkSelected = new Set();
 let _aclPendingChanges = {};
 let _aclTagSearch = {};
 
@@ -2598,6 +2608,13 @@ function aclUserSummary(u) {
   return parts.length ? parts.join(' · ') : 'No access';
 }
 
+function aclRoleBadge(roleId, isAdmin) {
+  if (isAdmin) return '<span style="background:rgba(201,162,39,.15);color:#c9a227;border:1px solid rgba(201,162,39,.3);border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;">Admin</span>';
+  const r = ACL_ROLES.find(r=>r.id===roleId);
+  if (!r) return '<span style="background:rgba(100,116,139,.1);color:#94a3b8;border:1px solid rgba(100,116,139,.2);border-radius:99px;padding:1px 7px;font-size:10px;">No role</span>';
+  return `<span style="background:${r.bg};color:${r.color};border:1px solid ${r.border};border-radius:99px;padding:1px 7px;font-size:10px;font-weight:600;">${r.icon} ${r.label}</span>`;
+}
+
 function aclRenderFull() {
   const wrap = document.getElementById('aclTabWrap');
   if (!wrap) return;
@@ -2606,43 +2623,95 @@ function aclRenderFull() {
   const hasDirty = Object.keys(_aclPendingChanges).length > 0;
   const selectedUser = _aclUsers.find(u=>u.email===_aclSelectedEmail) || null;
 
+  // Role overview cards
+  const roleCounts = { org:0, delivery:0, 'delivery-lead':0, unset:0, admin:0 };
+  _aclUsers.forEach(u => {
+    if (u.isAdmin) { roleCounts.admin++; return; }
+    if (u.role && roleCounts[u.role] !== undefined) roleCounts[u.role]++;
+    else roleCounts.unset++;
+  });
+  const roleCardsHTML = ACL_ROLES.map(r => `
+    <div style="flex:1;min-width:0;border:1px solid ${r.border};border-radius:8px;padding:12px 14px;background:${r.bg};">
+      <div style="font-size:20px;margin-bottom:4px;">${r.icon}</div>
+      <div style="font-size:12px;font-weight:700;color:${r.color};">${r.label}</div>
+      <div style="font-size:11px;color:var(--muted);margin:3px 0 8px;line-height:1.4;">${r.desc}</div>
+      <div style="font-size:18px;font-weight:700;color:var(--text);">${r.id==='org'?roleCounts.org:r.id==='delivery'?roleCounts.delivery:roleCounts['delivery-lead']}</div>
+      <div style="font-size:10px;color:var(--muted);">users</div>
+    </div>`).join('');
+
+  const unsetWarning = roleCounts.unset > 0 ? `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.25);border-radius:8px;margin-bottom:12px;font-size:12px;flex-wrap:wrap;">
+      <span style="color:#fbbf24;font-weight:600;">⚠ ${roleCounts.unset} user${roleCounts.unset>1?'s':''} without a role assigned</span>
+      <span style="color:var(--muted);">Use the role cards or select users below to assign roles.</span>
+      <button onclick="aclAutoAssign()" style="margin-left:auto;background:#fbbf24;color:#1e1e1e;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;" title="Auto-assign based on Skill Matrix membership">⚡ Auto-assign</button>
+    </div>` : '';
+
   const userListHTML = filtered.map(u => {
-    const isSel = u.email === _aclSelectedEmail;
+    const isSel = !_aclBulkMode && u.email === _aclSelectedEmail;
+    const isBulkSel = _aclBulkSelected.has(u.email);
     const isDirty = !!_aclPendingChanges[u.email];
     const ini = (u.name||u.email||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-    const avatarColor = u.isAdmin ? '#c9a227' : isDirty ? '#f59e0b' : '#6366f1';
-    return `<div onclick="aclSelectUser('${u.email}')" style="
-        display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;
-        background:${isSel?'rgba(99,102,241,.12)':'transparent'};
-        border:1px solid ${isSel?'rgba(99,102,241,.35)':'transparent'};
+    const avatarColor = u.isAdmin ? '#c9a227' : isDirty ? '#f59e0b' : (ACL_ROLES.find(r=>r.id===u.role)||{color:'#94a3b8'}).color;
+    const clickHandler = _aclBulkMode
+      ? `onclick="aclToggleBulkSelect('${u.email}')"`
+      : `onclick="aclSelectUser('${u.email}')"`;
+    return `<div ${clickHandler} style="
+        display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;
+        background:${isBulkSel?'rgba(99,102,241,.15)':isSel?'rgba(99,102,241,.12)':'transparent'};
+        border:1px solid ${isBulkSel?'rgba(99,102,241,.4)':isSel?'rgba(99,102,241,.35)':'transparent'};
         transition:all .12s;">
-      <div style="width:34px;height:34px;border-radius:50%;background:${avatarColor};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;">${ini}</div>
+      ${_aclBulkMode ? `<input type="checkbox" ${isBulkSel?'checked':''} onclick="event.stopPropagation();aclToggleBulkSelect('${u.email}')" style="cursor:pointer;flex-shrink:0;">` : ''}
+      <div style="width:30px;height:30px;border-radius:50%;background:${avatarColor};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;">${ini}</div>
       <div style="min-width:0;flex:1;">
-        <div style="font-size:13px;font-weight:${isSel?600:500};color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.name||u.email}</div>
-        <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${aclUserSummary(u)}</div>
+        <div style="font-size:13px;font-weight:${isSel||isBulkSel?600:500};color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.name||u.email}</div>
+        <div style="margin-top:2px;">${aclRoleBadge(u.role, u.isAdmin)}</div>
       </div>
-      ${isDirty?`<span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></span>`:''}
+      ${isDirty?`<span style="width:6px;height:6px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></span>`:''}
     </div>`;
   }).join('') || '<div style="color:var(--muted);font-size:12px;padding:12px 4px;">No users found.</div>';
 
-  const detailHTML = selectedUser ? aclBuildDetail(selectedUser) : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;">Select a user to manage permissions.</div>';
+  const bulkActionBar = _aclBulkMode && _aclBulkSelected.size > 0 ? `
+    <div style="padding:10px 12px;border-top:1px solid var(--border);background:rgba(99,102,241,.06);">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">${_aclBulkSelected.size} user${_aclBulkSelected.size>1?'s':''} selected — assign role:</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${ACL_ROLES.map(r=>`<button onclick="aclBulkApplyRole('${r.id}')" style="flex:1;min-width:0;background:${r.bg};border:1px solid ${r.border};color:${r.color};border-radius:6px;padding:5px 8px;font-size:11px;font-weight:600;cursor:pointer;">${r.icon} ${r.label}</button>`).join('')}
+      </div>
+    </div>` : '';
+
+  const detailHTML = _aclBulkMode
+    ? `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--muted);text-align:center;padding:24px;">
+        <div style="font-size:32px;">☑️</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">Bulk Selection Mode</div>
+        <div style="font-size:13px;max-width:280px;line-height:1.6;">Tick users on the left, then use the role buttons at the bottom to assign a role to all selected users at once.</div>
+        ${_aclBulkSelected.size===0?`<div style="font-size:12px;padding:8px 16px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:8px;color:#818cf8;">${filtered.length} users shown — select any to begin</div>`:''}
+      </div>`
+    : selectedUser ? aclBuildDetail(selectedUser)
+    : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;">Select a user to manage permissions.</div>';
 
   wrap.innerHTML = `
-    <div style="display:flex;gap:0;height:560px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+    <div style="display:flex;gap:10px;margin-bottom:12px;">
+      ${roleCardsHTML}
+    </div>
+    ${unsetWarning}
+    <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;" style="height:520px;">
       <!-- LEFT: user list -->
-      <div style="width:260px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg);">
-        <div style="padding:12px;border-bottom:1px solid var(--border);">
-          <input type="text" placeholder="Search users…" value="${_aclSearch}"
+      <div style="width:268px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg);max-height:520px;">
+        <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;">
+          <input type="text" placeholder="Search ${_aclUsers.length} users…" value="${_aclSearch}"
             oninput="_aclSearch=this.value;aclRenderFull()"
-            style="width:100%;padding:7px 10px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);box-sizing:border-box;outline:none;"/>
+            style="flex:1;padding:6px 10px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);box-sizing:border-box;outline:none;"/>
+          <button onclick="_aclBulkMode=!_aclBulkMode;_aclBulkSelected.clear();aclRenderFull()"
+            style="padding:6px 10px;font-size:11px;font-weight:600;border:1px solid ${_aclBulkMode?'#6366f1':'var(--border)'};background:${_aclBulkMode?'rgba(99,102,241,.15)':'transparent'};color:${_aclBulkMode?'#818cf8':'var(--muted)'};border-radius:6px;cursor:pointer;white-space:nowrap;" title="Toggle bulk selection">
+            ${_aclBulkMode?'✕ Cancel':'Bulk'}
+          </button>
         </div>
         <div style="flex:1;overflow-y:auto;padding:6px;">
           ${userListHTML}
         </div>
-        <div style="padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;">
+        ${_aclBulkMode ? bulkActionBar : `<div style="padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;">
           ${hasDirty?`<button onclick="aclSaveAll()" style="flex:1;background:#22c55e;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:12px;font-weight:600;cursor:pointer;">💾 Save All</button>`:''}
           <button onclick="aclShowAudit()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12px;cursor:pointer;color:var(--muted);" title="Audit Log">🔍</button>
-        </div>
+        </div>`}
       </div>
       <!-- RIGHT: detail -->
       <div id="aclDetailPane" style="flex:1;overflow-y:auto;background:var(--card);padding:24px 28px;">
@@ -2732,8 +2801,19 @@ function aclBuildDetail(u) {
     </div>`;
   }).join('');
 
+  const roleButtonsHTML = ACL_ROLES.map(r => {
+    const isActive = u.role === r.id;
+    return `<button onclick="aclApplyRole('${u.email}','${r.id}')"
+      style="flex:1;min-width:0;padding:8px 4px;font-size:11px;font-weight:${isActive?700:500};border:2px solid ${isActive?r.color:r.border};border-radius:8px;background:${isActive?r.bg:'transparent'};color:${isActive?r.color:'var(--muted)'};cursor:pointer;transition:all .15s;text-align:center;"
+      onmouseover="this.style.borderColor='${r.color}';this.style.color='${r.color}'"
+      onmouseout="this.style.borderColor='${isActive?r.color:r.border}';this.style.color='${isActive?r.color:'var(--muted)'}'"
+      title="${r.desc}">
+      ${r.icon}<br>${r.label}
+    </button>`;
+  }).join('');
+
   return `
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border);">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
       <div style="width:44px;height:44px;border-radius:50%;background:#6366f1;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;">${ini}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:16px;font-weight:700;color:var(--text);">${u.name||u.email}</div>
@@ -2744,7 +2824,12 @@ function aclBuildDetail(u) {
         <button onclick="aclDiscardOne('${u.email}')" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:8px 14px;font-size:13px;cursor:pointer;">Discard</button>
       ` : ''}
     </div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Module Permissions</div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Quick Role Assignment</div>
+      <div style="display:flex;gap:8px;">${roleButtonsHTML}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;">Selecting a role applies pre-set permissions instantly. You can still fine-tune individual modules below.</div>
+    </div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Fine-tune Permissions</div>
     ${moduleCards}
     <div style="margin-top:8px;padding-top:16px;border-top:1px solid var(--border);">
       <button onclick="aclDeleteUser('${u.email}')"
@@ -2807,6 +2892,87 @@ function aclDiscardOne(email) {
   delete _aclPendingChanges[email];
   aclRefreshDetail();
   aclRenderFull();
+}
+
+function aclToggleBulkSelect(email) {
+  if (_aclBulkSelected.has(email)) _aclBulkSelected.delete(email);
+  else _aclBulkSelected.add(email);
+  aclRenderFull();
+}
+
+async function aclApplyRole(email, roleId) {
+  const role = ACL_ROLES.find(r => r.id === roleId);
+  if (!role) return;
+  const u = _aclUsers.find(u => u.email === email);
+  if (!u) return;
+  try {
+    await apiFetch(`/api/acl/${encodeURIComponent(email)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acl: role.acl, role: roleId })
+    });
+    u.acl = { ...role.acl };
+    u.role = roleId;
+    delete _aclPendingChanges[email];
+    showToast(`"${role.label}" applied to ${u.name || email}`);
+    aclRenderFull();
+  } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+}
+
+async function aclBulkApplyRole(roleId) {
+  const role = ACL_ROLES.find(r => r.id === roleId);
+  if (!role || !_aclBulkSelected.size) return;
+  const emails = [..._aclBulkSelected];
+  try {
+    await apiFetch('/api/acl/bulk-assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emails, role: roleId })
+    });
+    emails.forEach(email => {
+      const u = _aclUsers.find(u => u.email === email);
+      if (u) { u.acl = { ...role.acl }; u.role = roleId; }
+      delete _aclPendingChanges[email];
+    });
+    _aclBulkSelected.clear();
+    showToast(`"${role.label}" applied to ${emails.length} user${emails.length>1?'s':''}`);
+    aclRenderFull();
+  } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+}
+
+async function aclAutoAssign() {
+  // Auto-assign: users whose email appears in the Skill Matrix employee list → delivery
+  // Everyone else without a role → org
+  const smEmails = new Set(_aclItems.employees.map(e => (e.id||'').toLowerCase().trim()).filter(Boolean));
+  const deliveryEmails = [];
+  const orgEmails = [];
+  _aclUsers.forEach(u => {
+    if (u.isAdmin) return;
+    const lc = (u.email||'').toLowerCase();
+    if (smEmails.has(lc)) deliveryEmails.push(u.email);
+    else if (!u.role) orgEmails.push(u.email);
+  });
+  const totalNew = deliveryEmails.length + orgEmails.length;
+  if (!totalNew) { showToast('All users already have roles assigned.'); return; }
+  if (!confirm(`Auto-assign roles to ${totalNew} users?\n\n• ${deliveryEmails.length} Skill Matrix members → Delivery Member\n• ${orgEmails.length} others (no role yet) → Org Member\n\nUsers who already have a role will not be changed.`)) return;
+  try {
+    if (deliveryEmails.length) {
+      const r = await apiFetch('/api/acl/bulk-assign', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ emails:deliveryEmails, role:'delivery' }) });
+      deliveryEmails.forEach(email => {
+        const u = _aclUsers.find(u=>u.email===email);
+        if (u) { u.acl = { ...ACL_ROLES.find(r=>r.id==='delivery').acl }; u.role = 'delivery'; }
+      });
+    }
+    if (orgEmails.length) {
+      await apiFetch('/api/acl/bulk-assign', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ emails:orgEmails, role:'org' }) });
+      orgEmails.forEach(email => {
+        const u = _aclUsers.find(u=>u.email===email);
+        if (u) { u.acl = { ...ACL_ROLES.find(r=>r.id==='org').acl }; u.role = 'org'; }
+      });
+    }
+    showToast(`Done — ${deliveryEmails.length} Delivery + ${orgEmails.length} Org assigned.`);
+    aclRenderFull();
+  } catch(e) { showToast('Auto-assign failed: ' + e.message, 'error'); }
 }
 
 async function aclDeleteUser(email) {
