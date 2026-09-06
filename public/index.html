@@ -2560,21 +2560,25 @@ let _dtSelEmail  = null;   // email of selected member in left panel
 let _dtForm      = null;   // null = no form open; object = form state
 let _dtIsNew     = false;  // true when form is for a new member
 let _dtTagSearch = {};
+let _dtUATClients = [];
+let _dtFocusSearch = null;
 
 async function loadACLTab() {
   const wrap = document.getElementById('aclTabWrap');
   if (!wrap) return;
   wrap.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:20px">Loading…</div>';
   try {
-    const [dtRes, ewsRes, rlRes] = await Promise.all([
+    const [dtRes, ewsRes, rlRes, uatRes] = await Promise.all([
       apiFetch('/api/delivery-team'),
       apiFetch('/api/ews').catch(()=>({data:[]})),
-      apiFetch('/api/rocketlane/projects').catch(()=>({data:[]}))
+      apiFetch('/api/rocketlane/projects').catch(()=>({data:[]})),
+      apiFetch('/api/uat/clients').catch(()=>({data:[]}))
     ]);
-    _dtMembers   = dtRes.members    || [];
-    _dtOrgCount  = dtRes.orgCount   || 0;
+    _dtMembers    = dtRes.members    || [];
+    _dtOrgCount   = dtRes.orgCount   || 0;
     _dtRLProjects = (rlRes.data||[]).map(p=>({id:String(p.projectId), name:p.projectName||String(p.projectId)}));
-    _dtEWSItems  = (ewsRes.data||[]).map(e=>({id:e.id, name:e.name||e.id}));
+    _dtEWSItems   = (ewsRes.data||[]).map(e=>({id:e.id, name:e.name||e.id}));
+    _dtUATClients = (uatRes.data||[]).map(c=>({id:c.id, name:c.name}));
     if (!_dtSelEmail && _dtMembers.length) _dtSelEmail = _dtMembers[0].email;
     dtRenderFull();
   } catch(e) {
@@ -2729,7 +2733,13 @@ function dtCancelForm() {
 
 function dtRefreshRight() {
   const pane = document.getElementById('dtRightPane');
-  if (pane && _dtForm) pane.innerHTML = dtBuildForm();
+  if (!pane || !_dtForm) return;
+  pane.innerHTML = dtBuildForm();
+  if (_dtFocusSearch) {
+    const inp = pane.querySelector(`input[data-search="${_dtFocusSearch}"]`);
+    if (inp) { inp.focus(); const v = inp.value; inp.setSelectionRange(v.length, v.length); }
+    _dtFocusSearch = null;
+  }
 }
 
 function dtFormChange(field, value) {
@@ -2788,7 +2798,8 @@ function dtBuildTagPicker(aclKey, items, selectedIds, label) {
     </div>` : `<div style="padding:8px 10px;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);">No ${label.toLowerCase()} selected — add below</div>`}
     <div style="padding:6px 10px;border-bottom:1px solid var(--border);">
       <input type="text" placeholder="Search…" value="${_dtTagSearch[aclKey]||''}"
-        oninput="_dtTagSearch['${aclKey}']=this.value;dtRefreshRight()"
+        data-search="${aclKey}"
+        oninput="_dtTagSearch['${aclKey}']=this.value;_dtFocusSearch='${aclKey}';dtRefreshRight()"
         style="width:100%;padding:5px 8px;font-size:11px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);box-sizing:border-box;outline:none;"/>
     </div>
     <div style="max-height:140px;overflow-y:auto;padding:6px 10px;display:flex;flex-wrap:wrap;gap:5px;">
@@ -2885,7 +2896,7 @@ function dtBuildForm() {
 
     ${card('📈','Skill Matrix Access', peopleSection('skillMatrix','people',smAcl))}
     ${card('📊','KPIs Access', peopleSection('kpis','people',kpiAcl))}
-    ${card('🧪','UAT Platform — Accessible Clients', projectSection('uat','UAT clients',uatAcl,_dtRLProjects))}
+    ${card('🧪','UAT Platform — Accessible Clients', projectSection('uat','UAT clients',uatAcl,_dtUATClients))}
     ${card('⚠️','Early Warning System — Accessible Entries', projectSection('ews','EWS entries',ewsAcl,_dtEWSItems))}
     ${card('🚀','Rocketlane — Accessible Projects', projectSection('rocketlane','projects',rlAcl,_dtRLProjects))}`;
 }
