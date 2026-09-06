@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- build: v-gold-theme -->
+<!-- build: v-delivery-team-registry -->
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -841,6 +841,10 @@ html.dw-restoring #dwCover{display:block;position:fixed;top:0;left:0;right:0;bot
 
     <!-- Tab: Access Control -->
     <div class="admin-tab-panel" id="tab-acl">
+      <div style="margin-bottom:16px;">
+        <div class="settings-section-title" style="margin-bottom:4px;">🔐 Access Control</div>
+        <div style="font-size:12px;color:var(--muted)">Set per-module permissions for each user. Changes take effect immediately and are logged in the audit trail.</div>
+      </div>
       <div id="aclTabWrap"></div>
     </div>
 
@@ -2548,337 +2552,405 @@ function hideProxyBanner() {
   if (el) el.classList.remove('active');
 }
 
-// ── Access Control (RBAC Admin Tab — master-detail design) ───────────────────
-const ACL_MODULES = [
-  { key:'skillMatrix', label:'Skill Matrix', icon:'📈', types:['own','all','selected'], typeLabels:{own:'Own Info',all:'All Employees',selected:'Specific Employees'}, itemsKey:'employees' },
-  { key:'uat',         label:'UAT',          icon:'🧪', types:['none','all','selected'], typeLabels:{none:'No Access',all:'All Projects',selected:'Specific Projects'}, itemsKey:'uatProjects' },
-  { key:'ews',         label:'EWS',          icon:'⚠️', types:['none','all','selected'], typeLabels:{none:'No Access',all:'All Projects',selected:'Specific Projects'}, itemsKey:'ewsItems' },
-  { key:'rocketlane',  label:'Rocketlane',   icon:'🚀', types:['none','all','selected'], typeLabels:{none:'No Access',all:'All Projects',selected:'Specific Projects'}, itemsKey:'rlProjects' },
+// ── Delivery Team Management (Admin Tab) ──────────────────────────────────────
+const DT_ROLES = [
+  { id:'delivery',      label:'Delivery Member', icon:'👤', color:'#6366f1', bg:'rgba(99,102,241,.1)',  border:'rgba(99,102,241,.25)' },
+  { id:'team-manager',  label:'Team Manager',    icon:'👨‍👩‍👧', color:'#f59e0b', bg:'rgba(245,158,11,.1)', border:'rgba(245,158,11,.25)' },
+  { id:'delivery-lead', label:'Delivery Lead',   icon:'👥', color:'#22c55e', bg:'rgba(34,197,94,.1)',   border:'rgba(34,197,94,.25)' },
 ];
-let _aclUsers = [];
-let _aclItems = { employees:[], rlProjects:[], uatProjects:[], ewsItems:[] };
-let _aclSelectedEmail = null;
-let _aclSearch = '';
-let _aclPendingChanges = {};
-let _aclTagSearch = {}; // { modKey: searchStr }
+
+let _dtMembers   = [];
+let _dtOrgCount  = 0;
+let _dtRLProjects = [];
+let _dtRLClients  = [];
+let _dtEWSItems  = [];
+let _dtSearch    = '';
+let _dtSelEmail  = null;   // email of selected member in left panel
+let _dtForm      = null;   // null = no form open; object = form state
+let _dtIsNew     = false;  // true when form is for a new member
+let _dtTagSearch = {};
+let _dtUATClients = [];
+let _dtFocusSearch = null;
 
 async function loadACLTab() {
   const wrap = document.getElementById('aclTabWrap');
   if (!wrap) return;
-  wrap.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:20px 0">Loading…</div>';
+  wrap.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:20px">Loading…</div>';
   try {
-    const [usersRes, rlRes, uatRes, ewsRes, smRes] = await Promise.all([
-      apiFetch('/api/acl/users'),
-      apiFetch('/api/rocketlane/projects-full').catch(()=>({projects:[]})),
-      apiFetch('/api/uat/projects').catch(()=>({data:[]})),
+    const [dtRes, ewsRes, rlRes, uatRes] = await Promise.all([
+      apiFetch('/api/delivery-team'),
       apiFetch('/api/ews').catch(()=>({data:[]})),
-      apiFetch('/api/skillmatrix').catch(()=>({employees:[]}))
+      apiFetch('/api/rocketlane/projects').catch(()=>({data:[]})),
+      apiFetch('/api/uat/clients').catch(()=>({data:[]}))
     ]);
-    _aclUsers = usersRes.users || [];
-    _aclItems.rlProjects   = (rlRes.projects||[]).map(p=>({ id:String(p.projectId), name:p.projectName||String(p.projectId) }));
-    _aclItems.uatProjects  = (uatRes.data||[]).map(p=>({ id:p.id, name:p.name||p.id }));
-    _aclItems.ewsItems     = (ewsRes.data||[]).map(e=>({ id:e.id, name:e.name||e.id }));
-    _aclItems.employees    = (smRes.employees||[]).map(e=> typeof e==='string'?{id:e,name:e}:{id:e.name||e,name:e.name||e});
-    _aclPendingChanges = {};
-    _aclTagSearch = {};
-    if (!_aclSelectedEmail && _aclUsers.length) _aclSelectedEmail = _aclUsers[0].email;
-    aclRenderFull();
+    _dtMembers    = dtRes.members    || [];
+    _dtOrgCount   = dtRes.orgCount   || 0;
+    _dtRLProjects = (rlRes.data||[]).map(p=>({id:String(p.projectId), name:p.projectName||String(p.projectId), customer:p.customer?.companyName||null}));
+    const _rlClientNames = [...new Set(_dtRLProjects.map(p=>p.customer).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    _dtRLClients = _rlClientNames.map(name=>({id:name, name}));
+    _dtEWSItems   = (ewsRes.data||[]).map(e=>({id:e.id, name:e.name||e.id}));
+    _dtUATClients = (uatRes.data||[]).map(c=>({id:c.id, name:c.name}));
+    if (!_dtSelEmail && _dtMembers.length) _dtSelEmail = _dtMembers[0].email;
+    dtRenderFull();
   } catch(e) {
     wrap.innerHTML = '<div style="color:#f87171;font-size:13px;">Failed to load: '+e.message+'</div>';
   }
 }
 
-function aclUserSummary(u) {
-  if (u.isAdmin) return 'Admin — full access';
-  const acl = u.acl || {};
-  const parts = ACL_MODULES.map(m => {
-    const p = acl[m.key] || { type: m.types[0] };
-    if (p.type === 'all') return m.label + ': All';
-    if (p.type === 'own') return m.label + ': Own';
-    if (p.type === 'none') return null;
-    if (p.type === 'selected') return m.label + ': ' + (p.selected||[]).length + ' selected';
-    return null;
-  }).filter(Boolean);
-  return parts.length ? parts.join(' · ') : 'No access';
+function dtRoleBadge(roleId) {
+  const r = DT_ROLES.find(r=>r.id===roleId);
+  if (!r) return '';
+  return `<span style="background:${r.bg};color:${r.color};border:1px solid ${r.border};border-radius:99px;padding:1px 8px;font-size:10px;font-weight:600;">${r.icon} ${r.label}</span>`;
 }
 
-function aclRenderFull() {
+function dtModuleSummary(m) {
+  if (!m.acl) return '';
+  const parts = [];
+  const sm = m.acl.skillMatrix;
+  if (sm) {
+    if (sm.type==='all') parts.push('SM:All');
+    else if (sm.type==='own') parts.push('SM:Own');
+    else if (sm.type==='team') parts.push('SM:Team');
+    else if (sm.type==='selected') parts.push('SM:'+sm.selected.length);
+  }
+  const rl = m.acl.rocketlane;
+  if (rl && rl.type==='selected' && rl.selected.length) parts.push('RL:'+rl.selected.length);
+  const uat = m.acl.uat;
+  if (uat && uat.type==='selected' && uat.selected.length) parts.push('UAT:'+uat.selected.length);
+  if (m.role==='delivery-lead') return 'Full access';
+  return parts.length ? parts.join(' · ') : 'No module access';
+}
+
+function dtRenderFull() {
   const wrap = document.getElementById('aclTabWrap');
   if (!wrap) return;
-  const ql = _aclSearch.toLowerCase();
-  const filtered = _aclSearch ? _aclUsers.filter(u=>(u.name||'').toLowerCase().includes(ql)||(u.email||'').toLowerCase().includes(ql)) : _aclUsers;
-  const hasDirty = Object.keys(_aclPendingChanges).length > 0;
-  const selectedUser = _aclUsers.find(u=>u.email===_aclSelectedEmail) || null;
+  const ql = _dtSearch.toLowerCase();
+  const filtered = _dtSearch ? _dtMembers.filter(m=>(m.name||'').toLowerCase().includes(ql)||(m.email||'').toLowerCase().includes(ql)) : _dtMembers;
 
-  const userListHTML = filtered.map(u => {
-    const isSel = u.email === _aclSelectedEmail;
-    const isDirty = !!_aclPendingChanges[u.email];
-    const ini = (u.name||u.email||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-    const avatarColor = u.isAdmin ? '#c9a227' : isDirty ? '#f59e0b' : '#6366f1';
-    return `<div onclick="aclSelectUser('${u.email}')" style="
-        display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;
-        background:${isSel?'rgba(99,102,241,.12)':'transparent'};
-        border:1px solid ${isSel?'rgba(99,102,241,.35)':'transparent'};
-        transition:all .12s;">
-      <div style="width:34px;height:34px;border-radius:50%;background:${avatarColor};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;">${ini}</div>
+  // counts
+  const counts = {delivery:0,'team-manager':0,'delivery-lead':0};
+  _dtMembers.forEach(m=>{ if(counts[m.role]!==undefined) counts[m.role]++; });
+
+  const listHTML = filtered.map(m => {
+    const isSel = !_dtIsNew && m.email === _dtSelEmail;
+    const ini = (m.name||m.email||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const r = DT_ROLES.find(r=>r.id===m.role)||DT_ROLES[0];
+    return `<div onclick="dtSelect('${m.email}')" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;
+      background:${isSel?'rgba(99,102,241,.12)':'transparent'};border:1px solid ${isSel?'rgba(99,102,241,.35)':'transparent'};transition:all .12s;">
+      <div style="width:32px;height:32px;border-radius:50%;background:${r.color};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;">${ini}</div>
       <div style="min-width:0;flex:1;">
-        <div style="font-size:13px;font-weight:${isSel?600:500};color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.name||u.email}</div>
-        <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${aclUserSummary(u)}</div>
+        <div style="font-size:13px;font-weight:${isSel?600:500};color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.name||m.email}</div>
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.email}</div>
+        <div style="margin-top:3px;">${dtRoleBadge(m.role)}</div>
       </div>
-      ${isDirty?`<span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></span>`:''}
     </div>`;
-  }).join('') || '<div style="color:var(--muted);font-size:12px;padding:12px 4px;">No users found.</div>';
+  }).join('') || '<div style="color:var(--muted);font-size:12px;padding:12px 4px;">No members found.</div>';
 
-  const detailHTML = selectedUser ? aclBuildDetail(selectedUser) : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;">Select a user to manage permissions.</div>';
+  const rightHTML = _dtForm ? dtBuildForm() : (
+    _dtSelEmail ? dtBuildDetail(_dtMembers.find(m=>m.email===_dtSelEmail))
+    : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;">Select a member to view or edit.</div>'
+  );
 
   wrap.innerHTML = `
-    <div style="display:flex;gap:0;height:560px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
-      <!-- LEFT: user list -->
-      <div style="width:260px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg);">
-        <div style="padding:12px;border-bottom:1px solid var(--border);">
-          <input type="text" placeholder="Search users…" value="${_aclSearch}"
-            oninput="_aclSearch=this.value;aclRenderFull()"
-            style="width:100%;padding:7px 10px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);box-sizing:border-box;outline:none;"/>
-        </div>
-        <div style="flex:1;overflow-y:auto;padding:6px;">
-          ${userListHTML}
-        </div>
-        <div style="padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;">
-          ${hasDirty?`<button onclick="aclSaveAll()" style="flex:1;background:#22c55e;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:12px;font-weight:600;cursor:pointer;">💾 Save All</button>`:''}
-          <button onclick="aclShowAudit()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12px;cursor:pointer;color:var(--muted);" title="Audit Log">🔍</button>
-        </div>
-      </div>
-      <!-- RIGHT: detail -->
-      <div id="aclDetailPane" style="flex:1;overflow-y:auto;background:var(--card);padding:24px 28px;">
-        ${detailHTML}
+    <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+      ${DT_ROLES.map(r=>`<div style="flex:1;min-width:120px;border:1px solid ${r.border};border-radius:8px;padding:10px 14px;background:${r.bg};display:flex;align-items:center;gap:10px;">
+        <div style="font-size:22px;">${r.icon}</div>
+        <div><div style="font-size:11px;font-weight:700;color:${r.color};">${r.label}</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);">${counts[r.id]||0}</div></div>
+      </div>`).join('')}
+      <div style="flex:1;min-width:120px;border:1px solid var(--border);border-radius:8px;padding:10px 14px;background:var(--bg);display:flex;align-items:center;gap:10px;">
+        <div style="font-size:22px;">🏢</div>
+        <div><div style="font-size:11px;font-weight:700;color:var(--muted);">Org Member</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);">${_dtOrgCount}</div></div>
       </div>
     </div>
-    <div id="aclAuditPanel" style="display:none;margin-top:16px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div style="font-weight:600;font-size:13px;">Audit History</div>
-        <button onclick="document.getElementById('aclAuditPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;">✕</button>
+    <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;max-height:580px;">
+      <div style="width:268px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg);">
+        <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;gap:8px;">
+          <input type="text" placeholder="Search ${_dtMembers.length} members…" value="${_dtSearch}"
+            oninput="_dtSearch=this.value;dtRenderFull()"
+            style="flex:1;padding:6px 10px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);box-sizing:border-box;outline:none;"/>
+          <button onclick="dtOpenNew()" style="padding:6px 12px;font-size:12px;font-weight:600;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;white-space:nowrap;">+ Add</button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:6px;">${listHTML}</div>
+        <div style="padding:8px 12px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);">
+          Everyone not listed is automatically <strong>Org Member</strong> (no module access).
+        </div>
       </div>
-      <div id="aclAuditList" style="font-size:12px;max-height:280px;overflow-y:auto;"></div>
+      <div id="dtRightPane" style="flex:1;overflow-y:auto;background:var(--card);padding:24px 28px;">${rightHTML}</div>
     </div>`;
 }
 
-function aclBuildDetail(u) {
-  if (u.isAdmin) {
-    const ini = (u.name||u.email||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-    return `
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border);">
-        <div style="width:44px;height:44px;border-radius:50%;background:#c9a227;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;">${ini}</div>
-        <div>
-          <div style="font-size:16px;font-weight:700;color:var(--text);">${u.name||u.email}</div>
-          <div style="font-size:12px;color:var(--muted);">${u.email}</div>
-        </div>
-        <span style="margin-left:auto;background:rgba(201,162,39,.15);color:#c9a227;border:1px solid rgba(201,162,39,.3);border-radius:99px;padding:3px 12px;font-size:11px;font-weight:700;">Admin</span>
+function dtBuildDetail(m) {
+  if (!m) return '<div style="color:var(--muted);font-size:13px;">Member not found.</div>';
+  const ini = (m.name||m.email||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const r = DT_ROLES.find(r=>r.id===m.role)||DT_ROLES[0];
+  return `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+      <div style="width:44px;height:44px;border-radius:50%;background:${r.color};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;">${ini}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:16px;font-weight:700;">${m.name||m.email}</div>
+        <div style="font-size:12px;color:var(--muted);">${m.email}</div>
+        <div style="margin-top:4px;">${dtRoleBadge(m.role)}</div>
       </div>
-      <div style="background:rgba(201,162,39,.06);border:1px solid rgba(201,162,39,.2);border-radius:8px;padding:16px 18px;text-align:center;color:var(--muted);font-size:13px;">
-        Admin users have full access to all modules. Permissions cannot be restricted.
-      </div>`;
-  }
-
-  const pending = _aclPendingChanges[u.email] || {};
-  const isDirty = !!_aclPendingChanges[u.email];
-  const ini = (u.name||u.email||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-  const eKey = u.email.replace(/[@.]/g,'-');
-
-  const moduleCards = ACL_MODULES.map(m => {
-    const saved = (u.acl||{})[m.key] || { type: m.types[0], selected:[] };
-    const cur = pending[m.key] || saved;
-    const items = _aclItems[m.itemsKey] || [];
-    const selIds = new Set((cur.selected||[]).map(String));
-    const tsq = (_aclTagSearch[m.key]||'').toLowerCase();
-
-    const selectedItems = items.filter(it=>selIds.has(String(it.id)));
-    const availItems = items.filter(it=>!selIds.has(String(it.id)) && (!tsq || it.name.toLowerCase().includes(tsq)));
-
-    const tagPicker = cur.type==='selected' ? `
-      <div style="margin-top:12px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-        ${selectedItems.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg);">
-          ${selectedItems.map(it=>`<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);color:#818cf8;border-radius:99px;padding:3px 10px;font-size:12px;font-weight:500;">
-            ${it.name}
-            <button onclick="aclRemoveTag('${u.email}','${m.key}','${it.id}')" style="background:none;border:none;color:inherit;cursor:pointer;font-size:14px;padding:0;line-height:1;opacity:.7;">×</button>
-          </span>`).join('')}
-        </div>` : `<div style="padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg);font-size:12px;color:var(--muted);">None selected — pick from the list below</div>`}
-        <div style="padding:8px 12px;border-bottom:1px solid var(--border);">
-          <input type="text" placeholder="Search ${m.label.toLowerCase()}…" value="${_aclTagSearch[m.key]||''}"
-            oninput="_aclTagSearch['${m.key}']=this.value;aclRefreshDetail()"
-            style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);box-sizing:border-box;outline:none;"/>
-        </div>
-        <div style="max-height:160px;overflow-y:auto;padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px;">
-          ${availItems.length ? availItems.map(it=>`<button onclick="aclAddTag('${u.email}','${m.key}','${it.id}')"
-            style="background:var(--bg);border:1px solid var(--border);border-radius:99px;padding:4px 12px;font-size:12px;color:var(--text);cursor:pointer;transition:all .1s;"
-            onmouseover="this.style.borderColor='#6366f1';this.style.color='#818cf8';"
-            onmouseout="this.style.borderColor='';this.style.color='';">
-            + ${it.name}
-          </button>`).join('') : `<span style="font-size:12px;color:var(--muted);">${tsq?'No matches':'All items already selected'}</span>`}
-        </div>
-      </div>` : '';
-
-    return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:12px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--text);">${m.icon} ${m.label}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;">
-            ${m.key==='skillMatrix'?'Which employees this user can view in Skill Matrix':
-              m.key==='uat'?'Which UAT client projects this user can access':
-              m.key==='ews'?'Which EWS entries this user can view':
-              'Which Rocketlane projects appear in the dashboard'}
-          </div>
-        </div>
-        <select onchange="aclOnChange('${u.email}','${m.key}',this.value)"
-          style="padding:7px 12px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);cursor:pointer;outline:none;">
-          ${m.types.map(t=>`<option value="${t}"${cur.type===t?' selected':''}>${m.typeLabels[t]}</option>`).join('')}
-        </select>
-      </div>
-      ${tagPicker}
+      <button onclick="dtEditExisting('${m.email}')" style="background:#6366f1;color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;">Edit</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;">
+      ${[['Skill Matrix', m.acl?.skillMatrix], ['KPIs', m.acl?.kpis], ['UAT', m.acl?.uat], ['EWS', m.acl?.ews], ['Rocketlane', m.acl?.rocketlane]].map(([label, perm])=>{
+        const v = m.role==='delivery-lead' ? 'Full access' : !perm||perm.type==='none' ? 'No access' : perm.type==='own' ? 'Own data' : perm.type==='team' ? 'Own + team data' : perm.type==='all' ? 'All' : (perm.selected||[]).length + ' selected';
+        return `<div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:7px;">
+          <div style="font-weight:600;color:var(--muted);margin-bottom:3px;">${label}</div>
+          <div style="color:var(--text);">${v}</div>
+        </div>`;
+      }).join('')}
     </div>`;
-  }).join('');
+}
+
+function dtOpenNew() {
+  _dtIsNew = true;
+  _dtTagSearch = {};
+  _dtForm = { email:'', name:'', role:'delivery', showInSkillMatrix:true,
+    acl:{ skillMatrix:{type:'own',selected:[]}, kpis:{type:'own',selected:[]},
+      uat:{type:'selected',selected:[]}, ews:{type:'selected',selected:[]}, rocketlane:{type:'selected',selected:[]} }
+  };
+  dtRenderFull();
+}
+
+function dtEditExisting(email) {
+  const m = _dtMembers.find(m=>m.email===email);
+  if (!m) return;
+  _dtSelEmail = email;
+  _dtIsNew = false;
+  _dtTagSearch = {};
+  _dtForm = JSON.parse(JSON.stringify({ email:m.email, name:m.name||'', role:m.role||'delivery', showInSkillMatrix:m.showInSkillMatrix!==false,
+    acl: m.acl || { skillMatrix:{type:'own',selected:[]}, kpis:{type:'own',selected:[]},
+      uat:{type:'selected',selected:[]}, ews:{type:'selected',selected:[]}, rocketlane:{type:'selected',selected:[]} }
+  }));
+  dtRenderFull();
+}
+
+function dtSelect(email) {
+  _dtSelEmail = email;
+  _dtForm = null;
+  _dtIsNew = false;
+  dtRenderFull();
+}
+
+function dtCancelForm() {
+  _dtForm = null;
+  _dtIsNew = false;
+  dtRenderFull();
+}
+
+function dtRefreshRight() {
+  const pane = document.getElementById('dtRightPane');
+  if (!pane || !_dtForm) return;
+  pane.innerHTML = dtBuildForm();
+  if (_dtFocusSearch) {
+    const inp = pane.querySelector(`input[data-search="${_dtFocusSearch}"]`);
+    if (inp) { inp.focus(); const v = inp.value; inp.setSelectionRange(v.length, v.length); }
+    _dtFocusSearch = null;
+  }
+}
+
+function dtFormChange(field, value) {
+  if (!_dtForm) return;
+  if (field.includes('.')) {
+    const [a,b] = field.split('.');
+    if (!_dtForm[a]) _dtForm[a] = {};
+    _dtForm[a][b] = value;
+    // reset selected when type changes away from selected/team
+    if (b === 'type' && value !== 'selected' && value !== 'team') {
+      _dtForm.acl[a].selected = [];
+    }
+  } else {
+    _dtForm[field] = value;
+    // When role changes, reset ACL types to match role defaults
+    if (field === 'role') {
+      const smKpiType = value === 'team-manager' ? 'team' : value === 'delivery-lead' ? 'all' : 'own';
+      const projType  = value === 'delivery-lead' ? 'all' : 'selected';
+      _dtForm.acl = {
+        skillMatrix: { type: smKpiType, selected: _dtForm.acl?.skillMatrix?.selected || [] },
+        kpis:        { type: smKpiType, selected: _dtForm.acl?.kpis?.selected || [] },
+        uat:         { type: projType,  selected: _dtForm.acl?.uat?.selected || [] },
+        ews:         { type: projType,  selected: _dtForm.acl?.ews?.selected || [] },
+        rocketlane:  { type: projType,  selected: _dtForm.acl?.rocketlane?.selected || [] },
+      };
+    }
+  }
+  dtRefreshRight();
+}
+
+function dtAddItem(aclKey, itemId) {
+  if (!_dtForm) return;
+  if (!_dtForm.acl[aclKey]) _dtForm.acl[aclKey] = { type:'selected', selected:[] };
+  const sel = _dtForm.acl[aclKey].selected || [];
+  if (!sel.includes(String(itemId))) sel.push(String(itemId));
+  _dtForm.acl[aclKey].selected = sel;
+  dtRefreshRight();
+}
+
+function dtRemoveItem(aclKey, itemId) {
+  if (!_dtForm || !_dtForm.acl[aclKey]) return;
+  _dtForm.acl[aclKey].selected = (_dtForm.acl[aclKey].selected||[]).filter(id=>String(id)!==String(itemId));
+  dtRefreshRight();
+}
+
+function dtBuildTagPicker(aclKey, items, selectedIds, label) {
+  const selSet = new Set(selectedIds.map(String));
+  const tsq = (_dtTagSearch[aclKey]||'').toLowerCase();
+  const selItems = items.filter(it=>selSet.has(String(it.id)));
+  const availItems = items.filter(it=>!selSet.has(String(it.id)) && (!tsq||it.name.toLowerCase().includes(tsq)));
+  return `<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:8px;">
+    ${selItems.length ? `<div style="display:flex;flex-wrap:wrap;gap:5px;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--bg);">
+      ${selItems.map(it=>`<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);color:#818cf8;border-radius:99px;padding:2px 8px;font-size:11px;">
+        ${it.name}<button onclick="dtRemoveItem('${aclKey}','${it.id}')" style="background:none;border:none;color:inherit;cursor:pointer;font-size:13px;padding:0;opacity:.7;line-height:1;">×</button>
+      </span>`).join('')}
+    </div>` : `<div style="padding:8px 10px;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);">No ${label.toLowerCase()} selected — add below</div>`}
+    <div style="padding:6px 10px;border-bottom:1px solid var(--border);">
+      <input type="text" placeholder="Search…" value="${_dtTagSearch[aclKey]||''}"
+        data-search="${aclKey}"
+        oninput="_dtTagSearch['${aclKey}']=this.value;_dtFocusSearch='${aclKey}';dtRefreshRight()"
+        style="width:100%;padding:5px 8px;font-size:11px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);box-sizing:border-box;outline:none;"/>
+    </div>
+    <div style="max-height:140px;overflow-y:auto;padding:6px 10px;display:flex;flex-wrap:wrap;gap:5px;">
+      ${availItems.length ? availItems.slice(0,80).map(it=>`<button onclick="dtAddItem('${aclKey}','${it.id}')"
+        style="background:var(--bg);border:1px solid var(--border);border-radius:99px;padding:3px 10px;font-size:11px;color:var(--text);cursor:pointer;">+ ${it.name}</button>`).join('')
+      : `<span style="font-size:11px;color:var(--muted);">${tsq?'No matches':'All added'}</span>`}
+    </div>
+  </div>`;
+}
+
+function dtBuildForm() {
+  if (!_dtForm) return '';
+  const f = _dtForm;
+  const isLead = f.role === 'delivery-lead';
+  const isMgr  = f.role === 'team-manager';
+  // people options: delivery members + team managers (excluding self)
+  const peopleOptions = _dtMembers
+    .filter(m => (m.role==='delivery'||m.role==='team-manager') && m.email!==f.email && m.showInSkillMatrix!==false)
+    .map(m=>({id:m.name||m.email, name:m.name||m.email}));
+
+  const smAcl  = f.acl.skillMatrix || {type:'own',selected:[]};
+  const kpiAcl = f.acl.kpis        || {type:'own',selected:[]};
+  const uatAcl = f.acl.uat         || {type:'selected',selected:[]};
+  const ewsAcl = f.acl.ews         || {type:'selected',selected:[]};
+  const rlAcl  = f.acl.rocketlane  || {type:'selected',selected:[]};
+
+  const peopleSection = (aclKey, label, perm) => {
+    if (isLead) return `<div style="font-size:12px;color:#22c55e;font-weight:600;">✓ Full access (all data)</div>`;
+    const showPicker = perm.type==='selected' || perm.type==='team';
+    const teamNote = isMgr ? '<div style="font-size:11px;color:#d97706;margin-top:4px;">Own data always included — add team members below</div>' : '';
+    return `
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:4px;">
+        ${isMgr ? `<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;"><input type="radio" name="${aclKey}-type" value="team" ${perm.type==='team'?'checked':''} onchange="dtFormChange('acl.${aclKey}.type','team')"> Own + Team</label>`
+        : `<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;"><input type="radio" name="${aclKey}-type" value="own" ${perm.type==='own'?'checked':''} onchange="dtFormChange('acl.${aclKey}.type','own')"> Own data only</label>
+           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;"><input type="radio" name="${aclKey}-type" value="selected" ${perm.type==='selected'?'checked':''} onchange="dtFormChange('acl.${aclKey}.type','selected')"> Specific people</label>`}
+      </div>
+      ${teamNote}
+      ${showPicker ? dtBuildTagPicker(aclKey, peopleOptions, perm.selected||[], label) : ''}`;
+  };
+
+  const projectSection = (aclKey, label, perm, items) => {
+    if (isLead) return `<div style="font-size:12px;color:#22c55e;font-weight:600;">✓ Full access (all ${label.toLowerCase()})</div>`;
+    return dtBuildTagPicker(aclKey, items, perm.selected||[], label);
+  };
+
+  const card = (icon, label, content) => `
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;">${icon} ${label}</div>
+      ${content}
+    </div>`;
+
+  const btnColor = _dtIsNew ? '#22c55e' : '#6366f1';
+  const btnLabel = _dtIsNew ? 'Add to Delivery Team' : 'Save Changes';
 
   return `
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border);">
-      <div style="width:44px;height:44px;border-radius:50%;background:#6366f1;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;">${ini}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:16px;font-weight:700;color:var(--text);">${u.name||u.email}</div>
-        <div style="font-size:12px;color:var(--muted);">${u.email}</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+      <div style="font-size:15px;font-weight:700;">${_dtIsNew ? 'Add New Member' : 'Edit: '+f.name}</div>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button onclick="dtSave()" style="background:${btnColor};color:#fff;border:none;border-radius:7px;padding:7px 18px;font-size:13px;font-weight:600;cursor:pointer;">${btnLabel}</button>
+        <button onclick="dtCancelForm()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:7px 14px;font-size:13px;cursor:pointer;">Cancel</button>
+        ${!_dtIsNew ? `<button onclick="dtRemoveMember('${f.email}')" style="background:none;border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:7px;padding:7px 14px;font-size:12px;cursor:pointer;">Remove</button>` : ''}
       </div>
-      ${isDirty ? `
-        <button onclick="aclSaveOne('${u.email}')" style="background:#6366f1;color:#fff;border:none;border-radius:7px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;">Save Changes</button>
-        <button onclick="aclDiscardOne('${u.email}')" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:8px 14px;font-size:13px;cursor:pointer;">Discard</button>
-      ` : ''}
     </div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Module Permissions</div>
-    ${moduleCards}
-    <div style="margin-top:8px;padding-top:16px;border-top:1px solid var(--border);">
-      <button onclick="aclDeleteUser('${u.email}')"
-        style="background:none;border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:7px;padding:7px 16px;font-size:12px;cursor:pointer;transition:all .15s;"
-        onmouseover="this.style.background='rgba(239,68,68,.08)'" onmouseout="this.style.background='none'">
-        Remove User
-      </button>
-    </div>`;
+
+    <!-- Identity -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;">FULL NAME</div>
+        <input value="${f.name}" oninput="_dtForm.name=this.value"
+          style="width:100%;padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);box-sizing:border-box;outline:none;"/>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;">EMAIL</div>
+        <input value="${f.email}" ${!_dtIsNew?'readonly style="opacity:.6;"':''} oninput="_dtForm.email=this.value"
+          style="width:100%;padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);box-sizing:border-box;outline:none;"/>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;">ROLE</div>
+        <select onchange="dtFormChange('role',this.value)"
+          style="width:100%;padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);cursor:pointer;outline:none;">
+          ${DT_ROLES.map(r=>`<option value="${r.id}"${f.role===r.id?' selected':''}>${r.icon} ${r.label}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;">SHOW IN SKILL MATRIX</div>
+        <div style="display:flex;gap:16px;padding-top:6px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="radio" name="showSM" value="yes" ${f.showInSkillMatrix!==false?'checked':''} onchange="_dtForm.showInSkillMatrix=true;dtRefreshRight()"> Yes</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="radio" name="showSM" value="no" ${f.showInSkillMatrix===false?'checked':''} onchange="_dtForm.showInSkillMatrix=false;dtRefreshRight()"> No</label>
+        </div>
+      </div>
+    </div>
+
+    ${card('📈','Skill Matrix Access', peopleSection('skillMatrix','people',smAcl))}
+    ${card('📊','KPIs Access', peopleSection('kpis','people',kpiAcl))}
+    ${card('🧪','UAT Platform — Accessible Clients', projectSection('uat','UAT clients',uatAcl,_dtUATClients))}
+    ${card('⚠️','Early Warning System — Accessible Entries', projectSection('ews','EWS entries',ewsAcl,_dtEWSItems))}
+    ${card('🚀','Rocketlane — Accessible Clients', projectSection('rocketlane','clients',rlAcl,_dtRLClients))}`;
 }
 
-function aclSelectUser(email) {
-  _aclSelectedEmail = email;
-  _aclTagSearch = {};
-  aclRenderFull();
-}
-
-function aclRefreshDetail() {
-  const pane = document.getElementById('aclDetailPane');
-  if (!pane) return;
-  const u = _aclUsers.find(u=>u.email===_aclSelectedEmail);
-  if (u) pane.innerHTML = aclBuildDetail(u);
-}
-
-function aclAddTag(email, modKey, itemId) {
-  if (!_aclPendingChanges[email]) {
-    const u = _aclUsers.find(u=>u.email===email);
-    _aclPendingChanges[email] = JSON.parse(JSON.stringify((u&&u.acl)||{}));
-  }
-  if (!_aclPendingChanges[email][modKey]) _aclPendingChanges[email][modKey] = { type:'selected', selected:[] };
-  const sel = _aclPendingChanges[email][modKey].selected || [];
-  if (!sel.includes(String(itemId))) sel.push(String(itemId));
-  _aclPendingChanges[email][modKey].selected = sel;
-  aclRefreshDetail();
-  // update dirty dot in list
-  const listEl = document.querySelector(`[onclick="aclSelectUser('${email}')"] span[style*='f59e0b']`);
-  if (!listEl) aclRenderFull(); else aclRefreshDetail();
-}
-
-function aclRemoveTag(email, modKey, itemId) {
-  if (!_aclPendingChanges[email]) {
-    const u = _aclUsers.find(u=>u.email===email);
-    _aclPendingChanges[email] = JSON.parse(JSON.stringify((u&&u.acl)||{}));
-  }
-  if (!_aclPendingChanges[email][modKey]) _aclPendingChanges[email][modKey] = { type:'selected', selected:[] };
-  _aclPendingChanges[email][modKey].selected = (_aclPendingChanges[email][modKey].selected||[]).filter(id=>String(id)!==String(itemId));
-  aclRefreshDetail();
-}
-
-function aclOnChange(email, modKey, type) {
-  if (!_aclPendingChanges[email]) {
-    const u = _aclUsers.find(u=>u.email===email);
-    _aclPendingChanges[email] = JSON.parse(JSON.stringify((u&&u.acl)||{}));
-  }
-  if (!_aclPendingChanges[email][modKey]) _aclPendingChanges[email][modKey] = { type, selected:[] };
-  _aclPendingChanges[email][modKey].type = type;
-  if (type !== 'selected') _aclPendingChanges[email][modKey].selected = [];
-  _aclTagSearch[modKey] = '';
-  aclRefreshDetail();
-}
-
-function aclDiscardOne(email) {
-  delete _aclPendingChanges[email];
-  aclRefreshDetail();
-  aclRenderFull();
-}
-
-async function aclDeleteUser(email) {
-  const u = _aclUsers.find(u=>u.email===email);
-  const name = (u&&u.name) || email;
-  if (!confirm(`Remove "${name}" (${email}) from the system?\n\nThis will delete their login record and access permissions. This cannot be undone.`)) return;
+async function dtSave() {
+  if (!_dtForm) return;
+  const f = _dtForm;
+  if (!f.email || !f.email.includes('@')) { showToast('Valid email required', 'error'); return; }
+  if (!f.name.trim()) { showToast('Name is required', 'error'); return; }
+  // For delivery leads, override acl to full access
+  const acl = f.role === 'delivery-lead'
+    ? { skillMatrix:{type:'all',selected:[]}, kpis:{type:'all',selected:[]}, uat:{type:'all',selected:[]}, ews:{type:'all',selected:[]}, rocketlane:{type:'all',selected:[]} }
+    : f.acl;
   try {
-    await apiFetch(`/api/acl/${encodeURIComponent(email)}`, { method: 'DELETE' });
-    _aclUsers = _aclUsers.filter(u=>u.email!==email);
-    delete _aclPendingChanges[email];
-    _aclSelectedEmail = _aclUsers.length ? _aclUsers[0].email : null;
-    showToast(`${name} removed.`);
-    aclRenderFull();
-  } catch(e) { showToast('Remove failed: '+e.message, 'error'); }
-}
-
-function aclOnSelectionChange(email, modKey) {
-  if (!_aclPendingChanges[email]) {
-    const u = _aclUsers.find(u=>u.email===email);
-    _aclPendingChanges[email] = JSON.parse(JSON.stringify((u&&u.acl)||{}));
-  }
-  const pickerId = `aclpick-${email.replace(/[@.]/g,'-')}-${modKey}`;
-  const picker = document.getElementById(pickerId);
-  const selected = [];
-  if (picker) picker.querySelectorAll('input[type=checkbox]:checked').forEach(cb=>selected.push(cb.value));
-  if (!_aclPendingChanges[email][modKey]) _aclPendingChanges[email][modKey] = { type:'selected', selected:[] };
-  _aclPendingChanges[email][modKey].selected = selected;
-}
-
-async function aclSaveOne(email) {
-  const pending = _aclPendingChanges[email];
-  if (!pending) return;
-  const u = _aclUsers.find(u=>u.email===email);
-  const current = JSON.parse(JSON.stringify((u&&u.acl)||{}));
-  const merged = Object.assign(current, pending);
-  try {
-    await apiFetch(`/api/acl/${encodeURIComponent(email)}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ acl: merged }) });
-    if (u) u.acl = merged;
-    delete _aclPendingChanges[email];
-    showToast('Saved permissions for '+(u&&u.name||email));
-    aclRenderFull();
+    await apiFetch('/api/delivery-team', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email:f.email, name:f.name, role:f.role, showInSkillMatrix:f.showInSkillMatrix, acl }) });
+    if (_dtIsNew) {
+      _dtMembers.push({ email:f.email.toLowerCase(), name:f.name, role:f.role, showInSkillMatrix:f.showInSkillMatrix, acl });
+      _dtSelEmail = f.email.toLowerCase();
+    } else {
+      const m = _dtMembers.find(m=>m.email===f.email);
+      if (m) Object.assign(m, { name:f.name, role:f.role, showInSkillMatrix:f.showInSkillMatrix, acl });
+    }
+    _dtForm = null;
+    _dtIsNew = false;
+    showToast((_dtIsNew?'Added: ':'Saved: ')+(f.name||f.email));
+    dtRenderFull();
   } catch(e) { showToast('Save failed: '+e.message, 'error'); }
 }
 
-async function aclSaveAll() {
-  const emails = Object.keys(_aclPendingChanges);
-  for (const email of emails) await aclSaveOne(email);
-}
-
-async function aclShowAudit() {
-  const panel = document.getElementById('aclAuditPanel');
-  const listEl = document.getElementById('aclAuditList');
-  if (!panel) return;
-  panel.style.display = 'block';
-  listEl.innerHTML = '<div style="color:var(--muted)">Loading…</div>';
+async function dtRemoveMember(email) {
+  const m = _dtMembers.find(m=>m.email===email);
+  const name = (m&&m.name)||email;
+  if (!confirm(`Remove "${name}" from the delivery team?\n\nThey will revert to Org Member access (no module access). This cannot be undone.`)) return;
   try {
-    const res = await apiFetch('/api/acl/audit');
-    const entries = res.audit || [];
-    if (!entries.length) { listEl.innerHTML = '<div style="color:var(--muted)">No audit entries yet.</div>'; return; }
-    listEl.innerHTML = entries.slice(0,100).map(e=>`<div style="padding:7px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;">
-      <span style="font-weight:600;font-size:12px;">${e.targetEmail}</span>
-      <span style="font-size:11px;color:var(--muted);">${new Date(e.timestamp).toLocaleString()}</span>
-      <span style="font-size:11px;color:var(--muted);">by ${e.changedBy}</span>
-    </div>`).join('');
-  } catch(e) { listEl.innerHTML = '<div style="color:#f87171">'+e.message+'</div>'; }
+    await apiFetch(`/api/delivery-team/${encodeURIComponent(email)}`, { method:'DELETE' });
+    _dtMembers = _dtMembers.filter(m=>m.email!==email);
+    _dtOrgCount++;
+    _dtForm = null;
+    _dtSelEmail = _dtMembers.length ? _dtMembers[0].email : null;
+    showToast(`${name} removed from delivery team.`);
+    dtRenderFull();
+  } catch(e) { showToast('Remove failed: '+e.message, 'error'); }
 }
 
 // ── Read-only fetch interceptor for proxy mode ────────────────────────────────
