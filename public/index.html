@@ -2742,7 +2742,21 @@ function dtFormChange(field, value) {
     if (b === 'type' && value !== 'selected' && value !== 'team') {
       _dtForm.acl[a].selected = [];
     }
-  } else { _dtForm[field] = value; }
+  } else {
+    _dtForm[field] = value;
+    // When role changes, reset ACL types to match role defaults
+    if (field === 'role') {
+      const smKpiType = value === 'team-manager' ? 'team' : value === 'delivery-lead' ? 'all' : 'own';
+      const projType  = value === 'delivery-lead' ? 'all' : 'selected';
+      _dtForm.acl = {
+        skillMatrix: { type: smKpiType, selected: _dtForm.acl?.skillMatrix?.selected || [] },
+        kpis:        { type: smKpiType, selected: _dtForm.acl?.kpis?.selected || [] },
+        uat:         { type: projType,  selected: _dtForm.acl?.uat?.selected || [] },
+        ews:         { type: projType,  selected: _dtForm.acl?.ews?.selected || [] },
+        rocketlane:  { type: projType,  selected: _dtForm.acl?.rocketlane?.selected || [] },
+      };
+    }
+  }
   dtRefreshRight();
 }
 
@@ -2779,9 +2793,7 @@ function dtBuildTagPicker(aclKey, items, selectedIds, label) {
     </div>
     <div style="max-height:140px;overflow-y:auto;padding:6px 10px;display:flex;flex-wrap:wrap;gap:5px;">
       ${availItems.length ? availItems.slice(0,80).map(it=>`<button onclick="dtAddItem('${aclKey}','${it.id}')"
-        style="background:var(--bg);border:1px solid var(--border);border-radius:99px;padding:3px 10px;font-size:11px;color:var(--text);cursor:pointer;"
-        onmouseover="this.style.borderColor='#6366f1';this.style.color='#818cf8';"
-        onmouseout="this.style.borderColor='';this.style.color='';">+ ${it.name}</button>`).join('')
+        style="background:var(--bg);border:1px solid var(--border);border-radius:99px;padding:3px 10px;font-size:11px;color:var(--text);cursor:pointer;">+ ${it.name}</button>`).join('')
       : `<span style="font-size:11px;color:var(--muted);">${tsq?'No matches':'All added'}</span>`}
     </div>
   </div>`;
