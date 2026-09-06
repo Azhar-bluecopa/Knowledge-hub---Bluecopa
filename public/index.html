@@ -837,18 +837,7 @@ html.dw-restoring #dwCover{display:block;position:fixed;top:0;left:0;right:0;bot
         <div class="settings-section-title" style="margin-bottom:4px;">🔐 Access Control</div>
         <div style="font-size:12px;color:var(--muted)">Set per-module permissions for each user. Changes take effect immediately and are logged in the audit trail.</div>
       </div>
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
-        <input type="text" class="form-input" id="aclSearchInput" placeholder="Search users…" oninput="aclFilterUsers(this.value)" style="max-width:300px;width:100%;"/>
-        <button class="btn-primary" onclick="aclShowAudit()" style="font-size:12px;padding:6px 14px;">🔍 Audit Log</button>
-      </div>
-      <div id="aclUserList" style="display:flex;flex-direction:column;gap:10px;"></div>
-      <div id="aclAuditPanel" style="display:none;margin-top:20px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-          <div class="settings-section-title">Audit History</div>
-          <button onclick="document.getElementById('aclAuditPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;">✕</button>
-        </div>
-        <div id="aclAuditList" style="font-size:12px;max-height:300px;overflow-y:auto;"></div>
-      </div>
+      <div id="aclTabWrap"></div>
     </div>
 
   </div>
@@ -2556,16 +2545,23 @@ function hideProxyBanner() {
 }
 
 // ── Access Control (RBAC Admin Tab) ──────────────────────────────────────────
+const ACL_MODULES = [
+  { key:'skillMatrix', label:'Skill Matrix', icon:'📈', types:['own','all','selected'], typeLabels:{own:'Own Info',all:'All Employees',selected:'Specific Employees'}, itemsKey:'employees' },
+  { key:'uat',         label:'UAT',          icon:'🧪', types:['none','all','selected'], typeLabels:{none:'No Access',all:'All Projects',selected:'Specific Projects'}, itemsKey:'uatProjects' },
+  { key:'ews',         label:'EWS',          icon:'⚠️', types:['none','all','selected'], typeLabels:{none:'No Access',all:'All Projects',selected:'Specific Projects'}, itemsKey:'ewsItems' },
+  { key:'rocketlane',  label:'Rocketlane',   icon:'🚀', types:['none','all','selected'], typeLabels:{none:'No Access',all:'All Projects',selected:'Specific Projects'}, itemsKey:'rlProjects' },
+];
 let _aclUsers = [];
-let _aclRLProjects = [];
-let _aclUATProjects = [];
-let _aclEWSItems = [];
-let _aclEmployees = [];
-let _aclFiltered = [];
+let _aclItems = { employees:[], rlProjects:[], uatProjects:[], ewsItems:[] };
+let _aclSelectedEmail = null;
+let _aclSearch = '';
+let _aclPendingChanges = {};
+let _aclTagSearch = {};
 
 async function loadACLTab() {
-  const listEl = document.getElementById('aclUserList');
-  listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">Loading users…</div>';
+  const wrap = document.getElementById('aclTabWrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:20px 0">Loading…</div>';
   try {
     const [usersRes, rlRes, uatRes, ewsRes, smRes] = await Promise.all([
       apiFetch('/api/acl/users'),
@@ -2575,151 +2571,292 @@ async function loadACLTab() {
       apiFetch('/api/skillmatrix').catch(()=>({employees:[]}))
     ]);
     _aclUsers = usersRes.users || [];
-    _aclRLProjects = (rlRes.projects || []).map(p=>({ id: String(p.projectId), name: p.projectName || p.projectId }));
-    _aclUATProjects = (uatRes.data || []).map(p=>({ id: p.id, name: p.name || p.id }));
-    _aclEWSItems = (ewsRes.data || []).map(e=>({ id: e.id, name: e.name || e.id }));
-    _aclEmployees = smRes.employees || [];
-    _aclFiltered = _aclUsers;
-    aclRenderUsers();
+    _aclItems.rlProjects   = (rlRes.projects||[]).map(p=>({ id:String(p.projectId), name:p.projectName||String(p.projectId) }));
+    _aclItems.uatProjects  = (uatRes.data||[]).map(p=>({ id:p.id, name:p.name||p.id }));
+    _aclItems.ewsItems     = (ewsRes.data||[]).map(e=>({ id:e.id, name:e.name||e.id }));
+    _aclItems.employees    = (smRes.employees||[]).map(e=> typeof e==='string'?{id:e,name:e}:{id:e.name||e,name:e.name||e});
+    _aclPendingChanges = {};
+    _aclTagSearch = {};
+    if (!_aclSelectedEmail && _aclUsers.length) _aclSelectedEmail = _aclUsers[0].email;
+    aclRenderFull();
   } catch(e) {
-    listEl.innerHTML = '<div style="color:#f87171;font-size:13px;">Failed to load: '+e.message+'</div>';
+    wrap.innerHTML = '<div style="color:#f87171;font-size:13px;">Failed to load: '+e.message+'</div>';
   }
 }
 
-function aclFilterUsers(q) {
-  const ql = q.toLowerCase();
-  _aclFiltered = q ? _aclUsers.filter(u=>(u.email||'').toLowerCase().includes(ql)||(u.name||'').toLowerCase().includes(ql)) : _aclUsers;
-  aclRenderUsers();
-}
-
-function aclRenderUsers() {
-  const listEl = document.getElementById('aclUserList');
-  if (!_aclFiltered.length) { listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">No users found.</div>'; return; }
-  listEl.innerHTML = _aclFiltered.map((u,i)=>aclUserCard(u,i)).join('');
-}
-
-function aclUserCard(u, i) {
+function aclUserSummary(u) {
+  if (u.isAdmin) return 'Admin — full access';
   const acl = u.acl || {};
-  const sm = acl.skillMatrix || { type:'own', selected:[] };
-  const kpi = acl.kpis || { type:'own', selected:[] };
-  const uat = acl.uat || { type:'none', selected:[] };
-  const ews = acl.ews || { type:'none', selected:[] };
-  const rl = acl.rocketlane || { type:'none', selected:[] };
-  const isAdmin = u.isAdmin || false;
-  function peopleRow(label, key, val) {
-    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
-      <span style="min-width:90px;font-size:12px;color:var(--muted)">${label}</span>
-      <select onchange="aclOnTypeChange(this,'${u.email}','${key}')" style="font-size:12px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--text);">
-        ${['own','all','selected'].map(t=>`<option value="${t}"${val.type===t?' selected':''}>${{own:'Own Info',all:'All Employees',selected:'Selected'}[t]}</option>`).join('')}
-      </select>
-      ${val.type==='selected'?`<div class="acl-multi-picker" id="acl-${u.email.replace(/[@.]/g,'-')}-${key}">${aclMultiPicker(u.email,key,_aclEmployees,val.selected||[])}</div>`:''}
+  const parts = ACL_MODULES.map(m => {
+    const p = acl[m.key] || { type: m.types[0] };
+    if (p.type === 'all') return m.label + ': All';
+    if (p.type === 'own') return m.label + ': Own';
+    if (p.type === 'none') return null;
+    if (p.type === 'selected') return m.label + ': ' + (p.selected||[]).length + ' selected';
+    return null;
+  }).filter(Boolean);
+  return parts.length ? parts.join(' · ') : 'No access';
+}
+
+function aclRenderFull() {
+  const wrap = document.getElementById('aclTabWrap');
+  if (!wrap) return;
+  const ql = _aclSearch.toLowerCase();
+  const filtered = _aclSearch ? _aclUsers.filter(u=>(u.name||'').toLowerCase().includes(ql)||(u.email||'').toLowerCase().includes(ql)) : _aclUsers;
+  const hasDirty = Object.keys(_aclPendingChanges).length > 0;
+  const selectedUser = _aclUsers.find(u=>u.email===_aclSelectedEmail) || null;
+
+  const userListHTML = filtered.map(u => {
+    const isSel = u.email === _aclSelectedEmail;
+    const isDirty = !!_aclPendingChanges[u.email];
+    const ini = (u.name||u.email||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const avatarColor = u.isAdmin ? '#c9a227' : isDirty ? '#f59e0b' : '#6366f1';
+    return `<div onclick="aclSelectUser('${u.email}')" style="
+        display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;
+        background:${isSel?'rgba(99,102,241,.12)':'transparent'};
+        border:1px solid ${isSel?'rgba(99,102,241,.35)':'transparent'};
+        transition:all .12s;">
+      <div style="width:34px;height:34px;border-radius:50%;background:${avatarColor};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;">${ini}</div>
+      <div style="min-width:0;flex:1;">
+        <div style="font-size:13px;font-weight:${isSel?600:500};color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.name||u.email}</div>
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${aclUserSummary(u)}</div>
+      </div>
+      ${isDirty?`<span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></span>`:''}
     </div>`;
-  }
-  function projRow(label, key, val, items) {
-    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
-      <span style="min-width:90px;font-size:12px;color:var(--muted)">${label}</span>
-      <select onchange="aclOnTypeChange(this,'${u.email}','${key}')" style="font-size:12px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--text);">
-        ${['none','all','selected'].map(t=>`<option value="${t}"${val.type===t?' selected':''}>${{none:'No Access',all:'All Projects',selected:'Selected'}[t]}</option>`).join('')}
-      </select>
-      ${val.type==='selected'?`<div class="acl-multi-picker" id="acl-${u.email.replace(/[@.]/g,'-')}-${key}">${aclMultiPicker(u.email,key,items,val.selected||[])}</div>`:''}
-    </div>`;
-  }
-  return `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;" id="acl-card-${i}">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
-      <div style="font-weight:600;font-size:14px;">${u.name||u.email}</div>
-      <div style="font-size:12px;color:var(--muted);">${u.email}</div>
-      ${isAdmin?'<span style="background:#fbbf24;color:#1e1e1e;border-radius:99px;padding:1px 8px;font-size:11px;font-weight:700;">Admin</span>':''}
+  }).join('') || '<div style="color:var(--muted);font-size:12px;padding:12px 4px;">No users found.</div>';
+
+  const detailHTML = selectedUser ? aclBuildDetail(selectedUser) : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;">Select a user to manage permissions.</div>';
+
+  wrap.innerHTML = `
+    <div style="display:flex;gap:0;height:560px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+      <!-- LEFT: user list -->
+      <div style="width:260px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg);">
+        <div style="padding:12px;border-bottom:1px solid var(--border);">
+          <input type="text" placeholder="Search users…" value="${_aclSearch}"
+            oninput="_aclSearch=this.value;aclRenderFull()"
+            style="width:100%;padding:7px 10px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);box-sizing:border-box;outline:none;"/>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:6px;">
+          ${userListHTML}
+        </div>
+        <div style="padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;">
+          ${hasDirty?`<button onclick="aclSaveAll()" style="flex:1;background:#22c55e;color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:12px;font-weight:600;cursor:pointer;">💾 Save All</button>`:''}
+          <button onclick="aclShowAudit()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12px;cursor:pointer;color:var(--muted);" title="Audit Log">🔍</button>
+        </div>
+      </div>
+      <!-- RIGHT: detail -->
+      <div id="aclDetailPane" style="flex:1;overflow-y:auto;background:var(--card);padding:24px 28px;">
+        ${detailHTML}
+      </div>
     </div>
-    ${isAdmin?'<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Admins always have full access — permissions cannot be changed here.</div>':
-    `<div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px;letter-spacing:.04em;text-transform:uppercase;">People Modules</div>
-    ${peopleRow('Skill Matrix','skillMatrix',sm)}
-    ${peopleRow('KPIs','kpis',kpi)}
-    <div style="font-size:12px;font-weight:600;color:var(--muted);margin:10px 0 8px;letter-spacing:.04em;text-transform:uppercase;">Project Modules</div>
-    ${projRow('UAT','uat',uat,_aclUATProjects)}
-    ${projRow('EWS','ews',ews,_aclEWSItems)}
-    ${projRow('Rocketlane','rocketlane',rl,_aclRLProjects)}
-    <button class="btn-primary" onclick="aclSaveUser('${u.email}',${i})" style="margin-top:10px;font-size:12px;padding:5px 14px;">Save</button>`}
-  </div>`;
+    <div id="aclAuditPanel" style="display:none;margin-top:16px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-weight:600;font-size:13px;">Audit History</div>
+        <button onclick="document.getElementById('aclAuditPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;">✕</button>
+      </div>
+      <div id="aclAuditList" style="font-size:12px;max-height:280px;overflow-y:auto;"></div>
+    </div>`;
 }
 
-function aclMultiPicker(email, key, items, selected) {
-  if (!items.length) return '<span style="font-size:11px;color:var(--muted)">No items available</span>';
-  const selSet = new Set(selected.map(String));
-  return items.slice(0,100).map(item=>{
-    const id = String(item.id||item);
-    const nm = item.name||item;
-    const checked = selSet.has(id);
-    const eid = email.replace(/[@.]/g,'-');
-    return `<label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;white-space:nowrap;padding:2px 0;">
-      <input type="checkbox" value="${id}" ${checked?'checked':''} onchange="aclPickerChange('${email}','${key}')"> ${nm}
-    </label>`;
+function aclBuildDetail(u) {
+  if (u.isAdmin) {
+    const ini = (u.name||u.email||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    return `
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border);">
+        <div style="width:44px;height:44px;border-radius:50%;background:#c9a227;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;">${ini}</div>
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--text);">${u.name||u.email}</div>
+          <div style="font-size:12px;color:var(--muted);">${u.email}</div>
+        </div>
+        <span style="margin-left:auto;background:rgba(201,162,39,.15);color:#c9a227;border:1px solid rgba(201,162,39,.3);border-radius:99px;padding:3px 12px;font-size:11px;font-weight:700;">Admin</span>
+      </div>
+      <div style="background:rgba(201,162,39,.06);border:1px solid rgba(201,162,39,.2);border-radius:8px;padding:16px 18px;text-align:center;color:var(--muted);font-size:13px;">
+        Admin users have full access to all modules. Permissions cannot be restricted.
+      </div>`;
+  }
+
+  const pending = _aclPendingChanges[u.email] || {};
+  const isDirty = !!_aclPendingChanges[u.email];
+  const ini = (u.name||u.email||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+
+  const moduleCards = ACL_MODULES.map(m => {
+    const saved = (u.acl||{})[m.key] || { type: m.types[0], selected:[] };
+    const cur = pending[m.key] || saved;
+    const items = _aclItems[m.itemsKey] || [];
+    const selIds = new Set((cur.selected||[]).map(String));
+    const tsq = (_aclTagSearch[m.key]||'').toLowerCase();
+
+    const selectedItems = items.filter(it=>selIds.has(String(it.id)));
+    const availItems = items.filter(it=>!selIds.has(String(it.id)) && (!tsq || it.name.toLowerCase().includes(tsq)));
+
+    const tagPicker = cur.type==='selected' ? `
+      <div style="margin-top:12px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+        ${selectedItems.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg);">
+          ${selectedItems.map(it=>`<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);color:#818cf8;border-radius:99px;padding:3px 10px;font-size:12px;font-weight:500;">
+            ${it.name}
+            <button onclick="aclRemoveTag('${u.email}','${m.key}','${it.id}')" style="background:none;border:none;color:inherit;cursor:pointer;font-size:14px;padding:0;line-height:1;opacity:.7;">×</button>
+          </span>`).join('')}
+        </div>` : `<div style="padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg);font-size:12px;color:var(--muted);">None selected — pick from the list below</div>`}
+        <div style="padding:8px 12px;border-bottom:1px solid var(--border);">
+          <input type="text" placeholder="Search ${m.label.toLowerCase()}…" value="${_aclTagSearch[m.key]||''}"
+            oninput="_aclTagSearch['${m.key}']=this.value;aclRefreshDetail()"
+            style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);box-sizing:border-box;outline:none;"/>
+        </div>
+        <div style="max-height:160px;overflow-y:auto;padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px;">
+          ${availItems.length ? availItems.map(it=>`<button onclick="aclAddTag('${u.email}','${m.key}','${it.id}')"
+            style="background:var(--bg);border:1px solid var(--border);border-radius:99px;padding:4px 12px;font-size:12px;color:var(--text);cursor:pointer;transition:all .1s;"
+            onmouseover="this.style.borderColor='#6366f1';this.style.color='#818cf8';"
+            onmouseout="this.style.borderColor='';this.style.color='';">
+            + ${it.name}
+          </button>`).join('') : `<span style="font-size:12px;color:var(--muted);">${tsq?'No matches':'All items already selected'}</span>`}
+        </div>
+      </div>` : '';
+
+    return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);">${m.icon} ${m.label}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">
+            ${m.key==='skillMatrix'?'Which employees this user can view in Skill Matrix':
+              m.key==='uat'?'Which UAT client projects this user can access':
+              m.key==='ews'?'Which EWS entries this user can view':
+              'Which Rocketlane projects appear in the dashboard'}
+          </div>
+        </div>
+        <select onchange="aclOnChange('${u.email}','${m.key}',this.value)"
+          style="padding:7px 12px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);cursor:pointer;outline:none;">
+          ${m.types.map(t=>`<option value="${t}"${cur.type===t?' selected':''}>${m.typeLabels[t]}</option>`).join('')}
+        </select>
+      </div>
+      ${tagPicker}
+    </div>`;
   }).join('');
+
+  return `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border);">
+      <div style="width:44px;height:44px;border-radius:50%;background:#6366f1;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;">${ini}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:16px;font-weight:700;color:var(--text);">${u.name||u.email}</div>
+        <div style="font-size:12px;color:var(--muted);">${u.email}</div>
+      </div>
+      ${isDirty ? `
+        <button onclick="aclSaveOne('${u.email}')" style="background:#6366f1;color:#fff;border:none;border-radius:7px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;">Save Changes</button>
+        <button onclick="aclDiscardOne('${u.email}')" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:8px 14px;font-size:13px;cursor:pointer;">Discard</button>
+      ` : ''}
+    </div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Module Permissions</div>
+    ${moduleCards}
+    <div style="margin-top:8px;padding-top:16px;border-top:1px solid var(--border);">
+      <button onclick="aclDeleteUser('${u.email}')"
+        style="background:none;border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:7px;padding:7px 16px;font-size:12px;cursor:pointer;transition:all .15s;"
+        onmouseover="this.style.background='rgba(239,68,68,.08)'" onmouseout="this.style.background='none'">
+        Remove User
+      </button>
+    </div>`;
 }
 
-function aclOnTypeChange(selectEl, email, key) {
-  const type = selectEl.value;
-  const eid = email.replace(/[@.]/g,'-');
-  const pickerWrap = selectEl.parentElement.querySelector('.acl-multi-picker');
-  if (type === 'selected') {
-    if (!pickerWrap) {
-      const div = document.createElement('div');
-      div.className = 'acl-multi-picker';
-      div.id = `acl-${eid}-${key}`;
-      const items = key==='skillMatrix'||key==='kpis' ? _aclEmployees : key==='uat' ? _aclUATProjects : key==='ews' ? _aclEWSItems : _aclRLProjects;
-      div.innerHTML = aclMultiPicker(email, key, items, []);
-      selectEl.parentElement.appendChild(div);
-    }
-  } else if (pickerWrap) {
-    pickerWrap.remove();
-  }
+function aclSelectUser(email) {
+  _aclSelectedEmail = email;
+  _aclTagSearch = {};
+  aclRenderFull();
 }
 
-function aclPickerChange(email, key) { /* live — nothing needed, values read on save */ }
-
-function aclGetCurrentACL(email) {
-  const u = _aclUsers.find(u=>u.email===email);
-  const old = (u && u.acl) || {};
-  const modules = ['skillMatrix','kpis','uat','ews','rocketlane'];
-  const result = {};
-  modules.forEach(key => {
-    const eid = email.replace(/[@.]/g,'-');
-    const wrap = document.getElementById(`acl-${eid}-${key}`);
-    const sel = document.querySelector(`[onchange*="'${email}','${key}'"]`);
-    const type = sel ? sel.value : (old[key]||{}).type || (key==='skillMatrix'||key==='kpis'?'own':'none');
-    let selected = [];
-    if (type === 'selected' && wrap) {
-      wrap.querySelectorAll('input[type=checkbox]:checked').forEach(cb=>selected.push(cb.value));
-    }
-    result[key] = { type, selected };
-  });
-  return result;
+function aclRefreshDetail() {
+  const pane = document.getElementById('aclDetailPane');
+  if (!pane) return;
+  const u = _aclUsers.find(u=>u.email===_aclSelectedEmail);
+  if (u) pane.innerHTML = aclBuildDetail(u);
 }
 
-async function aclSaveUser(email, cardIdx) {
-  const acl = aclGetCurrentACL(email);
-  try {
-    await apiFetch(`/api/acl/${encodeURIComponent(email)}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ acl }) });
+function aclAddTag(email, modKey, itemId) {
+  if (!_aclPendingChanges[email]) {
     const u = _aclUsers.find(u=>u.email===email);
-    if (u) u.acl = acl;
-    showToast('Permissions saved for '+email);
-  } catch(e) {
-    showToast('Save failed: '+e.message, 'error');
+    _aclPendingChanges[email] = JSON.parse(JSON.stringify((u&&u.acl)||{}));
   }
+  if (!_aclPendingChanges[email][modKey]) _aclPendingChanges[email][modKey] = { type:'selected', selected:[] };
+  const sel = _aclPendingChanges[email][modKey].selected || [];
+  if (!sel.includes(String(itemId))) sel.push(String(itemId));
+  _aclPendingChanges[email][modKey].selected = sel;
+  const listEl = document.querySelector(`[onclick="aclSelectUser('${email}')"] span[style*='f59e0b']`);
+  if (!listEl) aclRenderFull(); else aclRefreshDetail();
+}
+
+function aclRemoveTag(email, modKey, itemId) {
+  if (!_aclPendingChanges[email]) {
+    const u = _aclUsers.find(u=>u.email===email);
+    _aclPendingChanges[email] = JSON.parse(JSON.stringify((u&&u.acl)||{}));
+  }
+  if (!_aclPendingChanges[email][modKey]) _aclPendingChanges[email][modKey] = { type:'selected', selected:[] };
+  _aclPendingChanges[email][modKey].selected = (_aclPendingChanges[email][modKey].selected||[]).filter(id=>String(id)!==String(itemId));
+  aclRefreshDetail();
+}
+
+function aclOnChange(email, modKey, type) {
+  if (!_aclPendingChanges[email]) {
+    const u = _aclUsers.find(u=>u.email===email);
+    _aclPendingChanges[email] = JSON.parse(JSON.stringify((u&&u.acl)||{}));
+  }
+  if (!_aclPendingChanges[email][modKey]) _aclPendingChanges[email][modKey] = { type, selected:[] };
+  _aclPendingChanges[email][modKey].type = type;
+  if (type !== 'selected') _aclPendingChanges[email][modKey].selected = [];
+  _aclTagSearch[modKey] = '';
+  aclRefreshDetail();
+}
+
+function aclDiscardOne(email) {
+  delete _aclPendingChanges[email];
+  aclRefreshDetail();
+  aclRenderFull();
+}
+
+async function aclDeleteUser(email) {
+  const u = _aclUsers.find(u=>u.email===email);
+  const name = (u&&u.name) || email;
+  if (!confirm(`Remove "${name}" (${email}) from the system?\n\nThis will delete their login record and access permissions. This cannot be undone.`)) return;
+  try {
+    await apiFetch(`/api/acl/${encodeURIComponent(email)}`, { method: 'DELETE' });
+    _aclUsers = _aclUsers.filter(u=>u.email!==email);
+    delete _aclPendingChanges[email];
+    _aclSelectedEmail = _aclUsers.length ? _aclUsers[0].email : null;
+    showToast(`${name} removed.`);
+    aclRenderFull();
+  } catch(e) { showToast('Remove failed: '+e.message, 'error'); }
+}
+
+async function aclSaveOne(email) {
+  const pending = _aclPendingChanges[email];
+  if (!pending) return;
+  const u = _aclUsers.find(u=>u.email===email);
+  const current = JSON.parse(JSON.stringify((u&&u.acl)||{}));
+  const merged = Object.assign(current, pending);
+  try {
+    await apiFetch(`/api/acl/${encodeURIComponent(email)}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ acl: merged }) });
+    if (u) u.acl = merged;
+    delete _aclPendingChanges[email];
+    showToast('Saved permissions for '+(u&&u.name||email));
+    aclRenderFull();
+  } catch(e) { showToast('Save failed: '+e.message, 'error'); }
+}
+
+async function aclSaveAll() {
+  const emails = Object.keys(_aclPendingChanges);
+  for (const email of emails) await aclSaveOne(email);
 }
 
 async function aclShowAudit() {
   const panel = document.getElementById('aclAuditPanel');
   const listEl = document.getElementById('aclAuditList');
+  if (!panel) return;
   panel.style.display = 'block';
   listEl.innerHTML = '<div style="color:var(--muted)">Loading…</div>';
   try {
     const res = await apiFetch('/api/acl/audit');
     const entries = res.audit || [];
     if (!entries.length) { listEl.innerHTML = '<div style="color:var(--muted)">No audit entries yet.</div>'; return; }
-    listEl.innerHTML = entries.slice(0,100).map(e=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);">
-      <span style="font-weight:600">${e.targetEmail}</span>
-      <span style="color:var(--muted);margin-left:8px;font-size:11px">${new Date(e.timestamp).toLocaleString()}</span>
-      <span style="margin-left:8px;font-size:11px;color:var(--muted)">by ${e.changedBy}</span>
+    listEl.innerHTML = entries.slice(0,100).map(e=>`<div style="padding:7px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;">
+      <span style="font-weight:600;font-size:12px;">${e.targetEmail}</span>
+      <span style="font-size:11px;color:var(--muted);">${new Date(e.timestamp).toLocaleString()}</span>
+      <span style="font-size:11px;color:var(--muted);">by ${e.changedBy}</span>
     </div>`).join('');
   } catch(e) {
     listEl.innerHTML = '<div style="color:#f87171">'+e.message+'</div>';
