@@ -3306,12 +3306,18 @@ app.get('/api/rocketlane/projects', async (req, res) => {
   }
   await getDbInitPromise(); ensureACL();
   const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  if (!email) console.warn('[RL] /api/rocketlane/projects called without x-user-email header — returning no data');
   const allowedRLIds = getAllowedRLProjectIds(email);
   function applyRLProjectsACL(data) {
     if (allowedRLIds === null) return data;
+    const projects = data.data || [];
     const idSet = new Set(allowedRLIds.map(String));
-    const filtered = (data.data || []).filter(p => idSet.has(String(p.projectId)));
-    return { ...data, data: filtered };
+    const ownerName = resolveNameFromEmail(email);
+    const filtered = projects.filter(p =>
+      idSet.has(String(p.projectId)) ||
+      (ownerName && (p.projectOwner === ownerName || (p.owner && [p.owner.firstName, p.owner.lastName].filter(Boolean).join(' ').trim() === ownerName)))
+    );
+    return { ...data, data: filtered, _restricted: true, _email: email || null };
   }
   const now = Date.now();
   if (rlCache && !req.query.refresh && (now - rlCacheAt) < RL_CACHE_TTL) {
@@ -3334,7 +3340,6 @@ app.get('/api/rocketlane/projects', async (req, res) => {
       const pid = p.projectId;
       const comp = completionMap[pid];
       if (comp && comp.total > 0) {
-        // Weighted formula: completed=100%, in-progress=50%, todo=0%
         p.completionPct = Math.min(100, Math.round((comp.completed + comp.inprogress * 0.5) / comp.total * 100));
         p.completionTasks = comp;
       } else {
@@ -3347,6 +3352,7 @@ app.get('/api/rocketlane/projects', async (req, res) => {
     rlCacheAt = now;
     res.json({ ...applyRLProjectsACL(data), cached: false, fetchedAt: now });
   } catch (e) {
+    console.error('[RL] fetch_failed:', e.message);
     res.status(500).json({ error: 'fetch_failed', message: e.message });
   }
 });
