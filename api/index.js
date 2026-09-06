@@ -268,6 +268,14 @@ function isAdmin(req) {
 
 // ── Role-Based Access Control ─────────────────────────────────────────────────
 
+// Default for anyone not in the delivery team
+const ORG_MEMBER_ACL = {
+  skillMatrix: { type: 'none', selected: [] },
+  kpis:        { type: 'none', selected: [] },
+  uat:         { type: 'none', selected: [] },
+  ews:         { type: 'none', selected: [] },
+  rocketlane:  { type: 'none', selected: [] }
+};
 const ACL_DEFAULTS = {
   skillMatrix: { type: 'own',  selected: [] },
   kpis:        { type: 'own',  selected: [] },
@@ -275,6 +283,10 @@ const ACL_DEFAULTS = {
   ews:         { type: 'none', selected: [] },
   rocketlane:  { type: 'none', selected: [] }
 };
+
+function ensureDeliveryTeam() {
+  if (!db.deliveryTeam) db.deliveryTeam = [];
+}
 const ACL_ADMIN_FULL = {
   skillMatrix: { type: 'all', selected: [] },
   kpis:        { type: 'all', selected: [] },
@@ -324,25 +336,41 @@ function ensureACL() {
 }
 
 function getUserACL(email) {
-  if (!email) return { ...ACL_DEFAULTS };
+  if (!email) return { ...ORG_MEMBER_ACL };
   const lc = email.toLowerCase().trim();
   const adminEmails = (db.settings && db.settings.adminEmails) || ['azhar.m@bluecopa.com'];
   if (adminEmails.map(e => e.toLowerCase()).includes(lc)) return { ...ACL_ADMIN_FULL };
-  ensureACL();
-  const stored = db.acl[lc] || {};
-  return {
-    skillMatrix: stored.skillMatrix || ACL_DEFAULTS.skillMatrix,
-    kpis:        stored.kpis        || ACL_DEFAULTS.kpis,
-    uat:         stored.uat         || ACL_DEFAULTS.uat,
-    ews:         stored.ews         || ACL_DEFAULTS.ews,
-    rocketlane:  stored.rocketlane  || ACL_DEFAULTS.rocketlane
-  };
+  // Delivery team is the source of truth — look up the member config
+  ensureDeliveryTeam();
+  const member = (db.deliveryTeam || []).find(m => (m.email||'').toLowerCase() === lc);
+  if (member) {
+    if (member.role === 'delivery-lead') return { ...ACL_ADMIN_FULL };
+    return {
+      skillMatrix: member.acl?.skillMatrix || ORG_MEMBER_ACL.skillMatrix,
+      kpis:        member.acl?.kpis        || ORG_MEMBER_ACL.kpis,
+      uat:         member.acl?.uat         || ORG_MEMBER_ACL.uat,
+      ews:         member.acl?.ews         || ORG_MEMBER_ACL.ews,
+      rocketlane:  member.acl?.rocketlane  || ORG_MEMBER_ACL.rocketlane
+    };
+  }
+  // Not in delivery team → Org Member (all none)
+  return { ...ORG_MEMBER_ACL };
 }
 
 // Resolve a user's email to their Skill Matrix employee name
 function resolveNameFromEmail(email) {
   if (!email) return null;
   const lc = email.toLowerCase();
+  // Check delivery team record first (most accurate)
+  ensureDeliveryTeam();
+  const dtMember = (db.deliveryTeam||[]).find(m=>(m.email||'').toLowerCase()===lc);
+  if (dtMember && dtMember.name) {
+    const employees = db.skillMatrix?.employees || [];
+    if (employees.includes(dtMember.name)) return dtMember.name;
+    const firstName = dtMember.name.split(' ')[0].toLowerCase();
+    const match = employees.find(e=>e.toLowerCase().startsWith(firstName));
+    if (match) return match;
+  }
   const memberEmails = db.learning?.memberEmails || {};
   for (const [name, em] of Object.entries(memberEmails)) {
     if (em && em.toLowerCase() === lc) return name;
@@ -3992,6 +4020,52 @@ app.patch('/api/users/:email/role', async (req, res) => {
   user.role = req.body.role;
   await saveDB(db);
   res.json({ email: user.email, name: user.name, role: user.role });
+});
+
+// ── Delivery Team Registry ────────────────────────────────────────────────────
+
+app.get('/api/delivery-team', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  await getDbInitPromise(); ensureDeliveryTeam();
+  const totalUsers = (db.users || []).length;
+  const dtEmails = new Set((db.deliveryTeam||[]).map(m=>(m.email||'').toLowerCase()));
+  const orgCount = (db.users||[]).filter(u=>!dtEmails.has((u.email||'').toLowerCase())).length;
+  // Get RL projects for client pickers
+  const rlProjects = (db.rlCache?.projects || []).map(p=>({ id:String(p.projectId), name:p.projectName||String(p.projectId) }));
+  res.json({ ok:true, members: db.deliveryTeam||[], orgCount, totalUsers, rlProjects });
+});
+
+app.post('/api/delivery-team', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  await getDbInitPromise(); ensureDeliveryTeam();
+  const { email, name, role, showInSkillMatrix, acl } = req.body;
+  if (!email) return res.status(400).json({ error: 'email required' });
+  const lc = email.toLowerCase().trim();
+  const adminEmails = ((db.settings?.adminEmails)||['azhar.m@bluecopa.com']).map(e=>e.toLowerCase());
+  if (adminEmails.includes(lc)) return res.status(400).json({ error: 'Cannot manage admin accounts here' });
+  const existing = db.deliveryTeam.find(m=>(m.email||'').toLowerCase()===lc);
+  if (existing) {
+    if (name  !== undefined) existing.name  = name;
+    if (role  !== undefined) existing.role  = role;
+    if (showInSkillMatrix !== undefined) existing.showInSkillMatrix = showInSkillMatrix;
+    if (acl   !== undefined) existing.acl   = acl;
+    existing.updatedAt = new Date().toISOString();
+  } else {
+    db.deliveryTeam.push({ email:lc, name:name||lc, role:role||'delivery', showInSkillMatrix: showInSkillMatrix !== false, acl: acl || { ...ROLE_TEMPLATES[role||'delivery'] }, createdAt:new Date().toISOString() });
+  }
+  await saveDB(db);
+  res.json({ ok:true });
+});
+
+app.delete('/api/delivery-team/:email', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  await getDbInitPromise(); ensureDeliveryTeam();
+  const lc = decodeURIComponent(req.params.email).toLowerCase().trim();
+  const before = db.deliveryTeam.length;
+  db.deliveryTeam = db.deliveryTeam.filter(m=>(m.email||'').toLowerCase()!==lc);
+  if (db.deliveryTeam.length === before) return res.status(404).json({ error: 'Not found' });
+  await saveDB(db);
+  res.json({ ok:true });
 });
 
 // ── ACL Routes ────────────────────────────────────────────────────────────────
