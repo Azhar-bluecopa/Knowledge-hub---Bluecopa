@@ -2750,7 +2750,14 @@ function aclBuildDetail(u) {
       ` : ''}
     </div>
     <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Module Permissions</div>
-    ${moduleCards}`;
+    ${moduleCards}
+    <div style="margin-top:8px;padding-top:16px;border-top:1px solid var(--border);">
+      <button onclick="aclDeleteUser('${u.email}')"
+        style="background:none;border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:7px;padding:7px 16px;font-size:12px;cursor:pointer;transition:all .15s;"
+        onmouseover="this.style.background='rgba(239,68,68,.08)'" onmouseout="this.style.background='none'">
+        Remove User
+      </button>
+    </div>`;
 }
 
 function aclSelectUser(email) {
@@ -2807,6 +2814,20 @@ function aclDiscardOne(email) {
   delete _aclPendingChanges[email];
   aclRefreshDetail();
   aclRenderFull();
+}
+
+async function aclDeleteUser(email) {
+  const u = _aclUsers.find(u=>u.email===email);
+  const name = (u&&u.name) || email;
+  if (!confirm(`Remove "${name}" (${email}) from the system?\n\nThis will delete their login record and access permissions. This cannot be undone.`)) return;
+  try {
+    await apiFetch(`/api/acl/${encodeURIComponent(email)}`, { method: 'DELETE' });
+    _aclUsers = _aclUsers.filter(u=>u.email!==email);
+    delete _aclPendingChanges[email];
+    _aclSelectedEmail = _aclUsers.length ? _aclUsers[0].email : null;
+    showToast(`${name} removed.`);
+    aclRenderFull();
+  } catch(e) { showToast('Remove failed: '+e.message, 'error'); }
 }
 
 function aclOnSelectionChange(email, modKey) {

@@ -4045,6 +4045,30 @@ app.get('/api/acl/users', async (req, res) => {
   res.json({ ok: true, users });
 });
 
+app.delete('/api/acl/:email', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  await getDbInitPromise(); ensureACL(); ensureUsers();
+  const targetEmail = decodeURIComponent(req.params.email).toLowerCase().trim();
+  const adminEmails = ((db.settings && db.settings.adminEmails) || ['azhar.m@bluecopa.com']).map(e=>e.toLowerCase());
+  if (adminEmails.includes(targetEmail)) return res.status(400).json({ error: 'Cannot remove an admin account' });
+  // Remove from db.users (login records)
+  const before = (db.users||[]).length;
+  db.users = (db.users||[]).filter(u=>(u.email||'').toLowerCase() !== targetEmail);
+  // Remove ACL entry
+  delete db.acl[targetEmail];
+  // Remove from learning.memberEmails if present
+  const memberEmails = db.learning?.memberEmails || {};
+  for (const [name, em] of Object.entries(memberEmails)) {
+    if (em && em.toLowerCase().trim() === targetEmail) delete memberEmails[name];
+  }
+  const adminEmail = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  if (!db.aclAudit) db.aclAudit = [];
+  db.aclAudit.unshift({ changedBy: adminEmail, targetEmail, action: 'delete', timestamp: new Date().toISOString() });
+  if (db.aclAudit.length > 500) db.aclAudit.length = 500;
+  await saveDB(db);
+  res.json({ ok: true, removed: (db.users||[]).length !== before });
+});
+
 app.put('/api/acl/:email', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
   await getDbInitPromise(); ensureACL();
