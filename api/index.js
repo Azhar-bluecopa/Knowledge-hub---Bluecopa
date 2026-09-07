@@ -4070,6 +4070,11 @@ app.patch('/api/users/:email/role', async (req, res) => {
 
 // ── Delivery Team Registry ────────────────────────────────────────────────────
 
+app.get('/api/delivery-team/count', async (req, res) => {
+  await getDbInitPromise(); ensureDeliveryTeam();
+  res.json({ ok:true, count: (db.deliveryTeam||[]).length });
+});
+
 app.get('/api/delivery-team', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
   await getDbInitPromise(); ensureDeliveryTeam();
