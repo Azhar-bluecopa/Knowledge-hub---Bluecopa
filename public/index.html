@@ -7399,7 +7399,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=17" defer></script>
-  <script src="/app.js?v=104" defer></script>
+  <script src="/app.js?v=105" defer></script>
 <script>
 // Inline fetch — runs immediately, not gated on app.js cache
 (async()=>{try{const r=await fetch('/api/delivery-team/count');if(r.ok){const d=await r.json();const el=document.getElementById('dwStatSMPeople');if(el&&d.count){el.textContent=d.count;}}}catch(e){}})();
@@ -13764,23 +13764,25 @@ async function rlSubmitCustomerLink() {
   if (!rlProjectId) { alert('Please select a project.'); return; }
   var opt = sel.options[sel.selectedIndex];
   var text = opt ? opt.textContent : '';
-  // Parse customer name from option text: "ProjectName (CustomerName)"
   var match = text.match(/^(.*?)\s*\(([^)]+)\)$/);
   var projectName = match ? match[1].trim() : text;
   var clientName = match ? match[2].trim() : text;
-  if (typeof rlGenerateCustomerLink === 'function') {
+
+  var submitBtn = modal.querySelector('button[onclick="rlSubmitCustomerLink()"]');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Generating…'; }
+
+  try {
+    var link = await clCreate('status', { clientName: clientName || projectName, projectName: projectName, rlProjectId: String(rlProjectId) });
+    var url = window.location.origin + '/portal/' + link.token;
     var display = modal.querySelector('#rlCustLinkDisplay');
+    var span = modal.querySelector('.rl-link-url');
     if (display) display.style.display = 'flex';
-    await rlGenerateCustomerLink(rlProjectId, projectName, clientName);
-    // Copy the generated URL into the modal's display
-    var globalDisplay = document.getElementById('rlCustLinkDisplay');
-    if (globalDisplay) {
-      var span = globalDisplay.querySelector('.rl-link-url');
-      var url = span ? (span.dataset.url || span.textContent) : '';
-      var modalSpan = modal.querySelector('.rl-link-url');
-      if (modalSpan && url) { modalSpan.textContent = url; modalSpan.dataset.url = url; }
-    }
-  }
+    if (span) { span.textContent = url; span.dataset.url = url; }
+    navigator.clipboard.writeText(url).catch(function(){});
+    if (window.showToast) showToast('Project Status link copied!');
+  } catch(e) { alert('Error: ' + e.message); }
+
+  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Generate Link →'; }
 }
 
 })();

@@ -775,15 +775,43 @@ async function cshHubModalCreate() {
 // UAT — generate scoped UAT-only customer link from share portal modal
 async function uatGenerateScopedLink() {
   try {
-    const projectId = window.UAT && UAT.activeProjectId ? UAT.activeProjectId : null;
-    if (!projectId) { alert('No UAT project selected. Open a project first.'); return; }
-    const link = await clCreate('uat', { clientName:'Client', projectName:'', uatProjectId: projectId });
-    const url = window.location.origin+'/portal/'+link.token;
+    // UAT.activeProjectId is internal — identify project via the token already in the share modal
+    const shareInput = document.getElementById('uatShareAllLink');
+    const existingUrl = shareInput ? shareInput.value.trim() : '';
+    const existingToken = existingUrl ? existingUrl.split('/').filter(Boolean).pop() : '';
+
+    if (!existingToken) {
+      alert('Please wait for the share link to load, then try again.');
+      return;
+    }
+
+    // Look up which project owns this token
+    const r = await fetch('/api/uat/projects', { headers: _ADMIN_HEADERS });
+    const j = await r.json();
+    const project = (j.data || []).find(p => p.portalToken === existingToken);
+
+    if (!project) {
+      alert('Could not identify the current project. Please close and reopen the Share Portal dialog.');
+      return;
+    }
+
+    const btn = document.querySelector('[onclick="uatGenerateScopedLink()"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+
+    const link = await clCreate('uat', {
+      clientName: project.clientName || 'Client',
+      projectName: project.name || '',
+      uatProjectId: project.id
+    });
+
+    const url = window.location.origin + '/portal/' + link.token;
     const el = document.getElementById('uatScopedLinkResult');
     const urlEl = document.getElementById('uatScopedLinkUrl');
-    if (el && urlEl) { el.style.display='flex'; urlEl.textContent=url; urlEl.dataset.url=url; }
-    navigator.clipboard.writeText(url).then(()=>{ if(window.showToast) showToast('UAT customer link copied!'); }).catch(()=>{});
-  } catch(e) { alert('Error: '+e.message); }
+    if (el && urlEl) { el.style.display = 'flex'; urlEl.textContent = url; urlEl.dataset.url = url; }
+    navigator.clipboard.writeText(url).then(() => { if (window.showToast) showToast('UAT customer link copied!'); }).catch(() => {});
+
+    if (btn) { btn.disabled = false; btn.textContent = '🔗 Generate UAT Customer Link'; }
+  } catch(e) { alert('Error: ' + e.message); }
 }
 
 function ciAdminTabHTML() {
