@@ -380,7 +380,7 @@ async function load() {
       document.getElementById('errorView').style.display = 'flex';
       return;
     }
-    _data = d;
+    _data = d.data;
     renderPortal();
   } catch(e) {
     document.getElementById('loadingView').style.display = 'none';
@@ -833,7 +833,7 @@ async function ciSaveAll() {
     toast('Ratings saved successfully');
     // Refresh CI data
     const rd = await fetch('/api/portal/' + TOKEN);
-    if (rd.ok) { const dd = await rd.json(); if (dd.ok) { _data.ci = dd.ci; _ciRendered = false; renderCI(); _ciRendered = true; } }
+    if (rd.ok) { const dd = await rd.json(); if (dd.ok && dd.data) { _data.ci = dd.data.ci; _ciRendered = false; renderCI(); _ciRendered = true; } }
   } catch(e) {
     toast('Save failed. Please try again.');
   }
