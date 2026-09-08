@@ -394,18 +394,36 @@ function renderPortal() {
   const pv = document.getElementById('portalView');
   pv.style.display = 'flex';
 
-  const { client, projectStatus, uat, ci } = _data;
+  const { client, projectStatus, uat, ci, scope } = _data;
+
+  // Scope-based tab visibility
+  const showHub = !scope || scope === 'all';
+  const showStatus = !scope || scope === 'status' || scope === 'all';
+  const showUAT = !scope || scope === 'uat' || scope === 'all';
+  const showCI = !scope || scope === 'ci' || scope === 'all';
+
+  document.querySelector('[data-tab="hub"]').style.display = showHub ? '' : 'none';
+  document.querySelector('[data-tab="status"]').style.display = showStatus ? '' : 'none';
+  document.querySelector('[data-tab="uat"]').style.display = showUAT ? '' : 'none';
+  document.querySelector('[data-tab="ci"]').style.display = showCI ? '' : 'none';
+
+  // For single-tab scopes: auto-switch to that tab and rename badge
+  if (scope === 'uat') { switchTab('uat', document.querySelector('[data-tab="uat"]')); document.querySelector('.topbar-badge').textContent = 'UAT Portal'; }
+  else if (scope === 'ci') { switchTab('ci', document.querySelector('[data-tab="ci"]')); document.querySelector('.topbar-badge').textContent = 'Confidence Index'; }
+  else if (scope === 'status') { switchTab('status', document.querySelector('[data-tab="status"]')); document.querySelector('.topbar-badge').textContent = 'Project Status'; }
 
   // Topbar
   document.getElementById('topbarClient').textContent = client.name;
-  document.title = 'Hub — ' + client.name;
+  document.title = (scope === 'uat' ? 'UAT' : scope === 'ci' ? 'Confidence Index' : scope === 'status' ? 'Project Status' : 'Hub') + ' — ' + client.name;
 
   // Welcome
   document.getElementById('welcomeTitle').textContent = 'Hello, ' + client.name + '!';
 
+  if (!showHub) return; // single-scope: no hub metrics needed
+
   // Hub metric cards
   // Project progress
-  if (projectStatus.linked) {
+  if (projectStatus && projectStatus.linked) {
     const pct = projectStatus.completion || 0;
     document.getElementById('hubProjPct').textContent = pct + '%';
     document.getElementById('hubProjPct').className = 'val ' + (pct >= 75 ? 'metric-val-green' : pct >= 40 ? 'metric-val-blue' : 'metric-val-grey');
@@ -416,14 +434,15 @@ function renderPortal() {
     document.getElementById('hubProjSub').textContent = 'Not linked yet';
   }
   // UAT
-  const uatTotal = uat.stats.total;
-  const uatPassed = uat.stats.passed;
+  const uatStats = (uat && uat.stats) ? uat.stats : {};
+  const uatTotal = uatStats.total || 0;
+  const uatPassed = uatStats.passed || 0;
   const uatPct = uatTotal ? Math.round(uatPassed / uatTotal * 100) : 0;
-  document.getElementById('hubUatPct').textContent = uatPct + '%';
-  document.getElementById('hubUatPct').className = 'val ' + (uatPct >= 80 ? 'metric-val-green' : 'metric-val-blue');
-  document.getElementById('hubUatSub').textContent = uatPassed + ' / ' + uatTotal + ' tests passed';
+  document.getElementById('hubUatPct').textContent = uat && uat.linked ? uatPct + '%' : 'N/A';
+  document.getElementById('hubUatPct').className = 'val ' + (uat && uat.linked ? (uatPct >= 80 ? 'metric-val-green' : 'metric-val-blue') : 'metric-val-grey');
+  document.getElementById('hubUatSub').textContent = uat && uat.linked ? uatPassed + ' / ' + uatTotal + ' tests passed' : 'Not linked';
   // CI
-  if (ci.linked) {
+  if (ci && ci.linked) {
     const score = ci.avgScore || 0;
     document.getElementById('hubCiScore').textContent = score.toFixed(1) + ' / 5';
     document.getElementById('hubCiScore').className = 'val ' + (score >= 4 ? 'metric-val-green' : score >= 3 ? 'metric-val-blue' : 'metric-val-grey');

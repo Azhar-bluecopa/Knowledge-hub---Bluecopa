@@ -7399,7 +7399,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=17" defer></script>
-  <script src="/app.js?v=103" defer></script>
+  <script src="/app.js?v=104" defer></script>
 <script>
 // Inline fetch — runs immediately, not gated on app.js cache
 (async()=>{try{const r=await fetch('/api/delivery-team/count');if(r.ok){const d=await r.json();const el=document.getElementById('dwStatSMPeople');if(el&&d.count){el.textContent=d.count;}}}catch(e){}})();
@@ -8142,7 +8142,16 @@ async function updateFeedbackStatus(id) {
           <div style="font-size:11px;color:#9ca3af;margin-bottom:8px">Each entity gets their own filtered view showing only their test cases' statuses.</div>
         </div>
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid #f1f2f5">
-          <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.regenerateProjectPortal()" style="color:#dc2626;border-color:#dc2626">↺ Regenerate Link</button>
+          <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px;">Generate Scoped Customer Link (UAT only)</div>
+          <div id="uatScopedLinkResult" style="display:none;align-items:center;gap:8px;background:#eff3ff;border:1px solid #c7d0ff;border-radius:8px;padding:8px 12px;margin-bottom:10px;">
+            <span id="uatScopedLinkUrl" style="font-size:11px;color:#3548FF;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+            <button onclick="navigator.clipboard.writeText(document.getElementById('uatScopedLinkUrl').dataset.url||'')" class="uat-btn uat-btn-secondary uat-btn-sm" style="white-space:nowrap;">Copy</button>
+          </div>
+          <button class="uat-btn uat-btn-secondary uat-btn-sm" onclick="uatGenerateScopedLink()" style="background:#eff3ff;border-color:#3548FF;color:#3548FF;font-weight:700;">🔗 Generate UAT Customer Link</button>
+          <span style="font-size:11px;color:#9ca3af;margin-left:8px">Customer sees only UAT — no Rocketlane or CI.</span>
+        </div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f2f5">
+          <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.regenerateProjectPortal()" style="color:#dc2626;border-color:#dc2626">↺ Regenerate Internal Link</button>
           <span style="font-size:11px;color:#9ca3af;margin-left:8px">Old link will stop working.</span>
         </div>
       </div>
@@ -8888,6 +8897,14 @@ async function updateFeedbackStatus(id) {
       </div>
     </div>
 
+    <!-- Generate Hub Link button -->
+    <div style="margin-bottom:32px;animation:csh-fade-up .4s .62s ease both;">
+      <button onclick="cshGenerateHubLink()" style="display:inline-flex;align-items:center;gap:10px;padding:12px 24px;background:linear-gradient(135deg,#3548FF,#7c3aed);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:-.1px;box-shadow:0 4px 16px rgba(53,72,255,.35);transition:transform .15s,box-shadow .15s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(53,72,255,.45)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(53,72,255,.35)'">
+        🔗 Generate Customer Success Hub Link
+      </button>
+      <div style="font-size:11px;color:rgba(255,255,255,.25);margin-top:8px;">Creates a consolidated link giving your customer access to Project Status, UAT, and Confidence Index.</div>
+    </div>
+
     <!-- Section label -->
     <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.12em;margin-bottom:20px;animation:csh-fade-up .4s .65s ease both;">Open a tool</div>
 
@@ -8962,6 +8979,50 @@ async function updateFeedbackStatus(id) {
     </div>
   </div>
 </div><!-- /cshOverlay -->
+
+<!-- CSH Hub Link Modal -->
+<div id="cshHubLinkModal" style="display:none;position:fixed;inset:0;z-index:1600;background:rgba(0,0,0,.7);align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;" onclick="if(event.target===this)cshHubModalClose()">
+  <div style="background:#13141f;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:32px;width:min(560px,92vw);max-height:85vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.6);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:#f0f0f6;letter-spacing:-.3px;">🔗 Generate Customer Success Hub Link</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:4px;">Link modules together for a unified customer view</div>
+      </div>
+      <button onclick="cshHubModalClose()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;cursor:pointer;line-height:1;padding:4px 8px;">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;">Client Name *</label>
+        <input id="cshHubClient" placeholder="e.g. Navi" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;">Project Name</label>
+        <input id="cshHubProject" placeholder="e.g. Navi Phase 1" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;">UAT Project</label>
+        <select id="cshHubUAT" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;"><option value="">— None —</option></select>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;">Confidence Index Assessment</label>
+        <select id="cshHubCI" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;"><option value="">— None —</option></select>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;">Rocketlane Project ID (optional)</label>
+        <input id="cshHubRL" placeholder="e.g. 12345" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;">
+        <div style="font-size:11px;color:rgba(255,255,255,.25);margin-top:4px;">Find the ID from the Rocketlane Dashboard</div>
+      </div>
+    </div>
+    <div id="cshHubResult" style="display:none;margin-top:20px;align-items:center;gap:8px;background:rgba(53,72,255,.12);border:1px solid rgba(53,72,255,.3);border-radius:10px;padding:12px 14px;">
+      <span class="rl-link-url" id="cshHubResultUrl" style="font-size:11px;color:#93c5fd;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+      <button onclick="navigator.clipboard.writeText(document.getElementById('cshHubResultUrl').dataset.url||'').then(()=>{ if(window.showToast) showToast('Copied!'); })" style="flex-shrink:0;padding:5px 12px;font-size:11px;font-weight:700;background:#3548FF;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;">Copy</button>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:24px;">
+      <button onclick="cshHubModalClose()" style="flex:1;padding:11px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(255,255,255,.5);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Cancel</button>
+      <button id="cshHubCreateBtn" onclick="cshHubModalCreate()" style="flex:2;padding:11px;background:linear-gradient(135deg,#3548FF,#7c3aed);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">Create Hub Link →</button>
+    </div>
+  </div>
+</div>
 
 <!-- ════════════════════════════════════════════════════════════════════════════
      CONFIDENCE INDEX OVERLAY
@@ -11238,6 +11299,7 @@ function rlRenderShell() {
         '<div style="font-size:12px;color:#8a92a0;margin-top:2px;font-family:\'DM Mono\',monospace;">'+s.total+' projects · '+s.standard+' standard · '+s.nonStandard+' non-standard'+rlLastSyncedLabel()+'</div>'+
       '</div>'+
       '<button onclick="rlRefreshDashboard()" style="background:rgba(201,162,39,.08);border:1px solid rgba(201,162,39,.2);color:#c9a227;border-radius:8px;padding:8px 14px;font-family:\'DM Sans\',sans-serif;font-size:12px;font-weight:600;cursor:pointer;opacity:'+(_rlSyncing?'0.6':'1')+';">'+(_rlSyncing?'↻ Syncing…':'↻ Refresh')+'</button>'+
+      '<button onclick="rlOpenCustomerLinkModal()" style="background:rgba(53,72,255,.12);border:1px solid rgba(53,72,255,.3);color:#93c5fd;border-radius:8px;padding:8px 14px;font-family:\'DM Sans\',sans-serif;font-size:12px;font-weight:600;cursor:pointer;margin-left:8px;">🔗 Generate Customer Link</button>'+
     '</div>'+
     '<div id="rlTabBar" style="display:flex;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:24px;overflow-x:auto;">'+tabsHTML+'</div>'+
     '<div id="rlTabBody"></div>';
@@ -13661,6 +13723,65 @@ function rlTabFindings(body) {
 // Expose globals
 window.rlInitDashboard = rlInitDashboard;
 window.rlInitDashboard = rlInitDashboard;
+
+// ── RL Customer Link Modal ────────────────────────────────────────────────────
+function rlOpenCustomerLinkModal() {
+  var projects = (_rlData && _rlData.projects) ? _rlData.projects : [];
+  var opts = projects.map(function(p) { return '<option value="'+p.projectId+'">'+escHtmlRL(p.projectName||p.name||'')+(p.customer?' ('+escHtmlRL(p.customer)+')':'')+'</option>'; }).join('');
+  var existing = document.getElementById('rlCustLinkModal');
+  if (existing) existing.remove();
+  var modal = document.createElement('div');
+  modal.id = 'rlCustLinkModal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;font-family:\'DM Sans\',sans-serif;';
+  modal.innerHTML = '<div style="background:#13141f;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:32px;width:min(480px,92vw);box-shadow:0 24px 80px rgba(0,0,0,.6);">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">'
+    +'<div><div style="font-size:16px;font-weight:800;color:#f0f0f6;">🔗 Generate Customer Link</div><div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:3px;">Gives customer view of Project Status only</div></div>'
+    +'<button onclick="this.closest(\'#rlCustLinkModal\').remove()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;cursor:pointer;padding:4px 8px;">×</button>'
+    +'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:14px;">'
+    +'<div><label style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;">Select Project</label>'
+    +'<select id="rlCustLinkProject" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-size:13px;font-family:\'DM Sans\',sans-serif;outline:none;box-sizing:border-box;"><option value="">— Select a project —</option>'+opts+'</select></div>'
+    +'<div id="rlCustLinkDisplay" style="display:none;align-items:center;gap:8px;background:rgba(53,72,255,.12);border:1px solid rgba(53,72,255,.3);border-radius:10px;padding:12px 14px;">'
+    +'<span class="rl-link-url" style="font-size:11px;color:#93c5fd;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>'
+    +'<button onclick="var url=this.previousElementSibling.dataset.url;navigator.clipboard.writeText(url||\'\')" style="flex-shrink:0;padding:5px 12px;font-size:11px;font-weight:700;background:#3548FF;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:\'DM Sans\',sans-serif;">Copy</button>'
+    +'</div>'
+    +'</div>'
+    +'<div style="display:flex;gap:12px;margin-top:24px;">'
+    +'<button onclick="this.closest(\'#rlCustLinkModal\').remove()" style="flex:1;padding:11px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(255,255,255,.5);font-size:13px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif;">Cancel</button>'
+    +'<button onclick="rlSubmitCustomerLink()" style="flex:2;padding:11px;background:linear-gradient(135deg,#3548FF,#7c3aed);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif;">Generate Link →</button>'
+    +'</div>'
+    +'</div>';
+  document.body.appendChild(modal);
+}
+
+function escHtmlRL(s) { var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+
+async function rlSubmitCustomerLink() {
+  var modal = document.getElementById('rlCustLinkModal');
+  if (!modal) return;
+  var sel = modal.querySelector('#rlCustLinkProject');
+  var rlProjectId = sel ? sel.value : '';
+  if (!rlProjectId) { alert('Please select a project.'); return; }
+  var opt = sel.options[sel.selectedIndex];
+  var text = opt ? opt.textContent : '';
+  // Parse customer name from option text: "ProjectName (CustomerName)"
+  var match = text.match(/^(.*?)\s*\(([^)]+)\)$/);
+  var projectName = match ? match[1].trim() : text;
+  var clientName = match ? match[2].trim() : text;
+  if (typeof rlGenerateCustomerLink === 'function') {
+    var display = modal.querySelector('#rlCustLinkDisplay');
+    if (display) display.style.display = 'flex';
+    await rlGenerateCustomerLink(rlProjectId, projectName, clientName);
+    // Copy the generated URL into the modal's display
+    var globalDisplay = document.getElementById('rlCustLinkDisplay');
+    if (globalDisplay) {
+      var span = globalDisplay.querySelector('.rl-link-url');
+      var url = span ? (span.dataset.url || span.textContent) : '';
+      var modalSpan = modal.querySelector('.rl-link-url');
+      if (modalSpan && url) { modalSpan.textContent = url; modalSpan.dataset.url = url; }
+    }
+  }
+}
 
 })();
 </script>

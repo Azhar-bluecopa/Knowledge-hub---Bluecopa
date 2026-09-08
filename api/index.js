@@ -223,6 +223,10 @@ function migrate() {
     db.confidenceIndex = { assessments: [] };
     dirty = true;
   }
+  if (!db.customerLinks) {
+    db.customerLinks = [];
+    dirty = true;
+  }
 
   return dirty;
 }
@@ -2239,94 +2243,99 @@ app.post('/api/uat/projects/:id/regenerate-portal', async (req, res) => {
   await saveDB(db); res.json({ ok:true, token:p.portalToken });
 });
 
-app.get('/api/portal/:token', async (req, res) => {
-  await _dbReady; const u=uatDB();
-  const p=u.projects.find(x=>x.portalToken===req.params.token);
-  if (!p) {
-    // Check for CI-only standalone assessment
-    const ca = ciDB().assessments.find(x=>x.portalToken===req.params.token);
-    if (ca) {
-      return res.json({ ok:true, data:{
-        project:{ id:'', name:ca.clientName, description:ca.projectName||'', phase:'', goLiveDate:'', clientLabel:'Client', clientWebsite:'' },
-        client:{ id:'', name:ca.clientName, website:'' },
-        entity:null, entities:ca.entities||[], testcases:[], entityAggregate:null,
-        signoff:null, allEntitySignoffs:{}, bluecopaSignoff:null, issues:[],
-        ciAssessmentId: ca.id, ciOnly: true,
-      }});
-    }
-    return res.status(404).json({ ok:false, error:'invalid link' });
-  }
-  const client=u.clients.find(x=>x.id===p.clientId);
-  const entity=req.query.entity||'';
-  const testcases=u.testcases.filter(t=>t.projectId===p.id).sort((a,b)=>a.seq-b.seq);
-  const entityList=p.entities||[];
-  function aggStatus(arr){
-    if(arr.includes('fail'))return 'fail';
-    if(arr.includes('blocked'))return 'blocked';
-    if(arr.includes('in_progress'))return 'in_progress';
-    if(arr.some(s=>s==='pass'))return 'pass';
-    return 'not_tested';
-  }
-  const tcs=testcases.map(tc=>{
-    let clientStatus,clientComments,bluecopaStatus,bluecopaComments;
-    if (entity&&tc.entityStatuses) {
+// ── CustomerLink helpers ──────────────────────────────────────────────────────
+function clDB() { if (!db.customerLinks) db.customerLinks = []; return db.customerLinks; }
+function clId() { return `cl_${Date.now()}_${Math.random().toString(36).slice(2,6)}`; }
+
+function buildUATPortalData(projectId, entity) {
+  const u = uatDB();
+  const p = u.projects.find(x=>x.id===projectId);
+  if (!p) return { linked:false, stats:{total:0,passed:0,failed:0,blocked:0,inProgress:0,pending:0,openIssues:0}, testcases:[], issues:[], signoff:null, allEntitySignoffs:{}, entities:[], signedOff:false };
+  const testcases = u.testcases.filter(t=>t.projectId===p.id).sort((a,b)=>a.seq-b.seq);
+  const entityList = p.entities||[];
+  const tcs = testcases.map(tc => {
+    let clientStatus,bluecopaStatus,clientComments='',bluecopaComments='';
+    if (entity && tc.entityStatuses) {
       const es=tc.entityStatuses[entity]||{};
       clientStatus=es.clientStatus||'not_tested'; clientComments=es.clientComments||'';
-      bluecopaStatus=es.bluecopaStatus||tc.bluecopaStatus||'not_tested';
-      bluecopaComments=es.bluecopaComments||tc.bluecopaComments||'';
-    } else if (!entity&&entityList.length>0) {
-      // Aggregate across all entities that have interacted with this TC
-      const es=tc.entityStatuses||{};
-      const bArr=entityList.map(e=>(es[e]?.bluecopaStatus)||'not_tested');
-      const cArr=entityList.map(e=>(es[e]?.clientStatus)||'not_tested');
-      bluecopaStatus=aggStatus(bArr);
-      clientStatus=aggStatus(cArr);
-      bluecopaComments=''; clientComments='';
+      bluecopaStatus=es.bluecopaStatus||tc.bluecopaStatus||'not_tested'; bluecopaComments=es.bluecopaComments||tc.bluecopaComments||'';
     } else {
       clientStatus=tc.clientStatus||'not_tested'; clientComments=tc.clientComments||'';
-      bluecopaStatus=tc.bluecopaStatus||'not_tested';
-      bluecopaComments=tc.bluecopaComments||'';
+      bluecopaStatus=tc.bluecopaStatus||'not_tested'; bluecopaComments=tc.bluecopaComments||'';
     }
-    return { id:tc.id, seq:tc.seq,
-      category:tc.category||tc.processArea||'',
-      subCategory:tc.subCategory||tc.module||'',
-      testDescription:tc.testDescription||tc.testScenario||'',
-      expectedResult:tc.expectedResult||'',
-      priority:tc.priority||'medium', clientStatus, clientComments,
-      bluecopaStatus, bluecopaComments,
-      procedure:tc.procedure||null };
+    return { id:tc.id, seq:tc.seq, title:tc.testDescription||tc.testScenario||'', category:tc.category||tc.processArea||'', priority:tc.priority||'medium', clientStatus, clientComments, bluecopaStatus, bluecopaComments };
   });
-  // Compute per-entity-TC pair aggregate for All tab (client perspective)
-  let entityAggregate=null;
-  if (!entity&&entityList.length>0) {
-    let total=0,pass=0,fail=0,blocked=0,inProg=0;
-    testcases.forEach(tc=>{
-      const es=tc.entityStatuses||{};
-      entityList.forEach(e=>{
-        total++;
-        const st=(es[e]?.clientStatus)||'not_tested';
-        if(st==='pass')pass++;
-        else if(st==='fail')fail++;
-        else if(st==='blocked')blocked++;
-        else if(st==='in_progress')inProg++;
-      });
-    });
-    entityAggregate={total,pass,fail,blocked,inProgress:inProg,pending:total-pass-fail-blocked-inProg};
-  }
+  const total=tcs.length, passed=tcs.filter(t=>t.clientStatus==='pass').length, failed=tcs.filter(t=>t.clientStatus==='fail').length, blocked=tcs.filter(t=>t.clientStatus==='blocked').length, inProgress=tcs.filter(t=>t.clientStatus==='in_progress').length;
   const issues=u.issues.filter(i=>i.projectId===p.id);
-  res.json({ ok:true, data:{
-    project:{ id:p.id, name:p.name, description:p.description||'', phase:p.phase,
-      goLiveDate:p.goLiveDate, clientLabel:p.clientLabel||'Client',
-      clientWebsite:p.clientWebsite||'' },
-    client:client?{ id:client.id, name:client.name, website:client.website||'' }:{ id:'', name:'Client', website:'' },
-    entity:entity||null, entities:p.entities||[], testcases:tcs,
-    entityAggregate,
-    signoff:((p.entitySignoffs||{})[entity||''])||null,
-    allEntitySignoffs:p.entitySignoffs||{},
-    bluecopaSignoff:((p.bluecopaEntitySignoffs||{})[entity||''])||null,
-    issues,
-  }});
+  const openIssues=issues.filter(i=>i.status==='open'||i.status==='in_progress').length;
+  const signoff=((p.entitySignoffs||{})[entity||''])||null;
+  return { linked:true, projectId:p.id, uatToken:p.portalToken||'', stats:{total,passed,failed,blocked,inProgress,pending:total-passed-failed-blocked-inProgress,openIssues}, testcases:tcs, issues, signoff, allEntitySignoffs:p.entitySignoffs||{}, bluecopaSignoff:((p.bluecopaEntitySignoffs||{})[entity||''])||null, entities:entityList, signedOff:!!(signoff&&signoff.signedAt) };
+}
+
+function buildCIPortalData(assessmentId) {
+  const a = ciDB().assessments.find(x=>x.id===assessmentId);
+  if (!a) return { linked:false };
+  const allRatings=a.ratings||{}, entities=a.entities||['Overall'];
+  let sum=0, total=0;
+  entities.forEach(ent=>{ const er=allRatings[ent]||{}; (a.processAreas||[]).forEach(pa=>{ const r=er[pa.id]; if(r&&r.score){sum+=r.score;total++;} }); });
+  return { linked:true, assessmentId:a.id, avgScore:total?sum/total:0, entities, processAreas:a.processAreas||[], ratings:allRatings, actions:a.actions||[] };
+}
+
+function buildRLPortalData(rlProjectId) {
+  if (!rlProjectId) return { linked:false };
+  const rl=db.rocketlane||{}; const snaps=(rl.snapshots||[]).slice().sort((a,b)=>new Date(b.capturedAt)-new Date(a.capturedAt));
+  for (const snap of snaps) {
+    const proj=(snap.projects||[]).find(p=>String(p.projectId)===String(rlProjectId));
+    if (proj) {
+      const phases=[];
+      if (proj.phases&&typeof proj.phases==='object') {
+        const ord=['engage','drive','enable','convert'];
+        ord.forEach(k=>{ if(proj.phases[k]){ const ph=proj.phases[k]; phases.push({ name:ph.name||k, status:ph.status||'upcoming', completion:ph.completionPct||0, startDate:ph.startDate||'', endDate:ph.endDate||'', milestones:(ph.milestones||[]).map(m=>({name:m.name||m.title||'',status:m.status||'upcoming',dueDate:m.dueDate||''})) }); } });
+      }
+      return { linked:true, rlProjectId, projectName:proj.projectName||proj.name||'', completion:proj.completionPct||proj.overallPct||0, currentPhase:proj.currentPhase||'', customer:proj.customer||'', phases };
+    }
+  }
+  return { linked:true, rlProjectId, projectName:'', completion:0, currentPhase:'', customer:'', phases:[] };
+}
+
+async function portalFromCustomerLink(req, res, cl) {
+  const u=uatDB(); const scope=cl.scope; const entity=req.query.entity||'';
+  let clientName=cl.clientName; let clientWebsite='';
+  if (cl.uatProjectId) { const p=u.projects.find(x=>x.id===cl.uatProjectId); if(p&&p.clientId){ const uc=u.clients.find(c=>c.id===p.clientId); if(uc){ clientName=uc.name||clientName; clientWebsite=uc.website||''; } } }
+  const client={name:clientName,website:clientWebsite};
+  const showStatus=scope==='status'||scope==='all';
+  const showUAT=scope==='uat'||scope==='all';
+  const showCI=scope==='ci'||scope==='all';
+  const projectStatus=showStatus ? buildRLPortalData(cl.rlProjectId) : {linked:false};
+  const uat=showUAT && cl.uatProjectId ? buildUATPortalData(cl.uatProjectId, entity) : {linked:false,stats:{total:0,passed:0,failed:0,blocked:0,inProgress:0,pending:0,openIssues:0},testcases:[],issues:[],signoff:null,allEntitySignoffs:{},entities:[],signedOff:false};
+  const ci=showCI && cl.ciAssessmentId ? buildCIPortalData(cl.ciAssessmentId) : {linked:false};
+  return res.json({ ok:true, data:{ scope, client, projectStatus, uat, ci } });
+}
+
+app.get('/api/portal/:token', async (req, res) => {
+  await _dbReady; const u=uatDB();
+
+  // 1. Check CustomerLinks (new model)
+  const cl = clDB().find(x=>x.token===req.params.token);
+  if (cl) return portalFromCustomerLink(req, res, cl);
+
+  // 2. Backwards compat: old UAT project tokens → treat as uat-scoped
+  const p=u.projects.find(x=>x.portalToken===req.params.token);
+  if (p) {
+    const legacyCl={ scope:'uat', clientName:p.clientName||(u.clients.find(c=>c.id===p.clientId)||{}).name||'Client', uatProjectId:p.id, ciAssessmentId:null, rlProjectId:null };
+    return portalFromCustomerLink(req, res, legacyCl);
+  }
+
+  // 3. Backwards compat: old CI assessment tokens → treat as ci-scoped
+  const ca=ciDB().assessments.find(x=>x.portalToken===req.params.token);
+  if (ca) {
+    const legacyCl={ scope:'ci', clientName:ca.clientName, uatProjectId:null, ciAssessmentId:ca.id, rlProjectId:null };
+    return portalFromCustomerLink(req, res, legacyCl);
+  }
+
+  return res.status(404).json({ ok:false, error:'invalid link' });
 });
+
 app.put('/api/portal/:token/issue/:id', async (req, res) => {
   await _dbReady; const u=uatDB();
   const p=u.projects.find(x=>x.portalToken===req.params.token);
@@ -6279,16 +6288,66 @@ app.get('/api/portal/:token', async (req, res) => {
 // PUT /api/portal/:token/ci/ratings — save CI rating from unified portal
 app.put('/api/portal/:token/ci/ratings', async (req, res) => {
   await _dbReady;
-  const u = uatDB(); const c = u.clients.find(x=>x.portalToken===req.params.token);
-  if (!c) return res.status(403).json({ ok:false, error:'invalid token' });
-  const ci = ciDB(); const a = ci.assessments.find(x=>x.clientId===c.id&&x.status==='active');
-  if (!a) return res.status(404).json({ ok:false, error:'no assessment' });
+  const token = req.params.token;
   const { paId, entityKey='Overall', score, comment='' } = req.body;
   if (!paId||!score) return res.status(400).json({ ok:false, error:'paId and score required' });
+
+  let assessmentId = null;
+  // Check CustomerLink
+  const cl = clDB().find(x=>x.token===token);
+  if (cl) { assessmentId = cl.ciAssessmentId; }
+  else {
+    // Backwards compat: old CI assessment portalToken
+    const ca = ciDB().assessments.find(x=>x.portalToken===token);
+    if (ca) assessmentId = ca.id;
+    else {
+      // Backwards compat: old UAT client portalToken
+      const u = uatDB(); const c = u.clients.find(x=>x.portalToken===token);
+      if (c) { const a2 = ciDB().assessments.find(x=>x.clientId===c.id&&x.status==='active'); if(a2) assessmentId=a2.id; }
+    }
+  }
+  if (!assessmentId) return res.status(403).json({ ok:false, error:'No CI assessment linked to this token' });
+  const a = ciDB().assessments.find(x=>x.id===assessmentId);
+  if (!a) return res.status(404).json({ ok:false, error:'Assessment not found' });
+  if (!a.ratings) a.ratings = {};
   if (!a.ratings[entityKey]) a.ratings[entityKey] = {};
   a.ratings[entityKey][paId] = { score:Math.min(5,Math.max(1,parseInt(score))), comment, updatedAt:new Date().toISOString() };
   a.updatedAt = new Date().toISOString();
   await saveDB(db); res.json({ ok:true });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  CUSTOMER LINKS  — /api/customer-links
+// ══════════════════════════════════════════════════════════════════════════════
+
+// POST create a scoped customer link (admin)
+app.post('/api/customer-links', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  const { scope, clientName, projectName, uatProjectId, ciAssessmentId, rlProjectId } = req.body;
+  if (!['uat','ci','status','all'].includes(scope)) return res.status(400).json({ ok:false, error:'Invalid scope. Use: uat, ci, status, all' });
+  if (!clientName) return res.status(400).json({ ok:false, error:'clientName required' });
+  const token = require('crypto').randomBytes(32).toString('hex');
+  const link = { id:clId(), token, scope, clientName, projectName:projectName||'', uatProjectId:uatProjectId||null, ciAssessmentId:ciAssessmentId||null, rlProjectId:rlProjectId||null, createdAt:new Date().toISOString() };
+  clDB().push(link);
+  await saveDB(db);
+  res.json({ ok:true, data:link });
+});
+
+// GET list all customer links (admin)
+app.get('/api/customer-links', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  res.json({ ok:true, data: clDB() });
+});
+
+// DELETE revoke a customer link (admin)
+app.delete('/api/customer-links/:id', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  db.customerLinks = clDB().filter(x=>x.id!==req.params.id);
+  await saveDB(db);
+  res.json({ ok:true });
 });
 
 module.exports = app;

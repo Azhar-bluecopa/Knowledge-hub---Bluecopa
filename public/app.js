@@ -678,9 +678,10 @@ function ciRenderDetail() {
   if (!el) return;
   if (!_ciSelected) { el.innerHTML = '<div style="padding:48px;text-align:center;color:rgba(255,255,255,.25);">Select an assessment</div>'; return; }
   const a = _ciSelected;
-  const hubLinkHtml = a.portalToken
-    ? `<div style="margin-top:10px;display:flex;align-items:center;gap:8px;background:rgba(53,72,255,.15);border:1px solid rgba(53,72,255,.3);border-radius:8px;padding:8px 12px"><span style="font-size:11px;color:#93c5fd;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 ${window.location.origin}/portal/${escHtml(a.portalToken)}</span><button onclick="navigator.clipboard.writeText('${window.location.origin}/portal/${escHtml(a.portalToken)}').then(()=>showToast&&showToast('Hub link copied!')).catch(()=>{})" style="flex-shrink:0;padding:4px 10px;font-size:11px;font-weight:700;background:#3548FF;color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif">Copy Hub Link</button></div>`
-    : `<div style="margin-top:10px"><button onclick="ciGenerateLink('${escHtml(a.id)}')" style="padding:6px 14px;font-size:12px;font-weight:700;background:rgba(53,72,255,.2);color:#93c5fd;border:1px solid rgba(53,72,255,.4);border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔗 Generate Portal Link</button></div>`;
+  const lnkToken = a.customerLinkToken || a.portalToken || '';
+  const hubLinkHtml = lnkToken
+    ? `<div style="margin-top:10px;display:flex;align-items:center;gap:8px;background:rgba(53,72,255,.15);border:1px solid rgba(53,72,255,.3);border-radius:8px;padding:8px 12px"><span style="font-size:11px;color:#93c5fd;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 ${window.location.origin}/portal/${escHtml(lnkToken)}</span><button onclick="navigator.clipboard.writeText('${window.location.origin}/portal/${escHtml(lnkToken)}').then(()=>showToast&&showToast('CI link copied!')).catch(()=>{})" style="flex-shrink:0;padding:4px 10px;font-size:11px;font-weight:700;background:#3548FF;color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif">Copy CI Link</button></div>`
+    : `<div style="margin-top:10px"><button onclick="ciGenerateLink('${escHtml(a.id)}')" style="padding:6px 14px;font-size:12px;font-weight:700;background:rgba(53,72,255,.2);color:#93c5fd;border:1px solid rgba(53,72,255,.4);border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔗 Generate CI Portal Link</button></div>`;
   el.innerHTML = `
     <div style="padding:24px;border-bottom:1px solid rgba(255,255,255,.07);">
       <div style="font-size:18px;font-weight:800;color:#f0f0f6;margin-bottom:4px;">${escHtml(a.clientName)}</div>
@@ -696,16 +697,92 @@ function ciRenderDetail() {
 
 function ciAdminTab(tab) { _ciAdminTab = tab; ciRenderDetail(); }
 
+const _ADMIN_HEADERS = { 'Content-Type':'application/json', 'x-user-email':'azhar.m@bluecopa.com', 'x-user-password':'Bluecopa@12345' };
+
+async function clCreate(scope, opts) {
+  const r = await fetch('/api/customer-links', { method:'POST', headers:_ADMIN_HEADERS, body:JSON.stringify({ scope, ...opts }) });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error||'Failed to create link');
+  return j.data;
+}
+
 async function ciGenerateLink(id) {
   try {
-    const r = await fetch(`/api/ci/assessments/${id}/generate-token`, { method:'POST', headers:{ 'x-user-email':'azhar.m@bluecopa.com', 'x-user-password':'Bluecopa@12345' } });
-    const j = await r.json();
-    if (!j.ok) throw new Error(j.error);
     const a = _ciAssessments.find(x=>x.id===id);
-    if (a) a.portalToken = j.token;
-    if (_ciSelected && _ciSelected.id===id) _ciSelected.portalToken = j.token;
+    if (!a) return;
+    const link = await clCreate('ci', { clientName:a.clientName, projectName:a.projectName||'', ciAssessmentId:id });
+    a.customerLinkToken = link.token;
+    if (_ciSelected && _ciSelected.id===id) _ciSelected.customerLinkToken = link.token;
     ciRenderDetail();
-    navigator.clipboard.writeText(window.location.origin+'/portal/'+j.token).then(()=>{ if(window.showToast) showToast('Portal link generated & copied!'); }).catch(()=>{});
+    navigator.clipboard.writeText(window.location.origin+'/portal/'+link.token).then(()=>{ if(window.showToast) showToast('CI portal link generated & copied!'); }).catch(()=>{});
+  } catch(e) { alert('Error: '+e.message); }
+}
+
+// Rocketlane — generate scoped status link
+async function rlGenerateCustomerLink(rlProjectId, projectName, customerName) {
+  try {
+    const link = await clCreate('status', { clientName:customerName||projectName, projectName:projectName||'', rlProjectId:String(rlProjectId) });
+    const url = window.location.origin+'/portal/'+link.token;
+    navigator.clipboard.writeText(url).then(()=>{ if(window.showToast) showToast('Project Status link copied!'); }).catch(()=>{});
+    const el = document.getElementById('rlCustLinkDisplay');
+    if (el) { el.style.display='flex'; el.querySelector('.rl-link-url').textContent=url; el.querySelector('.rl-link-url').dataset.url=url; }
+  } catch(e) { alert('Error generating link: '+e.message); }
+}
+
+// CSH — generate consolidated hub link with validation
+async function cshGenerateHubLink() {
+  const modal = document.getElementById('cshHubLinkModal');
+  if (!modal) return;
+  // Load data for dropdowns
+  const [uatRes, ciRes] = await Promise.all([
+    fetch('/api/uat/projects', { headers:_ADMIN_HEADERS }).then(r=>r.json()).catch(()=>({ok:false,data:[]})),
+    fetch('/api/ci/assessments', { headers:_ADMIN_HEADERS }).then(r=>r.json()).catch(()=>({ok:false,data:[]})),
+  ]);
+  const uatProjects = uatRes.data || [];
+  const ciAssessments = ciRes.data || [];
+  modal.querySelector('#cshHubUAT').innerHTML = '<option value="">— None —</option>' + uatProjects.map(p=>`<option value="${p.id}">${escHtml(p.clientName||'')} / ${escHtml(p.name||'')}</option>`).join('');
+  modal.querySelector('#cshHubCI').innerHTML = '<option value="">— None —</option>' + ciAssessments.map(a=>`<option value="${a.id}">${escHtml(a.clientName||'')} / ${escHtml(a.projectName||'')}</option>`).join('');
+  modal.style.display = 'flex';
+}
+
+function cshHubModalClose() {
+  const modal = document.getElementById('cshHubLinkModal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function cshHubModalCreate() {
+  const modal = document.getElementById('cshHubLinkModal');
+  const uatProjectId = modal.querySelector('#cshHubUAT').value || null;
+  const ciAssessmentId = modal.querySelector('#cshHubCI').value || null;
+  const rlProjectId = (modal.querySelector('#cshHubRL').value||'').trim() || null;
+  const clientName = (modal.querySelector('#cshHubClient').value||'').trim();
+  const projectName = (modal.querySelector('#cshHubProject').value||'').trim();
+  if (!clientName) { alert('Please enter a client name.'); return; }
+  if (!uatProjectId && !ciAssessmentId && !rlProjectId) { alert('Please link at least one module.'); return; }
+  const btn = modal.querySelector('#cshHubCreateBtn');
+  btn.disabled = true; btn.textContent = 'Creating…';
+  try {
+    const link = await clCreate('all', { clientName, projectName, uatProjectId, ciAssessmentId, rlProjectId });
+    const url = window.location.origin+'/portal/'+link.token;
+    modal.querySelector('#cshHubResult').style.display = 'flex';
+    modal.querySelector('#cshHubResultUrl').textContent = url;
+    modal.querySelector('#cshHubResultUrl').dataset.url = url;
+    navigator.clipboard.writeText(url).then(()=>{ if(window.showToast) showToast('Hub link created & copied!'); }).catch(()=>{});
+  } catch(e) { alert('Error: '+e.message); }
+  btn.disabled = false; btn.textContent = 'Create Hub Link →';
+}
+
+// UAT — generate scoped UAT-only customer link from share portal modal
+async function uatGenerateScopedLink() {
+  try {
+    const projectId = window.UAT && UAT.activeProjectId ? UAT.activeProjectId : null;
+    if (!projectId) { alert('No UAT project selected. Open a project first.'); return; }
+    const link = await clCreate('uat', { clientName:'Client', projectName:'', uatProjectId: projectId });
+    const url = window.location.origin+'/portal/'+link.token;
+    const el = document.getElementById('uatScopedLinkResult');
+    const urlEl = document.getElementById('uatScopedLinkUrl');
+    if (el && urlEl) { el.style.display='flex'; urlEl.textContent=url; urlEl.dataset.url=url; }
+    navigator.clipboard.writeText(url).then(()=>{ if(window.showToast) showToast('UAT customer link copied!'); }).catch(()=>{});
   } catch(e) { alert('Error: '+e.message); }
 }
 
