@@ -8711,7 +8711,7 @@ async function updateFeedbackStatus(id) {
 @keyframes csh-orbit{from{transform:rotate(0deg) translateX(38px) rotate(0deg)}to{transform:rotate(360deg) translateX(38px) rotate(-360deg)}}
 @keyframes csh-glow-pulse{0%,100%{box-shadow:0 0 20px rgba(139,92,246,.2)}50%{box-shadow:0 0 40px rgba(139,92,246,.45)}}
 .csh-card-enter{animation:csh-fade-up .5s ease both}
-.csh-tool-card{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:28px 24px;cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;}
+.csh-tool-card{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:36px 32px;cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;}
 .csh-tool-card::before{content:'';position:absolute;inset:0;border-radius:20px;opacity:0;transition:opacity .25s;}
 .csh-tool-card:hover{transform:translateY(-4px);border-color:var(--csh-card-color);}
 .csh-tool-card:hover::before{opacity:1;}
@@ -8892,7 +8892,7 @@ async function updateFeedbackStatus(id) {
     <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.12em;margin-bottom:20px;animation:csh-fade-up .4s .65s ease both;">Open a tool</div>
 
     <!-- Tool cards -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;margin-bottom:48px;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-bottom:48px;">
 
       <!-- EWS card -->
       <div class="csh-tool-card" style="--csh-card-color:rgba(220,38,38,.4);animation:csh-fade-up .5s .7s ease both;"
