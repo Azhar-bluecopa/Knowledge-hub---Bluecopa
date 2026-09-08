@@ -4843,13 +4843,20 @@ app.get('/api/cron/learning-reminders', async (req, res) => {
 
 app.get('/api/learning/team', (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
-  ensureLearning();
-  ensureSM();
+  ensureLearning(); ensureSM(); ensureDeliveryTeam();
+  // Build employee list from delivery team registry; fall back to skill matrix list
+  const dtMembers = (db.deliveryTeam || []);
+  const employees = dtMembers.length
+    ? dtMembers.map(m => ({ name: m.name || m.email, email: m.email }))
+    : (db.skillMatrix.employees || []).map(n => ({ name: n, email: (db.learning.memberEmails || {})[n] || '' }));
+  const memberEmails = dtMembers.length
+    ? Object.fromEntries(dtMembers.map(m => [m.name || m.email, m.email]))
+    : (db.learning.memberEmails || {});
   res.json({
-    assignments:  db.learning.assignments,
-    paths:        db.learning.paths,
-    employees:    db.skillMatrix.employees,
-    memberEmails: db.learning.memberEmails || {}
+    assignments: db.learning.assignments,
+    paths:       db.learning.paths,
+    employees,
+    memberEmails
   });
 });
 
