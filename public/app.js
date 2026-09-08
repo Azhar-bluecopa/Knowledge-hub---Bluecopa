@@ -678,7 +678,9 @@ function ciRenderDetail() {
   if (!el) return;
   if (!_ciSelected) { el.innerHTML = '<div style="padding:48px;text-align:center;color:rgba(255,255,255,.25);">Select an assessment</div>'; return; }
   const a = _ciSelected;
-  const hubLinkHtml = a.portalToken ? `<div style="margin-top:10px;display:flex;align-items:center;gap:8px;background:rgba(53,72,255,.15);border:1px solid rgba(53,72,255,.3);border-radius:8px;padding:8px 12px"><span style="font-size:11px;color:#93c5fd;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 ${window.location.origin}/portal/${escHtml(a.portalToken)}</span><button onclick="navigator.clipboard.writeText('${window.location.origin}/portal/${escHtml(a.portalToken)}').then(()=>showToast&&showToast('Hub link copied!')).catch(()=>{})" style="flex-shrink:0;padding:4px 10px;font-size:11px;font-weight:700;background:#3548FF;color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif">Copy Hub Link</button></div>` : '';
+  const hubLinkHtml = a.portalToken
+    ? `<div style="margin-top:10px;display:flex;align-items:center;gap:8px;background:rgba(53,72,255,.15);border:1px solid rgba(53,72,255,.3);border-radius:8px;padding:8px 12px"><span style="font-size:11px;color:#93c5fd;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 ${window.location.origin}/portal/${escHtml(a.portalToken)}</span><button onclick="navigator.clipboard.writeText('${window.location.origin}/portal/${escHtml(a.portalToken)}').then(()=>showToast&&showToast('Hub link copied!')).catch(()=>{})" style="flex-shrink:0;padding:4px 10px;font-size:11px;font-weight:700;background:#3548FF;color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif">Copy Hub Link</button></div>`
+    : `<div style="margin-top:10px"><button onclick="ciGenerateLink('${escHtml(a.id)}')" style="padding:6px 14px;font-size:12px;font-weight:700;background:rgba(53,72,255,.2);color:#93c5fd;border:1px solid rgba(53,72,255,.4);border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔗 Generate Portal Link</button></div>`;
   el.innerHTML = `
     <div style="padding:24px;border-bottom:1px solid rgba(255,255,255,.07);">
       <div style="font-size:18px;font-weight:800;color:#f0f0f6;margin-bottom:4px;">${escHtml(a.clientName)}</div>
@@ -693,6 +695,19 @@ function ciRenderDetail() {
 }
 
 function ciAdminTab(tab) { _ciAdminTab = tab; ciRenderDetail(); }
+
+async function ciGenerateLink(id) {
+  try {
+    const r = await fetch(`/api/ci/assessments/${id}/generate-token`, { method:'POST', headers:{ 'x-user-email':'azhar.m@bluecopa.com', 'x-user-password':'Bluecopa@12345' } });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error);
+    const a = _ciAssessments.find(x=>x.id===id);
+    if (a) a.portalToken = j.token;
+    if (_ciSelected && _ciSelected.id===id) _ciSelected.portalToken = j.token;
+    ciRenderDetail();
+    navigator.clipboard.writeText(window.location.origin+'/portal/'+j.token).then(()=>{ if(window.showToast) showToast('Portal link generated & copied!'); }).catch(()=>{});
+  } catch(e) { alert('Error: '+e.message); }
+}
 
 function ciAdminTabHTML() {
   if (!_ciSelected) return '';

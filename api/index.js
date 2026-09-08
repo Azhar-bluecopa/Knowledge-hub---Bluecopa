@@ -2242,7 +2242,20 @@ app.post('/api/uat/projects/:id/regenerate-portal', async (req, res) => {
 app.get('/api/portal/:token', async (req, res) => {
   await _dbReady; const u=uatDB();
   const p=u.projects.find(x=>x.portalToken===req.params.token);
-  if (!p) return res.status(404).json({ ok:false, error:'invalid link' });
+  if (!p) {
+    // Check for CI-only standalone assessment
+    const ca = ciDB().assessments.find(x=>x.portalToken===req.params.token);
+    if (ca) {
+      return res.json({ ok:true, data:{
+        project:{ id:'', name:ca.clientName, description:ca.projectName||'', phase:'', goLiveDate:'', clientLabel:'Client', clientWebsite:'' },
+        client:{ id:'', name:ca.clientName, website:'' },
+        entity:null, entities:ca.entities||[], testcases:[], entityAggregate:null,
+        signoff:null, allEntitySignoffs:{}, bluecopaSignoff:null, issues:[],
+        ciAssessmentId: ca.id, ciOnly: true,
+      }});
+    }
+    return res.status(404).json({ ok:false, error:'invalid link' });
+  }
   const client=u.clients.find(x=>x.id===p.clientId);
   const entity=req.query.entity||'';
   const testcases=u.testcases.filter(t=>t.projectId===p.id).sort((a,b)=>a.seq-b.seq);
@@ -5932,6 +5945,20 @@ app.delete('/api/ci/assessments/:id', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   const ci = ciDB(); ci.assessments = ci.assessments.filter(x=>x.id!==req.params.id);
   await saveDB(db); res.json({ ok:true });
+});
+
+// POST generate a standalone portal token for a CI assessment (admin)
+app.post('/api/ci/assessments/:id/generate-token', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
+  if (!a) return res.status(404).json({ ok:false, error:'Not found' });
+  if (!a.portalToken) {
+    a.portalToken = require('crypto').randomBytes(24).toString('hex');
+    a.updatedAt = new Date().toISOString();
+    await saveDB(db);
+  }
+  res.json({ ok:true, token: a.portalToken });
 });
 
 // GET process areas
