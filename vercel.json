@@ -32,6 +32,7 @@
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/index.js" },
     { "src": "/uat/portal/(.*)", "dest": "/api/index.js" },
+    { "src": "/portal$", "dest": "/api/index.js" },
     { "src": "/portal/(.*)", "dest": "/api/index.js" },
     { "src": "/uploads/(.*)", "dest": "/public/uploads/$1" },
     {

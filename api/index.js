@@ -6197,7 +6197,12 @@ app.get('/api/cron/sm-snapshot', async (req, res) => {
 });
 
 // ── Unified Customer Portal ────────────────────────────────────────────────────
-// Serve the HTML file
+// Login page (no token)
+app.get('/portal', (req, res) => {
+  res.sendFile(require('path').join(__dirname, '../public/customer-login.html'));
+});
+
+// Serve the portal HTML file
 app.get('/portal/:token', (req, res) => {
   res.sendFile(require('path').join(__dirname, '../public/customer-portal.html'));
 });
