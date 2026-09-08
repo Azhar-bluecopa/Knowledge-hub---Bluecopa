@@ -7399,7 +7399,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=17" defer></script>
-  <script src="/app.js?v=99" defer></script>
+  <script src="/app.js?v=100" defer></script>
 <script>
 // Inline fetch — runs immediately, not gated on app.js cache
 (async()=>{try{const r=await fetch('/api/delivery-team/count');if(r.ok){const d=await r.json();const el=document.getElementById('dwStatSMPeople');if(el&&d.count){el.textContent=d.count;}}}catch(e){}})();
@@ -8702,73 +8702,261 @@ async function updateFeedbackStatus(id) {
 <!-- ════════════════════════════════════════════════════════════════════════════
      CUSTOMER SUCCESS HUB OVERLAY  (Mission Deck #09)
 ════════════════════════════════════════════════════════════════════════════ -->
-<div id="cshOverlay" style="display:none;position:fixed;inset:0;z-index:1400;background:#06070f;flex-direction:column;font-family:'DM Sans',sans-serif;">
+<style>
+@keyframes csh-fade-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes csh-pulse-ring{0%{transform:scale(1);opacity:.6}70%{transform:scale(1.35);opacity:0}100%{transform:scale(1.35);opacity:0}}
+@keyframes csh-flow-dot{0%{left:-8px;opacity:0}20%{opacity:1}80%{opacity:1}100%{left:calc(100% + 8px);opacity:0}}
+@keyframes csh-bar-fill{from{width:0}to{width:var(--w)}}
+@keyframes csh-count-up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes csh-orbit{from{transform:rotate(0deg) translateX(38px) rotate(0deg)}to{transform:rotate(360deg) translateX(38px) rotate(-360deg)}}
+@keyframes csh-glow-pulse{0%,100%{box-shadow:0 0 20px rgba(139,92,246,.2)}50%{box-shadow:0 0 40px rgba(139,92,246,.45)}}
+.csh-card-enter{animation:csh-fade-up .5s ease both}
+.csh-tool-card{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:28px 24px;cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;}
+.csh-tool-card::before{content:'';position:absolute;inset:0;border-radius:20px;opacity:0;transition:opacity .25s;}
+.csh-tool-card:hover{transform:translateY(-4px);border-color:var(--csh-card-color);}
+.csh-tool-card:hover::before{opacity:1;}
+.csh-step-connector{flex:1;height:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);position:relative;overflow:visible;margin:0 8px;}
+.csh-step-connector .dot{position:absolute;top:50%;margin-top:-4px;width:8px;height:8px;border-radius:50%;animation:csh-flow-dot 2s ease-in-out infinite;}
+</style>
+
+<div id="cshOverlay" style="display:none;position:fixed;inset:0;z-index:1400;background:#06070f;flex-direction:column;font-family:'DM Sans',sans-serif;overflow-y:auto;">
 
   <!-- Topbar -->
-  <div style="height:56px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:16px;padding:0 24px;flex-shrink:0;background:rgba(6,7,15,.95);backdrop-filter:blur(12px);">
-    <button onclick="cshClose();showLanding()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:13px;cursor:pointer;padding:6px 10px;border-radius:6px;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;transition:color .15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.5)'">← Back</button>
-    <div style="width:1px;height:20px;background:rgba(255,255,255,.1)"></div>
+  <div style="height:56px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:16px;padding:0 24px;flex-shrink:0;background:rgba(6,7,15,.96);backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;">
+    <button onclick="cshClose();showLanding()" style="background:none;border:none;color:rgba(255,255,255,.45);font-size:13px;cursor:pointer;padding:6px 12px;border-radius:8px;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;transition:all .15s;" onmouseover="this.style.color='#fff';this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.color='rgba(255,255,255,.45)';this.style.background='none'">← Back</button>
+    <div style="width:1px;height:20px;background:rgba(255,255,255,.08)"></div>
     <div style="display:flex;align-items:center;gap:10px;">
-      <span style="font-size:18px;">💜</span>
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.5 7.5H18L13.5 11L15.5 17L10 13.5L4.5 17L6.5 11L2 7.5H7.5L10 2Z" fill="rgba(139,92,246,.9)" stroke="rgba(167,139,250,.6)" stroke-width=".5"/></svg>
       <span style="font-size:15px;font-weight:800;color:#f0f0f6;letter-spacing:-.3px;">Customer Success Hub</span>
     </div>
-    <span style="margin-left:8px;font-size:11px;padding:2px 9px;border-radius:99px;background:rgba(139,92,246,.18);color:#a78bfa;border:1px solid rgba(139,92,246,.3);font-weight:700;">● Live</span>
+    <span style="font-size:11px;padding:2px 10px;border-radius:99px;background:rgba(139,92,246,.18);color:#a78bfa;border:1px solid rgba(139,92,246,.3);font-weight:700;letter-spacing:.02em;">● Live</span>
+    <div style="flex:1"></div>
+    <div style="font-size:11px;color:rgba(255,255,255,.25);font-style:italic;">One link. Complete transparency.</div>
   </div>
 
-  <!-- Summary stats bar -->
-  <div style="padding:20px 32px;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(139,92,246,.04);display:flex;gap:24px;flex-wrap:wrap;flex-shrink:0;">
-    <div style="display:flex;align-items:center;gap:12px;">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.35);font-weight:600;">Active Assessments</div>
-      <div id="cshStatAssessments" style="font-size:24px;font-weight:800;color:#a78bfa;">—</div>
-    </div>
-    <div style="width:1px;background:rgba(255,255,255,.08)"></div>
-    <div style="display:flex;align-items:center;gap:12px;">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.35);font-weight:600;">Avg Confidence</div>
-      <div id="cshStatAvgScore" style="font-size:24px;font-weight:800;color:#22c55e;">—</div>
-    </div>
-    <div style="width:1px;background:rgba(255,255,255,.08)"></div>
-    <div style="display:flex;align-items:center;gap:12px;">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.35);font-weight:600;">Open Actions</div>
-      <div id="cshStatOpenActions" style="font-size:24px;font-weight:800;color:#f59e0b;">—</div>
-    </div>
-  </div>
+  <!-- Hero: Mission statement + animated journey -->
+  <div style="padding:48px 40px 0;max-width:1100px;width:100%;margin:0 auto;box-sizing:border-box;" class="csh-card-enter">
 
-  <!-- Hub mini-cards -->
-  <div style="flex:1;overflow-y:auto;padding:40px 32px;">
-    <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:24px;">Tools in this Hub</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;max-width:960px;">
+    <div style="text-align:center;margin-bottom:48px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(139,92,246,.7);margin-bottom:14px;">What this hub does</div>
+      <div style="font-size:32px;font-weight:900;color:#f0f0f6;letter-spacing:-.5px;line-height:1.2;margin-bottom:14px;">From project kick-off to <span style="background:linear-gradient(135deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">independent success</span></div>
+      <div style="font-size:14px;color:rgba(255,255,255,.4);max-width:520px;margin:0 auto;line-height:1.7;">Three tools working together to give every customer — and your team — complete visibility into risk, readiness, and confidence throughout the entire implementation journey.</div>
+    </div>
 
-      <!-- Mini-card: Early Warning System -->
-      <div onclick="EWS.open()" style="background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.2);border-radius:16px;padding:24px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 32px rgba(220,38,38,.15)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <span style="font-size:24px;">⚠️</span>
-          <span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(220,38,38,.15);color:#f87171;border:1px solid rgba(220,38,38,.2);font-weight:700;">● Live</span>
+    <!-- Animated 3-step journey -->
+    <div style="display:flex;align-items:flex-start;gap:0;margin-bottom:56px;position:relative;">
+
+      <!-- Step 1: EWS -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:16px;animation:csh-fade-up .5s .1s ease both;">
+        <div style="width:72px;height:72px;border-radius:50%;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.25);display:flex;align-items:center;justify-content:center;position:relative;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 56 56">
+            <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(220,38,38,.2)" stroke-width=".8"/>
+            <circle cx="28" cy="28" r="16" fill="none" stroke="rgba(220,38,38,.15)" stroke-width=".8"/>
+            <circle cx="28" cy="28" r="8"  fill="none" stroke="rgba(220,38,38,.1)"  stroke-width=".8"/>
+            <g><line x1="28" y1="28" x2="28" y2="4" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/>
+            <animateTransform attributeName="transform" type="rotate" from="0 28 28" to="360 28 28" dur="3s" repeatCount="indefinite"/></g>
+            <circle cx="28" cy="28" r="2.5" fill="#ef4444"/>
+          </svg>
+          <div style="position:absolute;inset:-4px;border-radius:50%;border:1px solid rgba(220,38,38,.3);animation:csh-pulse-ring 2.5s ease-out infinite;"></div>
         </div>
-        <div style="font-size:16px;font-weight:800;color:#f0f0f6;margin-bottom:6px;">Early Warning System</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.45);line-height:1.6;">Proactive risk detection — surface issues before they become escalations. 12 trigger types, severity scoring.</div>
-        <div style="margin-top:16px;font-size:12px;font-weight:700;color:#f87171;">Open EWS →</div>
+        <div style="text-align:center;">
+          <div style="font-size:13px;font-weight:800;color:#f87171;margin-bottom:4px;">Early Warning System</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.35);line-height:1.6;max-width:160px;">Flag risks before they become escalations. Severity scoring & action tracking.</div>
+        </div>
+        <div style="font-size:10px;padding:3px 10px;border-radius:99px;background:rgba(220,38,38,.1);color:#f87171;border:1px solid rgba(220,38,38,.2);font-weight:700;">Phase 1 · Risk</div>
       </div>
 
-      <!-- Mini-card: UAT Platform -->
-      <div onclick="UAT.open()" style="background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:16px;padding:24px;cursor:pointer;transition:all .2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 32px rgba(59,130,246,.15)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <span style="font-size:24px;">🧪</span>
-          <span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.2);font-weight:700;">● Live</span>
-        </div>
-        <div style="font-size:16px;font-weight:800;color:#f0f0f6;margin-bottom:6px;">UAT Platform</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.45);line-height:1.6;">Enterprise UAT management — test cases, client collaboration, dashboards, sign-off and export.</div>
-        <div style="margin-top:16px;font-size:12px;font-weight:700;color:#60a5fa;">Open UAT →</div>
+      <!-- Connector 1→2 -->
+      <div class="csh-step-connector" style="margin-top:36px;">
+        <div class="dot" style="background:#fb923c;animation-delay:0s;"></div>
       </div>
 
-      <!-- Mini-card: Confidence Index -->
-      <div onclick="ciOpen()" style="background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.2);border-radius:16px;padding:24px;cursor:pointer;transition:all .2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 32px rgba(139,92,246,.15)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <span style="font-size:24px;">🎯</span>
-          <span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(139,92,246,.15);color:#a78bfa;border:1px solid rgba(139,92,246,.2);font-weight:700;">● Live</span>
+      <!-- Step 2: UAT -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:16px;animation:csh-fade-up .5s .25s ease both;">
+        <div style="width:72px;height:72px;border-radius:50%;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);display:flex;align-items:center;justify-content:center;position:relative;">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <rect x="6" y="4" width="8" height="18" rx="3" fill="none" stroke="rgba(96,165,250,.7)" stroke-width="1.5"/>
+            <rect x="18" y="10" width="8" height="12" rx="3" fill="none" stroke="rgba(96,165,250,.5)" stroke-width="1.5"/>
+            <path d="M10 16 Q10 22 13 24" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+            <path d="M22 18 Q22 24 25 26" stroke="#93c5fd" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+            <circle cx="10" cy="28" r="2" fill="#60a5fa"/>
+            <circle cx="22" cy="28" r="2" fill="#93c5fd"/>
+            <circle cx="10" cy="8" r="1.5" fill="rgba(96,165,250,.4)"/>
+            <rect x="8" y="11" width="4" height="1" rx=".5" fill="rgba(96,165,250,.5)"/>
+            <rect x="8" y="13.5" width="4" height="1" rx=".5" fill="rgba(96,165,250,.4)"/>
+          </svg>
+          <div style="position:absolute;inset:-4px;border-radius:50%;border:1px solid rgba(59,130,246,.25);animation:csh-pulse-ring 2.5s .8s ease-out infinite;"></div>
         </div>
-        <div style="font-size:16px;font-weight:800;color:#f0f0f6;margin-bottom:6px;">Confidence Index</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.45);line-height:1.6;">Measure customer readiness across all Bluecopa process areas with structured confidence ratings.</div>
-        <div style="margin-top:16px;font-size:12px;font-weight:700;color:#a78bfa;">Open CI →</div>
+        <div style="text-align:center;">
+          <div style="font-size:13px;font-weight:800;color:#60a5fa;margin-bottom:4px;">UAT Platform</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.35);line-height:1.6;max-width:160px;">Structured test cases, client collaboration, issue tracking & formal sign-off.</div>
+        </div>
+        <div style="font-size:10px;padding:3px 10px;border-radius:99px;background:rgba(59,130,246,.1);color:#60a5fa;border:1px solid rgba(59,130,246,.2);font-weight:700;">Phase 2 · Quality</div>
+      </div>
+
+      <!-- Connector 2→3 -->
+      <div class="csh-step-connector" style="margin-top:36px;">
+        <div class="dot" style="background:#a78bfa;animation-delay:.7s;"></div>
+      </div>
+
+      <!-- Step 3: Confidence Index -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:16px;animation:csh-fade-up .5s .4s ease both;">
+        <div style="width:72px;height:72px;border-radius:50%;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25);display:flex;align-items:center;justify-content:center;position:relative;">
+          <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+            <path d="M17 4 A13 13 0 0 1 30 17" stroke="rgba(139,92,246,.3)" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M17 4 A13 13 0 0 1 30 17" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="20 41">
+              <animate attributeName="stroke-dasharray" values="0 41;20 41;35 41;41 0" dur="2.5s" repeatCount="indefinite"/>
+            </path>
+            <circle cx="17" cy="17" r="6" fill="none" stroke="rgba(139,92,246,.4)" stroke-width="1.5"/>
+            <circle cx="17" cy="17" r="2.5" fill="#a78bfa"/>
+            <circle cx="17" cy="4"  r="2" fill="#a78bfa" opacity=".6"/>
+            <circle cx="30" cy="17" r="2" fill="#a78bfa" opacity=".6"/>
+            <circle cx="17" cy="30" r="2" fill="rgba(139,92,246,.3)"/>
+          </svg>
+          <div style="position:absolute;inset:-4px;border-radius:50%;border:1px solid rgba(139,92,246,.25);animation:csh-pulse-ring 2.5s 1.6s ease-out infinite;"></div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:13px;font-weight:800;color:#a78bfa;margin-bottom:4px;">Confidence Index</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.35);line-height:1.6;max-width:160px;">Rate readiness per process area. Track training actions. Prove independence.</div>
+        </div>
+        <div style="font-size:10px;padding:3px 10px;border-radius:99px;background:rgba(139,92,246,.1);color:#a78bfa;border:1px solid rgba(139,92,246,.2);font-weight:700;">Phase 3 · Readiness</div>
+      </div>
+
+      <!-- End goal -->
+      <div class="csh-step-connector" style="margin-top:36px;">
+        <div class="dot" style="background:#22c55e;animation-delay:1.4s;"></div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:16px;animation:csh-fade-up .5s .55s ease both;">
+        <div style="width:72px;height:72px;border-radius:50%;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);display:flex;align-items:center;justify-content:center;animation:csh-glow-pulse 3s ease-in-out infinite;">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <path d="M8 16 L13 21 L24 10" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <animate attributeName="stroke-dasharray" values="0 30;30 0" dur="1s" begin="0s" fill="freeze"/>
+            </path>
+            <circle cx="16" cy="16" r="13" stroke="rgba(34,197,94,.25)" stroke-width="1.2"/>
+          </svg>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:13px;font-weight:800;color:#22c55e;margin-bottom:4px;">Customer Independent</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.35);line-height:1.6;max-width:160px;">Customer fully confident and running Bluecopa on their own.</div>
+        </div>
+        <div style="font-size:10px;padding:3px 10px;border-radius:99px;background:rgba(34,197,94,.08);color:#22c55e;border:1px solid rgba(34,197,94,.18);font-weight:700;">Goal · Independence</div>
+      </div>
+
+    </div>
+
+    <!-- What customers see section -->
+    <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:28px 32px;margin-bottom:40px;animation:csh-fade-up .5s .5s ease both;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:20px;">What your customer sees via their secure portal link</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+        <div style="padding:16px;background:rgba(251,146,60,.05);border:1px solid rgba(251,146,60,.15);border-radius:12px;">
+          <div style="font-size:12px;font-weight:700;color:#fb923c;margin-bottom:6px;">📍 Project Status</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.6;">Live Rocketlane timeline — phases, milestones, completion % — in a clean customer-friendly view.</div>
+        </div>
+        <div style="padding:16px;background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.15);border-radius:12px;">
+          <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:6px;">🧪 UAT Results</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.6;">Test case status, open issues, and one-click formal sign-off — all through the same link.</div>
+        </div>
+        <div style="padding:16px;background:rgba(139,92,246,.05);border:1px solid rgba(139,92,246,.15);border-radius:12px;">
+          <div style="font-size:12px;font-weight:700;color:#a78bfa;margin-bottom:6px;">🎯 Confidence Ratings</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.6;">Rate readiness 1–5 per process area. Add comments. Track agreed training actions from Bluecopa.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live stats bar -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px;animation:csh-fade-up .5s .6s ease both;">
+      <div style="background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.15);border-radius:16px;padding:20px 24px;display:flex;align-items:center;gap:16px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:rgba(139,92,246,.15);display:flex;align-items:center;justify-content:center;font-size:18px;">🎯</div>
+        <div>
+          <div id="cshStatAssessments" style="font-size:28px;font-weight:900;color:#a78bfa;line-height:1;animation:csh-count-up .4s .8s ease both;opacity:0;animation-fill-mode:forwards;">—</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.35);font-weight:600;margin-top:2px;">Active Assessments</div>
+        </div>
+      </div>
+      <div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.15);border-radius:16px;padding:20px 24px;display:flex;align-items:center;gap:16px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:rgba(34,197,94,.15);display:flex;align-items:center;justify-content:center;font-size:18px;">📊</div>
+        <div>
+          <div id="cshStatAvgScore" style="font-size:28px;font-weight:900;color:#22c55e;line-height:1;animation:csh-count-up .4s .9s ease both;opacity:0;animation-fill-mode:forwards;">—</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.35);font-weight:600;margin-top:2px;">Avg Confidence Score</div>
+        </div>
+      </div>
+      <div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:16px;padding:20px 24px;display:flex;align-items:center;gap:16px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:rgba(245,158,11,.15);display:flex;align-items:center;justify-content:center;font-size:18px;">⚡</div>
+        <div>
+          <div id="cshStatOpenActions" style="font-size:28px;font-weight:900;color:#f59e0b;line-height:1;animation:csh-count-up .4s 1s ease both;opacity:0;animation-fill-mode:forwards;">—</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.35);font-weight:600;margin-top:2px;">Open Training Actions</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section label -->
+    <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.12em;margin-bottom:20px;animation:csh-fade-up .4s .65s ease both;">Open a tool</div>
+
+    <!-- Tool cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;margin-bottom:48px;">
+
+      <!-- EWS card -->
+      <div class="csh-tool-card" style="--csh-card-color:rgba(220,38,38,.4);animation:csh-fade-up .5s .7s ease both;"
+           onclick="cshClose();EWS.open()"
+           onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(220,38,38,.12)';this.style.borderColor='rgba(220,38,38,.4)';this.style.background='rgba(220,38,38,.06)'"
+           onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='rgba(255,255,255,.08)';this.style.background='rgba(255,255,255,.035)'">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;">
+          <div style="width:48px;height:48px;border-radius:14px;background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.2);display:flex;align-items:center;justify-content:center;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" width="28" height="28">
+              <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(220,38,38,.3)" stroke-width="1"/>
+              <circle cx="28" cy="28" r="12" fill="none" stroke="rgba(220,38,38,.2)" stroke-width="1"/>
+              <g><line x1="28" y1="28" x2="28" y2="6" stroke="#ef4444" stroke-width="1.8" stroke-linecap="round"/>
+              <animateTransform attributeName="transform" type="rotate" from="0 28 28" to="360 28 28" dur="3s" repeatCount="indefinite"/></g>
+              <circle cx="28" cy="28" r="2.5" fill="#ef4444"/>
+            </svg>
+          </div>
+          <span style="font-size:10px;padding:3px 9px;border-radius:99px;background:rgba(220,38,38,.12);color:#f87171;border:1px solid rgba(220,38,38,.2);font-weight:700;">● Live</span>
+        </div>
+        <div style="font-size:17px;font-weight:800;color:#f0f0f6;margin-bottom:6px;letter-spacing:-.2px;">Early Warning System</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.7;margin-bottom:20px;">Proactive risk detection for delivery teams. 12 trigger types, severity scoring, escalation workflows, and leadership visibility.</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px;">
+          <div style="font-size:11px;color:rgba(255,255,255,.3);display:flex;align-items:center;gap:6px;"><span style="color:#f87171;">→</span> 12 trigger types & severity scoring</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.3);display:flex;align-items:center;gap:6px;"><span style="color:#f87171;">→</span> 6-step escalation with ownership</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.3);display:flex;align-items:center;gap:6px;"><span style="color:#f87171;">→</span> Action tracking & leadership view</div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:#f87171;display:flex;align-items:center;gap:6px;">Open Early Warning System <span style="transition:transform .2s;">→</span></div>
+      </div>
+
+      <!-- UAT card -->
+      <div class="csh-tool-card" style="animation:csh-fade-up .5s .8s ease both;"
+           onclick="cshClose();UAT.open()"
+           onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(59,130,246,.12)';this.style.borderColor='rgba(59,130,246,.4)';this.style.background='rgba(59,130,246,.06)'"
+           onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='rgba(255,255,255,.08)';this.style.background='rgba(255,255,255,.035)'">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;">
+          <div style="width:48px;height:48px;border-radius:14px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.2);display:flex;align-items:center;justify-content:center;font-size:22px;">🧪</div>
+          <span style="font-size:10px;padding:3px 9px;border-radius:99px;background:rgba(59,130,246,.12);color:#60a5fa;border:1px solid rgba(59,130,246,.2);font-weight:700;">● Live</span>
+        </div>
+        <div style="font-size:17px;font-weight:800;color:#f0f0f6;margin-bottom:6px;letter-spacing:-.2px;">UAT Platform</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.7;margin-bottom:20px;">Enterprise UAT management from test case creation to formal sign-off. Collaborative client portal with secure unique links.</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px;">
+          <div style="font-size:11px;color:rgba(255,255,255,.3);display:flex;align-items:center;gap:6px;"><span style="color:#60a5fa;">→</span> Full test case lifecycle & bulk actions</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.3);display:flex;align-items:center;gap:6px;"><span style="color:#60a5fa;">→</span> Client portal with secure unique links</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.3);display:flex;align-items:center;gap:6px;"><span style="color:#60a5fa;">→</span> CSV export & formal UAT sign-off</div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:#60a5fa;display:flex;align-items:center;gap:6px;">Open UAT Platform →</div>
+      </div>
+
+      <!-- Confidence Index card -->
+      <div class="csh-tool-card" style="animation:csh-fade-up .5s .9s ease both;"
+           onclick="ciOpen()"
+           onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(139,92,246,.12)';this.style.borderColor='rgba(139,92,246,.4)';this.style.background='rgba(139,92,246,.06)'"
+           onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='rgba(255,255,255,.08)';this.style.background='rgba(255,255,255,.035)'">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;">
+          <div style="width:48px;height:48px;border-radius:14px;background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.2);display:flex;align-items:center;justify-content:center;font-size:22px;">🎯</div>
+          <span style="font-size:10px;padding:3px 9px;border-radius:99px;background:rgba(139,92,246,.12);color:#a78bfa;border:1px solid rgba(139,92,246,.2);font-weight:700;">● Live</span>
+        </div>
+        <div style="font-size:17px;font-weight:800;color:#f0f0f6;margin-bottom:6px;letter-spacing:-.2px;">Confidence Index</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.7;margin-bottom:20px;">Measure how ready each customer is to use Bluecopa independently — process area by process area, entity by entity.</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px;">
+          <div style="font-size:11px;color:rgba(255,255,255,.3);display:flex;align-items:center;gap:6px;"><span style="color:#a78bfa;">→</span> 1–5 readiness rating per process area</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.3);display:flex;align-items:center;gap:6px;"><span style="color:#a78bfa;">→</span> Training & support action tracking</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.3);display:flex;align-items:center;gap:6px;"><span style="color:#a78bfa;">→</span> Per-entity breakdown for multi-entity projects</div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:#a78bfa;display:flex;align-items:center;gap:6px;">Open Confidence Index →</div>
       </div>
 
     </div>
