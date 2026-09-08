@@ -5892,12 +5892,13 @@ app.get('/api/ci/assessments', async (req, res) => {
 app.post('/api/ci/assessments', async (req, res) => {
   await _dbReady;
   if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
-  const { clientId, clientName, projectName, entities=[] } = req.body;
-  if (!clientId||!clientName) return res.status(400).json({ ok:false, error:'clientId and clientName required' });
+  const { clientId='', clientName, projectName, entities=[], processAreaNames } = req.body;
+  if (!clientName) return res.status(400).json({ ok:false, error:'clientName required' });
   const ci = ciDB();
   const now = new Date().toISOString();
-  const processAreas = CI_DEFAULT_PROCESS_AREAS.map((name,i) => ({ id:ciId(), name, order:i, description:'' }));
-  const assessment = { id:ciId(), clientId, clientName, projectName:projectName||'', entities:['Overall',...entities.filter(e=>e&&e!=='Overall')], processAreas, ratings:{}, actions:[], status:'active', createdAt:now, updatedAt:now };
+  const paNames = Array.isArray(processAreaNames) && processAreaNames.length ? processAreaNames : CI_DEFAULT_PROCESS_AREAS;
+  const processAreas = paNames.map((name,i) => ({ id:ciId(), name, order:i, description:'' }));
+  const assessment = { id:ciId(), clientId, clientName, projectName:projectName||'', entities:['Overall',...(entities||[]).filter(e=>e&&e!=='Overall')], processAreas, ratings:{}, actions:[], status:'active', createdAt:now, updatedAt:now };
   ci.assessments.push(assessment);
   await saveDB(db); res.json({ ok:true, data:assessment });
 });

@@ -763,18 +763,156 @@ function ciAdminTabHTML() {
 }
 
 async function ciNewAssessment() {
-  const u = uatDB_clients || [];
-  const clientId = prompt('Enter UAT client ID (from UAT Platform):');
-  if (!clientId) return;
-  const clientName = prompt('Client name:');
-  if (!clientName) return;
-  const projectName = prompt('Project name (optional):') || '';
+  // Remove any existing modal
+  const old = document.getElementById('ciNewModal');
+  if (old) old.remove();
+
+  // Fetch UAT clients to populate dropdown
+  let clients = [];
   try {
-    const r = await fetch('/api/ci/assessments', { method:'POST', headers:{'Content-Type':'application/json','x-user-email':getAdminPwd()||''}, body: JSON.stringify({ clientId, clientName, projectName }) });
+    const r = await fetch('/api/uat/clients', { headers: { 'x-user-email': getAdminPwd() || '' } });
+    if (r.ok) { const d = await r.json(); clients = d.data || []; }
+  } catch(e) {}
+
+  const DEFAULT_PAS = ['Data Ingestion','Data Validation','Configuration','Reconciliation','Report Generation','Exception Handling','Troubleshooting','Month-End Activities','User Administration','Dashboard & Analytics'];
+
+  const clientOpts = clients.length
+    ? clients.map(c => `<option value="${c.id}" data-name="${escHtml(c.name)}">${escHtml(c.name)}</option>`).join('')
+    : '<option value="">— No UAT clients found —</option>';
+
+  const modal = document.createElement('div');
+  modal.id = 'ciNewModal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:1600;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:24px;font-family:"DM Sans",sans-serif;';
+  modal.innerHTML = `
+    <div style="background:#10111a;border:1px solid rgba(139,92,246,.25);border-radius:20px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.6);">
+      <div style="padding:24px 28px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:17px;font-weight:800;color:#f0f0f6;letter-spacing:-.2px;">New Confidence Assessment</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:3px;">Set up readiness tracking for a client</div>
+        </div>
+        <button onclick="document.getElementById('ciNewModal').remove()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">✕</button>
+      </div>
+      <div style="padding:24px 28px;display:flex;flex-direction:column;gap:18px;">
+
+        <!-- Client -->
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Client <span style="color:#f87171;">*</span></label>
+          ${clients.length ? `
+          <select id="ciNM_client" onchange="ciNM_syncName()" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#f0f0f6;font-family:'DM Sans',sans-serif;font-size:13px;appearance:none;">
+            <option value="">— Select UAT client —</option>
+            ${clientOpts}
+          </select>` : ''}
+          <input id="ciNM_clientName" placeholder="Client name" style="width:100%;margin-top:${clients.length?'8px':'0'};padding:10px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#f0f0f6;font-family:'DM Sans',sans-serif;font-size:13px;box-sizing:border-box;" ${clients.length?'placeholder="Or enter manually"':''}>
+        </div>
+
+        <!-- Project name -->
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Project Name</label>
+          <input id="ciNM_project" placeholder="e.g. Phase 1 Implementation" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#f0f0f6;font-family:'DM Sans',sans-serif;font-size:13px;box-sizing:border-box;">
+        </div>
+
+        <!-- Entities -->
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Entities</label>
+          <div style="font-size:11px;color:rgba(255,255,255,.25);margin-bottom:8px;">If the project has multiple legal entities, add them here. "Overall" is always included.</div>
+          <div id="ciNM_entityChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+            <span style="padding:4px 12px;border-radius:99px;background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.3);color:#a78bfa;font-size:12px;font-weight:600;">Overall</span>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <input id="ciNM_entityInput" placeholder="Add entity (e.g. India Entity)" style="flex:1;padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-family:'DM Sans',sans-serif;font-size:12px;" onkeydown="if(event.key==='Enter'){event.preventDefault();ciNM_addEntity();}">
+            <button onclick="ciNM_addEntity()" style="padding:8px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);border-radius:8px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">+ Add</button>
+          </div>
+        </div>
+
+        <!-- Process areas -->
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Process Areas to Assess</label>
+          <div style="font-size:11px;color:rgba(255,255,255,.25);margin-bottom:10px;">Select the Bluecopa process areas relevant to this customer. You can add or remove more later.</div>
+          <div id="ciNM_paChecks" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;padding-right:4px;">
+            ${DEFAULT_PAS.map(pa => `
+            <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;cursor:pointer;">
+              <input type="checkbox" value="${pa}" checked style="width:14px;height:14px;accent-color:#8b5cf6;cursor:pointer;">
+              <span style="font-size:12px;color:rgba(255,255,255,.7);">${pa}</span>
+            </label>`).join('')}
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <input id="ciNM_customPA" placeholder="Add custom process area…" style="flex:1;padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-family:'DM Sans',sans-serif;font-size:12px;" onkeydown="if(event.key==='Enter'){event.preventDefault();ciNM_addCustomPA();}">
+            <button onclick="ciNM_addCustomPA()" style="padding:8px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);border-radius:8px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">+ Add</button>
+          </div>
+        </div>
+
+      </div>
+      <div style="padding:16px 28px 24px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid rgba(255,255,255,.07);">
+        <button onclick="document.getElementById('ciNewModal').remove()" style="padding:10px 20px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Cancel</button>
+        <button onclick="ciNM_submit()" style="padding:10px 24px;background:rgba(139,92,246,.25);border:1px solid rgba(139,92,246,.5);color:#a78bfa;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;" onmouseover="this.style.background='rgba(139,92,246,.35)'" onmouseout="this.style.background='rgba(139,92,246,.25)'">Create Assessment →</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+// Store extra entities beyond "Overall"
+let _ciNM_entities = [];
+
+function ciNM_syncName() {
+  const sel = document.getElementById('ciNM_client');
+  if (!sel) return;
+  const opt = sel.options[sel.selectedIndex];
+  const nameEl = document.getElementById('ciNM_clientName');
+  if (nameEl && opt && opt.dataset.name) nameEl.value = opt.dataset.name;
+}
+
+function ciNM_addEntity() {
+  const inp = document.getElementById('ciNM_entityInput');
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val) return;
+  _ciNM_entities.push(val);
+  inp.value = '';
+  const chips = document.getElementById('ciNM_entityChips');
+  if (chips) {
+    const chip = document.createElement('span');
+    chip.style.cssText = 'display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.25);color:#93c5fd;font-size:12px;font-weight:600;';
+    chip.innerHTML = `${escHtml(val)} <button onclick="this.parentElement.remove();_ciNM_entities=_ciNM_entities.filter(x=>x!=='${val.replace(/'/g,"\\'")}');" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:11px;padding:0;line-height:1;">✕</button>`;
+    chips.appendChild(chip);
+  }
+}
+
+function ciNM_addCustomPA() {
+  const inp = document.getElementById('ciNM_customPA');
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val) return;
+  inp.value = '';
+  const list = document.getElementById('ciNM_paChecks');
+  if (!list) return;
+  const label = document.createElement('label');
+  label.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,.03);border:1px solid rgba(139,92,246,.2);border-radius:8px;cursor:pointer;';
+  label.innerHTML = `<input type="checkbox" value="${escHtml(val)}" checked style="width:14px;height:14px;accent-color:#8b5cf6;cursor:pointer;"><span style="font-size:12px;color:rgba(255,255,255,.7);">${escHtml(val)}</span>`;
+  list.appendChild(label);
+}
+
+async function ciNM_submit() {
+  const clientSel = document.getElementById('ciNM_client');
+  const clientId = clientSel ? clientSel.value : '';
+  const clientName = (document.getElementById('ciNM_clientName')||{}).value?.trim();
+  if (!clientName) { alert('Please enter a client name.'); return; }
+  const projectName = (document.getElementById('ciNM_projectName')||document.getElementById('ciNM_project')||{}).value?.trim() || '';
+  const entities = ['Overall', ..._ciNM_entities];
+  _ciNM_entities = [];
+  const checkedPAs = [...document.querySelectorAll('#ciNM_paChecks input[type=checkbox]:checked')].map(cb => cb.value);
+  const btn = document.querySelector('#ciNewModal button[onclick="ciNM_submit()"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
+  try {
+    const r = await fetch('/api/ci/assessments', { method:'POST', headers:{'Content-Type':'application/json','x-user-email':getAdminPwd()||''}, body: JSON.stringify({ clientId, clientName, projectName, entities, processAreaNames: checkedPAs }) });
     const d = await r.json();
-    if (d.ok) { showToast('Assessment created'); ciLoad(); }
-    else showToast('Error: ' + (d.error||'unknown'));
-  } catch(e) { showToast('Request failed'); }
+    if (d.ok) {
+      document.getElementById('ciNewModal')?.remove();
+      showToast('Assessment created');
+      ciLoad();
+    } else { alert('Error: ' + (d.error||'unknown')); if(btn){btn.disabled=false;btn.textContent='Create Assessment →';} }
+  } catch(e) { alert('Request failed'); if(btn){btn.disabled=false;btn.textContent='Create Assessment →';} }
 }
 
 async function ciAddPA() {
