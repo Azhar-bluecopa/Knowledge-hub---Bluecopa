@@ -678,10 +678,12 @@ function ciRenderDetail() {
   if (!el) return;
   if (!_ciSelected) { el.innerHTML = '<div style="padding:48px;text-align:center;color:rgba(255,255,255,.25);">Select an assessment</div>'; return; }
   const a = _ciSelected;
+  const hubLinkHtml = a.portalToken ? `<div style="margin-top:10px;display:flex;align-items:center;gap:8px;background:rgba(53,72,255,.15);border:1px solid rgba(53,72,255,.3);border-radius:8px;padding:8px 12px"><span style="font-size:11px;color:#93c5fd;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 ${window.location.origin}/portal/${escHtml(a.portalToken)}</span><button onclick="navigator.clipboard.writeText('${window.location.origin}/portal/${escHtml(a.portalToken)}').then(()=>showToast&&showToast('Hub link copied!')).catch(()=>{})" style="flex-shrink:0;padding:4px 10px;font-size:11px;font-weight:700;background:#3548FF;color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif">Copy Hub Link</button></div>` : '';
   el.innerHTML = `
     <div style="padding:24px;border-bottom:1px solid rgba(255,255,255,.07);">
       <div style="font-size:18px;font-weight:800;color:#f0f0f6;margin-bottom:4px;">${escHtml(a.clientName)}</div>
       <div style="font-size:13px;color:rgba(255,255,255,.45);">${escHtml(a.projectName||'')}</div>
+      ${hubLinkHtml}
     </div>
     <div style="display:flex;gap:0;padding:0 24px;border-bottom:1px solid rgba(255,255,255,.07);">
       ${['ratings','actions','process-areas'].map(t=>`<button onclick="ciAdminTab('${t}')" style="padding:12px 16px;font-size:12px;font-weight:700;color:${_ciAdminTab===t?'#a78bfa':'rgba(255,255,255,.4)'};background:none;border:none;border-bottom:2px solid ${_ciAdminTab===t?'#8b5cf6':'transparent'};cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">${t==='ratings'?'Ratings':t==='actions'?'Actions':'Process Areas'}</button>`).join('')}

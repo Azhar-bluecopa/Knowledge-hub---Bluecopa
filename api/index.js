@@ -5885,7 +5885,15 @@ function ciId() { return `ci_${Date.now()}_${Math.random().toString(36).slice(2,
 app.get('/api/ci/assessments', async (req, res) => {
   await _dbReady;
   if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
-  res.json({ ok:true, data: ciDB().assessments });
+  const u = uatDB();
+  const assessments = ciDB().assessments.map(a => {
+    if (a.clientId) {
+      const uc = u.clients.find(c=>c.id===a.clientId);
+      if (uc && uc.portalToken) return { ...a, portalToken: uc.portalToken };
+    }
+    return a;
+  });
+  res.json({ ok:true, data: assessments });
 });
 
 // POST create new assessment (admin)
@@ -6150,6 +6158,110 @@ app.get('/api/cron/sm-snapshot', async (req, res) => {
     console.error('[cron sm-snapshot]', e.message);
     res.status(500).json({ ok: false, error: e.message });
   }
+});
+
+// ── Unified Customer Portal ────────────────────────────────────────────────────
+// Serve the HTML file
+app.get('/portal/:token', (req, res) => {
+  res.sendFile(require('path').join(__dirname, '../public/customer-portal.html'));
+});
+
+// GET /api/portal/:token — unified data endpoint
+app.get('/api/portal/:token', async (req, res) => {
+  await _dbReady;
+  const u = uatDB();
+  const c = u.clients.find(x=>x.portalToken===req.params.token);
+  if (!c) return res.status(404).json({ ok:false, error:'not found' });
+
+  // UAT data
+  const projects = u.projects.filter(p=>p.clientId===c.id);
+  const allTc = u.testcases.filter(t=>projects.some(p=>p.id===t.projectId));
+  const allIssues = u.issues.filter(i=>i.clientId===c.id);
+  const total = allTc.length;
+  const passed = allTc.filter(t=>t.clientStatus==='pass').length;
+  const failed = allTc.filter(t=>t.clientStatus==='fail').length;
+  const pending = allTc.filter(t=>!t.clientStatus||t.clientStatus==='not_tested'||t.clientStatus==='in_progress').length;
+  const openIssues = allIssues.filter(i=>i.status==='open'||i.status==='in_progress').length;
+  const signedOff = projects.length > 0 && projects.every(p=>p.signoff&&p.signoff.status==='signed'||p.portalSignoff);
+
+  // Project status (Rocketlane)
+  let projectStatus = { linked: false };
+  const rlProject = projects.find(p=>p.rlProjectId);
+  if (rlProject && process.env.ROCKETLANE_API_KEY) {
+    try {
+      const fetch = require('node-fetch');
+      const r = await fetch(`https://api.rocketlane.com/api/1.0/projects/${rlProject.rlProjectId}`, {
+        headers: { Authorization: `Bearer ${process.env.ROCKETLANE_API_KEY}` }
+      });
+      if (r.ok) {
+        const d = await r.json();
+        const proj = d.project || d;
+        const pct = proj.completionPct||proj.completion_pct||0;
+        const phases = (proj.phases||[]).map(ph => {
+          const tasks = (ph.tasks||ph.milestones||[]).filter(t=>!t.isPrivate&&!t.internal);
+          const done = tasks.filter(t=>t.completed||t.status==='completed'||t.status==='done').length;
+          const phPct = tasks.length ? Math.round(done/tasks.length*100) : 0;
+          const status = phPct===100 ? 'completed' : phPct>0 ? 'in_progress' : 'upcoming';
+          return {
+            name: ph.name||'',
+            completion: phPct,
+            startDate: ph.startDate||ph.start_date||'',
+            endDate: ph.endDate||ph.end_date||ph.dueDate||'',
+            status,
+            milestones: tasks.map(t=>({ name:t.name||t.title||'', dueDate:t.dueDate||t.due_date||'', status:t.completed||t.status==='completed'?'completed':'pending' }))
+          };
+        });
+        const currentPhase = phases.find(p=>p.status==='in_progress')||phases.find(p=>p.status==='upcoming')||null;
+        projectStatus = { linked:true, projectName:proj.name||'', completion:pct, currentPhase:currentPhase?currentPhase.name:'', phases };
+      }
+    } catch(e) { /* keep linked:false */ }
+  }
+
+  // Confidence Index
+  let ci = { linked: false };
+  const ciAss = ciDB().assessments.find(a=>a.clientId===c.id&&a.status==='active');
+  if (ciAss) {
+    const allRatings = Object.values(ciAss.ratings||{}).flatMap(er=>Object.values(er)).map(r=>r.score).filter(Boolean);
+    const avgScore = allRatings.length ? Math.round(allRatings.reduce((s,v)=>s+v,0)/allRatings.length*10)/10 : 0;
+    ci = {
+      linked: true,
+      assessmentId: ciAss.id,
+      avgScore,
+      entities: ciAss.entities||['Overall'],
+      processAreas: ciAss.processAreas||[],
+      ratings: ciAss.ratings||{},
+      actions: (ciAss.actions||[]).map(ac=>({ id:ac.id, processAreaId:ac.processAreaId, entityKey:ac.entityKey, training:ac.training, supportRequired:ac.supportRequired, owner:ac.owner, targetDate:ac.targetDate, status:ac.status }))
+    };
+  }
+
+  res.json({
+    ok: true,
+    client: { id:c.id, name:c.name, shortCode:c.shortCode },
+    projectStatus,
+    uat: {
+      testcases: allTc,
+      issues: allIssues,
+      projects: projects.map(p=>({ id:p.id, name:p.name, signoff:p.signoff, portalSignoff:p.portalSignoff })),
+      signedOff,
+      stats: { total, passed, failed, pending, openIssues }
+    },
+    ci
+  });
+});
+
+// PUT /api/portal/:token/ci/ratings — save CI rating from unified portal
+app.put('/api/portal/:token/ci/ratings', async (req, res) => {
+  await _dbReady;
+  const u = uatDB(); const c = u.clients.find(x=>x.portalToken===req.params.token);
+  if (!c) return res.status(403).json({ ok:false, error:'invalid token' });
+  const ci = ciDB(); const a = ci.assessments.find(x=>x.clientId===c.id&&x.status==='active');
+  if (!a) return res.status(404).json({ ok:false, error:'no assessment' });
+  const { paId, entityKey='Overall', score, comment='' } = req.body;
+  if (!paId||!score) return res.status(400).json({ ok:false, error:'paId and score required' });
+  if (!a.ratings[entityKey]) a.ratings[entityKey] = {};
+  a.ratings[entityKey][paId] = { score:Math.min(5,Math.max(1,parseInt(score))), comment, updatedAt:new Date().toISOString() };
+  a.updatedAt = new Date().toISOString();
+  await saveDB(db); res.json({ ok:true });
 });
 
 module.exports = app;

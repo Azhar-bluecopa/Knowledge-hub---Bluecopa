@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Customer Hub — Bluecopa</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#3548FF;--blue-light:#eff3ff;--blue-mid:#c7d0ff;
+  --green:#16a34a;--green-light:#dcfce7;--green-mid:#22c55e;
+  --red:#ef4444;--red-light:#fef2f2;
+  --orange:#f97316;--orange-light:#fff7ed;
+  --yellow:#eab308;--yellow-light:#fefce8;
+  --text:#0d1117;--text-2:#374151;--text-3:#6b7280;--text-4:#9ca3af;
+  --border:#e4e6ea;--bg:#f5f6f8;--card:#fff;
+  --radius:14px;--shadow:0 2px 12px rgba(0,0,0,.06);
+}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── Top bar ── */
+.topbar{background:#fff;border-bottom:1px solid var(--border);height:60px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:30;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.topbar-logo{font-size:17px;font-weight:800;color:var(--blue);letter-spacing:-.4px}
+.topbar-sep{width:1px;height:20px;background:var(--border)}
+.topbar-client{font-size:13px;font-weight:600;color:var(--text-2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-badge{background:var(--blue-light);color:var(--blue);border-radius:99px;padding:3px 12px;font-size:11px;font-weight:700;flex-shrink:0}
+
+/* ── Tab nav ── */
+.tab-nav{background:#fff;border-bottom:2px solid var(--border);padding:0 24px;display:flex;position:sticky;top:60px;z-index:20}
+.tab-btn{padding:14px 20px;font-size:13px;font-weight:600;color:var(--text-3);background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;transition:all .15s;font-family:inherit;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:700}
+.tab-btn:hover:not(.active){color:var(--text-2)}
+
+/* ── Content area ── */
+.content{max-width:1080px;margin:0 auto;padding:28px 20px;flex:1;width:100%}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* ── Cards ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.card-title{font-size:15px;font-weight:700;color:var(--text)}
+.card-body{padding:20px 24px}
+
+/* ── Metric cards ── */
+.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.metric-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow)}
+.metric-card .val{font-size:32px;font-weight:800;line-height:1;margin-bottom:4px}
+.metric-card .lbl{font-size:12px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px}
+.metric-card .sub{font-size:11px;color:var(--text-4);margin-top:3px}
+.metric-val-blue{color:var(--blue)}
+.metric-val-green{color:var(--green)}
+.metric-val-grey{color:var(--text-4)}
+
+/* ── Hub nav cards ── */
+.hub-nav-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.hub-nav-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.hub-nav-card:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(0,0,0,.1);border-color:var(--blue-mid)}
+.hub-nav-card:hover .hub-nav-arrow{color:var(--blue)}
+.hub-nav-icon{font-size:32px;margin-bottom:14px}
+.hub-nav-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
+.hub-nav-desc{font-size:12px;color:var(--text-3);line-height:1.6;margin-bottom:14px}
+.hub-nav-arrow{font-size:13px;font-weight:700;color:var(--text-3);transition:color .15s}
+.hub-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius) var(--radius) 0 0}
+
+/* ── Progress bar ── */
+.prog-wrap{background:#f1f2f5;border-radius:99px;height:8px;overflow:hidden;margin-bottom:4px}
+.prog-fill{height:100%;border-radius:99px;transition:width .6s ease}
+
+/* ── Welcome section ── */
+.welcome-section{margin-bottom:28px}
+.welcome-title{font-size:26px;font-weight:800;color:var(--text);margin-bottom:4px}
+.welcome-sub{font-size:14px;color:var(--text-3);font-weight:400}
+
+/* ── Timeline (Project Status) ── */
+.timeline{position:relative;padding-left:28px}
+.timeline::before{content:'';position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--border)}
+.timeline-item{position:relative;margin-bottom:24px}
+.timeline-dot{position:absolute;left:-28px;top:3px;width:16px;height:16px;border-radius:50%;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center}
+.timeline-dot.completed{background:var(--green);border-color:var(--green)}
+.timeline-dot.in_progress{background:var(--blue);border-color:var(--blue)}
+.timeline-dot.upcoming{background:#fff;border-color:var(--border)}
+.timeline-dot .dot-inner{width:6px;height:6px;border-radius:50%;background:#fff}
+.timeline-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 20px;box-shadow:var(--shadow)}
+.timeline-phase-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;letter-spacing:.3px}
+.badge-inprogress{background:#dbeafe;color:#1d4ed8}
+.badge-completed{background:var(--green-light);color:var(--green)}
+.badge-upcoming{background:#f3f4f6;color:var(--text-3)}
+.timeline-dates{font-size:11px;color:var(--text-4);margin-bottom:10px}
+.milestone-list{margin-top:12px}
+.milestone-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid #f8f9fa;font-size:12px;color:var(--text-2)}
+.milestone-icon{font-size:12px;flex-shrink:0}
+.milestone-due{margin-left:auto;font-size:11px;color:var(--text-4);flex-shrink:0}
+
+/* ── UAT tab ── */
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.stat-mini{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-align:center;box-shadow:var(--shadow)}
+.stat-mini .val{font-size:22px;font-weight:800;line-height:1}
+.stat-mini .lbl{font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+.stat-green .val{color:var(--green)}
+.stat-red .val{color:var(--red)}
+.stat-yellow .val{color:var(--yellow)}
+.stat-blue .val{color:var(--blue)}
+.stat-grey .val{color:var(--text-4)}
+
+.cat-group{margin-bottom:20px}
+.cat-group-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer}
+.cat-name{font-size:13px;font-weight:700;color:var(--text)}
+.cat-count{font-size:11px;color:var(--text-4)}
+.tc-table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.tc-table th{background:#f8f9fa;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;padding:9px 14px;text-align:left;border-bottom:1px solid var(--border)}
+.tc-table td{padding:10px 14px;border-bottom:1px solid #f5f6f8;font-size:12px;vertical-align:top}
+.tc-table tr:last-child td{border-bottom:none}
+.tc-table tr:hover td{background:#fafbff}
+.status-pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700}
+.s-pass{background:var(--green-light);color:var(--green)}
+.s-fail{background:var(--red-light);color:var(--red)}
+.s-not_tested,.s-not-tested{background:#f3f4f6;color:var(--text-3)}
+.s-in_progress{background:#dbeafe;color:#1d4ed8}
+.s-blocked{background:#fef3c7;color:#b45309}
+.pri-high{color:var(--red);font-weight:700}
+.pri-medium{color:var(--orange);font-weight:700}
+.pri-low{color:var(--text-3)}
+.pri-critical{color:#7c3aed;font-weight:700}
+
+.signoff-banner{background:var(--green-light);border:1px solid #bbf7d0;border-radius:10px;padding:16px 20px;display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.signoff-check{width:28px;height:28px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.signoff-check svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.uat-link-row{margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+
+.issue-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:10px;border-left:4px solid var(--red);box-shadow:var(--shadow)}
+.issue-ref{font-size:10px;font-weight:700;color:var(--text-4);font-family:monospace;margin-bottom:4px}
+.issue-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px}
+.issue-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+
+/* ── CI tab ── */
+.ci-gauge-wrap{display:flex;align-items:center;gap:24px;padding:24px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:24px}
+.ci-gauge-ring{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.ci-pa-row{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:12px;box-shadow:var(--shadow)}
+.ci-pa-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px}
+.ci-stars{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.ci-star{font-size:26px;cursor:pointer;color:#d1d5db;transition:color .1s;user-select:none;line-height:1}
+.ci-star.active{color:#f59e0b}
+.ci-star:hover{color:#f59e0b}
+.ci-score-label{font-size:12px;font-weight:600;margin-left:8px}
+.ci-comment-box{display:none;width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;font-family:inherit;resize:vertical;min-height:70px;color:var(--text);margin-top:8px;transition:border-color .15s}
+.ci-comment-box.show{display:block}
+.ci-comment-box:focus{outline:none;border-color:var(--blue)}
+.ci-action-box{background:#f8f9ff;border:1px solid #c7d0ff;border-radius:8px;padding:12px 14px;margin-top:10px;font-size:12px;color:var(--text-2);line-height:1.6}
+.ci-action-box-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--blue);margin-bottom:8px}
+.ci-entity-tab{padding:6px 14px;border:1px solid var(--border);border-radius:99px;font-size:12px;font-weight:600;background:#fff;cursor:pointer;color:var(--text-3);transition:all .15s;font-family:inherit}
+.ci-entity-tab.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.ci-save-all-btn{display:block;width:100%;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;margin-top:20px}
+.ci-save-all-btn:hover{background:#2236e0}
+.ci-intro{font-size:13px;color:var(--text-3);line-height:1.6;margin-bottom:20px}
+
+/* ── Empty / not-linked states ── */
+.empty-state{padding:56px;text-align:center;color:var(--text-3)}
+.empty-icon{font-size:48px;margin-bottom:16px}
+.empty-title{font-size:16px;font-weight:700;color:var(--text-2);margin-bottom:8px}
+.empty-desc{font-size:13px;line-height:1.6}
+
+/* ── Loading ── */
+.loading-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;gap:16px}
+.loading-spinner{width:40px;height:40px;border:3px solid var(--blue-mid);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:14px;color:var(--text-3);font-weight:500}
+
+/* ── Error page ── */
+.error-page{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;gap:12px}
+.error-icon{font-size:56px}
+.error-title{font-size:22px;font-weight:800;color:var(--text)}
+.error-desc{font-size:14px;color:var(--text-3);max-width:380px;line-height:1.6}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:#0d1117;color:#fff;padding:11px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:200;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* ── Footer ── */
+footer{text-align:center;padding:24px;font-size:11px;color:var(--text-4);border-top:1px solid var(--border);background:#fff;margin-top:auto}
+
+/* ── Responsive ── */
+@media(max-width:768px){
+  .metric-grid{grid-template-columns:1fr 1fr}
+  .hub-nav-grid{grid-template-columns:1fr}
+  .stat-row{grid-template-columns:repeat(3,1fr)}
+  .tab-btn{padding:12px 14px;font-size:12px}
+  .topbar{padding:0 16px}
+  .content{padding:20px 14px}
+  .ci-gauge-wrap{flex-direction:column;align-items:flex-start}
+  .tc-table th:nth-child(4),.tc-table td:nth-child(4){display:none}
+}
+@media(max-width:480px){
+  .metric-grid{grid-template-columns:1fr}
+  .stat-row{grid-template-columns:repeat(2,1fr)}
+  .topbar-badge{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- Loading state -->
+<div id="loadingView" style="flex:1;display:flex;align-items:center;justify-content:center">
+  <div class="loading-wrap">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading your portal…</div>
+  </div>
+</div>
+
+<!-- Error state -->
+<div id="errorView" style="display:none;flex:1">
+  <div class="error-page">
+    <div class="error-icon">🔒</div>
+    <div class="error-title">Portal not found</div>
+    <div class="error-desc">This link may be invalid or expired. Please contact your Bluecopa team for a new link.</div>
+  </div>
+</div>
+
+<!-- Main portal -->
+<div id="portalView" style="display:none;flex:1;display:none;flex-direction:column">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="topbar-logo">Bluecopa</div>
+    <div class="topbar-sep"></div>
+    <div class="topbar-client" id="topbarClient">—</div>
+    <div class="topbar-badge">Client Hub</div>
+  </div>
+
+  <!-- Tab navigation -->
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="hub" onclick="switchTab('hub',this)">🏠 Hub</button>
+    <button class="tab-btn" data-tab="status" onclick="switchTab('status',this)">📋 Project Status</button>
+    <button class="tab-btn" data-tab="uat" onclick="switchTab('uat',this)">🧪 UAT Testing</button>
+    <button class="tab-btn" data-tab="ci" onclick="switchTab('ci',this)">🎯 Confidence Index</button>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- ── HUB TAB ── -->
+    <div class="tab-panel active" id="panel-hub">
+      <div class="welcome-section">
+        <div class="welcome-title" id="welcomeTitle">Hello!</div>
+        <div class="welcome-sub">Your implementation progress at a glance</div>
+      </div>
+
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="val metric-val-blue" id="hubProjPct">—</div>
+          <div class="lbl">Project Progress</div>
+          <div class="sub" id="hubProjSub">Connecting…</div>
+        </div>
+        <div class="metric-card">
+          <div class="val metric-val-green" id="hubUatPct">—</div>
+          <div class="lbl">UAT Completion</div>
+          <div class="sub" id="hubUatSub">Loading…</div>
+        </div>
+        <div class="metric-card">
+          <div class="val metric-val-grey" id="hubCiScore">—</div>
+          <div class="lbl">Confidence Score</div>
+          <div class="sub" id="hubCiSub">Loading…</div>
+        </div>
+      </div>
+
+      <div class="hub-nav-grid">
+        <div class="hub-nav-card" onclick="switchTab('status',document.querySelector('[data-tab=status]'))">
+          <div class="hub-accent" style="background:var(--blue)"></div>
+          <div class="hub-nav-icon">📋</div>
+          <div class="hub-nav-title">Project Status</div>
+          <div class="hub-nav-desc">View your implementation timeline, phases, and milestone completion with Rocketlane data.</div>
+          <div class="hub-nav-arrow">→ View Timeline</div>
+        </div>
+        <div class="hub-nav-card" onclick="switchTab('uat',document.querySelector('[data-tab=uat]'))">
+          <div class="hub-accent" style="background:var(--green)"></div>
+          <div class="hub-nav-icon">🧪</div>
+          <div class="hub-nav-title">UAT Testing</div>
+          <div class="hub-nav-desc">Review test cases by category, track progress, manage issues, and sign off on UAT.</div>
+          <div class="hub-nav-arrow">→ Review Tests</div>
+        </div>
+        <div class="hub-nav-card" onclick="switchTab('ci',document.querySelector('[data-tab=ci]'))">
+          <div class="hub-accent" style="background:var(--orange)"></div>
+          <div class="hub-nav-icon">🎯</div>
+          <div class="hub-nav-title">Confidence Index</div>
+          <div class="hub-nav-desc">Rate your confidence across Bluecopa process areas and track readiness for go-live.</div>
+          <div class="hub-nav-arrow">→ Rate Readiness</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PROJECT STATUS TAB ── -->
+    <div class="tab-panel" id="panel-status">
+      <div id="statusContent">
+        <div class="loading-wrap" style="min-height:300px">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">Loading project timeline…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── UAT TESTING TAB ── -->
+    <div class="tab-panel" id="panel-uat">
+      <div id="uatContent">
+        <div class="loading-wrap" style="min-height:300px">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">Loading UAT data…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CONFIDENCE INDEX TAB ── -->
+    <div class="tab-panel" id="panel-ci">
+      <div id="ciContent">
+        <div class="loading-wrap" style="min-height:300px">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">Loading confidence index…</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <footer>Powered by Bluecopa &middot; Confidential</footer>
+</div><!-- /portalView -->
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Utility ──────────────────────────────────────────────────────────────────
+const TOKEN = window.location.pathname.split('/').filter(Boolean).pop();
+let _data = null;
+let _ciEntity = 'Overall';
+let _ciPendingRatings = {}; // { entityKey: { paId: { score, comment } } }
+let _statusRendered = false, _uatRendered = false, _ciRendered = false;
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2400);
+}
+function fmtDate(s) {
+  if (!s) return '';
+  try { return new Date(s).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }); }
+  catch { return s; }
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById('panel-' + tab);
+  if (panel) panel.classList.add('active');
+  // Lazy render
+  if (tab === 'status' && !_statusRendered && _data) { renderStatus(); _statusRendered = true; }
+  if (tab === 'uat' && !_uatRendered && _data) { renderUAT(); _uatRendered = true; }
+  if (tab === 'ci' && !_ciRendered && _data) { renderCI(); _ciRendered = true; }
+}
+
+// ── Load data ─────────────────────────────────────────────────────────────────
+async function load() {
+  try {
+    const r = await fetch('/api/portal/' + TOKEN);
+    if (!r.ok) {
+      document.getElementById('loadingView').style.display = 'none';
+      document.getElementById('errorView').style.display = 'flex';
+      return;
+    }
+    const d = await r.json();
+    if (!d.ok) {
+      document.getElementById('loadingView').style.display = 'none';
+      document.getElementById('errorView').style.display = 'flex';
+      return;
+    }
+    _data = d;
+    renderPortal();
+  } catch(e) {
+    document.getElementById('loadingView').style.display = 'none';
+    document.getElementById('errorView').style.display = 'flex';
+  }
+}
+
+// ── Render portal ─────────────────────────────────────────────────────────────
+function renderPortal() {
+  document.getElementById('loadingView').style.display = 'none';
+  const pv = document.getElementById('portalView');
+  pv.style.display = 'flex';
+
+  const { client, projectStatus, uat, ci } = _data;
+
+  // Topbar
+  document.getElementById('topbarClient').textContent = client.name;
+  document.title = 'Hub — ' + client.name;
+
+  // Welcome
+  document.getElementById('welcomeTitle').textContent = 'Hello, ' + client.name + '!';
+
+  // Hub metric cards
+  // Project progress
+  if (projectStatus.linked) {
+    const pct = projectStatus.completion || 0;
+    document.getElementById('hubProjPct').textContent = pct + '%';
+    document.getElementById('hubProjPct').className = 'val ' + (pct >= 75 ? 'metric-val-green' : pct >= 40 ? 'metric-val-blue' : 'metric-val-grey');
+    document.getElementById('hubProjSub').textContent = projectStatus.projectName || 'Linked';
+  } else {
+    document.getElementById('hubProjPct').textContent = 'N/A';
+    document.getElementById('hubProjPct').className = 'val metric-val-grey';
+    document.getElementById('hubProjSub').textContent = 'Not linked yet';
+  }
+  // UAT
+  const uatTotal = uat.stats.total;
+  const uatPassed = uat.stats.passed;
+  const uatPct = uatTotal ? Math.round(uatPassed / uatTotal * 100) : 0;
+  document.getElementById('hubUatPct').textContent = uatPct + '%';
+  document.getElementById('hubUatPct').className = 'val ' + (uatPct >= 80 ? 'metric-val-green' : 'metric-val-blue');
+  document.getElementById('hubUatSub').textContent = uatPassed + ' / ' + uatTotal + ' tests passed';
+  // CI
+  if (ci.linked) {
+    const score = ci.avgScore || 0;
+    document.getElementById('hubCiScore').textContent = score.toFixed(1) + ' / 5';
+    document.getElementById('hubCiScore').className = 'val ' + (score >= 4 ? 'metric-val-green' : score >= 3 ? 'metric-val-blue' : 'metric-val-grey');
+    document.getElementById('hubCiSub').textContent = scoreLabel(score);
+  } else {
+    document.getElementById('hubCiScore').textContent = 'N/A';
+    document.getElementById('hubCiScore').className = 'val metric-val-grey';
+    document.getElementById('hubCiSub').textContent = 'Not configured';
+  }
+
+  // Handle tab param
+  const urlParams = new URLSearchParams(window.location.search);
+  const tabParam = urlParams.get('tab');
+  if (tabParam && ['status','uat','ci'].includes(tabParam)) {
+    const btn = document.querySelector('[data-tab="' + tabParam + '"]');
+    switchTab(tabParam, btn);
+  }
+}
+
+// ── Project Status tab ────────────────────────────────────────────────────────
+function renderStatus() {
+  const el = document.getElementById('statusContent');
+  const ps = _data.projectStatus;
+  if (!ps.linked) {
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🗓️</div>
+        <div class="empty-title">Timeline not connected yet</div>
+        <div class="empty-desc">Project timeline not linked yet. Your Bluecopa team will connect this soon.</div>
+      </div>`;
+    return;
+  }
+  const pct = ps.completion || 0;
+  const pctColor = pct >= 80 ? '#16a34a' : pct >= 50 ? '#3548FF' : '#ef4444';
+  let html = `
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-body">
+        <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+          <div style="flex:1;min-width:180px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Project</div>
+            <div style="font-size:18px;font-weight:800;color:var(--text)">${esc(ps.projectName)}</div>
+            ${ps.currentPhase ? `<div style="font-size:12px;color:var(--text-3);margin-top:4px">Current phase: <strong>${esc(ps.currentPhase)}</strong></div>` : ''}
+          </div>
+          <div style="text-align:center;flex-shrink:0">
+            <div style="font-size:36px;font-weight:800;color:${pctColor}">${pct}%</div>
+            <div style="font-size:11px;color:var(--text-4);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Overall Progress</div>
+          </div>
+        </div>
+        <div class="prog-wrap" style="margin-top:16px">
+          <div class="prog-fill" style="width:${pct}%;background:${pctColor}"></div>
+        </div>
+      </div>
+    </div>
+    <div class="timeline">`;
+
+  (ps.phases || []).forEach(ph => {
+    const phColor = ph.status === 'completed' ? 'var(--green)' : ph.status === 'in_progress' ? 'var(--blue)' : 'var(--text-4)';
+    const dotClass = ph.status === 'completed' ? 'completed' : ph.status === 'in_progress' ? 'in_progress' : 'upcoming';
+    const badgeClass = ph.status === 'completed' ? 'badge-completed' : ph.status === 'in_progress' ? 'badge-inprogress' : 'badge-upcoming';
+    const badgeText = ph.status === 'completed' ? '✓ Completed' : ph.status === 'in_progress' ? 'In Progress' : 'Upcoming';
+    html += `
+      <div class="timeline-item">
+        <div class="timeline-dot ${dotClass}"><div class="dot-inner"></div></div>
+        <div class="timeline-card">
+          <div class="timeline-phase-name">
+            ${esc(ph.name)}
+            <span class="badge ${badgeClass}">${badgeText}</span>
+          </div>
+          ${(ph.startDate || ph.endDate) ? `<div class="timeline-dates">${ph.startDate ? fmtDate(ph.startDate) : ''}${ph.startDate && ph.endDate ? ' → ' : ''}${ph.endDate ? fmtDate(ph.endDate) : ''}</div>` : ''}
+          <div class="prog-wrap">
+            <div class="prog-fill" style="width:${ph.completion}%;background:${phColor}"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-4);margin-top:4px;margin-bottom:${ph.milestones && ph.milestones.length ? '0' : '0'}">${ph.completion}% complete</div>
+          ${ph.milestones && ph.milestones.length ? `
+          <div class="milestone-list">
+            ${ph.milestones.map(m => `
+              <div class="milestone-row">
+                <span class="milestone-icon">${m.status === 'completed' ? '✅' : '◦'}</span>
+                <span style="color:${m.status==='completed'?'var(--text-3)':'var(--text)'};text-decoration:${m.status==='completed'?'line-through':'none'}">${esc(m.name)}</span>
+                ${m.dueDate ? `<span class="milestone-due">${fmtDate(m.dueDate)}</span>` : ''}
+              </div>`).join('')}
+          </div>` : ''}
+        </div>
+      </div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ── UAT Testing tab ───────────────────────────────────────────────────────────
+function renderUAT() {
+  const el = document.getElementById('uatContent');
+  const uat = _data.uat;
+  const stats = uat.stats;
+  const total = stats.total;
+  const uatPct = total ? Math.round(stats.passed / total * 100) : 0;
+
+  let html = '';
+
+  // Sign-off banner
+  if (uat.signedOff) {
+    html += `<div class="signoff-banner">
+      <div class="signoff-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--green)">UAT Signed Off</div>
+        <div style="font-size:12px;color:#15803d;margin-top:2px">All UAT rounds have been formally signed off.</div>
+      </div>
+    </div>`;
+  }
+
+  // Stats row
+  html += `<div class="stat-row">
+    <div class="stat-mini stat-blue"><div class="val">${total}</div><div class="lbl">Total</div></div>
+    <div class="stat-mini stat-green"><div class="val">${stats.passed}</div><div class="lbl">Passed</div></div>
+    <div class="stat-mini stat-red"><div class="val">${stats.failed}</div><div class="lbl">Failed</div></div>
+    <div class="stat-mini stat-yellow"><div class="val">${stats.pending}</div><div class="lbl">Pending</div></div>
+    <div class="stat-mini stat-red"><div class="val">${stats.openIssues}</div><div class="lbl">Open Issues</div></div>
+  </div>`;
+
+  // Overall progress bar
+  html += `<div class="card" style="margin-bottom:24px">
+    <div class="card-body" style="padding:16px 20px">
+      <div style="display:flex;align-items:center;gap:16px">
+        <div style="font-size:22px;font-weight:800;color:${uatPct>=80?'var(--green)':uatPct>=50?'var(--blue)':'var(--text-4)'}">${uatPct}%</div>
+        <div style="flex:1">
+          <div class="prog-wrap"><div class="prog-fill" style="width:${uatPct}%;background:${uatPct>=80?'var(--green-mid)':uatPct>=50?'var(--blue)':'#d1d5db'}"></div></div>
+          <div style="font-size:11px;color:var(--text-4);margin-top:4px">${stats.passed} passed of ${total} total test cases</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  // Group by category
+  const categories = {};
+  (uat.testcases || []).forEach(tc => {
+    const cat = tc.category || 'General';
+    if (!categories[cat]) categories[cat] = [];
+    categories[cat].push(tc);
+  });
+
+  if (Object.keys(categories).length) {
+    html += `<div style="margin-bottom:20px">`;
+    Object.entries(categories).forEach(([cat, tcs]) => {
+      const catPassed = tcs.filter(t => t.clientStatus === 'pass').length;
+      const catPct = tcs.length ? Math.round(catPassed / tcs.length * 100) : 0;
+      html += `<div class="card" style="margin-bottom:14px">
+        <div class="card-header" style="cursor:pointer;user-select:none" onclick="toggleCat('${esc(cat)}')">
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:700;color:var(--text)">${esc(cat)}</div>
+            <div style="margin-top:6px"><div class="prog-wrap" style="margin-bottom:0"><div class="prog-fill" style="width:${catPct}%;background:${catPct>=80?'var(--green-mid)':'var(--blue)'}"></div></div></div>
+          </div>
+          <div style="text-align:right;margin-left:16px;flex-shrink:0">
+            <div style="font-size:13px;font-weight:700;color:var(--text-3)">${catPassed}/${tcs.length}</div>
+            <div style="font-size:11px;color:var(--text-4);">${catPct}%</div>
+          </div>
+        </div>
+        <div id="cat-${esc(cat).replace(/\W/g,'_')}" style="overflow-x:auto">
+          <table class="tc-table">
+            <thead><tr>
+              <th>#</th>
+              <th>Test Case</th>
+              <th>Priority</th>
+              <th>Status</th>
+            </tr></thead>
+            <tbody>
+              ${tcs.map(tc => {
+                const st = tc.clientStatus || 'not_tested';
+                const stLabel = {not_tested:'Not Tested',in_progress:'In Progress',pass:'Pass',fail:'Fail',blocked:'Blocked'}[st] || st;
+                const pri = (tc.priority || '').toLowerCase();
+                const priCls = pri === 'high' ? 'pri-high' : pri === 'critical' ? 'pri-critical' : pri === 'medium' ? 'pri-medium' : 'pri-low';
+                return `<tr>
+                  <td style="color:var(--text-4);font-family:monospace;font-size:11px;font-weight:700">TC-${tc.seq||'?'}</td>
+                  <td style="font-weight:500">${esc(tc.title||tc.description||'')}</td>
+                  <td class="${priCls}">${esc(tc.priority || '—')}</td>
+                  <td><span class="status-pill s-${st.replace('_','-')}">${stLabel}</span></td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Open issues
+  const openIssues = (uat.issues || []).filter(i => i.status === 'open' || i.status === 'in_progress');
+  if (openIssues.length) {
+    html += `<div style="margin-top:24px">
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px">Open Issues (${openIssues.length})</div>`;
+    openIssues.forEach(iss => {
+      const sev = (iss.severity || '').toLowerCase();
+      const sevColor = sev==='critical'?'#7c3aed':sev==='high'?'var(--red)':sev==='medium'?'var(--orange)':'var(--text-3)';
+      html += `<div class="issue-card">
+        <div class="issue-ref">${esc(iss.ref || '')}</div>
+        <div class="issue-title">${esc(iss.title || '')}</div>
+        <div class="issue-meta">
+          <span class="badge" style="background:#fef2f2;color:var(--red)">${esc(iss.status || '')}</span>
+          ${iss.severity ? `<span class="badge" style="color:${sevColor};background:#f9fafb;border:1px solid var(--border)">${esc(iss.severity)}</span>` : ''}
+          ${iss.module ? `<span style="font-size:11px;color:var(--text-4)">${esc(iss.module)}</span>` : ''}
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Link to full UAT portal
+  html += `<div class="uat-link-row">`;
+  if (uat.signedOff) {
+    html += `<span style="font-size:13px;color:var(--green);font-weight:600">✓ UAT has been signed off</span>`;
+  } else {
+    html += `<span style="font-size:13px;color:var(--text-3)">Need to update test statuses or sign off?</span>
+    <a href="/uat/portal/${TOKEN}" style="font-size:13px;font-weight:700;color:var(--blue);text-decoration:none">Full UAT Portal →</a>`;
+  }
+  html += `</div>`;
+
+  el.innerHTML = html;
+}
+
+function toggleCat(cat) {
+  const id = 'cat-' + cat.replace(/\W/g,'_');
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+// ── Confidence Index tab ──────────────────────────────────────────────────────
+function scoreColor(v) {
+  if (!v) return '#9ca3af';
+  return [,'#ef4444','#f97316','#eab308','#22c55e','#16a34a'][Math.round(v)] || '#9ca3af';
+}
+function scoreLabel(v) {
+  if (!v) return 'Not rated';
+  return [,'Very Low','Low','Moderate','High','Fully Confident'][Math.round(v)] || '';
+}
+
+function renderCI() {
+  const el = document.getElementById('ciContent');
+  const ci = _data.ci;
+  if (!ci.linked) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">🎯</div>
+      <div class="empty-title">Not configured yet</div>
+      <div class="empty-desc">Confidence assessment not configured yet. Your Bluecopa team will set this up for you.</div>
+    </div>`;
+    return;
+  }
+
+  // Init pending ratings from existing data
+  _ciPendingRatings = {};
+  const entities = ci.entities || ['Overall'];
+  entities.forEach(ent => {
+    _ciPendingRatings[ent] = {};
+    const entRatings = (ci.ratings || {})[ent] || {};
+    (ci.processAreas || []).forEach(pa => {
+      const r = entRatings[pa.id] || {};
+      _ciPendingRatings[ent][pa.id] = { score: r.score || 0, comment: r.comment || '' };
+    });
+  });
+
+  renderCIContent();
+}
+
+function renderCIContent() {
+  const el = document.getElementById('ciContent');
+  const ci = _data.ci;
+  const entities = ci.entities || ['Overall'];
+  const pas = (ci.processAreas || []).slice().sort((a,b)=>(a.order||0)-(b.order||0));
+  const actions = ci.actions || [];
+
+  const entRatings = _ciPendingRatings[_ciEntity] || {};
+  const scores = pas.map(pa => entRatings[pa.id] ? entRatings[pa.id].score : 0);
+  const rated = scores.filter(s => s > 0);
+  const avg = rated.length ? rated.reduce((a,b) => a+b, 0) / rated.length : 0;
+  const pct = Math.round(avg / 5 * 100);
+  const lvlColor = scoreColor(avg);
+  const gaugeR = 38;
+  const gaugeCirc = 2 * Math.PI * gaugeR;
+  const gaugeDash = Math.round(gaugeCirc * pct / 100);
+
+  let html = '';
+
+  // Entity tabs
+  if (entities.length > 1) {
+    html += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">`;
+    entities.forEach(ent => {
+      html += `<button class="ci-entity-tab${ent === _ciEntity ? ' active' : ''}" onclick="ciSelectEntity('${esc(ent)}')">${esc(ent)}</button>`;
+    });
+    html += `</div>`;
+  }
+
+  // Gauge
+  html += `<div class="ci-gauge-wrap">
+    <div class="ci-gauge-ring">
+      <svg viewBox="0 0 96 96" width="96" height="96" style="transform:rotate(-90deg)">
+        <circle cx="48" cy="48" r="${gaugeR}" fill="none" stroke="#f1f2f5" stroke-width="12"/>
+        <circle cx="48" cy="48" r="${gaugeR}" fill="none" stroke="${lvlColor}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${gaugeDash} ${Math.round(gaugeCirc)}" style="transition:stroke-dasharray .5s"/>
+      </svg>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div style="font-size:20px;font-weight:800;color:${lvlColor}">${pct}%</div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:6px">${scoreLabel(avg) || 'Not Rated'}</div>
+      ${avg ? `<div style="font-size:14px;font-weight:700;color:${lvlColor}">Avg: ${avg.toFixed(1)} / 5</div>` : ''}
+      <div style="font-size:13px;color:var(--text-3);margin-top:4px">${rated.length} / ${pas.length} areas rated</div>
+    </div>
+  </div>`;
+
+  html += `<p class="ci-intro">Please rate your confidence in each Bluecopa process area (1 = Very Low, 5 = Fully Confident). Your ratings help your Bluecopa team understand where additional support may be needed.</p>`;
+
+  // Process areas
+  pas.forEach(pa => {
+    const r = entRatings[pa.id] || { score: 0, comment: '' };
+    const score = r.score || 0;
+    const comment = r.comment || '';
+    const paActions = actions.filter(a => a.processAreaId === pa.id && (a.entityKey === _ciEntity || a.entityKey === 'Overall'));
+    html += `<div class="ci-pa-row" id="parow_${esc(pa.id)}">
+      <div class="ci-pa-name">${esc(pa.name)}</div>
+      <div class="ci-stars" id="stars_${esc(pa.id)}">
+        ${[1,2,3,4,5].map(v => `<span class="ci-star${score >= v ? ' active' : ''}" style="${score >= v ? 'color:' + scoreColor(score) + '' : ''}" data-paid="${esc(pa.id)}" data-v="${v}" onclick="ciSetScore('${esc(pa.id)}', ${v})">★</span>`).join('')}
+        <span class="ci-score-label" id="lbl_${esc(pa.id)}" style="color:${score ? scoreColor(score) : 'var(--text-4)'}">${scoreLabel(score) || 'Not rated'}</span>
+      </div>
+      <textarea class="ci-comment-box${score > 0 && score <= 2 ? ' show' : ''}" id="cmt_${esc(pa.id)}" placeholder="Please describe the issue or area of concern…" onchange="ciUpdateComment('${esc(pa.id)}', this.value)">${esc(comment)}</textarea>
+      ${paActions.length ? `<div class="ci-action-box">
+        <div class="ci-action-box-title">Agreed Support from Bluecopa</div>
+        ${paActions.map(a => `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e0e7ff;line-height:1.6">
+          ${a.training ? `<div><strong>Training:</strong> ${esc(a.training)}</div>` : ''}
+          ${a.supportRequired ? `<div><strong>Support:</strong> ${esc(a.supportRequired)}</div>` : ''}
+          ${a.owner ? `<div style="color:var(--text-3);font-size:11px">Owner: ${esc(a.owner)}${a.targetDate ? ' · Due: ' + esc(a.targetDate) : ''} · <span style="font-weight:700;color:${a.status==='completed'?'var(--green)':a.status==='in-progress'?'var(--blue)':'var(--text-2)'}">${esc(a.status)}</span></div>` : ''}
+        </div>`).join('')}
+      </div>` : ''}
+    </div>`;
+  });
+
+  if (!pas.length) {
+    html += `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No areas yet</div><div class="empty-desc">Your Bluecopa team will configure process areas soon.</div></div>`;
+  } else {
+    html += `<button class="ci-save-all-btn" onclick="ciSaveAll()">Save All Ratings</button>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function ciSelectEntity(ent) {
+  _ciEntity = ent;
+  renderCIContent();
+}
+
+function ciSetScore(paId, v) {
+  if (!_ciPendingRatings[_ciEntity]) _ciPendingRatings[_ciEntity] = {};
+  if (!_ciPendingRatings[_ciEntity][paId]) _ciPendingRatings[_ciEntity][paId] = { score: 0, comment: '' };
+  _ciPendingRatings[_ciEntity][paId].score = v;
+
+  // Update stars
+  const stars = document.getElementById('stars_' + paId);
+  if (stars) {
+    stars.querySelectorAll('.ci-star').forEach(s => {
+      const sv = parseInt(s.dataset.v);
+      s.classList.toggle('active', sv <= v);
+      s.style.color = sv <= v ? scoreColor(v) : '';
+    });
+    const lbl = document.getElementById('lbl_' + paId);
+    if (lbl) { lbl.textContent = scoreLabel(v); lbl.style.color = scoreColor(v); }
+  }
+  const cmt = document.getElementById('cmt_' + paId);
+  if (cmt) cmt.classList.toggle('show', v > 0 && v <= 2);
+}
+
+function ciUpdateComment(paId, val) {
+  if (!_ciPendingRatings[_ciEntity]) _ciPendingRatings[_ciEntity] = {};
+  if (!_ciPendingRatings[_ciEntity][paId]) _ciPendingRatings[_ciEntity][paId] = { score: 0, comment: '' };
+  _ciPendingRatings[_ciEntity][paId].comment = val;
+}
+
+async function ciSaveAll() {
+  const btn = document.querySelector('.ci-save-all-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  const entRatings = _ciPendingRatings[_ciEntity] || {};
+  const promises = Object.entries(entRatings).filter(([paId, r]) => r.score > 0).map(([paId, r]) =>
+    fetch('/api/portal/' + TOKEN + '/ci/ratings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paId, entityKey: _ciEntity, score: r.score, comment: r.comment || '' })
+    })
+  );
+  try {
+    await Promise.all(promises);
+    toast('Ratings saved successfully');
+    // Refresh CI data
+    const rd = await fetch('/api/portal/' + TOKEN);
+    if (rd.ok) { const dd = await rd.json(); if (dd.ok) { _data.ci = dd.ci; _ciRendered = false; renderCI(); _ciRendered = true; } }
+  } catch(e) {
+    toast('Save failed. Please try again.');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Save All Ratings'; }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+load();
+</script>
+</body>
+</html>
