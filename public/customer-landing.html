@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Customer Hub — Bluecopa</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;800;900&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  height:100%;background:#060d1c;color:#fff;overflow:hidden;
+  font-family:'DM Sans',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── Ticker ── */
+.ticker{
+  position:fixed;top:0;left:0;right:0;z-index:50;
+  height:38px;display:flex;align-items:center;overflow:hidden;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  background:rgba(6,13,28,.8);backdrop-filter:blur(8px);
+}
+.ticker-track{
+  display:flex;align-items:center;gap:0;
+  white-space:nowrap;
+  animation:tickMove 28s linear infinite;
+}
+@keyframes tickMove{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ticker-item{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;font-weight:500;letter-spacing:.7px;
+  color:rgba(255,255,255,.22);
+  padding:0 28px;
+}
+.ticker-dot{
+  width:4px;height:4px;border-radius:50%;
+  background:rgba(59,110,250,.5);flex-shrink:0;
+}
+
+/* ── Header bar ── */
+.header{
+  position:fixed;top:38px;left:0;right:0;z-index:50;
+  height:56px;display:flex;align-items:center;
+  padding:0 32px;
+  background:rgba(6,13,28,.6);backdrop-filter:blur(8px);
+}
+.header-logo{
+  display:flex;align-items:center;gap:10px;
+  font-family:'Outfit',sans-serif;font-size:16px;font-weight:800;color:#fff;
+}
+.logo-mark{
+  width:32px;height:32px;
+  background:linear-gradient(135deg,#3B6EFA,#6d90fc);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:900;color:#fff;
+  box-shadow:0 4px 14px rgba(59,110,250,.45);
+}
+.header-right{
+  margin-left:auto;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;font-weight:500;letter-spacing:1.2px;
+  color:rgba(255,255,255,.22);
+}
+
+/* ── Cross markers ── */
+.cross{
+  position:fixed;pointer-events:none;z-index:1;
+  color:rgba(255,255,255,.12);
+  font-size:var(--sz,20px);font-weight:100;line-height:1;
+  font-family:system-ui;
+  animation:crossFloat var(--dur,6s) ease-in-out infinite var(--del,0s);
+}
+@keyframes crossFloat{
+  0%,100%{opacity:.5;transform:translate(0,0)}
+  50%{opacity:1;transform:translate(var(--dx,2px),var(--dy,-4px))}
+}
+
+/* ── Main stage ── */
+.stage{
+  position:relative;
+  height:100vh;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding-top:94px;/* ticker+header */
+}
+
+/* ── Globe canvas ── */
+.globe-wrap{
+  position:absolute;inset:0;top:94px;
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:none;z-index:0;
+}
+#globe{display:block}
+
+/* ── Radial glow behind globe ── */
+.globe-glow{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:520px;height:520px;margin-top:47px;/* half header offset */
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(59,110,250,.07) 0%,rgba(59,110,250,.03) 45%,transparent 72%);
+  pointer-events:none;z-index:0;
+}
+
+/* ── Overlay content ── */
+.overlay{
+  position:relative;z-index:2;
+  display:flex;flex-direction:column;align-items:center;
+  text-align:center;
+  padding:0 24px;
+  gap:0;
+}
+.badge{
+  display:inline-flex;align-items:center;gap:7px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:99px;padding:6px 16px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;font-weight:500;letter-spacing:1px;
+  color:rgba(255,255,255,.5);
+  margin-bottom:22px;
+  background:rgba(255,255,255,.04);
+  backdrop-filter:blur(4px);
+}
+.badge-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:#3B6EFA;
+  box-shadow:0 0 8px rgba(59,110,250,.8);
+  animation:bdot 2s infinite;
+}
+@keyframes bdot{
+  0%,100%{box-shadow:0 0 6px rgba(59,110,250,.7)}
+  50%{box-shadow:0 0 14px rgba(59,110,250,1),0 0 24px rgba(59,110,250,.3)}
+}
+.client-name{
+  font-family:'Outfit',sans-serif;
+  font-size:clamp(52px,8vw,96px);
+  font-weight:900;letter-spacing:-.04em;line-height:1;
+  color:#fff;margin-bottom:22px;
+  animation:nameIn .8s .3s cubic-bezier(.22,1,.36,1) forwards;
+  opacity:0;transform:translateY(12px);
+  text-shadow:0 0 80px rgba(59,110,250,.25);
+}
+.client-name.loaded{opacity:1;transform:none;animation:nameIn .8s cubic-bezier(.22,1,.36,1) forwards}
+@keyframes nameIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.client-sub{
+  font-size:15px;color:rgba(255,255,255,.45);
+  font-weight:400;line-height:1.6;max-width:420px;
+  margin-bottom:40px;
+  animation:nameIn .8s .5s cubic-bezier(.22,1,.36,1) forwards;
+  opacity:0;transform:translateY(12px);
+}
+.cta-btn{
+  display:inline-flex;align-items:center;gap:10px;
+  background:#3B6EFA;
+  color:#fff;border:none;
+  border-radius:99px;padding:17px 38px;
+  font-family:'DM Sans',sans-serif;
+  font-size:15px;font-weight:700;
+  cursor:pointer;letter-spacing:-.1px;
+  position:relative;overflow:hidden;
+  box-shadow:0 8px 32px rgba(59,110,250,.45),0 2px 8px rgba(59,110,250,.3);
+  transition:transform .18s,box-shadow .18s;
+  animation:nameIn .8s .7s cubic-bezier(.22,1,.36,1) forwards;
+  opacity:0;transform:translateY(12px);
+}
+.cta-btn::after{
+  content:'';
+  position:absolute;top:0;left:-100%;bottom:0;width:60%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
+  transition:left .45s;
+}
+.cta-btn:hover::after{left:150%}
+.cta-btn:hover{
+  transform:translateY(-3px) scale(1.02);
+  box-shadow:0 14px 44px rgba(59,110,250,.6),0 4px 14px rgba(59,110,250,.35);
+}
+.cta-btn:active{transform:translateY(-1px) scale(1)}
+.cta-arrow{
+  display:flex;transition:transform .18s;
+}
+.cta-btn:hover .cta-arrow{transform:translateX(5px)}
+
+/* ── Footer ── */
+.footer{
+  position:fixed;bottom:18px;left:0;right:0;
+  text-align:center;z-index:50;
+  font-size:11px;color:rgba(255,255,255,.14);
+  letter-spacing:.3px;
+}
+
+/* ── Reduced motion ── */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+
+<!-- Ticker -->
+<div class="ticker">
+  <div class="ticker-track">
+    <span class="ticker-item">YOUR IMPLEMENTATION PROGRESS, ALWAYS IN VIEW.</span><span class="ticker-dot"></span>
+    <span class="ticker-item">MILESTONES TRACKED. TESTS COUNTED. CONFIDENCE MEASURED.</span><span class="ticker-dot"></span>
+    <span class="ticker-item">POWERED BY BLUECOPA.</span><span class="ticker-dot"></span>
+    <span class="ticker-item">YOUR PARTNER FROM DAY ONE TO GO-LIVE.</span><span class="ticker-dot"></span>
+    <!-- duplicate for seamless loop -->
+    <span class="ticker-item">YOUR IMPLEMENTATION PROGRESS, ALWAYS IN VIEW.</span><span class="ticker-dot"></span>
+    <span class="ticker-item">MILESTONES TRACKED. TESTS COUNTED. CONFIDENCE MEASURED.</span><span class="ticker-dot"></span>
+    <span class="ticker-item">POWERED BY BLUECOPA.</span><span class="ticker-dot"></span>
+    <span class="ticker-item">YOUR PARTNER FROM DAY ONE TO GO-LIVE.</span><span class="ticker-dot"></span>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-logo">
+    <div class="logo-mark">B</div>
+    Bluecopa
+  </div>
+  <div class="header-right">CUSTOMER SUCCESS</div>
+</div>
+
+<!-- Cross decorations -->
+<div class="cross" style="--sz:28px;--dur:7s;--del:0s;--dx:3px;--dy:-5px;top:15%;left:8%">+</div>
+<div class="cross" style="--sz:16px;--dur:9s;--del:1s;--dx:-2px;--dy:-3px;top:22%;left:32%">+</div>
+<div class="cross" style="--sz:20px;--dur:8s;--del:.5s;--dx:4px;--dy:-4px;top:12%;right:18%">+</div>
+<div class="cross" style="--sz:32px;--dur:10s;--del:2s;--dx:-3px;--dy:5px;top:42%;right:6%">+</div>
+<div class="cross" style="--sz:14px;--dur:7s;--del:3s;--dx:2px;--dy:-2px;top:62%;left:5%">+</div>
+<div class="cross" style="--sz:22px;--dur:9s;--del:1.5s;--dx:-4px;--dy:4px;bottom:20%;right:12%">+</div>
+<div class="cross" style="--sz:18px;--dur:8s;--del:2.5s;--dx:3px;--dy:3px;bottom:28%;left:20%">+</div>
+<div class="cross" style="--sz:12px;--dur:6s;--del:.8s;--dx:-2px;--dy:-3px;top:75%;right:30%">+</div>
+
+<!-- Globe glow -->
+<div class="globe-glow"></div>
+
+<!-- Globe canvas -->
+<div class="globe-wrap">
+  <canvas id="globe" width="640" height="640" style="opacity:.85"></canvas>
+</div>
+
+<!-- Overlay content -->
+<div class="stage">
+  <div class="overlay">
+    <div class="badge">
+      <span class="badge-dot"></span>
+      CUSTOMER HUB
+    </div>
+    <div class="client-name" id="clientName">—</div>
+    <div class="client-sub" id="clientSub">Your implementation progress, milestones, and readiness — all in one place.</div>
+    <button class="cta-btn" id="ctaBtn" onclick="openHub()">
+      Open Your Hub
+      <span class="cta-arrow">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </span>
+    </button>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer">Powered by Bluecopa</div>
+
+<script>
+// ── Globe ────────────────────────────────────────────────────────────────────
+(function(){
+  const cvs = document.getElementById('globe');
+  const ctx = cvs.getContext('2d');
+  const W = cvs.width, H = cvs.height;
+  const cx = W/2, cy = H/2;
+  const R = W * 0.42;
+  const NLAT = 10, NLON = 20;
+  const TILT = 0.22;
+  let rot = 0;
+
+  function frame() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Subtle outer ring
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(100,150,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Latitude rings
+    for (let i = 0; i <= NLAT; i++) {
+      const phi = -Math.PI/2 + (i/NLAT) * Math.PI;
+      const yPos = cy + R * Math.sin(phi);
+      const rx = R * Math.cos(phi);
+      const ry = rx * TILT;
+      if (rx < 2) continue;
+      const t = i / NLAT;
+      const alpha = 0.04 + 0.1 * Math.sin(Math.PI * t);
+      ctx.beginPath();
+      ctx.ellipse(cx, yPos, rx, ry, 0, 0, Math.PI*2);
+      ctx.strokeStyle = `rgba(120,170,255,${alpha})`;
+      ctx.lineWidth = 0.7;
+      ctx.stroke();
+    }
+
+    // Longitude arcs
+    for (let i = 0; i < NLON; i++) {
+      const theta = rot + (i / NLON) * Math.PI * 2;
+      const rx = R * Math.abs(Math.sin(theta));
+      const cosT = Math.cos(theta);
+      const alpha = 0.03 + 0.14 * Math.max(0, cosT) * Math.abs(Math.sin(theta));
+      if (rx < 0.5) continue;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx, R, 0, 0, Math.PI*2);
+      ctx.strokeStyle = `rgba(120,170,255,${alpha})`;
+      ctx.lineWidth = 0.7;
+      ctx.stroke();
+    }
+
+    // Bright focal point particles
+    const pts = 6;
+    for (let i = 0; i < pts; i++) {
+      const t = rot * 0.4 + (i/pts) * Math.PI * 2;
+      const phi = ((i % 3) - 1) * 0.5;
+      const x = cx + R * 0.55 * Math.sin(t) * Math.cos(phi);
+      const y = cy + R * 0.55 * Math.sin(phi);
+      const a = 0.3 + 0.2 * Math.sin(t + i);
+      ctx.beginPath();
+      ctx.arc(x, y, 1.2, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(140,185,255,${a})`;
+      ctx.fill();
+    }
+
+    rot += 0.0018;
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+
+// ── Token & navigation ────────────────────────────────────────────────────────
+const TOKEN = location.pathname.split('/').filter(Boolean).pop();
+const STORAGE_KEY = 'bc_hub_' + TOKEN;
+
+// If they've been here before, skip straight to hub
+if (localStorage.getItem(STORAGE_KEY)) {
+  location.replace(location.pathname + '?hub=1');
+}
+
+function openHub() {
+  localStorage.setItem(STORAGE_KEY, '1');
+  // Brief scale-out animation on button
+  document.getElementById('ctaBtn').style.transform = 'scale(.96)';
+  setTimeout(() => { location.href = location.pathname + '?hub=1'; }, 180);
+}
+
+// ── Fetch client name ─────────────────────────────────────────────────────────
+(async function() {
+  try {
+    const r = await fetch('/api/portal/' + TOKEN);
+    const d = await r.json();
+    if (d.ok && d.data && d.data.client) {
+      const name = d.data.client.name || 'Welcome';
+      const el = document.getElementById('clientName');
+      el.textContent = name;
+      el.classList.add('loaded');
+      document.title = name + ' — Customer Hub';
+    } else {
+      document.getElementById('clientName').textContent = 'Welcome';
+      document.getElementById('clientName').classList.add('loaded');
+    }
+  } catch {
+    document.getElementById('clientName').textContent = 'Welcome';
+    document.getElementById('clientName').classList.add('loaded');
+  }
+})();
+</script>
+</body>
+</html>

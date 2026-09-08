@@ -6202,9 +6202,10 @@ app.get('/portal', (req, res) => {
   res.sendFile(require('path').join(__dirname, '../public/customer-login.html'));
 });
 
-// Serve the portal HTML file
+// Serve portal — landing splash first, hub on ?hub=1
 app.get('/portal/:token', (req, res) => {
-  res.sendFile(require('path').join(__dirname, '../public/customer-portal.html'));
+  const file = req.query.hub === '1' ? 'customer-portal.html' : 'customer-landing.html';
+  res.sendFile(require('path').join(__dirname, '../public', file));
 });
 
 // GET /api/portal/:token — unified data endpoint
