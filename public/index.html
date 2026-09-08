@@ -5119,92 +5119,13 @@ async function updateFeedbackStatus(id) {
         <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
 
-      <!-- 08 UAT Platform -->
-      <div class="dw-card" style="--cr:59,130,246;--fdur:4.1s;--fdel:2.5s;" onclick="UAT.open()">
-        <div class="dw-card-spin"></div>
-        <div class="dw-card-orb"></div>
-        <div class="dw-card-badge">● Live</div>
-        <span class="dw-card-icon">🧪</span>
-        <div class="dw-card-num">08</div>
-        <div class="dw-card-name">UAT Platform</div>
-        <div class="dw-card-desc">Enterprise UAT management — test cases, client collaboration, dashboards, sign-off and export.</div>
-        <div class="dw-card-tags"><span class="dw-card-tag">Clients</span><span class="dw-card-tag">Test Cases</span><span class="dw-card-tag">Sign-off</span></div>
-        <div class="dw-card-features">
-          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Full test case lifecycle with bulk actions</div>
-          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Client portal with secure unique links</div>
-          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>CSV export & formal UAT sign-off</div>
-        </div>
-        <div class="dw-card-stat-row">
-          <div class="dw-card-stat"><div class="dw-card-stat-n">📋</div><div class="dw-card-stat-l">Test Cases</div></div>
-          <div class="dw-card-stat"><div class="dw-card-stat-n">🔗</div><div class="dw-card-stat-l">Portal</div></div>
-          <div class="dw-card-stat"><div class="dw-card-stat-n">✅</div><div class="dw-card-stat-l">Sign-off</div></div>
-        </div>
-        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
-      </div>
-
-      <div class="dw-card" style="--cr:220,38,38;--fdur:4.4s;--fdel:3.2s;" onclick="EWS.open()">
-        <div class="dw-card-spin"></div>
-        <div class="dw-card-orb"></div>
-        <div class="dw-card-badge" style="background:rgba(220,38,38,.15);color:#dc2626;border:1px solid rgba(220,38,38,.2)">● New</div>
-        <span class="dw-card-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" width="56" height="56" style="display:block">
-            <!-- base plate -->
-            <circle cx="28" cy="28" r="26" fill="rgba(8,8,13,.9)" stroke="rgba(220,38,38,.35)" stroke-width="1.2"/>
-            <!-- concentric rings -->
-            <circle cx="28" cy="28" r="8"  fill="none" stroke="rgba(220,38,38,.25)" stroke-width=".8"/>
-            <circle cx="28" cy="28" r="16" fill="none" stroke="rgba(220,38,38,.18)" stroke-width=".8"/>
-            <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(220,38,38,.12)" stroke-width=".8"/>
-            <!-- crosshairs -->
-            <line x1="28" y1="4"  x2="28" y2="52" stroke="rgba(220,38,38,.09)" stroke-width=".6"/>
-            <line x1="4"  y1="28" x2="52" y2="28" stroke="rgba(220,38,38,.09)" stroke-width=".6"/>
-            <!-- center dot -->
-            <circle cx="28" cy="28" r="2" fill="rgba(220,38,38,.6)"/>
-            <!-- rotating sweep arm + trail -->
-            <g>
-              <path d="M28,28 L28,4 A24,24 0 0,1 48.8,16 Z" fill="rgba(220,38,38,.16)"/>
-              <line x1="28" y1="28" x2="28" y2="4" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/>
-              <animateTransform attributeName="transform" type="rotate" from="0 28 28" to="360 28 28" dur="3s" repeatCount="indefinite"/>
-            </g>
-            <!-- blip 1: upper-right (~52° from north) -->
-            <circle cx="42" cy="17" r="2.2" fill="#ef4444">
-              <animate attributeName="opacity" values="0;0;1;0.4;0" keyTimes="0;0.04;0.1;0.25;1" dur="3s" begin="0.43s" repeatCount="indefinite"/>
-              <animate attributeName="r" values="1;1;2.8;2;1" keyTimes="0;0.04;0.1;0.25;1" dur="3s" begin="0.43s" repeatCount="indefinite"/>
-            </circle>
-            <!-- blip glow 1 -->
-            <circle cx="42" cy="17" r="5" fill="rgba(239,68,68,.12)">
-              <animate attributeName="opacity" values="0;0;0.8;0;0" keyTimes="0;0.04;0.1;0.22;1" dur="3s" begin="0.43s" repeatCount="indefinite"/>
-            </circle>
-            <!-- blip 2: lower-right (~146° from north) -->
-            <circle cx="34" cy="37" r="1.8" fill="#f97316">
-              <animate attributeName="opacity" values="0;0;1;0.3;0" keyTimes="0;0.04;0.1;0.25;1" dur="3s" begin="1.22s" repeatCount="indefinite"/>
-              <animate attributeName="r" values="1;1;2.5;1.8;1" keyTimes="0;0.04;0.1;0.25;1" dur="3s" begin="1.22s" repeatCount="indefinite"/>
-            </circle>
-          </svg>
-        </span>
-        <div class="dw-card-num">09</div>
-        <div class="dw-card-name">Early Warning System</div>
-        <div class="dw-card-desc">Proactive risk detection for delivery teams — surface issues before they become escalations.</div>
-        <div class="dw-card-tags"><span class="dw-card-tag">Risk</span><span class="dw-card-tag">Escalation</span><span class="dw-card-tag">Mitigation</span></div>
-        <div class="dw-card-features">
-          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>12 trigger types with severity scoring</div>
-          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>6-step escalation workflow & ownership</div>
-          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Action items, updates & leadership view</div>
-        </div>
-        <div class="dw-card-stat-row">
-          <div class="dw-card-stat"><div class="dw-card-stat-n">🎯</div><div class="dw-card-stat-l">Risks</div></div>
-          <div class="dw-card-stat"><div class="dw-card-stat-n">📋</div><div class="dw-card-stat-l">Actions</div></div>
-          <div class="dw-card-stat"><div class="dw-card-stat-n">📊</div><div class="dw-card-stat-l">Analytics</div></div>
-        </div>
-        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
-      </div>
-
-      <!-- 10 Rocketlane Dashboard -->
-      <div class="dw-card" style="--cr:251,146,60;--fdur:4.6s;--fdel:3.8s;" onclick="rlOpen()">
+      <!-- 08 Rocketlane Dashboard -->
+      <div class="dw-card" style="--cr:251,146,60;--fdur:4.1s;--fdel:2.5s;" onclick="rlOpen()">
         <div class="dw-card-spin"></div>
         <div class="dw-card-orb"></div>
         <div class="dw-card-badge" style="background:rgba(251,146,60,.15);color:#fb923c;border:1px solid rgba(251,146,60,.25)">● Live</div>
         <span class="dw-card-icon">🚀</span>
-        <div class="dw-card-num">10</div>
+        <div class="dw-card-num">08</div>
         <div class="dw-card-name">Rocketlane Dashboard</div>
         <div class="dw-card-desc">Live sync of all active delivery projects — track status, compliance and weekly progress.</div>
         <div class="dw-card-tags"><span class="dw-card-tag">Projects</span><span class="dw-card-tag">Compliance</span><span class="dw-card-tag">Snapshots</span></div>
@@ -5217,6 +5138,57 @@ async function updateFeedbackStatus(id) {
           <div class="dw-card-stat"><div class="dw-card-stat-n">33</div><div class="dw-card-stat-l">Projects</div></div>
           <div class="dw-card-stat"><div class="dw-card-stat-n">📊</div><div class="dw-card-stat-l">Compliance</div></div>
           <div class="dw-card-stat"><div class="dw-card-stat-n">📸</div><div class="dw-card-stat-l">Snapshots</div></div>
+        </div>
+        <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
+      </div>
+
+      <!-- 09 Customer Success Hub -->
+      <div class="dw-card" style="--cr:139,92,246;--fdur:4.4s;--fdel:3.2s;" onclick="cshOpen()">
+        <div class="dw-card-spin"></div>
+        <div class="dw-card-orb"></div>
+        <div class="dw-card-badge">● Live</div>
+        <span class="dw-card-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" width="56" height="56" style="display:block">
+            <defs>
+              <linearGradient id="cshGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="rgba(167,139,250,.9)"/>
+                <stop offset="100%" stop-color="rgba(109,40,217,.7)"/>
+              </linearGradient>
+            </defs>
+            <!-- outer glow ring -->
+            <circle cx="28" cy="28" r="25" fill="rgba(8,8,13,.85)" stroke="rgba(139,92,246,.3)" stroke-width="1.2"/>
+            <!-- diamond shield shape -->
+            <path d="M28 8 L44 20 L44 34 L28 48 L12 34 L12 20 Z" fill="url(#cshGrad)" opacity=".18"/>
+            <path d="M28 8 L44 20 L44 34 L28 48 L12 34 L12 20 Z" fill="none" stroke="rgba(167,139,250,.7)" stroke-width="1.5" stroke-linejoin="round"/>
+            <!-- inner diamond -->
+            <path d="M28 16 L37 25 L28 40 L19 25 Z" fill="rgba(139,92,246,.25)" stroke="rgba(167,139,250,.5)" stroke-width="1" stroke-linejoin="round"/>
+            <!-- center dot -->
+            <circle cx="28" cy="28" r="3" fill="rgba(167,139,250,.9)"/>
+            <!-- top accent dots -->
+            <circle cx="28" cy="11" r="1.5" fill="rgba(167,139,250,.6)">
+              <animate attributeName="opacity" values="0.4;1;0.4" dur="2.4s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="41" cy="20" r="1.2" fill="rgba(139,92,246,.5)">
+              <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2.1s" begin="0.4s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="15" cy="20" r="1.2" fill="rgba(139,92,246,.5)">
+              <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2.1s" begin="0.8s" repeatCount="indefinite"/>
+            </circle>
+          </svg>
+        </span>
+        <div class="dw-card-num">09</div>
+        <div class="dw-card-name">Customer Success Hub</div>
+        <div class="dw-card-desc">Complete customer visibility — project status, UAT tracking, and confidence assessment in one place.</div>
+        <div class="dw-card-tags"><span class="dw-card-tag">Project Status</span><span class="dw-card-tag">UAT</span><span class="dw-card-tag">Confidence</span></div>
+        <div class="dw-card-features">
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Unified customer portal link</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>UAT testing &amp; sign-off tracking</div>
+          <div class="dw-card-feature"><i class="dw-card-feature-icon">→</i>Confidence assessment by process area</div>
+        </div>
+        <div class="dw-card-stat-row">
+          <div class="dw-card-stat"><div class="dw-card-stat-n">🔗</div><div class="dw-card-stat-l">Portal</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">📊</div><div class="dw-card-stat-l">Analytics</div></div>
+          <div class="dw-card-stat"><div class="dw-card-stat-n">✅</div><div class="dw-card-stat-l">Readiness</div></div>
         </div>
         <div class="dw-card-footer"><div class="dw-card-line"></div><div class="dw-card-arrow">→</div></div>
       </div>
@@ -7427,7 +7399,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=17" defer></script>
-  <script src="/app.js?v=98" defer></script>
+  <script src="/app.js?v=99" defer></script>
 <script>
 // Inline fetch — runs immediately, not gated on app.js cache
 (async()=>{try{const r=await fetch('/api/delivery-team/count');if(r.ok){const d=await r.json();const el=document.getElementById('dwStatSMPeople');if(el&&d.count){el.textContent=d.count;}}}catch(e){}})();
@@ -8726,6 +8698,116 @@ async function updateFeedbackStatus(id) {
 
 <!-- EWS Toast -->
 <div id="ewsToast" class="ews-toast"></div>
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     CUSTOMER SUCCESS HUB OVERLAY  (Mission Deck #09)
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="cshOverlay" style="display:none;position:fixed;inset:0;z-index:1400;background:#06070f;flex-direction:column;font-family:'DM Sans',sans-serif;">
+
+  <!-- Topbar -->
+  <div style="height:56px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:16px;padding:0 24px;flex-shrink:0;background:rgba(6,7,15,.95);backdrop-filter:blur(12px);">
+    <button onclick="cshClose();showLanding()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:13px;cursor:pointer;padding:6px 10px;border-radius:6px;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;transition:color .15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.5)'">← Back</button>
+    <div style="width:1px;height:20px;background:rgba(255,255,255,.1)"></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:18px;">💜</span>
+      <span style="font-size:15px;font-weight:800;color:#f0f0f6;letter-spacing:-.3px;">Customer Success Hub</span>
+    </div>
+    <span style="margin-left:8px;font-size:11px;padding:2px 9px;border-radius:99px;background:rgba(139,92,246,.18);color:#a78bfa;border:1px solid rgba(139,92,246,.3);font-weight:700;">● Live</span>
+  </div>
+
+  <!-- Summary stats bar -->
+  <div style="padding:20px 32px;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(139,92,246,.04);display:flex;gap:24px;flex-wrap:wrap;flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.35);font-weight:600;">Active Assessments</div>
+      <div id="cshStatAssessments" style="font-size:24px;font-weight:800;color:#a78bfa;">—</div>
+    </div>
+    <div style="width:1px;background:rgba(255,255,255,.08)"></div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.35);font-weight:600;">Avg Confidence</div>
+      <div id="cshStatAvgScore" style="font-size:24px;font-weight:800;color:#22c55e;">—</div>
+    </div>
+    <div style="width:1px;background:rgba(255,255,255,.08)"></div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.35);font-weight:600;">Open Actions</div>
+      <div id="cshStatOpenActions" style="font-size:24px;font-weight:800;color:#f59e0b;">—</div>
+    </div>
+  </div>
+
+  <!-- Hub mini-cards -->
+  <div style="flex:1;overflow-y:auto;padding:40px 32px;">
+    <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:24px;">Tools in this Hub</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;max-width:960px;">
+
+      <!-- Mini-card: Early Warning System -->
+      <div onclick="EWS.open()" style="background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.2);border-radius:16px;padding:24px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 32px rgba(220,38,38,.15)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <span style="font-size:24px;">⚠️</span>
+          <span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(220,38,38,.15);color:#f87171;border:1px solid rgba(220,38,38,.2);font-weight:700;">● Live</span>
+        </div>
+        <div style="font-size:16px;font-weight:800;color:#f0f0f6;margin-bottom:6px;">Early Warning System</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.45);line-height:1.6;">Proactive risk detection — surface issues before they become escalations. 12 trigger types, severity scoring.</div>
+        <div style="margin-top:16px;font-size:12px;font-weight:700;color:#f87171;">Open EWS →</div>
+      </div>
+
+      <!-- Mini-card: UAT Platform -->
+      <div onclick="UAT.open()" style="background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:16px;padding:24px;cursor:pointer;transition:all .2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 32px rgba(59,130,246,.15)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <span style="font-size:24px;">🧪</span>
+          <span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.2);font-weight:700;">● Live</span>
+        </div>
+        <div style="font-size:16px;font-weight:800;color:#f0f0f6;margin-bottom:6px;">UAT Platform</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.45);line-height:1.6;">Enterprise UAT management — test cases, client collaboration, dashboards, sign-off and export.</div>
+        <div style="margin-top:16px;font-size:12px;font-weight:700;color:#60a5fa;">Open UAT →</div>
+      </div>
+
+      <!-- Mini-card: Confidence Index -->
+      <div onclick="ciOpen()" style="background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.2);border-radius:16px;padding:24px;cursor:pointer;transition:all .2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 32px rgba(139,92,246,.15)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <span style="font-size:24px;">🎯</span>
+          <span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(139,92,246,.15);color:#a78bfa;border:1px solid rgba(139,92,246,.2);font-weight:700;">● Live</span>
+        </div>
+        <div style="font-size:16px;font-weight:800;color:#f0f0f6;margin-bottom:6px;">Confidence Index</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.45);line-height:1.6;">Measure customer readiness across all Bluecopa process areas with structured confidence ratings.</div>
+        <div style="margin-top:16px;font-size:12px;font-weight:700;color:#a78bfa;">Open CI →</div>
+      </div>
+
+    </div>
+  </div>
+</div><!-- /cshOverlay -->
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     CONFIDENCE INDEX OVERLAY
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="ciOverlay" style="display:none;position:fixed;inset:0;z-index:1500;background:#06070f;flex-direction:column;font-family:'DM Sans',sans-serif;">
+
+  <!-- Topbar -->
+  <div style="height:56px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:16px;padding:0 24px;flex-shrink:0;background:rgba(6,7,15,.95);">
+    <button onclick="ciClose()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:13px;cursor:pointer;padding:6px 10px;border-radius:6px;font-family:'DM Sans',sans-serif;transition:color .15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.5)'">← Back</button>
+    <div style="width:1px;height:20px;background:rgba(255,255,255,.1)"></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:18px;">🎯</span>
+      <span style="font-size:15px;font-weight:800;color:#f0f0f6;letter-spacing:-.3px;">Confidence Index</span>
+    </div>
+    <div style="flex:1"></div>
+    <button onclick="ciNewAssessment()" style="padding:8px 18px;background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.4);color:#a78bfa;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">+ New Assessment</button>
+  </div>
+
+  <!-- Body: left list + right detail -->
+  <div style="flex:1;display:flex;overflow:hidden;">
+
+    <!-- Left: assessment list -->
+    <div style="width:280px;border-right:1px solid rgba(255,255,255,.07);overflow-y:auto;flex-shrink:0;">
+      <div style="padding:16px 18px;font-size:11px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid rgba(255,255,255,.05);">Assessments</div>
+      <div id="ciAssessmentList"></div>
+    </div>
+
+    <!-- Right: detail panel -->
+    <div id="ciDetailPanel" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;">
+      <div style="padding:48px;text-align:center;color:rgba(255,255,255,.25);">Select an assessment from the list</div>
+    </div>
+
+  </div>
+</div><!-- /ciOverlay -->
 
 <!-- ════════════════════════════════════════════════════════════════════════════
      ROCKETLANE DASHBOARD — STANDALONE OVERLAY  (Mission Deck #10)

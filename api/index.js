@@ -218,6 +218,12 @@ function migrate() {
     if (!tc.owner) { tc.owner = tc.assignee || ''; dirty = true; }
   });
 
+  // Confidence Index — init
+  if (!db.confidenceIndex) {
+    db.confidenceIndex = { assessments: [] };
+    dirty = true;
+  }
+
   return dirty;
 }
 
@@ -1618,6 +1624,44 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 .toast{position:fixed;bottom:24px;right:24px;background:#0d1117;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:100;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
 .toast.show{opacity:1;transform:translateY(0)}
 @media(max-width:768px){th:nth-child(5),td:nth-child(5),th:nth-child(6),td:nth-child(6){display:none}.dash-grid{grid-template-columns:repeat(2,1fr)}.entity-card-grid{grid-template-columns:1fr 1fr}}
+/* Portal main tabs */
+.portal-tab-bar{display:flex;gap:0;border-bottom:2px solid #e4e6ea;background:#fff;padding:0 20px;position:sticky;top:56px;z-index:15}
+.portal-tab-btn{padding:12px 22px;font-size:13px;font-weight:700;color:#6b7280;background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;font-family:inherit}
+.portal-tab-btn.active{color:#0d1117;border-bottom-color:#c9a227}
+.portal-tab-btn:hover:not(.active){color:#374151}
+.portal-tab{display:none}.portal-tab.active{display:block}
+/* CI star rating */
+.ci-pa-row{background:#fff;border:1px solid #e4e6ea;border-radius:10px;padding:16px 20px;margin-bottom:10px}
+.ci-pa-name{font-size:14px;font-weight:700;color:#0d1117;margin-bottom:8px}
+.ci-stars{display:flex;gap:6px;margin-bottom:6px}
+.ci-star{font-size:24px;cursor:pointer;color:#d1d5db;transition:color .1s;user-select:none;line-height:1}
+.ci-star.active,.ci-star:hover~.ci-star+.ci-star,.ci-stars:hover .ci-star{color:#d1d5db}
+.ci-stars:hover .ci-star:hover,.ci-stars:hover .ci-star:hover~.ci-star{color:#d1d5db}
+.ci-star.filled{color:#c9a227}
+.ci-star[data-v="1"].filled,.ci-star[data-v="2"].filled{color:#ef4444}
+.ci-star[data-v="3"].filled{color:#f59e0b}
+.ci-star[data-v="4"].filled{color:#84cc16}
+.ci-star[data-v="5"].filled{color:#22c55e}
+.ci-comment-box{width:100%;border:1px solid #e4e6ea;border-radius:6px;padding:8px;font-size:12px;font-family:inherit;resize:vertical;min-height:56px;color:#0d1117;margin-top:6px;display:none}
+.ci-comment-box.show{display:block}
+.ci-save-btn{margin-top:6px;padding:5px 12px;background:#0d1117;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:none}
+.ci-save-btn.show{display:inline-block}
+.ci-score-label{font-size:11px;font-weight:600;margin-left:6px;vertical-align:middle}
+.ci-action-box{background:#f8f9fa;border:1px solid #e4e6ea;border-radius:8px;padding:12px 16px;margin-top:8px;font-size:12px;color:#374151}
+.ci-action-box-title{font-weight:700;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.ci-gauge-wrap{background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:20px;margin-bottom:16px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.ci-gauge-ring{position:relative;width:80px;height:80px;flex-shrink:0}
+.ci-entity-tab{padding:5px 14px;border:1px solid #e4e6ea;border-radius:99px;font-size:12px;font-weight:600;background:#fff;cursor:pointer;color:#6b7280;font-family:inherit}
+.ci-entity-tab.active{background:#0d1117;color:#fff;border-color:#0d1117}
+/* Rocketlane status tab */
+.rl-phase{background:#fff;border:1px solid #e4e6ea;border-radius:10px;margin-bottom:12px;overflow:hidden}
+.rl-phase-hdr{padding:12px 18px;font-weight:700;font-size:13px;color:#0d1117;background:#f8f9fa;border-bottom:1px solid #e4e6ea;display:flex;align-items:center;justify-content:space-between}
+.rl-task-row{display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid #f1f2f5}
+.rl-task-row:last-child{border-bottom:none}
+.rl-task-check{width:16px;height:16px;border-radius:50%;border:2px solid #d1d5db;flex-shrink:0}
+.rl-task-check.done{background:#22c55e;border-color:#22c55e}
+.rl-task-name{flex:1;font-size:13px;color:#374151}
+.rl-task-due{font-size:11px;color:#6b7280;white-space:nowrap}
 </style></head><body>
 <div class="topbar">
   <div class="logo">Blue<span>copa</span></div>
@@ -1625,6 +1669,15 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
   <div class="proj-sel">Project: <select id="projSelect" onchange="selectProject(this.value)"></select></div>
   <button class="it-btn" onclick="openIssueTracker()"><span class="it-dot" id="itDot"></span>Issue Tracker</button>
 </div>
+<nav class="portal-tab-bar">
+  <button class="portal-tab-btn" onclick="switchPortalTab('status',this)">📋 Project Status</button>
+  <button class="portal-tab-btn active" onclick="switchPortalTab('uat',this)">🧪 UAT</button>
+  <button class="portal-tab-btn" onclick="switchPortalTab('ci',this)">🎯 Confidence Index</button>
+</nav>
+<div id="portalTabStatus" class="portal-tab">
+  <div class="main" id="rlStatusContent"><div class="empty-state">Loading project status…</div></div>
+</div>
+<div id="portalTabUat" class="portal-tab active">
 <div id="signoffView" class="main">
   <div class="entity-tabs" id="entityTabs"></div>
   <div class="nav-tabs">
@@ -1666,10 +1719,195 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
     <div id="itIssueList"></div>
   </div>
 </div>
+</div><!-- /portalTabUat -->
+<div id="portalTabCi" class="portal-tab">
+  <div class="main" id="ciContent"><div class="empty-state">Loading confidence index…</div></div>
+</div>
 <div class="toast" id="toast"></div>
 <script>
 const TOKEN='${token}';
 let data=null,curProject=null,curTab='overview',curEntity='',itEntity=null;
+let _ciData=null,_ciEntity='Overall';
+
+function switchPortalTab(tab,btn){
+  document.querySelectorAll('.portal-tab-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  document.getElementById('portalTabStatus').classList.toggle('active',tab==='status');
+  document.getElementById('portalTabUat').classList.toggle('active',tab==='uat');
+  document.getElementById('portalTabCi').classList.toggle('active',tab==='ci');
+  if(tab==='status') loadRLStatus();
+  if(tab==='ci') loadCI();
+}
+
+async function loadRLStatus(){
+  var el=document.getElementById('rlStatusContent');
+  if(el._loaded) return;
+  el.innerHTML='<div class="empty-state">Loading project timeline…</div>';
+  try{
+    var r=await fetch('/api/uat/portal/'+TOKEN+'/rocketlane');
+    if(r.status===404){el.innerHTML='<div class="empty-state">Project timeline not linked yet.<br><span style="font-size:12px;color:#9ca3af">Your Bluecopa team will link the project timeline when it becomes available.</span></div>';el._loaded=true;return;}
+    var d=await r.json();
+    if(!d.ok){el.innerHTML='<div class="empty-state">Unable to load project status.</div>';return;}
+    var proj=d.project;
+    var pct=proj.completionPct||0;
+    var html='<div class="prog-card" style="margin-bottom:20px">'+
+      '<div class="prog-card-title" style="margin-bottom:6px">'+esc(proj.name)+'</div>'+
+      '<div style="display:flex;align-items:center;gap:16px">'+
+        '<div class="prog-pct" style="color:'+(pct>=80?'#15803d':pct>=50?'#a16207':'#dc2626')+'">'+pct+'%</div>'+
+        '<div style="flex:1"><div class="prog-bar-bg"><div class="prog-bar-fill" style="width:'+pct+'%;background:'+(pct>=80?'#22c55e':pct>=50?'#c9a227':'#ef4444')+'"></div></div></div>'+
+      '</div>'+
+    '</div>';
+    (proj.phases||[]).forEach(function(ph){
+      var tasks=(ph.tasks||[]);
+      var done=tasks.filter(function(t){return t.completed;}).length;
+      html+='<div class="rl-phase"><div class="rl-phase-hdr"><span>'+esc(ph.name)+'</span><span style="font-size:12px;font-weight:500;color:#6b7280">'+done+'/'+tasks.length+' done</span></div>';
+      tasks.forEach(function(t){
+        html+='<div class="rl-task-row"><div class="rl-task-check'+(t.completed?' done':'')+'"></div>'+
+          '<div class="rl-task-name">'+esc(t.name)+'</div>'+
+          (t.dueDate?'<div class="rl-task-due">'+esc(t.dueDate)+'</div>':'')+
+        '</div>';
+      });
+      html+='</div>';
+    });
+    el.innerHTML=html;
+    el._loaded=true;
+  }catch(e){el.innerHTML='<div class="empty-state">Could not load project status.</div>';}
+}
+
+async function loadCI(){
+  var el=document.getElementById('ciContent');
+  if(el._loaded) return;
+  el.innerHTML='<div class="empty-state">Loading…</div>';
+  try{
+    var r=await fetch('/api/uat/portal/'+TOKEN+'/ci');
+    if(r.status===404){el.innerHTML='<div class="empty-state">Confidence assessment not yet configured.<br><span style="font-size:12px;color:#9ca3af">Your Bluecopa team will set this up for you.</span></div>';el._loaded=true;return;}
+    var d=await r.json();
+    if(!d.ok){el.innerHTML='<div class="empty-state">Unable to load confidence index.</div>';return;}
+    _ciData=d.data;
+    _ciEntity='Overall';
+    renderCI();
+    el._loaded=true;
+  }catch(e){el.innerHTML='<div class="empty-state">Could not load confidence index.</div>';}
+}
+
+function renderCI(){
+  var el=document.getElementById('ciContent');
+  if(!_ciData) return;
+  var ass=_ciData;
+  var entities=ass.entities||['Overall'];
+  var ratings=ass.ratings||{};
+  var actions=ass.actions||[];
+  var pas=ass.processAreas||[];
+  var entRatings=ratings[_ciEntity]||{};
+  var scores=pas.map(function(pa){return (entRatings[pa.id]&&entRatings[pa.id].score)||0;});
+  var rated=scores.filter(function(s){return s>0;});
+  var avg=rated.length?Math.round(rated.reduce(function(a,b){return a+b;},0)/rated.length*10)/10:0;
+  var pct=Math.round(avg/5*100);
+  var lvlColor=avg>=4?'#22c55e':avg>=3?'#84cc16':avg>=2?'#f59e0b':avg>0?'#ef4444':'#d1d5db';
+  var scoreLabel=avg>=4?'High Confidence':avg>=3?'Moderate':avg>=2?'Low':avg>0?'Very Low':'Not Rated';
+  var gaugeStroke=2*Math.PI*30;
+  var gaugeDash=Math.round(gaugeStroke*pct/100);
+  var html='';
+  // Entity tabs
+  if(entities.length>1){
+    html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">';
+    entities.forEach(function(e){
+      html+='<button class="ci-entity-tab'+(e===_ciEntity?' active':'')+'" onclick="ciSelectEntity(this,\''+esc(e)+'\')">'+esc(e)+'</button>';
+    });
+    html+='</div>';
+  }
+  // Gauge
+  html+='<div class="ci-gauge-wrap">'+
+    '<div class="ci-gauge-ring">'+
+      '<svg viewBox="0 0 80 80" width="80" height="80" style="transform:rotate(-90deg)">'+
+        '<circle cx="40" cy="40" r="30" fill="none" stroke="#f1f2f5" stroke-width="10"/>'+
+        '<circle cx="40" cy="40" r="30" fill="none" stroke="'+lvlColor+'" stroke-width="10" stroke-linecap="round" stroke-dasharray="'+gaugeDash+' '+Math.round(gaugeStroke)+'" style="transition:stroke-dasharray .5s"/>'+
+      '</svg>'+
+      '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">'+
+        '<div style="font-size:18px;font-weight:800;color:'+lvlColor+'">'+pct+'%</div>'+
+      '</div>'+
+    '</div>'+
+    '<div>'+
+      '<div style="font-size:18px;font-weight:800;color:#0d1117;margin-bottom:4px">'+scoreLabel+'</div>'+
+      '<div style="font-size:13px;color:#6b7280">'+rated.length+'/'+pas.length+' areas rated</div>'+
+      (avg?'<div style="font-size:12px;color:'+lvlColor+';font-weight:700;margin-top:4px">Avg: '+avg.toFixed(1)+' / 5</div>':'')+
+    '</div>'+
+  '</div>';
+  // Process areas
+  pas.sort(function(a,b){return (a.order||0)-(b.order||0);}).forEach(function(pa){
+    var rObj=entRatings[pa.id]||{};
+    var score=rObj.score||0;
+    var comment=rObj.comment||'';
+    var paActions=actions.filter(function(a){return a.processAreaId===pa.id&&(a.entityKey===_ciEntity||a.entityKey==='Overall');});
+    html+='<div class="ci-pa-row">'+
+      '<div class="ci-pa-name">'+esc(pa.name)+'</div>'+
+      '<div class="ci-stars" id="stars_'+esc(pa.id)+'">'+
+        [1,2,3,4,5].map(function(v){
+          var cls='ci-star'+(score>=v?' filled':'');
+          return '<span class="'+cls+'" data-v="'+v+'" data-paid="'+esc(pa.id)+'" onclick="ciSetScore(\''+esc(pa.id)+'\','+v+')">&#9733;</span>';
+        }).join('')+
+        '<span class="ci-score-label" id="lbl_'+esc(pa.id)+'" style="color:'+(score?lvlForScore(score):'#9ca3af')+'">'+(score?labelForScore(score):'Not rated')+'</span>'+
+      '</div>'+
+      '<textarea class="ci-comment-box'+(score<=2&&score>0?' show':'')+'" id="cmt_'+esc(pa.id)+'" placeholder="Please describe the issue…">'+esc(comment)+'</textarea>'+
+      '<button class="ci-save-btn'+(score>0?' show':'')+'" onclick="ciSave(\''+esc(pa.id)+'\')">Save</button>'+
+      (paActions.length?'<div class="ci-action-box"><div class="ci-action-box-title">Agreed Actions from Bluecopa</div>'+paActions.map(function(a){
+        return '<div style="margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #e4e6ea;line-height:1.5">'+
+          (a.training?'<div><strong>Training:</strong> '+esc(a.training)+'</div>':'')+
+          (a.supportRequired?'<div><strong>Support:</strong> '+esc(a.supportRequired)+'</div>':'')+
+          (a.owner?'<div style="color:#6b7280;font-size:11px;">Owner: '+esc(a.owner)+(a.targetDate?' · Due: '+esc(a.targetDate):'')+' · <span style="font-weight:700;color:'+(a.status==='completed'?'#15803d':a.status==='in-progress'?'#1d4ed8':'#374151')+'">'+a.status+'</span></div>':'')+
+        '</div>';
+      }).join('')+'</div>':'')+
+    '</div>';
+  });
+  if(!pas.length) html='<div class="empty-state">No process areas configured yet.</div>';
+  el.innerHTML=html;
+}
+
+function lvlForScore(v){return v>=4?'#22c55e':v===3?'#f59e0b':v<=2?'#ef4444':'#9ca3af';}
+function labelForScore(v){return['','Very Low','Low','Moderate','High','Fully Confident'][v]||'';}
+
+function ciSelectEntity(btn,entity){
+  _ciEntity=entity;
+  document.querySelectorAll('.ci-entity-tab').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  renderCI();
+}
+
+function ciSetScore(paId,v){
+  if(!_ciData) return;
+  if(!_ciData.ratings) _ciData.ratings={};
+  if(!_ciData.ratings[_ciEntity]) _ciData.ratings[_ciEntity]={};
+  if(!_ciData.ratings[_ciEntity][paId]) _ciData.ratings[_ciEntity][paId]={};
+  _ciData.ratings[_ciEntity][paId].score=v;
+  // Update stars
+  var stars=document.getElementById('stars_'+paId);
+  if(stars){
+    stars.querySelectorAll('.ci-star').forEach(function(s){
+      var sv=parseInt(s.dataset.v);
+      s.classList.toggle('filled',sv<=v);
+      if(sv<=v) s.style.color=lvlForScore(v); else s.style.color='';
+    });
+    var lbl=document.getElementById('lbl_'+paId);
+    if(lbl){lbl.textContent=labelForScore(v);lbl.style.color=lvlForScore(v);}
+  }
+  var cmt=document.getElementById('cmt_'+paId);
+  if(cmt) cmt.classList.toggle('show',v<=2);
+  var btn=document.querySelector('[onclick="ciSave(\''+paId+'\')"]');
+  if(btn) btn.classList.add('show');
+}
+
+async function ciSave(paId){
+  if(!_ciData) return;
+  var score=(_ciData.ratings&&_ciData.ratings[_ciEntity]&&_ciData.ratings[_ciEntity][paId]&&_ciData.ratings[_ciEntity][paId].score)||0;
+  var cmtEl=document.getElementById('cmt_'+paId);
+  var comment=cmtEl?cmtEl.value:'';
+  try{
+    var r=await fetch('/api/uat/portal/'+TOKEN+'/ci/ratings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({paId,entityKey:_ciEntity,score,comment})});
+    var d=await r.json();
+    if(d.ok) toast('Rating saved');
+    else toast('Save failed');
+  }catch(e){toast('Error saving');}
+}
 const SL={'not_tested':'Not Tested','in_progress':'In Progress','pass':'Pass','fail':'Fail','blocked':'Blocked'};
 const SC={'not_tested':'s-not_tested','in_progress':'s-in_progress','pass':'s-pass','fail':'s-fail','blocked':'s-blocked'};
 const STA_IT={open:'Open',in_progress:'In Progress',resolved:'Resolved — Pending Retest',solved:'Solved'};
@@ -5625,6 +5863,264 @@ app.post('/api/skillmatrix/upgrade-requests/:id/reject', async (req, res) => {
   r.notes = req.body.notes || '';
   await saveDB(db);
   res.json({ ok: true });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  CONFIDENCE INDEX  — /api/ci/*  |  /api/uat/portal/:token/ci
+// ══════════════════════════════════════════════════════════════════════════════
+
+const CI_DEFAULT_PROCESS_AREAS = [
+  'Data Ingestion','Data Validation','Configuration','Reconciliation',
+  'Report Generation','Exception Handling','Troubleshooting',
+  'Month-End Activities','User Administration','Dashboard & Analytics'
+];
+
+function ciDB() {
+  if (!db.confidenceIndex) db.confidenceIndex = { assessments: [] };
+  return db.confidenceIndex;
+}
+function ciId() { return `ci_${Date.now()}_${Math.random().toString(36).slice(2,6)}`; }
+
+// GET all assessments (admin)
+app.get('/api/ci/assessments', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  res.json({ ok:true, data: ciDB().assessments });
+});
+
+// POST create new assessment (admin)
+app.post('/api/ci/assessments', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  const { clientId, clientName, projectName, entities=[] } = req.body;
+  if (!clientId||!clientName) return res.status(400).json({ ok:false, error:'clientId and clientName required' });
+  const ci = ciDB();
+  const now = new Date().toISOString();
+  const processAreas = CI_DEFAULT_PROCESS_AREAS.map((name,i) => ({ id:ciId(), name, order:i, description:'' }));
+  const assessment = { id:ciId(), clientId, clientName, projectName:projectName||'', entities:['Overall',...entities.filter(e=>e&&e!=='Overall')], processAreas, ratings:{}, actions:[], status:'active', createdAt:now, updatedAt:now };
+  ci.assessments.push(assessment);
+  await saveDB(db); res.json({ ok:true, data:assessment });
+});
+
+// PUT update assessment metadata (admin)
+app.put('/api/ci/assessments/:id', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
+  if (!a) return res.status(404).json({ ok:false, error:'Not found' });
+  const { clientName, projectName, entities, status } = req.body;
+  if (clientName !== undefined) a.clientName = clientName;
+  if (projectName !== undefined) a.projectName = projectName;
+  if (entities !== undefined) { a.entities = ['Overall',...(entities||[]).filter(e=>e&&e!=='Overall')]; }
+  if (status !== undefined) a.status = status;
+  a.updatedAt = new Date().toISOString();
+  await saveDB(db); res.json({ ok:true, data:a });
+});
+
+// DELETE assessment (admin)
+app.delete('/api/ci/assessments/:id', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  const ci = ciDB(); ci.assessments = ci.assessments.filter(x=>x.id!==req.params.id);
+  await saveDB(db); res.json({ ok:true });
+});
+
+// GET process areas
+app.get('/api/ci/assessments/:id/process-areas', async (req, res) => {
+  await _dbReady;
+  const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
+  if (!a) return res.status(404).json({ ok:false, error:'Not found' });
+  res.json({ ok:true, data: a.processAreas });
+});
+
+// POST add process area (admin)
+app.post('/api/ci/assessments/:id/process-areas', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
+  if (!a) return res.status(404).json({ ok:false, error:'Not found' });
+  const { name, description='' } = req.body;
+  if (!name) return res.status(400).json({ ok:false, error:'name required' });
+  const pa = { id:ciId(), name, order: a.processAreas.length, description };
+  a.processAreas.push(pa); a.updatedAt = new Date().toISOString();
+  await saveDB(db); res.json({ ok:true, data:pa });
+});
+
+// PUT update process area (admin)
+app.put('/api/ci/assessments/:id/process-areas/:paId', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
+  if (!a) return res.status(404).json({ ok:false, error:'Not found' });
+  const pa = a.processAreas.find(x=>x.id===req.params.paId);
+  if (!pa) return res.status(404).json({ ok:false, error:'PA not found' });
+  if (req.body.name !== undefined) pa.name = req.body.name;
+  if (req.body.description !== undefined) pa.description = req.body.description;
+  a.updatedAt = new Date().toISOString();
+  await saveDB(db); res.json({ ok:true, data:pa });
+});
+
+// DELETE process area (admin)
+app.delete('/api/ci/assessments/:id/process-areas/:paId', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
+  if (!a) return res.status(404).json({ ok:false, error:'Not found' });
+  a.processAreas = a.processAreas.filter(x=>x.id!==req.params.paId);
+  a.updatedAt = new Date().toISOString();
+  await saveDB(db); res.json({ ok:true });
+});
+
+// POST reorder process areas (admin)
+app.post('/api/ci/assessments/:id/process-areas/reorder', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
+  if (!a) return res.status(404).json({ ok:false, error:'Not found' });
+  const { ids=[] } = req.body;
+  const paMap = Object.fromEntries(a.processAreas.map(p=>[p.id,p]));
+  a.processAreas = ids.map((id,i)=>{ const p=paMap[id]; if(p) p.order=i; return p; }).filter(Boolean);
+  a.updatedAt = new Date().toISOString();
+  await saveDB(db); res.json({ ok:true });
+});
+
+// GET ratings (admin or portal token via query param)
+app.get('/api/ci/assessments/:id/ratings', async (req, res) => {
+  await _dbReady;
+  const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
+  if (!a) return res.status(404).json({ ok:false, error:'Not found' });
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  res.json({ ok:true, data: a.ratings });
+});
+
+// PUT update a rating (admin or portal)
+app.put('/api/ci/assessments/:id/ratings', async (req, res) => {
+  await _dbReady;
+  const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
+  if (!a) return res.status(404).json({ ok:false, error:'Not found' });
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  const { entityKey, paId, score, comment } = req.body;
+  if (!entityKey||!paId) return res.status(400).json({ ok:false, error:'entityKey and paId required' });
+  if (!a.ratings[entityKey]) a.ratings[entityKey] = {};
+  a.ratings[entityKey][paId] = { score: Math.min(5,Math.max(1,parseInt(score)||0)), comment:comment||'', updatedAt:new Date().toISOString() };
+  a.updatedAt = new Date().toISOString();
+  await saveDB(db); res.json({ ok:true });
+});
+
+// GET actions (admin)
+app.get('/api/ci/assessments/:id/actions', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
+  if (!a) return res.status(404).json({ ok:false, error:'Not found' });
+  res.json({ ok:true, data: a.actions });
+});
+
+// POST add action (admin)
+app.post('/api/ci/assessments/:id/actions', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
+  if (!a) return res.status(404).json({ ok:false, error:'Not found' });
+  const now = new Date().toISOString();
+  const action = { id:ciId(), processAreaId:req.body.processAreaId||'', entityKey:req.body.entityKey||'Overall', training:req.body.training||'', supportRequired:req.body.supportRequired||'', owner:req.body.owner||'', targetDate:req.body.targetDate||'', status:req.body.status||'open', createdAt:now, updatedAt:now };
+  a.actions.push(action); a.updatedAt = now;
+  await saveDB(db); res.json({ ok:true, data:action });
+});
+
+// PUT update action (admin)
+app.put('/api/ci/assessments/:id/actions/:actId', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
+  if (!a) return res.status(404).json({ ok:false, error:'Not found' });
+  const action = a.actions.find(x=>x.id===req.params.actId);
+  if (!action) return res.status(404).json({ ok:false, error:'Action not found' });
+  Object.assign(action, req.body, { id:action.id, createdAt:action.createdAt, updatedAt:new Date().toISOString() });
+  a.updatedAt = new Date().toISOString();
+  await saveDB(db); res.json({ ok:true, data:action });
+});
+
+// DELETE action (admin)
+app.delete('/api/ci/assessments/:id/actions/:actId', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
+  if (!a) return res.status(404).json({ ok:false, error:'Not found' });
+  a.actions = a.actions.filter(x=>x.id!==req.params.actId);
+  a.updatedAt = new Date().toISOString();
+  await saveDB(db); res.json({ ok:true });
+});
+
+// GET dashboard summary (admin)
+app.get('/api/ci/dashboard', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  const ci = ciDB();
+  const assessments = ci.assessments.filter(a=>a.status==='active');
+  let totalScores=[], openActions=0;
+  const byClient = assessments.map(a=>{
+    const pas = a.processAreas||[];
+    const allRatings = Object.values(a.ratings||{}).flatMap(er=>Object.values(er)).map(r=>r.score).filter(Boolean);
+    const avg = allRatings.length ? Math.round(allRatings.reduce((s,v)=>s+v,0)/allRatings.length*10)/10 : 0;
+    const openActs = (a.actions||[]).filter(x=>x.status==='open').length;
+    openActions += openActs;
+    totalScores.push(...allRatings);
+    return { id:a.id, clientName:a.clientName, projectName:a.projectName, avg, openActions:openActs, processAreaCount:pas.length };
+  });
+  const avgScore = totalScores.length ? Math.round(totalScores.reduce((s,v)=>s+v,0)/totalScores.length*10)/10 : 0;
+  res.json({ ok:true, data:{ totalAssessments:assessments.length, avgScore, openActions, byClient } });
+});
+
+// Portal: GET CI assessment for client (via UAT token)
+app.get('/api/uat/portal/:token/ci', async (req, res) => {
+  await _dbReady;
+  const u = uatDB(); const c = u.clients.find(x=>x.portalToken===req.params.token);
+  if (!c) return res.status(403).json({ ok:false, error:'invalid token' });
+  const ci = ciDB(); const a = ci.assessments.find(x=>x.clientId===c.id&&x.status==='active');
+  if (!a) return res.status(404).json({ ok:false, error:'no assessment' });
+  // Return assessment data without exposing all internal details
+  res.json({ ok:true, data:{ id:a.id, clientName:a.clientName, projectName:a.projectName, entities:a.entities, processAreas:a.processAreas, ratings:a.ratings, actions:a.actions.map(ac=>({ id:ac.id, processAreaId:ac.processAreaId, entityKey:ac.entityKey, training:ac.training, supportRequired:ac.supportRequired, owner:ac.owner, targetDate:ac.targetDate, status:ac.status })) } });
+});
+
+// Portal: PUT rating (via UAT token)
+app.put('/api/uat/portal/:token/ci/ratings', async (req, res) => {
+  await _dbReady;
+  const u = uatDB(); const c = u.clients.find(x=>x.portalToken===req.params.token);
+  if (!c) return res.status(403).json({ ok:false, error:'invalid token' });
+  const ci = ciDB(); const a = ci.assessments.find(x=>x.clientId===c.id&&x.status==='active');
+  if (!a) return res.status(404).json({ ok:false, error:'no assessment' });
+  const { paId, entityKey='Overall', score, comment='' } = req.body;
+  if (!paId||!score) return res.status(400).json({ ok:false, error:'paId and score required' });
+  if (!a.ratings[entityKey]) a.ratings[entityKey] = {};
+  a.ratings[entityKey][paId] = { score:Math.min(5,Math.max(1,parseInt(score))), comment, updatedAt:new Date().toISOString() };
+  a.updatedAt = new Date().toISOString();
+  await saveDB(db); res.json({ ok:true });
+});
+
+// Portal: GET Rocketlane project status (via UAT token)
+app.get('/api/uat/portal/:token/rocketlane', async (req, res) => {
+  await _dbReady;
+  const u = uatDB(); const c = u.clients.find(x=>x.portalToken===req.params.token);
+  if (!c) return res.status(403).json({ ok:false, error:'invalid token' });
+  // Find UAT project linked to this client and check for rlProjectId
+  const projects = u.projects.filter(p=>p.clientId===c.id&&p.rlProjectId);
+  if (!projects.length) return res.status(404).json({ ok:false, error:'not linked' });
+  const rlProjectId = projects[0].rlProjectId;
+  const rlKey = process.env.ROCKETLANE_API_KEY;
+  if (!rlKey) return res.status(503).json({ ok:false, error:'Rocketlane not configured' });
+  try {
+    const fetch = require('node-fetch');
+    const r = await fetch(`https://api.rocketlane.com/api/1.0/projects/${rlProjectId}`, { headers:{ Authorization:`Bearer ${rlKey}` } });
+    if (!r.ok) return res.status(r.status).json({ ok:false, error:'Rocketlane error' });
+    const d = await r.json();
+    const proj = d.project || d;
+    // Build simplified response (no internal notes)
+    const phases = (proj.phases||[]).map(ph=>({ name:ph.name||'', tasks:(ph.tasks||ph.milestones||[]).map(t=>({ name:t.name||t.title||'', dueDate:t.dueDate||t.due_date||'', completed:!!(t.completed||t.status==='completed'||t.status==='done') })) }));
+    res.json({ ok:true, project:{ name:proj.name||'', completionPct:proj.completionPct||proj.completion_pct||0, phases } });
+  } catch(e) {
+    res.status(500).json({ ok:false, error:e.message });
+  }
 });
 
 // Monthly skill matrix snapshot — runs on 1st of each month at 12:00 AM UTC

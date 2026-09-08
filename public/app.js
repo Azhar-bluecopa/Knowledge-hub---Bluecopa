@@ -595,4 +595,238 @@ function _eehRenderHistory(){
   }).join('');
 }
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── Customer Success Hub ───────────────────────────────────────────────────────
+function cshOpen() {
+  const o = document.getElementById('cshOverlay');
+  if (o) { o.style.display = 'flex'; cshLoadDashboard(); }
+}
+function cshClose() {
+  const o = document.getElementById('cshOverlay');
+  if (o) o.style.display = 'none';
+}
+async function cshLoadDashboard() {
+  const el = document.getElementById('cshDashStats');
+  if (!el) return;
+  try {
+    const [ciR] = await Promise.all([
+      fetch('/api/ci/dashboard', { headers: { 'x-user-email': getAdminPwd() || '' } }).catch(() => null)
+    ]);
+    if (ciR && ciR.ok) {
+      const d = await ciR.json();
+      const stats = d.data || {};
+      if (document.getElementById('cshStatAssessments')) document.getElementById('cshStatAssessments').textContent = stats.totalAssessments || 0;
+      if (document.getElementById('cshStatAvgScore')) document.getElementById('cshStatAvgScore').textContent = stats.avgScore ? (stats.avgScore.toFixed(1) + '/5') : '—';
+      if (document.getElementById('cshStatOpenActions')) document.getElementById('cshStatOpenActions').textContent = stats.openActions || 0;
+    }
+  } catch(e) {}
+}
+
+// ── Confidence Index overlay ──────────────────────────────────────────────────
+let _ciAssessments = [], _ciSelected = null, _ciAdminTab = 'ratings';
+
+function ciOpen() {
+  const o = document.getElementById('ciOverlay');
+  if (o) { o.style.display = 'flex'; ciLoad(); }
+}
+function ciClose() {
+  const o = document.getElementById('ciOverlay');
+  if (o) o.style.display = 'none';
+}
+
+async function ciLoad() {
+  const listEl = document.getElementById('ciAssessmentList');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="padding:24px;color:rgba(255,255,255,.4);font-size:13px;">Loading…</div>';
+  try {
+    const r = await fetch('/api/ci/assessments', { headers: { 'x-user-email': getAdminPwd() || '' } });
+    if (!r.ok) { listEl.innerHTML = '<div style="padding:24px;color:#f87171;font-size:13px;">Access denied</div>'; return; }
+    const d = await r.json();
+    _ciAssessments = d.data || [];
+    ciRenderList();
+    if (_ciAssessments.length) ciSelectAssessment(_ciAssessments[0].id);
+  } catch(e) { listEl.innerHTML = '<div style="padding:24px;color:#f87171;font-size:13px;">Load failed</div>'; }
+}
+
+function ciRenderList() {
+  const el = document.getElementById('ciAssessmentList');
+  if (!el) return;
+  if (!_ciAssessments.length) {
+    el.innerHTML = '<div style="padding:24px;color:rgba(255,255,255,.35);font-size:13px;">No assessments yet.</div>'; return;
+  }
+  el.innerHTML = _ciAssessments.map(a => {
+    const pas = a.processAreas || [];
+    const allR = Object.values(a.ratings || {}).flatMap(er => Object.values(er)).map(r => r.score).filter(Boolean);
+    const avg = allR.length ? (allR.reduce((s,v)=>s+v,0)/allR.length).toFixed(1) : '—';
+    const active = _ciSelected && _ciSelected.id === a.id;
+    return `<div onclick="ciSelectAssessment('${a.id}')" style="padding:14px 18px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);background:${active?'rgba(139,92,246,.12)':'transparent'};transition:background .15s">
+      <div style="font-size:13px;font-weight:700;color:#f0f0f6;margin-bottom:3px;">${escHtml(a.clientName)}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.4);">${escHtml(a.projectName||'')} · Avg: ${avg}</div>
+      <div style="margin-top:4px"><span style="font-size:10px;padding:2px 7px;border-radius:99px;background:${a.status==='active'?'rgba(139,92,246,.2)':'rgba(255,255,255,.06)'};color:${a.status==='active'?'#a78bfa':'rgba(255,255,255,.4)'}">${a.status}</span></div>
+    </div>`;
+  }).join('');
+}
+
+async function ciSelectAssessment(id) {
+  _ciSelected = _ciAssessments.find(a=>a.id===id) || null;
+  ciRenderList();
+  ciRenderDetail();
+}
+
+function ciRenderDetail() {
+  const el = document.getElementById('ciDetailPanel');
+  if (!el) return;
+  if (!_ciSelected) { el.innerHTML = '<div style="padding:48px;text-align:center;color:rgba(255,255,255,.25);">Select an assessment</div>'; return; }
+  const a = _ciSelected;
+  el.innerHTML = `
+    <div style="padding:24px;border-bottom:1px solid rgba(255,255,255,.07);">
+      <div style="font-size:18px;font-weight:800;color:#f0f0f6;margin-bottom:4px;">${escHtml(a.clientName)}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.45);">${escHtml(a.projectName||'')}</div>
+    </div>
+    <div style="display:flex;gap:0;padding:0 24px;border-bottom:1px solid rgba(255,255,255,.07);">
+      ${['ratings','actions','process-areas'].map(t=>`<button onclick="ciAdminTab('${t}')" style="padding:12px 16px;font-size:12px;font-weight:700;color:${_ciAdminTab===t?'#a78bfa':'rgba(255,255,255,.4)'};background:none;border:none;border-bottom:2px solid ${_ciAdminTab===t?'#8b5cf6':'transparent'};cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">${t==='ratings'?'Ratings':t==='actions'?'Actions':'Process Areas'}</button>`).join('')}
+    </div>
+    <div id="ciAdminTabContent" style="padding:24px;overflow-y:auto;flex:1;">${ciAdminTabHTML()}</div>
+  `;
+}
+
+function ciAdminTab(tab) { _ciAdminTab = tab; ciRenderDetail(); }
+
+function ciAdminTabHTML() {
+  if (!_ciSelected) return '';
+  const a = _ciSelected;
+  if (_ciAdminTab === 'process-areas') {
+    const pas = a.processAreas || [];
+    return `<div style="margin-bottom:16px;display:flex;gap:8px;align-items:center">
+      <input id="ciNewPaName" placeholder="New process area name" style="flex:1;padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-family:'DM Sans',sans-serif;font-size:13px">
+      <button onclick="ciAddPA()" style="padding:8px 16px;background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.4);color:#a78bfa;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">Add</button>
+    </div>` +
+    pas.map((pa,i) => `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;margin-bottom:6px;">
+      <span style="color:rgba(255,255,255,.4);font-size:13px;flex:1;">${escHtml(pa.name)}</span>
+      <button onclick="ciDeletePA('${pa.id}')" style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);color:#f87171;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;">Delete</button>
+    </div>`).join('');
+  }
+  if (_ciAdminTab === 'actions') {
+    const actions = a.actions || [];
+    const pas = a.processAreas || [];
+    return `<div style="margin-bottom:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:16px;">
+      <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,.4);margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em;">Add Action</div>
+      <select id="ciActPA" style="width:100%;padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-family:'DM Sans',sans-serif;font-size:13px;margin-bottom:8px">
+        ${pas.map(p=>`<option value="${p.id}">${escHtml(p.name)}</option>`).join('')}
+      </select>
+      <input id="ciActTraining" placeholder="Training description" style="width:100%;padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-family:'DM Sans',sans-serif;font-size:13px;margin-bottom:8px">
+      <input id="ciActSupport" placeholder="Support required" style="width:100%;padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-family:'DM Sans',sans-serif;font-size:13px;margin-bottom:8px">
+      <div style="display:flex;gap:8px;">
+        <input id="ciActOwner" placeholder="Owner" style="flex:1;padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-family:'DM Sans',sans-serif;font-size:13px">
+        <input id="ciActDate" type="date" style="flex:1;padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-family:'DM Sans',sans-serif;font-size:13px">
+        <button onclick="ciAddAction()" style="padding:8px 16px;background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.4);color:#a78bfa;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">Add</button>
+      </div>
+    </div>` +
+    (actions.length ? actions.map(ac => {
+      const paName = (pas.find(p=>p.id===ac.processAreaId)||{}).name||'—';
+      return `<div style="padding:12px 16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;margin-bottom:8px;">
+        <div style="font-size:11px;color:rgba(255,255,255,.35);margin-bottom:4px;">${escHtml(paName)} · ${escHtml(ac.entityKey||'Overall')}</div>
+        ${ac.training?`<div style="font-size:13px;color:#f0f0f6;margin-bottom:3px;"><strong>Training:</strong> ${escHtml(ac.training)}</div>`:''}
+        ${ac.supportRequired?`<div style="font-size:13px;color:#f0f0f6;margin-bottom:3px;"><strong>Support:</strong> ${escHtml(ac.supportRequired)}</div>`:''}
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">
+          <span style="font-size:11px;color:rgba(255,255,255,.4);">${escHtml(ac.owner||'—')} · ${escHtml(ac.targetDate||'')}</span>
+          <select onchange="ciUpdateActionStatus('${ac.id}',this.value)" style="padding:3px 8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#f0f0f6;font-size:11px;font-family:'DM Sans',sans-serif">
+            ${['open','in-progress','completed'].map(s=>`<option value="${s}"${ac.status===s?' selected':''}>${s}</option>`).join('')}
+          </select>
+          <button onclick="ciDeleteAction('${ac.id}')" style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);color:#f87171;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">Delete</button>
+        </div>
+      </div>`;
+    }).join('') : '<div style="color:rgba(255,255,255,.25);font-size:13px;padding:20px 0;">No actions yet.</div>');
+  }
+  // Ratings view
+  const pas = a.processAreas || [];
+  const ratings = a.ratings || {};
+  const entities = a.entities || ['Overall'];
+  const lvlColor = v => v>=4?'#22c55e':v===3?'#f59e0b':v<=2?'#ef4444':'rgba(255,255,255,.25)';
+  return `<div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr style="border-bottom:1px solid rgba(255,255,255,.08);">
+        <th style="text-align:left;padding:8px 12px;color:rgba(255,255,255,.4);font-weight:600;white-space:nowrap">Process Area</th>
+        ${entities.map(e=>`<th style="text-align:center;padding:8px 12px;color:rgba(255,255,255,.4);font-weight:600">${escHtml(e)}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${pas.map(pa=>`<tr style="border-bottom:1px solid rgba(255,255,255,.05);">
+          <td style="padding:8px 12px;color:#f0f0f6">${escHtml(pa.name)}</td>
+          ${entities.map(e=>{
+            const score = (ratings[e]&&ratings[e][pa.id]&&ratings[e][pa.id].score)||0;
+            return `<td style="text-align:center;padding:8px 12px;"><span style="font-weight:700;color:${lvlColor(score)}">${score||'—'}</span></td>`;
+          }).join('')}
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+async function ciNewAssessment() {
+  const u = uatDB_clients || [];
+  const clientId = prompt('Enter UAT client ID (from UAT Platform):');
+  if (!clientId) return;
+  const clientName = prompt('Client name:');
+  if (!clientName) return;
+  const projectName = prompt('Project name (optional):') || '';
+  try {
+    const r = await fetch('/api/ci/assessments', { method:'POST', headers:{'Content-Type':'application/json','x-user-email':getAdminPwd()||''}, body: JSON.stringify({ clientId, clientName, projectName }) });
+    const d = await r.json();
+    if (d.ok) { showToast('Assessment created'); ciLoad(); }
+    else showToast('Error: ' + (d.error||'unknown'));
+  } catch(e) { showToast('Request failed'); }
+}
+
+async function ciAddPA() {
+  if (!_ciSelected) return;
+  const name = (document.getElementById('ciNewPaName')||{}).value?.trim();
+  if (!name) return;
+  try {
+    const r = await fetch(`/api/ci/assessments/${_ciSelected.id}/process-areas`, { method:'POST', headers:{'Content-Type':'application/json','x-user-email':getAdminPwd()||''}, body: JSON.stringify({ name }) });
+    const d = await r.json();
+    if (d.ok) { showToast('Process area added'); const fresh = _ciAssessments.find(a=>a.id===_ciSelected.id); if(fresh) fresh.processAreas.push(d.data); _ciSelected = fresh; ciRenderDetail(); }
+  } catch(e) { showToast('Failed'); }
+}
+
+async function ciDeletePA(paId) {
+  if (!_ciSelected||!confirm('Delete this process area?')) return;
+  try {
+    await fetch(`/api/ci/assessments/${_ciSelected.id}/process-areas/${paId}`, { method:'DELETE', headers:{'x-user-email':getAdminPwd()||''} });
+    _ciSelected.processAreas = (_ciSelected.processAreas||[]).filter(p=>p.id!==paId);
+    ciRenderDetail();
+  } catch(e) { showToast('Failed'); }
+}
+
+async function ciAddAction() {
+  if (!_ciSelected) return;
+  const paId = (document.getElementById('ciActPA')||{}).value;
+  const training = (document.getElementById('ciActTraining')||{}).value||'';
+  const supportRequired = (document.getElementById('ciActSupport')||{}).value||'';
+  const owner = (document.getElementById('ciActOwner')||{}).value||'';
+  const targetDate = (document.getElementById('ciActDate')||{}).value||'';
+  try {
+    const r = await fetch(`/api/ci/assessments/${_ciSelected.id}/actions`, { method:'POST', headers:{'Content-Type':'application/json','x-user-email':getAdminPwd()||''}, body: JSON.stringify({ processAreaId:paId, training, supportRequired, owner, targetDate, entityKey:'Overall' }) });
+    const d = await r.json();
+    if (d.ok) { showToast('Action added'); _ciSelected.actions = (_ciSelected.actions||[]); _ciSelected.actions.push(d.data); ciRenderDetail(); }
+  } catch(e) { showToast('Failed'); }
+}
+
+async function ciUpdateActionStatus(actId, status) {
+  if (!_ciSelected) return;
+  try {
+    await fetch(`/api/ci/assessments/${_ciSelected.id}/actions/${actId}`, { method:'PUT', headers:{'Content-Type':'application/json','x-user-email':getAdminPwd()||''}, body: JSON.stringify({ status }) });
+    const act = (_ciSelected.actions||[]).find(a=>a.id===actId);
+    if (act) act.status = status;
+    showToast('Status updated');
+  } catch(e) { showToast('Failed'); }
+}
+
+async function ciDeleteAction(actId) {
+  if (!_ciSelected||!confirm('Delete this action?')) return;
+  try {
+    await fetch(`/api/ci/assessments/${_ciSelected.id}/actions/${actId}`, { method:'DELETE', headers:{'x-user-email':getAdminPwd()||''} });
+    _ciSelected.actions = (_ciSelected.actions||[]).filter(a=>a.id!==actId);
+    ciRenderDetail();
+  } catch(e) { showToast('Failed'); }
+}
 function eehSetPeriod(e,t){_eehCurrentPeriod=e,_eehCurrentOffset=0,document.querySelectorAll(".eeh-lb-period-btn").forEach(e=>e.classList.remove("active")),t&&t.classList.add("active"),_eehLoadLeaderboard()}function eehNavigatePeriod(e){const t=_eehCurrentOffset+e;if(t>0)return;_eehCurrentOffset=t;const n=document.getElementById("eehLbNavNext");n&&(n.disabled=_eehCurrentOffset>=0),_eehLoadLeaderboard()}async function _eehLoadLeaderboard(){const e=`${_eehCurrentPeriod}_${_eehCurrentOffset}`;if(_eehLbCache[e])return void eehRenderLeaderboard(_eehLbCache[e]);const t=document.getElementById("eehRank1");t&&(t.innerHTML='<div class="eeh-lb-loading"><div class="eeh-lb-spin"></div><span>Computing 360° scores…</span></div>'),["eehRank23","eehRankRest"].forEach(e=>{const t=document.getElementById(e);t&&(t.innerHTML="")});try{const t=await fetch(`/api/leaderboard?period=${_eehCurrentPeriod}&offset=${_eehCurrentOffset}`),n=await t.json(),a=Array.isArray(n)?n:[];_eehLbCache[e]=a,eehRenderLeaderboard(a)}catch(e){console.error("[leaderboard]",e),eehRenderLeaderboard([])}}function _eehBreakdownBars(e,t,c){const n=Object.entries(e).filter(([,e])=>e>0).sort(([,e],[,t])=>t-e);return n.length?`<div class="eeh-bd-wrap">${n.map(([e,n])=>{const a=_LB_CAT_META[e]||{icon:"·",label:e,color:"#888"},s=Math.min(100,Math.round(n/t*100)),cnt=c&&c[e]&&e!=="skills"?c[e]:null;return`<div class="eeh-bd-item" title="${a.label}: ${cnt?cnt+" × ":""}${n} pts">\n        <span class="eeh-bd-icon">${a.icon}</span>${cnt?`<span class="eeh-bd-cnt">${cnt}×</span>`:""}\n        <div class="eeh-bd-bar"><div class="eeh-bd-fill" style="width:${s}%;background:${a.color}"></div></div>\n        <span class="eeh-bd-val">${n}<span class="eeh-bd-pts">p</span></span>\n      </div>`}).join("")}</div>`:""}function eehRenderLeaderboard(e){const t=(e=e||[])[0],n=t?t.score:1,a=_eehPeriodLabel(_eehCurrentPeriod,_eehCurrentOffset),s=document.getElementById("eehLbPeriodLabel");s&&(s.textContent=a);const o=document.getElementById("eehLbNavNext");o&&(o.disabled=_eehCurrentOffset>=0);const i=e=>`https://api.dicebear.com/9.x/notionists/png?seed=${encodeURIComponent(e)}&size=128&backgroundColor=1a1a2e,16213e,0f3460,1b1b2f`,r=document.getElementById("eehRank1");if(r)if(t){const e=t.breakdown||{},s=Object.entries(e).filter(([,e])=>e>0);r.innerHTML=`<div class="eeh-rank1-card">\n        <div class="eeh-rank1-medal">🥇</div>\n        <div class="eeh-rank1-avatar"><img src="${i(t.name)}" alt="${t.name}"></div>\n        <div class="eeh-rank1-body">\n          <div class="eeh-rank1-eyebrow">🏆 Top Performer — ${a}</div>\n          <div class="eeh-rank1-name">${t.name}</div>\n          <div class="eeh-rank1-dept">${s.map(([e])=>_LB_CAT_META[e]?.icon||"").join(" ")} Active in ${s.length} categories</div>\n          <div class="eeh-rank1-stats">\n            <div class="eeh-rank1-stat">\n              <div class="eeh-rank1-stat-val">${t.score}<span class="eeh-stat-pts">pts</span></div>\n              <div class="eeh-rank1-stat-lbl">Total Score</div>\n            </div>\n            ${Object.entries(e).filter(([,e])=>e>0).sort(([,e],[,t])=>t-e).slice(0,3).map(([e,t])=>`\n            <div class="eeh-rank1-divider"></div>\n            <div class="eeh-rank1-stat">\n              <div class="eeh-rank1-stat-val" style="color:${_LB_CAT_META[e]?.color||"#fff"}">${t}<span class="eeh-stat-pts">pts</span></div>\n              <div class="eeh-rank1-stat-lbl">${_LB_CAT_META[e]?.label||e}</div>\n            </div>`).join("")}\n          </div>\n          ${_eehBreakdownBars(e,n,t.counts)}\n          <div class="eeh-rank1-badge">⭐ 360° Champion</div>\n          <button class="eeh-hist-btn" onclick="eehOpenHistory('${t.name}')">📋 Points history</button>\n        </div>\n      </div>`}else r.innerHTML='<div class="eeh-lb-empty">No data for this period yet.</div>';const l=document.getElementById("eehRank23");l&&(l.innerHTML=[1,2].map(t=>{const a=e[t];if(!a)return"<div></div>";const s=1===t?"🥈":"🥉",o=1===t?"rank2":"rank3",r=a.breakdown||{};return`<div class="eeh-rank-sm ${o}">\n        <div class="eeh-rank-sm-medal">${s}</div>\n        <div class="eeh-rank-sm-avatar"><img src="${i(a.name)}" alt="${a.name}"></div>\n        <div class="eeh-rank-sm-body">\n          <div class="eeh-rank-sm-name">${a.name}</div>\n          <div class="eeh-rank-sm-dept">${Object.entries(r).filter(([,e])=>e>0).map(([e])=>_LB_CAT_META[e]?.icon||"").join(" ")}</div>\n          <div class="eeh-rank-sm-score-row">\n            <div class="eeh-rank-sm-score">${a.score}</div>\n            <div class="eeh-rank-sm-pts">pts</div>\n          </div>\n          ${_eehBreakdownBars(r,n,a.counts)}\n          <button class="eeh-hist-btn" onclick="eehOpenHistory('${a.name}')">📋 Points history</button>\n        </div>\n      </div>`}).join(""));const d=document.getElementById("eehRankRest");d&&(d.innerHTML=e.slice(3).map((e,t)=>{const a=e.breakdown||{},s=Math.round(e.score/n*100),o=Object.entries(a).filter(([,e])=>e>0).map(([e])=>_LB_CAT_META[e]?.icon||"").join(" ");return`<div class="eeh-rank-row" onclick="eehOpenHistory('${e.name}')" style="cursor:pointer;" title="View ${e.name}'s points history">\n        <div class="eeh-rank-row-pos">${t+4}</div>\n        <div class="eeh-rank-row-avatar"><img src="${i(e.name)}" alt="${e.name}"></div>\n        <div class="eeh-rank-row-body">\n          <div class="eeh-rank-row-name">${e.name}</div>\n          <div class="eeh-rank-row-dept">${o}</div>\n        </div>\n        <div class="eeh-rank-row-right">\n          <div class="eeh-rank-row-score">${e.score} <span class="eeh-rank-row-pts">pts</span></div>\n          <div class="eeh-rank-row-bar"><div class="eeh-rank-row-bar-fill" style="width:${s}%"></div></div>\n        </div>\n      </div>`}).join(""))}function eehRenderSpotlights(){_eehRenderSpotYear(),_eehRenderSpotGrid()}function _eehRenderSpotYear(){const e=document.getElementById("eehSpotYear");if(!e)return;const t=(_eehData.spotlight||{}).year;if(!t||!t.name)return void(e.innerHTML='<div class="eeh-spot-year-empty">\n      <span class="eeh-spot-year-empty-icon">🏆</span>\n      <div class="eeh-spot-year-empty-lbl">Employee of the Year</div>\n      <div class="eeh-spot-year-empty-txt">Not yet announced — stay tuned for the announcement!</div>\n    </div>');const n=t.name.split(" ").map(e=>e[0]).join("").slice(0,2).toUpperCase(),a=t.photo?`<img src="${t.photo}" onerror="this.style.display='none'">`:n;e.innerHTML=`<div class="eeh-spot-year-card">\n    <div class="eeh-spot-year-avatar">${a}</div>\n    <div class="eeh-spot-year-body">\n      <div class="eeh-spot-year-eyebrow">⭐ Employee of the Year</div>\n      <div class="eeh-spot-year-name">${t.name}</div>\n      <div class="eeh-spot-year-dept">${t.dept||""}</div>\n      ${t.reason?`<div class="eeh-spot-year-quote">"${t.reason}"</div>`:""}\n      ${t.period?`<div class="eeh-spot-year-period">${t.period}</div>`:""}\n    </div>\n  </div>`}function _eehRenderSpotGrid(){const e=document.getElementById("eehSpotGrid");if(!e)return;const t=_eehData.spotlight||{};e.innerHTML=[{key:"month",label:"Employee of the Month",crown:"🥇",cls:"eeh-s-month"},{key:"quarter",label:"Employee of the Quarter",crown:"🥈",cls:"eeh-s-quarter"}].map(e=>{const n=t[e.key];if(!n||!n.name)return`\n      <div class="eeh-spot-sm ${e.cls}">\n        <div class="eeh-spot-sm-avatar-ph">${e.crown}</div>\n        <div class="eeh-spot-sm-body">\n          <div class="eeh-spot-sm-label">${e.label}</div>\n          <div class="eeh-spot-sm-name-empty">Not yet announced</div>\n          <div class="eeh-spot-sm-quote" style="margin-top:6px;">Stay tuned — spotlight coming soon.</div>\n        </div>\n      </div>`;const a=n.name.split(" ").map(e=>e[0]).join("").slice(0,2).toUpperCase(),s=n.photo?`<img src="${n.photo}" onerror="this.style.display='none'">`:a;return`\n      <div class="eeh-spot-sm ${e.cls}">\n        <div class="eeh-spot-sm-avatar">${s}</div>\n        <div class="eeh-spot-sm-body">\n          <div class="eeh-spot-sm-label">${e.label}</div>\n          <div class="eeh-spot-sm-name">${n.name}</div>\n          <div class="eeh-spot-sm-dept">${n.dept||""}</div>\n          ${n.reason?`<div class="eeh-spot-sm-quote">"${n.reason}"</div>`:""}\n          ${n.period?`<div class="eeh-spot-sm-period">${n.period}</div>`:""}\n        </div>\n      </div>`}).join("")}function eehOpenSpotlightModal(e){_eehSpotlightEditType=e;document.getElementById("eehSpotlightModalTitle").textContent=`Edit — ${{month:"Employee of the Month",quarter:"Employee of the Quarter",year:"Employee of the Year"}[e]}`;const t=(_eehData.spotlight||{})[e]||{};document.getElementById("smName").value=t.name||"",document.getElementById("smDept").value=t.dept||"",document.getElementById("smPeriod").value=t.period||"",document.getElementById("smReason").value=t.reason||"",document.getElementById("smPhoto").value=t.photo||"",document.getElementById("eehSpotlightModalBg").classList.add("open")}function eehCloseSpotlightModal(){document.getElementById("eehSpotlightModalBg").classList.remove("open")}async function eehSaveSpotlight(){const e={name:document.getElementById("smName").value.trim(),dept:document.getElementById("smDept").value.trim(),period:document.getElementById("smPeriod").value.trim(),reason:document.getElementById("smReason").value.trim(),photo:document.getElementById("smPhoto").value.trim()},t=JSON.parse(localStorage.getItem("kb_user")||"{}");await fetch("/api/engagement/spotlight",{method:"PUT",headers:{"Content-Type":"application/json","x-user-email":t.email||""},body:JSON.stringify({type:_eehSpotlightEditType,data:e})}),_eehData.spotlight||(_eehData.spotlight={}),_eehData.spotlight[_eehSpotlightEditType]=e,eehCloseSpotlightModal(),eehRenderSpotlights()}const ACH_ICONS=["🏅","🎖️","⭐","🌟","🎗️","🏆","💎","🔥","🚀","✨"];function eehRenderAchievements(){const e=document.getElementById("eehAchievements");if(!e)return;const t=_eehData.achievements||[];t.length?e.innerHTML=t.map((e,t)=>`\n    <div class="eeh-achievement">\n      <div class="eeh-ach-icon">${ACH_ICONS[t%ACH_ICONS.length]}</div>\n      <div class="eeh-ach-body" style="flex:1;">\n        <div class="eeh-ach-award">${e.award}</div>\n        <div class="eeh-ach-name">${e.name}</div>\n        <div class="eeh-ach-dept">${e.dept||""}</div>\n        ${e.desc?`<div class="eeh-ach-desc">${e.desc}</div>`:""}\n        ${e.date?`<div class="eeh-ach-date">${new Date(e.date).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</div>`:""}\n      </div>\n      ${isAdminUser()?`<button class="eeh-ach-del" onclick="eehDeleteAchievement(${t})" title="Remove">✕</button>`:""}\n    </div>`).join(""):e.innerHTML='<div class="eeh-empty"><span class="eeh-empty-icon">🏅</span>No achievements yet — add the first one!</div>'}function eehOpenAchievementModal(){["achName","achDept","achAward","achDesc"].forEach(e=>document.getElementById(e).value=""),document.getElementById("achDate").value="",document.getElementById("eehAchievementModalBg").classList.add("open")}function eehCloseAchievementModal(){document.getElementById("eehAchievementModalBg").classList.remove("open")}async function eehSaveAchievement(){const e={name:document.getElementById("achName").value.trim(),dept:document.getElementById("achDept").value.trim(),award:document.getElementById("achAward").value.trim(),date:document.getElementById("achDate").value,desc:document.getElementById("achDesc").value.trim()};if(!e.name||!e.award)return;const t=[..._eehData.achievements||[],e],n=JSON.parse(localStorage.getItem("kb_user")||"{}");await fetch("/api/engagement/achievements",{method:"PUT",headers:{"Content-Type":"application/json","x-user-email":n.email||""},body:JSON.stringify({achievements:t})}),_eehData.achievements=t,eehCloseAchievementModal(),eehRenderAchievements()}async function eehDeleteAchievement(e){const t=(_eehData.achievements||[]).filter((t,n)=>n!==e),n=JSON.parse(localStorage.getItem("kb_user")||"{}");await fetch("/api/engagement/achievements",{method:"PUT",headers:{"Content-Type":"application/json","x-user-email":n.email||""},body:JSON.stringify({achievements:t})}),_eehData.achievements=t,eehRenderAchievements()}function eehRenderMoments(){eehUpdateTodayBanner(),eehRenderBirthdays(),eehRenderAnniversaries(),eehRenderGallery()}function initials(e){return(e||"").split(" ").map(e=>e[0]).join("").slice(0,2).toUpperCase()}function eehUpdateTodayBanner(){const e=document.getElementById("eehTodayBanner");if(!e)return;const t=new Date,n=e=>{const n=new Date(e);return n.getMonth()===t.getMonth()&&n.getDate()===t.getDate()},a=((_eehData.moments||{}).birthdays||[]).filter(e=>n(e.date)),s=((_eehData.moments||{}).anniversaries||[]).filter(e=>n(e.date));if(a.length||s.length){e.style.display="flex";const n=[...a.map(e=>`🎂 ${e.name}`),...s.map(e=>`🎊 ${e.name} (${t.getFullYear()-new Date(e.date).getFullYear()} yrs)`)];document.getElementById("eehTodayTitle").textContent="Celebrating today! 🎉",document.getElementById("eehTodaySub").textContent=n.join(" · ")}else e.style.display="none"}const BDAY_GRADS=["#7c3aed,#a78bfa","#be185d,#f472b6","#0e7490,#38bdf8","#065f46,#34d399","#92400e,#fbbf24","#1d4ed8,#60a5fa","#7e22ce,#c084fc"];function eehRenderBirthdays(){const e=document.getElementById("eehBirthdays");if(!e)return;const t=(_eehData.moments||{}).birthdays||[];if(!t.length)return void(e.innerHTML='<div class="eeh-empty"><span class="eeh-empty-icon">🎂</span>No birthdays added yet — add your team!</div>');const n=new Date,a=[...t.map((e,t)=>({...e,_idx:t}))].sort((e,t)=>{const a=new Date(e.date),s=new Date(t.date),o=31*a.getMonth()+a.getDate(),i=31*s.getMonth()+s.getDate(),r=31*n.getMonth()+n.getDate();return(o-r+366)%366-(i-r+366)%366});e.innerHTML=a.map((e,t)=>{const a=new Date(e.date),s=a.toLocaleDateString("en-IN",{day:"numeric",month:"long"}),o=a.getMonth()===n.getMonth()&&a.getDate()===n.getDate();return`<div class="eeh-bday-card${o?" eeh-bday-today":""}">\n      ${o?'<div class="eeh-bday-today-pill">🎉 Today</div>':""}\n      <div class="eeh-bday-avatar" style="background:linear-gradient(135deg,${BDAY_GRADS[t%BDAY_GRADS.length]});">${e.photo?`<img src="${e.photo}" onerror="this.style.display='none'">`:initials(e.name)}</div>\n      <div class="eeh-bday-name" title="${e.name}">${e.name}</div>\n      <div class="eeh-bday-dept" title="${e.dept||""}">${e.dept||""}</div>\n      <div class="eeh-bday-date">🎂 ${s}</div>\n      ${isAdminUser()?`<button class="eeh-bday-del" onclick="eehDeleteMoment('birthdays',${e._idx})" title="Remove">✕</button>`:""}\n    </div>`}).join("")}function eehRenderAnniversaries(){const e=document.getElementById("eehAnniversaries");if(!e)return;const t=(_eehData.moments||{}).anniversaries||[];if(!t.length)return void(e.innerHTML='<div class="eeh-empty"><span class="eeh-empty-icon">🎊</span>No anniversaries added yet.</div>');const n=new Date;e.innerHTML=t.map((e,t)=>{const a=new Date(e.date),s=n.getFullYear()-a.getFullYear(),o=s>=10?`💎 ${s} Years`:s>=5?`🏆 ${s} Years`:s>=3?`🌟 ${s} Years`:`⭐ ${s} Year${1!==s?"s":""}`;return`<div class="eeh-ann-card${a.getMonth()===n.getMonth()&&a.getDate()===n.getDate()?" eeh-ann-today":""}">\n      <div class="eeh-ann-avatar">${e.photo?`<img src="${e.photo}" onerror="this.style.display='none'">`:initials(e.name)}</div>\n      <div class="eeh-ann-body">\n        <div class="eeh-ann-name" title="${e.name}">${e.name}</div>\n        <div class="eeh-ann-dept">${e.dept||""}</div>\n        <div class="eeh-ann-milestone">${o}</div>\n        <div class="eeh-ann-joined">Joined ${a.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</div>\n      </div>\n      ${isAdminUser()?`<button class="eeh-ann-del" onclick="eehDeleteMoment('anniversaries',${t})" title="Remove">✕</button>`:""}\n    </div>`}).join("")}function eehRenderGallery(){const e=document.getElementById("eehGallery");if(!e)return;const t=(_eehData.moments||{}).photos||[];t.length?e.innerHTML=t.map((e,t)=>`\n    <div class="eeh-gallery-card">\n      <img src="${e.url}" alt="${e.caption||""}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=eeh-gallery-placeholder>📸</div>'">\n      ${e.caption?`<div class="eeh-gallery-caption">${e.caption}</div>`:""}\n      ${isAdminUser()?`<button class="eeh-gallery-del" onclick="eehDeleteMoment('photos',${t})" title="Remove">✕</button>`:""}\n    </div>`).join(""):e.innerHTML='<div class="eeh-empty"><span class="eeh-empty-icon">📸</span>No team photos yet — add the first memory!</div>'}function eehOpenBirthdayModal(){document.getElementById("eehBirthdayModalBg").classList.add("open")}function eehOpenAnniversaryModal(){document.getElementById("eehAnniversaryModalBg").classList.add("open")}function eehOpenPhotoModal(){document.getElementById("eehPhotoModalBg").classList.add("open")}async function _eehSaveMoments(){const e=JSON.parse(localStorage.getItem("kb_user")||"{}");await fetch("/api/engagement/moments",{method:"PUT",headers:{"Content-Type":"application/json","x-user-email":e.email||""},body:JSON.stringify({moments:_eehData.moments})})}async function eehSaveBirthday(){const e={name:document.getElementById("bdName").value.trim(),dept:document.getElementById("bdDept").value.trim(),date:document.getElementById("bdDate").value,photo:document.getElementById("bdPhoto").value.trim()};e.name&&e.date&&(_eehData.moments||(_eehData.moments={photos:[],birthdays:[],anniversaries:[]}),_eehData.moments.birthdays.push(e),await _eehSaveMoments(),document.getElementById("eehBirthdayModalBg").classList.remove("open"),eehRenderBirthdays())}async function eehSaveAnniversary(){const e={name:document.getElementById("annName").value.trim(),dept:document.getElementById("annDept").value.trim(),date:document.getElementById("annDate").value,photo:document.getElementById("annPhoto").value.trim()};e.name&&e.date&&(_eehData.moments||(_eehData.moments={photos:[],birthdays:[],anniversaries:[]}),_eehData.moments.anniversaries.push(e),await _eehSaveMoments(),document.getElementById("eehAnniversaryModalBg").classList.remove("open"),eehRenderAnniversaries())}async function eehSavePhoto(){const e={url:document.getElementById("photoUrl").value.trim(),caption:document.getElementById("photoCaption").value.trim()};e.url&&(_eehData.moments||(_eehData.moments={photos:[],birthdays:[],anniversaries:[]}),_eehData.moments.photos.unshift(e),await _eehSaveMoments(),document.getElementById("eehPhotoModalBg").classList.remove("open"),eehRenderGallery())}async function eehDeleteMoment(e,t){_eehData.moments[e].splice(t,1),await _eehSaveMoments(),eehRenderMoments()}function eehSelectCategory(e,t){_eehSelectedCategory=e,document.querySelectorAll(".eeh-cat-tile").forEach(e=>e.classList.remove("selected")),t.classList.add("selected")}const CAT_LABELS={website:"🖥️ Website",process:"⚙️ Process",product:"🚀 Product",culture:"🤝 Culture",other:"💬 Other"},STATUS_LABELS={new:"New",review:"Under Review",inprogress:"In Progress",implemented:"Implemented"};function eehRenderIdeas(){const e=document.getElementById("eehIdeasList");if(!e)return;const t=JSON.parse(localStorage.getItem("kb_user")||"{}"),n=isAdminUser();let a=_eehAllIdeas;"all"!==_eehCurrentFilter&&(a=a.filter(e=>e.category===_eehCurrentFilter)),a.length?e.innerHTML=a.map(e=>{const a=(e.voters||[]).includes(t.email||""),s={new:"eeh-status-new",review:"eeh-status-review",inprogress:"eeh-status-inprogress",implemented:"eeh-status-implemented"}[e.status]||"eeh-status-new",o={website:"eeh-cat-website",process:"eeh-cat-process",product:"eeh-cat-product",culture:"eeh-cat-culture",other:"eeh-cat-other"}[e.category]||"eeh-cat-other",i=new Date(e.date).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});return`<div class="eeh-idea-card" id="idea-${e.id}">\n      <div class="eeh-idea-vote">\n        <button class="eeh-vote-btn ${a?"voted":""}" onclick="eehToggleVote(${e.id})" title="${a?"Remove vote":"Upvote"}">▲</button>\n        <div class="eeh-vote-count" id="vote-count-${e.id}">${e.votes||0}</div>\n      </div>\n      <div class="eeh-idea-body">\n        <div class="eeh-idea-header">\n          <div class="eeh-idea-title">${e.title}</div>\n          <span class="eeh-idea-cat ${o}">${CAT_LABELS[e.category]||e.category}</span>\n          <span class="eeh-idea-status ${s}">${STATUS_LABELS[e.status]||e.status}</span>\n        </div>\n        <div class="eeh-idea-desc">${e.description}</div>\n        <div class="eeh-idea-meta">\n          <span>by ${e.author||"Anonymous"}</span>\n          <span>${i}</span>\n        </div>\n        ${n?`<div class="eeh-idea-admin-actions">\n          <button class="eeh-idea-status-btn" onclick="eehSetIdeaStatus(${e.id},'review')">Under Review</button>\n          <button class="eeh-idea-status-btn" onclick="eehSetIdeaStatus(${e.id},'inprogress')">In Progress</button>\n          <button class="eeh-idea-status-btn" onclick="eehSetIdeaStatus(${e.id},'implemented')">Implemented</button>\n          <button class="eeh-idea-del-btn" onclick="eehDeleteIdea(${e.id})">Delete</button>\n        </div>`:""}\n      </div>\n    </div>`}).join(""):e.innerHTML='<div class="eeh-empty"><span class="eeh-empty-icon">💡</span>No ideas yet — be the first to share one!</div>'}function eehFilterIdeas(e,t){_eehCurrentFilter=e,document.querySelectorAll(".eeh-idea-filter").forEach(e=>e.classList.remove("active")),t.classList.add("active"),eehRenderIdeas()}async function eehSubmitIdea(){const e=document.getElementById("ideaTitle").value.trim(),t=_eehSelectedCategory,n=document.getElementById("ideaDescription").value.trim(),a=document.getElementById("ideaAuthor").value.trim();if(!e||!t||!n)return void alert("Please fill in the title, pick a category tile, and add a description.");const s=JSON.parse(localStorage.getItem("kb_user")||"{}"),o=await fetch("/api/ideas",{method:"POST",headers:{"Content-Type":"application/json","x-user-email":s.email||""},body:JSON.stringify({title:e,category:t,description:n,author:a||s.name||"Anonymous"})}),i=await o.json();_eehAllIdeas.unshift(i),document.getElementById("ideaTitle").value="",document.getElementById("ideaDescription").value="",document.getElementById("ideaAuthor").value="",_eehSelectedCategory="",document.querySelectorAll(".eeh-cat-tile").forEach(e=>e.classList.remove("selected")),_eehCurrentFilter="all",document.querySelectorAll(".eeh-idea-filter").forEach(e=>e.classList.toggle("active","all"===e.dataset.filter)),eehRenderIdeas()}async function eehToggleVote(e){const t=JSON.parse(localStorage.getItem("kb_user")||"{}");if(!t.email)return;const n=await fetch(`/api/ideas/${e}/vote`,{method:"POST",headers:{"Content-Type":"application/json","x-user-email":t.email},body:JSON.stringify({voterEmail:t.email})}),a=await n.json(),s=_eehAllIdeas.find(t=>t.id===e);s&&(s.votes=a.votes,a.voted?s.voters.push(t.email):s.voters=s.voters.filter(e=>e!==t.email));const o=document.getElementById(`vote-count-${e}`);o&&(o.textContent=a.votes);const i=document.querySelector(`#idea-${e} .eeh-vote-btn`);i&&i.classList.toggle("voted",a.voted)}async function eehSetIdeaStatus(e,t){const n=JSON.parse(localStorage.getItem("kb_user")||"{}");await fetch(`/api/ideas/${e}/status`,{method:"PUT",headers:{"Content-Type":"application/json","x-user-email":n.email||""},body:JSON.stringify({status:t})});const a=_eehAllIdeas.find(t=>t.id===e);a&&(a.status=t),eehRenderIdeas()}async function eehDeleteIdea(e){if(!confirm("Delete this idea?"))return;const t=JSON.parse(localStorage.getItem("kb_user")||"{}");await fetch(`/api/ideas/${e}`,{method:"DELETE",headers:{"x-user-email":t.email||""}}),_eehAllIdeas=_eehAllIdeas.filter(t=>t.id!==e),eehRenderIdeas()}window.addEventListener("popstate",e=>{document.getElementById("eehOverlay").classList.contains("active")&&eehClose()});
