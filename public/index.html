@@ -11199,6 +11199,13 @@ var _rlData = null;
 var _rlTab = 'executive';
 var _rlLoading = false;
 var _rlDrillProject = null;
+// Projects tab state
+var _rlProjStatusFilter = 'all';
+var _rlProjTypeFilter   = 'all';
+var _rlProjectDrillId   = null;
+var _rlProjectSubTab    = 'overview';
+var _rlProjectDetailCache = {};
+var _rlProjListTaskFilter = 'all';
 var _rlFilter = 'all';
 
 var RL_PHASES = {
@@ -11214,7 +11221,8 @@ var RL_TABS = [
   { id: 'trends',     label: 'Historical Trends' },
   { id: 'compliance', label: 'Project Compliance' },
   { id: 'timeline',   label: 'Timeline Changes' },
-  { id: 'health',     label: 'Health Dashboard' }
+  { id: 'health',     label: 'Health Dashboard' },
+  { id: 'projects',   label: 'Projects' }
 ];
 
 var _rlAutoRefreshTimer = null;
@@ -11324,7 +11332,7 @@ function rlRenderActiveTab() {
   var body = document.getElementById('rlTabBody');
   if (!body || !_rlData) return;
   try {
-    ({ overview: rlTabOverview, executive: rlTabExecutive, compliance: rlTabCompliance, timeline: rlTabTimeline, trends: rlTabTrends, health: rlTabHealth })[_rlTab](body);
+    ({ overview: rlTabOverview, executive: rlTabExecutive, compliance: rlTabCompliance, timeline: rlTabTimeline, trends: rlTabTrends, health: rlTabHealth, projects: rlTabProjects })[_rlTab](body);
   } catch(e) {
     body.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626;font-size:13px;">Tab render error: ' + (e && e.message || String(e)) + '</div>';
   }
@@ -13718,6 +13726,490 @@ function rlTabFindings(body) {
       (closed.length?rlCard('<div style="padding:12px 16px 0;font-size:12px;font-weight:700;color:#22c55e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Resolved ('+closed.length+')</div>'+closed.map(fCard).join('')+'<div style="height:12px;"></div>'):'') +
       (!findings.length?rlCard('<div style="padding:48px;text-align:center;font-size:13px;color:#8a92a0;">No compliance findings recorded yet.</div>'):'');
   }).catch(function(e){body.innerHTML='<div style="text-align:center;padding:32px;color:#dc2626;font-size:13px;">'+e.message+'</div>';});
+}
+
+// ─── Tab: Projects List ──────────────────────────────────────────────────────
+function rlTabProjects(body) {
+  if (_rlProjectDrillId) { rlRenderProjectDetail(body, _rlProjectDrillId); return; }
+  rlRenderProjectsList(body);
+}
+
+function rlRenderProjectsList(body) {
+  var projects = (_rlData && _rlData.projects) || [];
+  var statusF = _rlProjStatusFilter, typeF = _rlProjTypeFilter;
+  var filtered = projects.filter(function(p) {
+    var s = (p.status || '').toLowerCase();
+    if (statusF === 'active'     && !s.includes('progress')) return false;
+    if (statusF === 'completed'  && !s.includes('complet'))  return false;
+    if (statusF === 'hold'       && !s.includes('hold') && !s.includes('block')) return false;
+    if (typeF === 'standard'     && !p.isStandard) return false;
+    if (typeF === 'nonstandard'  && p.isStandard)  return false;
+    return true;
+  });
+
+  var STAT_ORDER = ['Blocked','In Progress','On Hold','Completed','Proposed'];
+  var groups = {};
+  filtered.forEach(function(p) {
+    var s = p.status || 'Unknown';
+    if (!groups[s]) groups[s] = [];
+    groups[s].push(p);
+  });
+
+  function phaseIcons(p) {
+    if (!p.isStandard) return '<span style="font-size:10px;color:#f59e0b;font-family:\'DM Mono\',monospace;">Non-std</span>';
+    return '<div style="display:flex;gap:5px;align-items:center;">' +
+      ['engage','drive','enable','convert'].map(function(ph) {
+        var pct = p.phases && p.phases[ph] ? (p.phases[ph].pct || 0) : 0;
+        var col = pct === 100 ? '#22c55e' : pct > 0 ? '#c9a227' : 'rgba(255,255,255,.18)';
+        return '<div title="'+RL_PHASES[ph].label+': '+pct+'%" style="width:14px;height:14px;transform:rotate(45deg);border:2px solid '+col+';border-radius:3px;background:'+(pct===100?col:'transparent')+';flex-shrink:0;"></div>';
+      }).join('') +
+    '</div>';
+  }
+
+  function progressBar(pct, status) {
+    var barCol = (status||'').toLowerCase().includes('complet') ? '#22c55e' : '#c9a227';
+    var p2 = Math.min(100, pct || 0);
+    return '<div style="display:flex;align-items:center;gap:8px;min-width:140px;">' +
+      '<div style="flex:1;height:5px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;">' +
+        '<div style="height:100%;width:'+p2+'%;background:'+barCol+';border-radius:99px;"></div>' +
+      '</div>' +
+      '<span style="font-size:11px;color:#8a92a0;font-family:\'DM Mono\',monospace;min-width:28px;text-align:right;">'+p2+'%</span>' +
+    '</div>';
+  }
+
+  function phaseChip(p) {
+    if (!p.currentPhase || !RL_PHASES[p.currentPhase]) return '<span style="color:#5a6270;font-size:10px;">—</span>';
+    var c = RL_PHASES[p.currentPhase];
+    return '<span style="font-size:10px;font-weight:600;color:'+c.color+';background:'+c.light+';padding:2px 8px;border-radius:4px;font-family:\'DM Mono\',monospace;">'+c.label+'</span>';
+  }
+
+  function projectRow(p) {
+    var initials = (p.customer||'?').split(/\s+/).map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase()||'?';
+    var dueStr = p.dueDate ? new Date(p.dueDate).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) : '—';
+    var overdue = p.dueDate && p.status !== 'Completed' && new Date(p.dueDate) < new Date();
+    return '<tr onclick="rlOpenProject(\''+p.projectId+'\')" style="cursor:pointer;" '+
+      'onmouseover="this.style.background=\'rgba(255,255,255,.04)\'" onmouseout="this.style.background=\'transparent\'">' +
+      '<td style="padding:10px 12px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+          '<div style="width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,#1e3a5f,#2d5986);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#93c5fd;flex-shrink:0;">'+initials+'</div>' +
+          '<div>' +
+            '<div style="font-size:13px;font-weight:600;color:#f0f0f6;line-height:1.2;">'+escHtml(p.projectName)+'</div>' +
+            (p.customer?'<div style="font-size:10px;color:#8a92a0;">'+escHtml(p.customer)+'</div>':'')+
+          '</div>' +
+        '</div>' +
+      '</td>' +
+      '<td style="padding:10px 12px;">'+rlStatus(p.status)+'</td>' +
+      '<td style="padding:10px 12px;">'+phaseChip(p)+'</td>' +
+      '<td style="padding:10px 12px;min-width:160px;">'+progressBar(p.overallPct, p.status)+'</td>' +
+      '<td style="padding:10px 12px;">'+phaseIcons(p)+'</td>' +
+      '<td style="padding:10px 12px;font-size:11px;color:'+(overdue?'#dc2626':'#8a92a0')+';font-family:\'DM Mono\',monospace;white-space:nowrap;">'+(overdue?'⚠ ':'')+dueStr+'</td>' +
+    '</tr>';
+  }
+
+  function groupSection(statusName, projs) {
+    var gid = 'rlpg_'+statusName.replace(/\W/g,'_');
+    return '<div style="margin-bottom:12px;">' +
+      '<div onclick="var el=document.getElementById(\''+gid+'\');if(el)el.style.display=el.style.display===\'none\'?\'block\':\'none\'" ' +
+        'style="display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:8px 8px 0 0;">' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>' +
+        rlStatus(statusName) +
+        '<span style="font-size:11px;color:rgba(255,255,255,.3);">('+projs.length+')</span>' +
+      '</div>' +
+      '<div id="'+gid+'">' +
+        '<table style="width:100%;border-collapse:collapse;background:rgba(255,255,255,.012);border:1px solid rgba(255,255,255,.06);border-top:none;border-radius:0 0 8px 8px;">' +
+          '<thead><tr style="border-bottom:1px solid rgba(255,255,255,.05);">' +
+            '<th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;letter-spacing:.08em;text-transform:uppercase;">Project</th>' +
+            '<th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;letter-spacing:.08em;text-transform:uppercase;">Status</th>' +
+            '<th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;letter-spacing:.08em;text-transform:uppercase;">Current Phase</th>' +
+            '<th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;letter-spacing:.08em;text-transform:uppercase;">Progress</th>' +
+            '<th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;letter-spacing:.08em;text-transform:uppercase;">Phases</th>' +
+            '<th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;letter-spacing:.08em;text-transform:uppercase;">Due</th>' +
+          '</tr></thead>' +
+          '<tbody>'+projs.map(projectRow).join('')+'</tbody>' +
+        '</table>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function filterChip(label, active, onclick) {
+    return '<button onclick="'+onclick+'" style="background:'+(active?'rgba(201,162,39,.12)':'transparent')+';border:1px solid '+(active?'rgba(201,162,39,.3)':'rgba(255,255,255,.07)')+';color:'+(active?'#c9a227':'rgba(255,255,255,.35)')+';border-radius:6px;padding:5px 12px;font-size:12px;font-weight:'+(active?'700':'400')+';cursor:pointer;transition:all .12s;">'+label+'</button>';
+  }
+
+  var filterBar =
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;">' +
+      '<span style="font-size:9px;color:#5a6270;letter-spacing:.1em;text-transform:uppercase;font-weight:700;font-family:\'DM Mono\',monospace;">STATUS</span>' +
+      filterChip('All',          statusF==='all',       'rlProjFilter(\'status\',\'all\')')+
+      filterChip('Active',       statusF==='active',    'rlProjFilter(\'status\',\'active\')')+
+      filterChip('Completed',    statusF==='completed', 'rlProjFilter(\'status\',\'completed\')')+
+      filterChip('On Hold',      statusF==='hold',      'rlProjFilter(\'status\',\'hold\')')+
+      '<span style="width:1px;height:22px;background:rgba(255,255,255,.07);margin:0 4px;flex-shrink:0;"></span>' +
+      '<span style="font-size:9px;color:#5a6270;letter-spacing:.1em;text-transform:uppercase;font-weight:700;font-family:\'DM Mono\',monospace;">TYPE</span>' +
+      filterChip('All',          typeF==='all',         'rlProjFilter(\'type\',\'all\')')+
+      filterChip('Standard',     typeF==='standard',    'rlProjFilter(\'type\',\'standard\')')+
+      filterChip('Non-standard', typeF==='nonstandard', 'rlProjFilter(\'type\',\'nonstandard\')')+
+      '<span style="margin-left:auto;font-size:11px;color:#8a92a0;">'+filtered.length+' project'+(filtered.length!==1?'s':'')+' shown</span>' +
+    '</div>';
+
+  var groupHtml = [];
+  STAT_ORDER.forEach(function(s) { if (groups[s]) groupHtml.push(groupSection(s, groups[s])); });
+  Object.keys(groups).forEach(function(s) { if (STAT_ORDER.indexOf(s)<0) groupHtml.push(groupSection(s, groups[s])); });
+
+  body.innerHTML = filterBar + (groupHtml.length ? groupHtml.join('') : '<div style="padding:48px;text-align:center;font-size:13px;color:#8a92a0;">No projects match the selected filters.</div>');
+}
+window.rlProjFilter = function(key, val) {
+  if (key==='status') _rlProjStatusFilter = val;
+  else if (key==='type') _rlProjTypeFilter = val;
+  var body = document.getElementById('rlTabBody');
+  if (body) rlRenderProjectsList(body);
+};
+
+// ─── Project Detail Shell ────────────────────────────────────────────────────
+window.rlOpenProject = function(projectId) {
+  _rlProjectDrillId = projectId;
+  _rlProjectSubTab  = 'overview';
+  _rlProjListTaskFilter = 'all';
+  var body = document.getElementById('rlTabBody');
+  if (body) rlRenderProjectDetail(body, projectId);
+};
+
+function rlRenderProjectDetail(body, projectId) {
+  var p = _rlData && _rlData.projects.find(function(x){return x.projectId===projectId;});
+  if (!_rlProjectDetailCache[projectId]) {
+    body.innerHTML = rlProjDetailShell(projectId, p,
+      '<div style="display:flex;justify-content:center;padding:80px 0;"><div class="rl-spin"></div></div>');
+    fetch('/api/rocketlane/project/'+projectId, {headers: rlUserHeaders()})
+      .then(function(r){return r.json();})
+      .then(function(d) {
+        _rlProjectDetailCache[projectId] = d;
+        if (_rlProjectDrillId === projectId) {
+          var b2 = document.getElementById('rlTabBody');
+          if (b2) rlRenderProjectDetail(b2, projectId);
+        }
+      })
+      .catch(function(e) {
+        var b3 = document.getElementById('rlTabBody');
+        if (b3) b3.innerHTML = rlProjDetailShell(projectId, p,
+          '<div style="padding:48px;text-align:center;color:#dc2626;font-size:13px;">'+escHtml(e.message||'Load failed')+'</div>');
+      });
+    return;
+  }
+  var detail = _rlProjectDetailCache[projectId];
+  var proj = detail.project || p;
+  body.innerHTML = rlProjDetailShell(projectId, proj, rlProjTabContent(proj, detail, _rlProjectSubTab));
+}
+
+function rlProjDetailShell(projectId, p, contentHTML) {
+  var PROJ_SUB_TABS = [
+    {id:'overview', label:'Overview'},
+    {id:'time',     label:'Tracked Time'},
+    {id:'plan',     label:'Project Plan'},
+    {id:'list',     label:'List'},
+    {id:'board',    label:'Board'}
+  ];
+  var tabBar = PROJ_SUB_TABS.map(function(t) {
+    var a = t.id === _rlProjectSubTab;
+    return '<button onclick="rlProjSubTab(\''+t.id+'\')" style="background:none;border:none;cursor:pointer;padding:10px 14px;font-family:\'DM Sans\',sans-serif;font-size:13px;font-weight:'+(a?'600':'400')+';color:'+(a?'#6366f1':'rgba(255,255,255,.4)')+';border-bottom:2px solid '+(a?'#6366f1':'transparent')+';transition:all .12s;white-space:nowrap;">'+t.label+'</button>';
+  }).join('');
+  var meta = p ? ('<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:3px;">'+
+    rlStatus(p.status)+
+    (p.customer?'<span style="font-size:11px;color:#8a92a0;">'+escHtml(p.customer)+'</span>':'')+
+    (p.projectOwner?'<span style="font-size:11px;color:#8a92a0;">· '+escHtml(p.projectOwner)+'</span>':'')+
+    (p.dueDate?'<span style="font-size:11px;color:#8a92a0;font-family:\'DM Mono\',monospace;">Due: '+new Date(p.dueDate).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'</span>':'')+
+  '</div>') : '';
+  return '<div>' +
+    '<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;">' +
+      '<button onclick="rlBackToProjects()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;flex-shrink:0;margin-top:3px;">← Projects</button>' +
+      '<div><div style="font-size:17px;font-weight:700;color:#f0f0f6;line-height:1.25;">'+(p?escHtml(p.projectName):'Loading…')+'</div>'+meta+'</div>' +
+    '</div>' +
+    '<div style="border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:20px;overflow-x:auto;display:flex;">'+tabBar+'</div>' +
+    '<div id="rlProjTabBody">'+contentHTML+'</div>' +
+  '</div>';
+}
+
+window.rlProjSubTab = function(tabId) {
+  _rlProjectSubTab = tabId;
+  var detail = _rlProjectDrillId && _rlProjectDetailCache[_rlProjectDrillId];
+  var body = document.getElementById('rlTabBody');
+  if (!body) return;
+  var proj = (detail && detail.project) || (_rlData && _rlData.projects.find(function(x){return x.projectId===_rlProjectDrillId;}));
+  body.innerHTML = rlProjDetailShell(_rlProjectDrillId, proj, detail ? rlProjTabContent(proj, detail, tabId) : '<div style="display:flex;justify-content:center;padding:60px;"><div class="rl-spin"></div></div>');
+};
+
+window.rlBackToProjects = function() {
+  _rlProjectDrillId = null;
+  var body = document.getElementById('rlTabBody');
+  if (body) rlRenderProjectsList(body);
+};
+
+// ─── Per-sub-tab renderers ───────────────────────────────────────────────────
+function rlProjTabContent(p, detail, tab) {
+  if (!p) return '<div style="padding:40px;text-align:center;color:#8a92a0;">Project not found.</div>';
+  if (tab==='overview') return rlProjOverview(p, detail);
+  if (tab==='time')     return rlProjTrackedTime(p, detail);
+  if (tab==='plan')     return rlProjPlan(p, detail);
+  if (tab==='list')     return rlProjList(p, detail);
+  if (tab==='board')    return rlProjBoard(p, detail);
+  return '';
+}
+
+function rlProjOverview(p, detail) {
+  var pct = Math.min(100, p.overallPct || 0);
+  var dueStr   = p.dueDate   ? new Date(p.dueDate).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+  var startStr = p.startDate ? new Date(p.startDate).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+  var overdue  = p.dueDate && p.status!=='Completed' && new Date(p.dueDate)<new Date();
+
+  var metaGrid = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:18px;">' +
+    [
+      {lbl:'Customer',     val: p.customer||'—'},
+      {lbl:'Owner',        val: p.projectOwner||'—'},
+      {lbl:'Start',        val: startStr},
+      {lbl:'Due',          val: (overdue?'⚠ ':'')+dueStr, col: overdue?'#dc2626':'#f0f0f6'},
+      {lbl:'Total Tasks',  val: String(detail.taskCount||p.totalTasks||0)},
+      {lbl:'Overdue Tasks',val: String(p.overdueTaskCount||0), col:(p.overdueTaskCount>0?'#dc2626':'#22c55e')}
+    ].map(function(m) {
+      return rlCard('<div style="padding:12px 14px;"><div style="font-size:9px;color:#5a6270;letter-spacing:.1em;text-transform:uppercase;font-weight:700;margin-bottom:4px;">'+m.lbl+'</div><div style="font-size:13px;font-weight:600;color:'+(m.col||'#f0f0f6')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+escHtml(String(m.val))+'">'+escHtml(String(m.val))+'</div></div>','padding:0;');
+    }).join('') +
+  '</div>';
+
+  var progressSection = '';
+  if (p.isStandard && p.phases) {
+    var phCards = ['engage','drive','enable','convert'].map(function(ph) {
+      var cfg = RL_PHASES[ph], phD = p.phases[ph];
+      var pp = phD ? Math.min(100,phD.pct||0) : 0;
+      var done = phD&&phD.tasks ? phD.tasks.filter(function(t){return t.completed;}).length : 0;
+      var total= phD&&phD.tasks ? phD.tasks.length : 0;
+      return '<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:12px;">' +
+        '<div style="font-size:9px;font-weight:700;color:'+cfg.color+';letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">'+cfg.label+'</div>' +
+        '<div style="font-size:24px;font-weight:800;color:'+cfg.color+';margin-bottom:6px;line-height:1;">'+pp+'%</div>' +
+        '<div style="height:4px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;">' +
+          '<div style="height:100%;width:'+pp+'%;background:'+cfg.color+';border-radius:99px;"></div>' +
+        '</div>' +
+        '<div style="font-size:10px;color:#8a92a0;margin-top:6px;">'+done+' / '+total+' tasks</div>' +
+      '</div>';
+    }).join('');
+    progressSection = rlCard(
+      '<div style="padding:14px 16px;">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">' +
+          '<div style="font-size:13px;font-weight:700;color:#f0f0f6;">Overall Progress</div>' +
+          '<div style="font-size:28px;font-weight:800;color:#c9a227;line-height:1;">'+pct+'%</div>' +
+        '</div>' +
+        '<div style="height:7px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;margin-bottom:16px;">' +
+          '<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#b7901a,#c9a227,#e0b840);border-radius:99px;"></div>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">'+phCards+'</div>' +
+      '</div>',
+      'margin-bottom:16px;'
+    );
+  } else {
+    progressSection = rlCard('<div style="padding:14px 16px;font-size:12px;color:#f59e0b;">⚠ Non-standard project — phase tracking unavailable. '+(p.totalTasks||0)+' tasks total.</div>','margin-bottom:16px;');
+  }
+
+  var compHtml = '';
+  if (p.compliance && p.compliance.issues && p.compliance.issues.length) {
+    compHtml = rlCard(
+      '<div style="padding:10px 14px 0;font-size:11px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Compliance Issues ('+p.compliance.issues.length+')</div>' +
+      p.compliance.issues.slice(0,10).map(function(iss) {
+        return '<div style="padding:7px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:rgba(255,255,255,.55);">'+escHtml(iss.description)+'</div>';
+      }).join('') + '<div style="height:6px;"></div>',
+      'border-color:rgba(245,158,11,.2);'
+    );
+  }
+
+  return metaGrid + progressSection + compHtml;
+}
+
+function rlProjTrackedTime(p, detail) {
+  var logs = detail.timelogs || [];
+  if (!logs.length) return rlCard('<div style="padding:48px;text-align:center;font-size:13px;color:#8a92a0;">⏱ No time entries recorded for this project yet.</div>');
+  var total = logs.reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);
+  var rows = logs.map(function(l) {
+    var ds = l.date ? new Date(l.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+    return '<tr style="border-top:1px solid rgba(255,255,255,.04);">' +
+      '<td style="padding:9px 12px;font-size:12px;color:#8a92a0;font-family:\'DM Mono\',monospace;white-space:nowrap;">'+ds+'</td>' +
+      '<td style="padding:9px 12px;font-size:12px;color:#f0f0f6;">'+escHtml(l.user||'—')+'</td>' +
+      '<td style="padding:9px 12px;font-size:12px;color:rgba(255,255,255,.55);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escHtml(l.taskName||'—')+'</td>' +
+      '<td style="padding:9px 12px;font-size:13px;font-weight:700;color:#c9a227;text-align:right;font-family:\'DM Mono\',monospace;">'+parseFloat(l.hours||0).toFixed(1)+'h</td>' +
+      '<td style="padding:9px 12px;font-size:11px;color:#8a92a0;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escHtml(l.note||'')+'</td>' +
+    '</tr>';
+  }).join('');
+  return rlCard(
+    '<div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06);">' +
+      '<div style="font-size:13px;font-weight:700;color:#f0f0f6;">Time Log <span style="font-size:11px;font-weight:400;color:#8a92a0;">('+logs.length+' entries)</span></div>' +
+      '<div style="font-size:22px;font-weight:800;color:#c9a227;">'+total.toFixed(1)+'h <span style="font-size:11px;font-weight:400;color:#8a92a0;">total</span></div>' +
+    '</div>' +
+    '<div style="overflow-x:auto;">' +
+      '<table style="width:100%;border-collapse:collapse;">' +
+        '<thead><tr>' +
+          '<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;text-transform:uppercase;letter-spacing:.08em;">Date</th>' +
+          '<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;text-transform:uppercase;letter-spacing:.08em;">Person</th>' +
+          '<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;text-transform:uppercase;letter-spacing:.08em;">Task</th>' +
+          '<th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:700;color:#5a6270;text-transform:uppercase;letter-spacing:.08em;">Hours</th>' +
+          '<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;text-transform:uppercase;letter-spacing:.08em;">Note</th>' +
+        '</tr></thead>' +
+        '<tbody>'+rows+'</tbody>' +
+      '</table>' +
+    '</div>',
+    'padding:0;'
+  );
+}
+
+function rlProjPlan(p, detail) {
+  var tasks = detail.tasks || [];
+  if (!p.isStandard) {
+    var sections = {};
+    tasks.forEach(function(t){ var s=t.section||'Tasks'; if(!sections[s])sections[s]=[]; sections[s].push(t); });
+    var sectHtml = Object.keys(sections).map(function(sn) {
+      return '<div style="margin-bottom:16px;">' +
+        '<div style="font-size:10px;font-weight:700;color:#8a92a0;text-transform:uppercase;letter-spacing:.08em;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);margin-bottom:8px;">'+escHtml(sn)+' ('+sections[sn].length+')</div>' +
+        sections[sn].map(rlPlanTask).join('') +
+      '</div>';
+    }).join('');
+    return rlCard('<div style="padding:16px;"><div style="font-size:11px;color:#f59e0b;margin-bottom:12px;">⚠ Non-standard project</div>'+sectHtml+'</div>');
+  }
+  var phBlocks = ['engage','drive','enable','convert'].map(function(ph) {
+    var cfg = RL_PHASES[ph], phD = p.phases && p.phases[ph];
+    var phaseTasks = tasks.filter(function(t){return t.phase===ph;});
+    var src = phaseTasks.length ? phaseTasks.slice().sort(function(a,b){return (a.order||99)-(b.order||99);})
+              : (phD&&phD.tasks ? phD.tasks.slice().sort(function(a,b){return (a.order||99)-(b.order||99);}) : []);
+    if (!src.length) return '';
+    var pp = phD ? Math.min(100,phD.pct||0) : 0;
+    return '<div style="margin-bottom:20px;">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">' +
+        '<div style="width:4px;height:28px;background:'+cfg.color+';border-radius:2px;flex-shrink:0;"></div>' +
+        '<div style="flex:1;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+            '<span style="font-size:13px;font-weight:700;color:'+cfg.color+';">'+cfg.label+'</span>' +
+            '<span style="font-size:11px;color:#8a92a0;font-family:\'DM Mono\',monospace;">'+pp+'%</span>' +
+          '</div>' +
+          '<div style="height:3px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:4px;overflow:hidden;">' +
+            '<div style="height:100%;width:'+pp+'%;background:'+cfg.color+';"></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      src.map(rlPlanTask).join('') +
+    '</div>';
+  }).join('');
+  return rlCard('<div style="padding:16px;">'+phBlocks+'</div>');
+}
+
+function rlPlanTask(t) {
+  var done = t.completed || t.status==='Completed';
+  var dd   = t.dueDate ? new Date(t.dueDate) : null;
+  var od   = dd && !done && dd < new Date();
+  var assignStr = Array.isArray(t.assignees) ? t.assignees.join(', ') : (t.owner||'');
+  return '<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,.03);">' +
+    '<div style="width:16px;height:16px;min-width:16px;border-radius:50%;border:2px solid '+(done?'#22c55e':'rgba(255,255,255,.2)')+';background:'+(done?'#22c55e':'transparent')+';display:flex;align-items:center;justify-content:center;margin-top:1px;">' +
+      (done?'<div style="width:5px;height:5px;background:#fff;border-radius:50%;"></div>':'')+
+    '</div>' +
+    '<div style="flex:1;min-width:0;">' +
+      '<div style="font-size:12px;font-weight:500;color:'+(done?'rgba(255,255,255,.3)':'#f0f0f6')+';'+(done?'text-decoration:line-through;':'')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+escHtml(t.taskName)+'">'+escHtml(t.taskName)+'</div>' +
+      (assignStr?'<div style="font-size:10px;color:#8a92a0;margin-top:2px;">'+escHtml(assignStr)+'</div>':'')+
+    '</div>' +
+    '<div style="text-align:right;flex-shrink:0;">' +
+      (dd?'<div style="font-size:10px;color:'+(od?'#dc2626':'#8a92a0')+';font-family:\'DM Mono\',monospace;white-space:nowrap;">'+(od?'⚠ ':'')+dd.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+'</div>':'')+
+      '<div style="font-size:10px;color:#5a6270;margin-top:1px;">'+escHtml(t.status||'')+'</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function rlProjList(p, detail) {
+  var tasks = detail.tasks || [];
+  if (!tasks.length) return rlCard('<div style="padding:48px;text-align:center;font-size:13px;color:#8a92a0;">No tasks found for this project.</div>');
+  var f = _rlProjListTaskFilter || 'all';
+  var filtered = tasks.filter(function(t) {
+    var s = (t.status||'').toLowerCase();
+    if (f==='todo')       return !t.completed && !s.includes('progress');
+    if (f==='inprogress') return s.includes('progress');
+    if (f==='completed')  return t.completed;
+    return true;
+  });
+  var filterBar = '<div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:6px;flex-wrap:wrap;">' +
+    [['all','All ('+tasks.length+')'],['todo','To Do'],['inprogress','In Progress'],['completed','Completed']].map(function(e) {
+      var a = e[0]===f;
+      return '<button onclick="rlProjListFilter(\''+e[0]+'\')" style="background:'+(a?'rgba(99,102,241,.12)':'transparent')+';border:1px solid '+(a?'rgba(99,102,241,.3)':'rgba(255,255,255,.07)')+';color:'+(a?'#818cf8':'rgba(255,255,255,.35)')+';border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;transition:all .12s;">'+e[1]+'</button>';
+    }).join('') +
+  '</div>';
+  var rows = filtered.map(function(t) {
+    var done = t.completed, s=(t.status||'').toLowerCase();
+    var dd = t.dueDate?new Date(t.dueDate):null, od=dd&&!done&&dd<new Date();
+    var phLabel = t.phase&&RL_PHASES[t.phase]
+      ? '<span style="font-size:10px;color:'+RL_PHASES[t.phase].color+';background:'+RL_PHASES[t.phase].light+';padding:1px 6px;border-radius:3px;">'+RL_PHASES[t.phase].label+'</span>'
+      : '<span style="color:#5a6270;font-size:10px;">—</span>';
+    var assignStr = Array.isArray(t.assignees)?t.assignees.join(', '):(t.assignees||'—');
+    var statusColor = done?'#22c55e':od?'#dc2626':'#8a92a0';
+    var statusBg    = done?'rgba(34,197,94,.09)':od?'rgba(220,38,38,.09)':'rgba(255,255,255,.04)';
+    return '<tr style="border-top:1px solid rgba(255,255,255,.04);">' +
+      '<td style="padding:9px 12px;max-width:280px;">' +
+        '<div style="display:flex;align-items:center;gap:7px;">' +
+          '<div style="width:12px;height:12px;min-width:12px;border-radius:50%;border:2px solid '+(done?'#22c55e':'rgba(255,255,255,.2)')+';background:'+(done?'#22c55e':'transparent')+';flex-shrink:0;"></div>' +
+          '<span style="font-size:12px;color:'+(done?'rgba(255,255,255,.3)':'#f0f0f6')+';'+(done?'text-decoration:line-through;':'')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+escHtml(t.taskName)+'">'+escHtml(t.taskName)+'</span>' +
+        '</div>' +
+      '</td>' +
+      '<td style="padding:9px 12px;">'+phLabel+'</td>' +
+      '<td style="padding:9px 12px;font-size:11px;color:#8a92a0;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escHtml(assignStr)+'</td>' +
+      '<td style="padding:9px 12px;font-size:11px;color:'+(od?'#dc2626':'#8a92a0')+';font-family:\'DM Mono\',monospace;white-space:nowrap;">'+(dd?(od?'⚠ ':'')+dd.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}):'—')+'</td>' +
+      '<td style="padding:9px 12px;"><span style="font-size:10px;color:'+statusColor+';background:'+statusBg+';padding:2px 7px;border-radius:4px;">'+escHtml(t.status||'—')+'</span></td>' +
+    '</tr>';
+  }).join('');
+  return rlCard(
+    filterBar +
+    '<div style="overflow-x:auto;">' +
+      '<table style="width:100%;border-collapse:collapse;">' +
+        '<thead><tr>' +
+          '<th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;text-transform:uppercase;letter-spacing:.08em;">Task</th>' +
+          '<th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;text-transform:uppercase;letter-spacing:.08em;">Phase</th>' +
+          '<th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;text-transform:uppercase;letter-spacing:.08em;">Assignee</th>' +
+          '<th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;text-transform:uppercase;letter-spacing:.08em;">Due</th>' +
+          '<th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;text-transform:uppercase;letter-spacing:.08em;">Status</th>' +
+        '</tr></thead>' +
+        '<tbody>'+rows+'</tbody>' +
+      '</table>' +
+    '</div>',
+    'padding:0;'
+  );
+}
+window.rlProjListFilter = function(f) {
+  _rlProjListTaskFilter = f;
+  var detail = _rlProjectDrillId && _rlProjectDetailCache[_rlProjectDrillId];
+  var body = document.getElementById('rlTabBody');
+  if (!body || !detail) return;
+  var proj = detail.project || (_rlData&&_rlData.projects.find(function(x){return x.projectId===_rlProjectDrillId;}));
+  body.innerHTML = rlProjDetailShell(_rlProjectDrillId, proj, rlProjList(proj, detail));
+};
+
+function rlProjBoard(p, detail) {
+  var tasks = detail.tasks || [];
+  var COLS = [
+    {lbl:'To Do',       col:'rgba(255,255,255,.25)', bg:'rgba(255,255,255,.025)', fn:function(t){var s=(t.status||'').toLowerCase();return !t.completed&&!s.includes('progress')&&!s.includes('block');}},
+    {lbl:'In Progress', col:'#60a5fa',               bg:'rgba(96,165,250,.05)',   fn:function(t){return (t.status||'').toLowerCase().includes('progress');}},
+    {lbl:'Blocked',     col:'#ef4444',               bg:'rgba(239,68,68,.05)',    fn:function(t){return (t.status||'').toLowerCase().includes('block');}},
+    {lbl:'Completed',   col:'#22c55e',               bg:'rgba(34,197,94,.05)',    fn:function(t){return !!t.completed;}}
+  ];
+  var cols = COLS.map(function(col) {
+    var ct = tasks.filter(col.fn);
+    var cards = ct.map(function(t) {
+      var dd = t.dueDate?new Date(t.dueDate):null, od=dd&&!t.completed&&dd<new Date();
+      var assignStr = Array.isArray(t.assignees)?t.assignees[0]:(t.assignees||'');
+      return '<div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:10px;margin-bottom:6px;">' +
+        '<div style="font-size:12px;font-weight:500;color:#f0f0f6;line-height:1.4;margin-bottom:6px;word-break:break-word;">'+escHtml(t.taskName)+'</div>' +
+        '<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">' +
+          (t.phase&&RL_PHASES[t.phase]?'<span style="font-size:9px;color:'+RL_PHASES[t.phase].color+';background:'+RL_PHASES[t.phase].light+';padding:1px 5px;border-radius:3px;">'+RL_PHASES[t.phase].label+'</span>':'')+
+          (dd?'<span style="font-size:9px;color:'+(od?'#dc2626':'#5a6270')+';font-family:\'DM Mono\',monospace;">'+(od?'⚠ ':'')+dd.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+'</span>':'')+
+          (assignStr?'<span style="font-size:9px;color:#8a92a0;">'+escHtml(assignStr)+'</span>':'')+
+        '</div>' +
+      '</div>';
+    }).join('');
+    return '<div style="flex:1;min-width:185px;max-width:280px;">' +
+      '<div style="padding:7px 10px;background:'+col.bg+';border:1px solid rgba(255,255,255,.06);border-bottom:none;border-radius:7px 7px 0 0;display:flex;align-items:center;justify-content:space-between;">' +
+        '<span style="font-size:10px;font-weight:700;color:'+col.col+';text-transform:uppercase;letter-spacing:.06em;">'+col.lbl+'</span>' +
+        '<span style="font-size:11px;color:#5a6270;font-family:\'DM Mono\',monospace;">'+ct.length+'</span>' +
+      '</div>' +
+      '<div style="padding:8px;background:'+col.bg+';border:1px solid rgba(255,255,255,.06);border-top:none;border-radius:0 0 7px 7px;min-height:80px;">' +
+        (cards||'<div style="padding:14px;text-align:center;font-size:11px;color:#5a6270;">—</div>')+
+      '</div>' +
+    '</div>';
+  }).join('');
+  return '<div style="display:flex;gap:10px;align-items:flex-start;overflow-x:auto;padding-bottom:8px;">'+cols+'</div>';
 }
 
 // Expose globals

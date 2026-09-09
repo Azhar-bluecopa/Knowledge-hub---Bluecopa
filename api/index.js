@@ -4184,6 +4184,73 @@ app.get('/api/rocketlane/projects-full', async (req, res) => {
   }
 });
 
+// ── Rocketlane Project Detail ─────────────────────────────────────────────────
+app.get('/api/rocketlane/project/:id', async (req, res) => {
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) return res.status(503).json({ error: 'not_configured' });
+  await getDbInitPromise();
+  ensureACL(); ensureRL();
+
+  const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  const allowedClients = getAllowedRLClients(email);
+  const projectId = req.params.id;
+
+  if (!rlFullCache) return res.status(503).json({ error: 'no_cache', message: 'Dashboard data not yet loaded — open the Rocketlane Dashboard first.' });
+
+  const project = rlFullCache.projects.find(p => p.projectId === projectId);
+  if (!project) return res.status(404).json({ error: 'not_found' });
+
+  // ACL: check client access
+  if (allowedClients !== null) {
+    const clientSet = new Set(allowedClients);
+    if (!clientSet.has(project.customer || '')) return res.status(403).json({ error: 'forbidden' });
+  }
+
+  // All raw tasks for this project from in-memory cache
+  const allTasks = rlAllTasksCache || [];
+  const tasks = allTasks
+    .filter(t => t.project?.projectId === projectId)
+    .map(t => {
+      const match = rlMatchMainTask(t.taskName);
+      return {
+        taskId: t.taskId,
+        taskName: t.taskName,
+        status: t.status?.label || 'Unknown',
+        dueDate: t.dueDate || null,
+        startDate: t.startDate || null,
+        completed: t.status?.label === 'Completed',
+        phase: (match && !match.excluded) ? match.phase : null,
+        assignees: (t.assignees?.members || [])
+          .map(a => [a.firstName, a.lastName].filter(Boolean).join(' ').trim() || a.emailId || '')
+          .filter(Boolean),
+        section: t.section?.name || null,
+        priority: t.priority || null
+      };
+    });
+
+  // Timelogs — best-effort (Rocketlane API endpoint may vary)
+  let timelogs = [];
+  try {
+    const tlResp = await fetch(`https://api.rocketlane.com/api/1.0/timelogs?projectId=${projectId}&pageSize=200`, {
+      headers: { 'api-key': apiKey, 'Accept': 'application/json' }
+    });
+    if (tlResp.ok) {
+      const tlData = await tlResp.json();
+      timelogs = (tlData.data || []).map(tl => ({
+        timelogId: tl.timelogId || tl.id,
+        date: tl.date || tl.createdAt,
+        hours: parseFloat(tl.hours || tl.duration || 0),
+        note: tl.note || tl.description || '',
+        user: tl.user ? ([tl.user.firstName, tl.user.lastName].filter(Boolean).join(' ').trim() || tl.user.emailId || '') : '',
+        taskId: tl.task?.taskId || null,
+        taskName: tl.task?.taskName || tl.taskName || ''
+      }));
+    }
+  } catch (e) { /* silently ignore — timelogs are best-effort */ }
+
+  res.json({ project, tasks, timelogs, taskCount: tasks.length });
+});
+
 // ── Proxy Login ───────────────────────────────────────────────────────────────
 function ensureProxyLogs() { if (!db.proxyLogs) db.proxyLogs = []; }
 
