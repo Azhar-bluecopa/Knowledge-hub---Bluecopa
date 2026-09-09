@@ -4197,7 +4197,7 @@ app.get('/api/rocketlane/project/:id', async (req, res) => {
 
   if (!rlFullCache) return res.status(503).json({ error: 'no_cache', message: 'Dashboard data not yet loaded — open the Rocketlane Dashboard first.' });
 
-  const project = rlFullCache.projects.find(p => p.projectId === projectId);
+  const project = rlFullCache.projects.find(p => String(p.projectId) === String(projectId));
   if (!project) return res.status(404).json({ error: 'not_found' });
 
   // ACL: check client access
