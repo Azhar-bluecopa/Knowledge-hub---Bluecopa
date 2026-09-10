@@ -4224,7 +4224,8 @@ app.get('/api/rocketlane/project/:id', async (req, res) => {
           .map(a => [a.firstName, a.lastName].filter(Boolean).join(' ').trim() || a.emailId || '')
           .filter(Boolean),
         section: t.section?.name || null,
-        priority: t.priority || null
+        priority: t.priority || null,
+        parentTaskId: t.parentTask?.taskId || null
       };
     });
 

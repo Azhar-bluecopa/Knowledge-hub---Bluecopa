@@ -14144,54 +14144,132 @@ function rlPlanTask(t) {
 function rlProjList(p, detail) {
   var tasks = detail.tasks || [];
   if (!tasks.length) return rlCard('<div style="padding:48px;text-align:center;font-size:13px;color:#8a92a0;">No tasks found for this project.</div>');
+
   var f = _rlProjListTaskFilter || 'all';
-  var filtered = tasks.filter(function(t) {
+
+  // Build lookup and child map
+  var byId = {};
+  tasks.forEach(function(t) { byId[t.taskId] = t; });
+  var children = {}; // parentTaskId -> [child tasks]
+  var roots = [];
+  tasks.forEach(function(t) {
+    var pid = t.parentTaskId;
+    if (pid && byId[pid]) {
+      if (!children[pid]) children[pid] = [];
+      children[pid].push(t);
+    } else {
+      roots.push(t);
+    }
+  });
+
+  // Count matching tasks for filter badge
+  function taskMatchesFilter(t) {
     var s = (t.status||'').toLowerCase();
     if (f==='todo')       return !t.completed && !s.includes('progress');
     if (f==='inprogress') return s.includes('progress');
     if (f==='completed')  return t.completed;
     return true;
-  });
-  var filterBar = '<div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:6px;flex-wrap:wrap;">' +
+  }
+  function treeMatchesFilter(t) {
+    if (taskMatchesFilter(t)) return true;
+    return (children[t.taskId]||[]).some(taskMatchesFilter);
+  }
+
+  var totalShown = 0;
+  roots.forEach(function(t) { if (treeMatchesFilter(t)) { totalShown++; totalShown += (children[t.taskId]||[]).filter(taskMatchesFilter).length; } });
+
+  var thS = 'padding:8px 14px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;text-transform:uppercase;letter-spacing:.09em;white-space:nowrap;';
+  var filterBar = '<div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:6px;flex-wrap:wrap;align-items:center;">' +
     [['all','All ('+tasks.length+')'],['todo','To Do'],['inprogress','In Progress'],['completed','Completed']].map(function(e) {
       var a = e[0]===f;
-      return '<button onclick="rlProjListFilter(\''+e[0]+'\')" style="background:'+(a?'rgba(99,102,241,.12)':'transparent')+';border:1px solid '+(a?'rgba(99,102,241,.3)':'rgba(255,255,255,.07)')+';color:'+(a?'#818cf8':'rgba(255,255,255,.35)')+';border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;transition:all .12s;">'+e[1]+'</button>';
+      return '<button onclick="rlProjListFilter(\''+e[0]+'\')" style="background:'+(a?'rgba(99,102,241,.12)':'transparent')+';border:1px solid '+(a?'rgba(99,102,241,.3)':'rgba(255,255,255,.07)')+';color:'+(a?'#818cf8':'rgba(255,255,255,.35)')+';border-radius:6px;padding:4px 12px;font-size:11px;cursor:pointer;transition:all .12s;font-weight:'+(a?'700':'400')+';">'+e[1]+'</button>';
     }).join('') +
   '</div>';
-  var rows = filtered.map(function(t) {
-    var done = t.completed, s=(t.status||'').toLowerCase();
-    var dd = t.dueDate?new Date(t.dueDate):null, od=dd&&!done&&dd<new Date();
-    var phLabel = t.phase&&RL_PHASES[t.phase]
-      ? '<span style="font-size:10px;color:'+RL_PHASES[t.phase].color+';background:'+RL_PHASES[t.phase].light+';padding:1px 6px;border-radius:3px;">'+RL_PHASES[t.phase].label+'</span>'
+
+  function statusChip(t) {
+    var done = t.completed;
+    var od = t.dueDate && !done && new Date(t.dueDate) < new Date();
+    var s = t.status||'—';
+    var color = done?'#22c55e':od?'#f87171':(t.status||'').toLowerCase().includes('progress')?'#60a5fa':'#8a92a0';
+    var bg    = done?'rgba(34,197,94,.09)':od?'rgba(248,113,113,.09)':(t.status||'').toLowerCase().includes('progress')?'rgba(96,165,250,.09)':'rgba(255,255,255,.04)';
+    return '<span style="font-size:10px;color:'+color+';background:'+bg+';padding:2px 8px;border-radius:4px;font-weight:600;white-space:nowrap;">'+escHtml(s)+'</span>';
+  }
+
+  function taskRow(t, isChild) {
+    var done = t.completed;
+    var dd = t.dueDate ? new Date(t.dueDate) : null;
+    var od = dd && !done && dd < new Date();
+    var indent = isChild ? 'padding-left:34px;' : '';
+    var phLabel = t.phase && RL_PHASES[t.phase]
+      ? '<span style="font-size:10px;color:'+RL_PHASES[t.phase].color+';background:'+RL_PHASES[t.phase].light+';padding:1px 7px;border-radius:3px;font-weight:600;">'+RL_PHASES[t.phase].label+'</span>'
       : '<span style="color:#5a6270;font-size:10px;">—</span>';
-    var assignStr = Array.isArray(t.assignees)?t.assignees.join(', '):(t.assignees||'—');
-    var statusColor = done?'#22c55e':od?'#dc2626':'#8a92a0';
-    var statusBg    = done?'rgba(34,197,94,.09)':od?'rgba(220,38,38,.09)':'rgba(255,255,255,.04)';
-    return '<tr style="border-top:1px solid rgba(255,255,255,.04);">' +
-      '<td style="padding:9px 12px;max-width:280px;">' +
-        '<div style="display:flex;align-items:center;gap:7px;">' +
-          '<div style="width:12px;height:12px;min-width:12px;border-radius:50%;border:2px solid '+(done?'#22c55e':'rgba(255,255,255,.2)')+';background:'+(done?'#22c55e':'transparent')+';flex-shrink:0;"></div>' +
-          '<span style="font-size:12px;color:'+(done?'rgba(255,255,255,.3)':'#f0f0f6')+';'+(done?'text-decoration:line-through;':'')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+escHtml(t.taskName)+'">'+escHtml(t.taskName)+'</span>' +
+    var assignStr = Array.isArray(t.assignees) ? t.assignees.join(', ') : (t.assignees||'—');
+    var hasKids = !isChild && (children[t.taskId]||[]).length > 0;
+    var circleColor = done ? '#22c55e' : od ? '#f87171' : (t.status||'').toLowerCase().includes('progress') ? '#60a5fa' : 'rgba(255,255,255,.2)';
+    var circleBg    = done ? '#22c55e' : 'transparent';
+    var circle = isChild
+      ? '<div style="width:7px;height:7px;min-width:7px;border-radius:50%;border:1.5px solid '+circleColor+';background:'+circleBg+';flex-shrink:0;"></div>'
+      : '<div style="width:12px;height:12px;min-width:12px;border-radius:50%;border:2px solid '+circleColor+';background:'+circleBg+';flex-shrink:0;"></div>';
+    var expandBtn = hasKids
+      ? '<span style="font-size:9px;color:rgba(255,255,255,.2);margin-right:4px;flex-shrink:0;">▾</span>'
+      : (isChild ? '' : '<span style="display:inline-block;width:13px;flex-shrink:0;"></span>');
+    var nameStyle = 'font-size:12px;color:'+(done?'rgba(255,255,255,.28)':isChild?'rgba(255,255,255,.65)':'#f0f0f6')+';'+(done?'text-decoration:line-through;':'')+'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'+(isChild?'':'font-weight:500;');
+    return '<tr style="border-top:1px solid rgba(255,255,255,'+(isChild?'.025':'.05')+');background:'+(isChild?'rgba(255,255,255,.008)':'transparent')+';">' +
+      '<td style="padding:'+(isChild?'6px 14px 6px 46px':'9px 14px')+';max-width:0;width:40%;">' +
+        '<div style="display:flex;align-items:center;gap:7px;overflow:hidden;">' +
+          expandBtn + circle +
+          '<span style="'+nameStyle+'" title="'+escHtml(t.taskName)+'">'+escHtml(t.taskName)+'</span>' +
         '</div>' +
       '</td>' +
-      '<td style="padding:9px 12px;">'+phLabel+'</td>' +
-      '<td style="padding:9px 12px;font-size:11px;color:#8a92a0;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escHtml(assignStr)+'</td>' +
-      '<td style="padding:9px 12px;font-size:11px;color:'+(od?'#dc2626':'#8a92a0')+';font-family:\'DM Mono\',monospace;white-space:nowrap;">'+(dd?(od?'⚠ ':'')+dd.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}):'—')+'</td>' +
-      '<td style="padding:9px 12px;"><span style="font-size:10px;color:'+statusColor+';background:'+statusBg+';padding:2px 7px;border-radius:4px;">'+escHtml(t.status||'—')+'</span></td>' +
+      '<td style="padding:9px 14px;">'+phLabel+'</td>' +
+      '<td style="padding:9px 14px;font-size:11px;color:#6b7280;max-width:0;width:25%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+escHtml(assignStr)+'">'+escHtml(assignStr)+'</td>' +
+      '<td style="padding:9px 14px;font-size:11px;color:'+(od?'#f87171':'#6b7280')+';font-family:\'DM Mono\',monospace;white-space:nowrap;font-weight:'+(od?'600':'400')+';">'+(dd?(od?'⚠ ':'')+dd.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}):'—')+'</td>' +
+      '<td style="padding:9px 14px;">'+statusChip(t)+'</td>' +
     '</tr>';
-  }).join('');
+  }
+
+  // Group roots by section, then emit tree rows
+  var sectionOrder = [], sectionMap = {};
+  roots.forEach(function(t) {
+    var sec = t.section || '';
+    if (!sectionMap[sec]) { sectionMap[sec] = []; sectionOrder.push(sec); }
+    sectionMap[sec].push(t);
+  });
+
+  var rows = [];
+  sectionOrder.forEach(function(sec) {
+    var secRoots = sectionMap[sec].filter(treeMatchesFilter);
+    if (!secRoots.length) return;
+    // Section header row (only if there are multiple sections)
+    if (sectionOrder.filter(function(s){ return sectionMap[s].some(treeMatchesFilter); }).length > 1) {
+      rows.push(
+        '<tr style="background:rgba(255,255,255,.015);border-top:1px solid rgba(255,255,255,.07);">' +
+          '<td colspan="5" style="padding:6px 14px;font-size:10px;font-weight:700;color:#5a6270;text-transform:uppercase;letter-spacing:.1em;">' +
+            escHtml(sec || 'Tasks') +
+          '</td>' +
+        '</tr>'
+      );
+    }
+    secRoots.forEach(function(t) {
+      rows.push(taskRow(t, false));
+      var kids = (children[t.taskId]||[]).filter(taskMatchesFilter);
+      kids.forEach(function(c) { rows.push(taskRow(c, true)); });
+    });
+  });
+
   return rlCard(
     filterBar +
     '<div style="overflow-x:auto;">' +
-      '<table style="width:100%;border-collapse:collapse;">' +
-        '<thead><tr>' +
-          '<th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;text-transform:uppercase;letter-spacing:.08em;">Task</th>' +
-          '<th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;text-transform:uppercase;letter-spacing:.08em;">Phase</th>' +
-          '<th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;text-transform:uppercase;letter-spacing:.08em;">Assignee</th>' +
-          '<th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;text-transform:uppercase;letter-spacing:.08em;">Due</th>' +
-          '<th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:700;color:#5a6270;text-transform:uppercase;letter-spacing:.08em;">Status</th>' +
+      '<table style="width:100%;border-collapse:collapse;table-layout:fixed;">' +
+        '<colgroup><col style="width:40%;"><col style="width:10%;"><col style="width:25%;"><col style="width:13%;"><col style="width:12%;"></colgroup>' +
+        '<thead><tr style="background:rgba(255,255,255,.02);">' +
+          '<th style="'+thS+'">Task</th>' +
+          '<th style="'+thS+'">Phase</th>' +
+          '<th style="'+thS+'">Assignee</th>' +
+          '<th style="'+thS+'">Due</th>' +
+          '<th style="'+thS+'">Status</th>' +
         '</tr></thead>' +
-        '<tbody>'+rows+'</tbody>' +
+        '<tbody>'+rows.join('')+'</tbody>' +
       '</table>' +
     '</div>',
     'padding:0;'
