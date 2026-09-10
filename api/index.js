@@ -4206,10 +4206,20 @@ app.get('/api/rocketlane/project/:id', async (req, res) => {
     if (!clientSet.has(project.customer || '')) return res.status(403).json({ error: 'forbidden' });
   }
 
-  // All raw tasks for this project from in-memory cache
-  const allTasks = rlAllTasksCache || [];
-  const tasks = allTasks
-    .filter(t => String(t.project?.projectId) === String(projectId))
+  // Tasks: prefer in-memory cache; fall back to a direct Rocketlane fetch when
+  // the cache is empty or has no tasks for this specific project.
+  let rawProjectTasks = (rlAllTasksCache || []).filter(t => String(t.project?.projectId) === String(projectId));
+  if (!rawProjectTasks.length) {
+    try {
+      const url = `https://api.rocketlane.com/api/1.0/tasks?projectId=${projectId}&pageSize=200&includeAllFields=true`;
+      const r = await fetch(url, { headers: { 'api-key': apiKey, 'Accept': 'application/json' } });
+      if (r.ok) {
+        const d = await r.json();
+        rawProjectTasks = Array.isArray(d.data) ? d.data.filter(t => t && t.taskId) : [];
+      }
+    } catch { /* silently ignore */ }
+  }
+  const tasks = rawProjectTasks
     .map(t => {
       const match = rlMatchMainTask(t.taskName);
       return {
