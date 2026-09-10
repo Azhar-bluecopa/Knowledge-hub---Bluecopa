@@ -13899,14 +13899,20 @@ window.rlOpenProject = function(projectId) {
 
 function rlRenderProjectDetail(body, projectId) {
   var p = _rlData && _rlData.projects.find(function(x){return String(x.projectId)===String(projectId);});
-  if (!_rlProjectDetailCache[projectId]) {
+  var cached = _rlProjectDetailCache[projectId];
+  // Re-fetch if: no cache, OR cache has zero tasks (stale cold-start result)
+  var needsFetch = !cached || !(cached.tasks && cached.tasks.length);
+  if (needsFetch) {
     body.innerHTML = rlProjDetailShell(projectId, p,
       '<div style="display:flex;justify-content:center;padding:80px 0;"><div class="rl-spin"></div></div>');
     fetch('/api/rocketlane/project/'+projectId, {headers: rlUserHeaders()})
       .then(function(r){return r.json();})
       .then(function(d) {
-        _rlProjectDetailCache[projectId] = d;
-        if (_rlProjectDrillId === projectId) {
+        // Only replace a cached-but-empty entry if the new fetch has tasks
+        if (!cached || (d.tasks && d.tasks.length)) {
+          _rlProjectDetailCache[projectId] = d;
+        }
+        if (String(_rlProjectDrillId) === String(projectId)) {
           var b2 = document.getElementById('rlTabBody');
           if (b2) rlRenderProjectDetail(b2, projectId);
         }
