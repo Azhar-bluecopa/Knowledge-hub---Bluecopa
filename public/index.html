@@ -13900,24 +13900,25 @@ window.rlOpenProject = function(projectId) {
 function rlRenderProjectDetail(body, projectId) {
   var p = _rlData && _rlData.projects.find(function(x){return String(x.projectId)===String(projectId);});
   var cached = _rlProjectDetailCache[projectId];
-  // Re-fetch if: no cache, OR cache has zero tasks (stale cold-start result)
-  var needsFetch = !cached || !(cached.tasks && cached.tasks.length);
+  // Re-fetch if: no cache, OR first fetch returned empty tasks (_tasksFetched not yet set).
+  // _tasksFetched is stamped after any completed fetch, preventing infinite loops.
+  var needsFetch = !cached || (!cached._tasksFetched && !(cached.tasks && cached.tasks.length));
   if (needsFetch) {
     body.innerHTML = rlProjDetailShell(projectId, p,
       '<div style="display:flex;justify-content:center;padding:80px 0;"><div class="rl-spin"></div></div>');
     fetch('/api/rocketlane/project/'+projectId, {headers: rlUserHeaders()})
       .then(function(r){return r.json();})
       .then(function(d) {
-        // Only replace a cached-but-empty entry if the new fetch has tasks
-        if (!cached || (d.tasks && d.tasks.length)) {
-          _rlProjectDetailCache[projectId] = d;
-        }
+        d._tasksFetched = true; // mark so we never loop regardless of task count
+        _rlProjectDetailCache[projectId] = d;
         if (String(_rlProjectDrillId) === String(projectId)) {
           var b2 = document.getElementById('rlTabBody');
           if (b2) rlRenderProjectDetail(b2, projectId);
         }
       })
       .catch(function(e) {
+        // Stamp the existing cache entry so we don't loop on network error
+        if (cached) cached._tasksFetched = true;
         var b3 = document.getElementById('rlTabBody');
         if (b3) b3.innerHTML = rlProjDetailShell(projectId, p,
           '<div style="padding:48px;text-align:center;color:#dc2626;font-size:13px;">'+escHtml(e.message||'Load failed')+'</div>');
@@ -14429,7 +14430,7 @@ window.rlInitDashboard = rlInitDashboard;
 window.rlInitDashboard = rlInitDashboard;
 
 // ── RL Customer Link Modal ────────────────────────────────────────────────────
-function rlOpenCustomerLinkModal() {
+window.rlOpenCustomerLinkModal = function rlOpenCustomerLinkModal() {
   var projects = (_rlData && _rlData.projects) ? _rlData.projects : [];
   var opts = projects.map(function(p) { return '<option value="'+p.projectId+'">'+escHtmlRL(p.projectName||p.name||'')+(p.customer?' ('+escHtmlRL(p.customer)+')':'')+'</option>'; }).join('');
   var existing = document.getElementById('rlCustLinkModal');
@@ -14456,11 +14457,11 @@ function rlOpenCustomerLinkModal() {
     +'</div>'
     +'</div>';
   document.body.appendChild(modal);
-}
+};
 
 function escHtmlRL(s) { var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
 
-async function rlSubmitCustomerLink() {
+window.rlSubmitCustomerLink = async function rlSubmitCustomerLink() {
   var modal = document.getElementById('rlCustLinkModal');
   if (!modal) return;
   var sel = modal.querySelector('#rlCustLinkProject');
@@ -14487,7 +14488,7 @@ async function rlSubmitCustomerLink() {
   } catch(e) { alert('Error: ' + e.message); }
 
   if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Generate Link →'; }
-}
+};
 
 })();
 </script>
