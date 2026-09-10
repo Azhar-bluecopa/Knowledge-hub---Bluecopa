@@ -13809,12 +13809,16 @@ function rlRenderProjectsList(body) {
     '</tr>';
   }
 
+  var total = filtered.length;
   function groupSeparatorRow(statusName, count) {
+    var pct = total > 0 ? (count / total * 100).toFixed(1) : '0.0';
     return '<tr style="background:rgba(255,255,255,.018);border-top:1px solid rgba(255,255,255,.07);">' +
       '<td colspan="6" style="padding:7px 16px;">' +
         '<div style="display:flex;align-items:center;gap:8px;">' +
           rlStatus(statusName) +
           '<span style="font-size:11px;color:rgba(255,255,255,.25);font-family:\'DM Mono\',monospace;">' + count + ' project' + (count !== 1 ? 's' : '') + '</span>' +
+          '<span style="font-size:10px;color:rgba(255,255,255,.18);font-family:\'DM Mono\',monospace;">·</span>' +
+          '<span style="font-size:11px;color:rgba(255,255,255,.3);font-family:\'DM Mono\',monospace;font-weight:600;">' + pct + '%</span>' +
         '</div>' +
       '</td>' +
     '</tr>';
