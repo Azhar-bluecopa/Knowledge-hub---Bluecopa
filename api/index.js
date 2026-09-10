@@ -4209,7 +4209,7 @@ app.get('/api/rocketlane/project/:id', async (req, res) => {
   // All raw tasks for this project from in-memory cache
   const allTasks = rlAllTasksCache || [];
   const tasks = allTasks
-    .filter(t => t.project?.projectId === projectId)
+    .filter(t => String(t.project?.projectId) === String(projectId))
     .map(t => {
       const match = rlMatchMainTask(t.taskName);
       return {
