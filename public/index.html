@@ -14515,16 +14515,23 @@ window.rlSubmitCustomerLink = async function rlSubmitCustomerLink() {
 
   if (!clientName) { alert('Please select a client.'); return; }
   if (!rlProjectId) { alert('Please select a project.'); return; }
-  if (rlProjectId.indexOf('ALL:') === 0) { alert('Please select a specific project to generate a link.'); return; }
 
   var projectOpt = projectSel.options[projectSel.selectedIndex];
-  var projectName = projectOpt ? projectOpt.textContent : '';
+  var projectName, actualRlProjectId;
+  if (rlProjectId.indexOf('ALL:') === 0) {
+    // All Projects selected — generate link scoped to client only
+    projectName = clientName;
+    actualRlProjectId = '';
+  } else {
+    projectName = projectOpt ? projectOpt.textContent : '';
+    actualRlProjectId = rlProjectId;
+  }
 
   var submitBtn = modal.querySelector('button[onclick="rlSubmitCustomerLink()"]');
   if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Generating…'; }
 
   try {
-    var link = await clCreate('status', { clientName: clientName, projectName: projectName, rlProjectId: String(rlProjectId) });
+    var link = await clCreate('status', { clientName: clientName, projectName: projectName, rlProjectId: actualRlProjectId });
     var url = window.location.origin + '/portal/' + link.token;
     var display = document.getElementById('rlCustLinkDisplay');
     var span = modal.querySelector('.rl-link-url');
