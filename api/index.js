@@ -2281,21 +2281,67 @@ function buildCIPortalData(assessmentId) {
   return { linked:true, assessmentId:a.id, avgScore:total?sum/total:0, entities, processAreas:a.processAreas||[], ratings:allRatings, actions:a.actions||[] };
 }
 
-function buildRLPortalData(rlProjectId) {
-  if (!rlProjectId) return { linked:false };
-  const rl=db.rocketlane||{}; const snaps=(rl.snapshots||[]).slice().sort((a,b)=>new Date(b.capturedAt)-new Date(a.capturedAt));
-  for (const snap of snaps) {
-    const proj=(snap.projects||[]).find(p=>String(p.projectId)===String(rlProjectId));
-    if (proj) {
-      const phases=[];
-      if (proj.phases&&typeof proj.phases==='object') {
-        const ord=['engage','drive','enable','convert'];
-        ord.forEach(k=>{ if(proj.phases[k]){ const ph=proj.phases[k]; phases.push({ name:ph.name||k, status:ph.status||'upcoming', completion:ph.completionPct||0, startDate:ph.startDate||'', endDate:ph.endDate||'', milestones:(ph.milestones||[]).map(m=>({name:m.name||m.title||'',status:m.status||'upcoming',dueDate:m.dueDate||''})) }); } });
-      }
-      return { linked:true, rlProjectId, projectName:proj.projectName||proj.name||'', completion:proj.completionPct||proj.overallPct||0, currentPhase:proj.currentPhase||'', customer:proj.customer||'', phases };
-    }
+function _extractPhases(proj) {
+  const phases=[];
+  if (proj.phases&&typeof proj.phases==='object') {
+    const ord=['engage','drive','enable','convert'];
+    ord.forEach(k=>{ if(proj.phases[k]){ const ph=proj.phases[k]; phases.push({ name:ph.name||k, status:ph.status||'upcoming', completion:ph.completionPct||0, startDate:ph.startDate||'', endDate:ph.endDate||ph.dueDate||'', milestones:(ph.milestones||[]).map(m=>({name:m.name||m.title||'',status:m.status||'upcoming',dueDate:m.dueDate||''})) }); } });
   }
-  return { linked:true, rlProjectId, projectName:'', completion:0, currentPhase:'', customer:'', phases:[] };
+  return phases;
+}
+
+function buildRLPortalData(rlProjectId, clientName) {
+  const rl=db.rocketlane||{};
+  const snaps=(rl.snapshots||[]).slice().sort((a,b)=>new Date(b.capturedAt)-new Date(a.capturedAt));
+
+  if (rlProjectId) {
+    // Single-project lookup
+    for (const snap of snaps) {
+      const proj=(snap.projects||[]).find(p=>String(p.projectId)===String(rlProjectId));
+      if (proj) {
+        return { linked:true, rlProjectId, projectName:proj.projectName||proj.name||'', completion:proj.completionPct||proj.overallPct||0, currentPhase:proj.currentPhase||'', customer:proj.customer||'', phases:_extractPhases(proj), snappedAt:snap.capturedAt };
+      }
+    }
+    // Fallback: found in rlCache (live data)
+    if (rlCache) {
+      const proj=(rlCache.data||rlCache.projects||[]).find(p=>String(p.projectId)===String(rlProjectId));
+      if (proj) return { linked:true, rlProjectId, projectName:proj.name||proj.projectName||'', completion:proj.completionPct||0, currentPhase:'', customer:proj.customer?.companyName||proj.customer||'', phases:[] };
+    }
+    return { linked:true, rlProjectId, projectName:'', completion:0, currentPhase:'', customer:'', phases:[] };
+  }
+
+  if (clientName) {
+    // Client-scoped lookup — use latest snapshot
+    const normalise = s=>(s||'').toLowerCase().trim();
+    const cn=normalise(clientName);
+    const latestSnap=snaps[0];
+    const rawProjects = latestSnap ? (latestSnap.projects||[]).filter(p=>normalise(p.customer)===cn||normalise(p.customer?.companyName)===cn) : [];
+
+    // Also try live rlCache if snapshot empty
+    let projects = rawProjects;
+    if (!projects.length && rlCache) {
+      projects=(rlCache.data||rlCache.projects||[]).filter(p=>normalise(p.customer?.companyName||p.customer)===cn);
+    }
+
+    if (!projects.length) return { linked:true, isClientScope:true, clientName, completion:0, projects:[], snappedAt:null };
+
+    const totalCompletion=projects.reduce((s,p)=>s+(p.completionPct||p.overallPct||0),0)/projects.length;
+    return {
+      linked:true, isClientScope:true, clientName,
+      completion:Math.round(totalCompletion),
+      snappedAt:latestSnap?latestSnap.capturedAt:null,
+      projects:projects.map(proj=>({
+        rlProjectId:String(proj.projectId),
+        projectName:proj.projectName||proj.name||'',
+        completion:proj.completionPct||proj.overallPct||0,
+        currentPhase:proj.currentPhase||'',
+        status:(proj.status&&(proj.status.label||proj.status))||'',
+        phases:_extractPhases(proj)
+      }))
+    };
+  }
+
+  return { linked:false };
 }
 
 async function portalFromCustomerLink(req, res, cl) {
@@ -2306,7 +2352,7 @@ async function portalFromCustomerLink(req, res, cl) {
   const showStatus=scope==='status'||scope==='all';
   const showUAT=scope==='uat'||scope==='all';
   const showCI=scope==='ci'||scope==='all';
-  const projectStatus=showStatus ? buildRLPortalData(cl.rlProjectId) : {linked:false};
+  const projectStatus=showStatus ? buildRLPortalData(cl.rlProjectId||'', clientName) : {linked:false};
   const uat=showUAT && cl.uatProjectId ? buildUATPortalData(cl.uatProjectId, entity) : {linked:false,stats:{total:0,passed:0,failed:0,blocked:0,inProgress:0,pending:0,openIssues:0},testcases:[],issues:[],signoff:null,allEntitySignoffs:{},entities:[],signedOff:false};
   const ci=showCI && cl.ciAssessmentId ? buildCIPortalData(cl.ciAssessmentId) : {linked:false};
   return res.json({ ok:true, data:{ scope, client, projectStatus, uat, ci } });
@@ -6433,5 +6479,162 @@ app.delete('/api/customer-links/:id', async (req, res) => {
   await saveDB(db);
   res.json({ ok:true });
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  PORTAL HISTORY & TASKS — week-on-week comparison + parent/child tasks
+// ══════════════════════════════════════════════════════════════════════════════
+
+// GET /api/portal/:token/history — last 8 weekly snapshots for WoW chart
+app.get('/api/portal/:token/history', async (req, res) => {
+  await _dbReady;
+  const cl = clDB().find(x=>x.token===req.params.token);
+  if (!cl) return res.status(404).json({ ok:false, error:'not found' });
+  const snaps = (db.rocketlane?.snapshots||[])
+    .filter(s=>s.type==='weekly')
+    .slice()
+    .sort((a,b)=>new Date(a.capturedAt)-new Date(b.capturedAt))
+    .slice(-10);
+  const normalise = s=>(s||'').toLowerCase().trim();
+  const cn = normalise(cl.clientName);
+  const history = snaps.map(snap=>{
+    let completion=0;
+    if (cl.rlProjectId) {
+      const proj=(snap.projects||[]).find(p=>String(p.projectId)===String(cl.rlProjectId));
+      completion=proj?(proj.completionPct||proj.overallPct||0):0;
+    } else if (cn) {
+      const ps=(snap.projects||[]).filter(p=>normalise(p.customer)===cn||normalise(p.customer?.companyName)===cn);
+      if (ps.length) completion=Math.round(ps.reduce((s,p)=>s+(p.completionPct||p.overallPct||0),0)/ps.length);
+    }
+    return { week:snap.weekId||snap.label||snap.capturedAt.slice(0,10), capturedAt:snap.capturedAt, completion };
+  });
+  res.json({ ok:true, history });
+});
+
+// GET /api/portal/:token/tasks — parent/child task tree for the project(s)
+app.get('/api/portal/:token/tasks', async (req, res) => {
+  await _dbReady;
+  const cl = clDB().find(x=>x.token===req.params.token);
+  if (!cl) return res.status(404).json({ ok:false, error:'not found' });
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) return res.json({ ok:true, tasks:[] });
+  try {
+    const normalise = s=>(s||'').toLowerCase().trim();
+    const cn = normalise(cl.clientName);
+    // Determine project IDs to fetch
+    let projectIds = cl.rlProjectId ? [String(cl.rlProjectId)] : [];
+    if (!projectIds.length && rlAllTasksCache) {
+      const clientTasks = rlAllTasksCache.filter(t=>normalise(t.project?.customer?.companyName||t.project?.customer||'')===cn);
+      projectIds = [...new Set(clientTasks.map(t=>String(t.project?.projectId)).filter(Boolean))];
+    }
+    if (!projectIds.length && rlCache) {
+      const ps=(rlCache.data||rlCache.projects||[]).filter(p=>normalise(p.customer?.companyName||p.customer)===cn);
+      projectIds = ps.map(p=>String(p.projectId));
+    }
+    // Get tasks from cache or fetch
+    let rawTasks = rlAllTasksCache ? rlAllTasksCache.filter(t=>projectIds.includes(String(t.project?.projectId))) : [];
+    if (!rawTasks.length && projectIds.length) {
+      for (const pid of projectIds.slice(0,5)) {
+        try {
+          const r = await fetch(`https://api.rocketlane.com/api/1.0/tasks?projectId=${pid}&pageSize=200&includeAllFields=true`, { headers:{'api-key':apiKey,'Accept':'application/json'} });
+          if (r.ok) { const d=await r.json(); rawTasks=rawTasks.concat(Array.isArray(d.data)?d.data:[]); }
+        } catch{}
+      }
+    }
+    // Build parent->children map
+    const byId = {};
+    rawTasks.forEach(t=>{ byId[t.taskId]=t; });
+    const roots=[], childMap={};
+    rawTasks.forEach(t=>{
+      const pid=t.parentTask?.taskId||null;
+      if (pid&&byId[pid]) { if(!childMap[pid]) childMap[pid]=[]; childMap[pid].push(t); }
+      else roots.push(t);
+    });
+    function mapTask(t) {
+      return { taskId:t.taskId, name:t.name||t.title||'', status:(t.status&&(t.status.label||t.status))||'', assignees:(t.assignees||[]).map(a=>a.name||a.email||''), dueDate:t.dueDate||'', completionPct:t.completionPct||0, section:t.section?.name||'', projectId:String(t.project?.projectId||''), projectName:t.project?.name||t.project?.projectName||'', children:(childMap[t.taskId]||[]).map(mapTask) };
+    }
+    const tasks = roots.map(mapTask);
+    res.json({ ok:true, tasks });
+  } catch(e) { res.json({ ok:true, tasks:[], error:e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  WEEKLY SNAPSHOT SCHEDULER — every Monday 9:50 AM IST (4:20 AM UTC)
+// ══════════════════════════════════════════════════════════════════════════════
+
+function _isoWeekId(date) {
+  const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
+  const day=d.getUTCDay()||7;
+  d.setUTCDate(d.getUTCDate()+4-day);
+  const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  const week=Math.ceil(((d-yearStart)/86400000+1)/7);
+  return `${d.getUTCFullYear()}-W${String(week).padStart(2,'0')}`;
+}
+
+async function captureWeeklyRLSnapshot() {
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) return;
+  const now = new Date();
+  const weekId = _isoWeekId(now);
+  ensureRL();
+  if (!db.rocketlane.weeklySnapshotLog) db.rocketlane.weeklySnapshotLog = {};
+  if (db.rocketlane.weeklySnapshotLog[weekId]) { console.log('[RL-weekly] Already captured', weekId); return; }
+  try {
+    const [projResp, completionMap] = await Promise.all([
+      fetch('https://api.rocketlane.com/api/1.0/projects', { headers:{'api-key':apiKey,'Accept':'application/json'} }),
+      rlFetchCompletionMap(apiKey)
+    ]);
+    const projData = await projResp.json();
+    const projects = projData.data || [];
+    projects.forEach(p=>{
+      const comp=completionMap[p.projectId];
+      if (comp&&comp.total>0) p.completionPct=Math.min(100,Math.round((comp.completed+comp.inprogress*0.5)/comp.total*100));
+      else p.completionPct=(p.status?.label||'').toLowerCase().includes('complet')?100:0;
+      // Normalise customer to string
+      if (p.customer&&typeof p.customer==='object') p.customer=p.customer.companyName||'';
+    });
+    const snap = { id:db.rocketlane.nextSnapshotId++, weekId, type:'weekly', label:`Week of ${now.toISOString().slice(0,10)}`, capturedAt:now.toISOString(), projects };
+    db.rocketlane.snapshots.push(snap);
+    db.rocketlane.weeklySnapshotLog[weekId] = now.toISOString();
+    await saveDB(db);
+    console.log(`[RL-weekly] Snapshot captured for ${weekId} — ${projects.length} projects`);
+  } catch(e) { console.error('[RL-weekly] Snapshot failed:', e.message); }
+}
+
+// POST /api/rocketlane/weekly-snapshot/trigger — manual trigger (admin)
+app.post('/api/rocketlane/weekly-snapshot/trigger', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  // Force a new capture regardless of weekly lock
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) return res.status(503).json({ ok:false, error:'ROCKETLANE_API_KEY not set' });
+  ensureRL();
+  const now=new Date(); const weekId=_isoWeekId(now);
+  try {
+    const [projResp, completionMap] = await Promise.all([
+      fetch('https://api.rocketlane.com/api/1.0/projects', { headers:{'api-key':apiKey,'Accept':'application/json'} }),
+      rlFetchCompletionMap(apiKey)
+    ]);
+    const projects = (await projResp.json()).data || [];
+    projects.forEach(p=>{
+      const comp=completionMap[p.projectId];
+      if (comp&&comp.total>0) p.completionPct=Math.min(100,Math.round((comp.completed+comp.inprogress*0.5)/comp.total*100));
+      else p.completionPct=(p.status?.label||'').toLowerCase().includes('complet')?100:0;
+      if (p.customer&&typeof p.customer==='object') p.customer=p.customer.companyName||'';
+    });
+    const snap={id:db.rocketlane.nextSnapshotId++,weekId,type:'weekly',label:`Week of ${now.toISOString().slice(0,10)} (manual)`,capturedAt:now.toISOString(),projects};
+    db.rocketlane.snapshots.push(snap);
+    if (!db.rocketlane.weeklySnapshotLog) db.rocketlane.weeklySnapshotLog={};
+    db.rocketlane.weeklySnapshotLog[weekId]=now.toISOString();
+    await saveDB(db);
+    res.json({ ok:true, weekId, projects:projects.length });
+  } catch(e) { res.status(500).json({ ok:false, error:e.message }); }
+});
+
+// Schedule check every hour; captures on Monday 4:20-5:19 AM UTC (= 9:50-10:49 AM IST)
+setInterval(async ()=>{
+  const now=new Date();
+  if (now.getUTCDay()===1 && now.getUTCHours()===4 && now.getUTCMinutes()>=20) {
+    try { await captureWeeklyRLSnapshot(); } catch(e) { console.error('[RL-weekly] interval error:', e.message); }
+  }
+}, 60*60*1000);
 
 module.exports = app;

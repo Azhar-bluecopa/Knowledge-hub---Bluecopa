@@ -733,7 +733,28 @@ body{
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
 }
+
+/* ── WoW chart & task tree (status tab extras) ── */
+.wow-card{background:var(--card);border:1px solid var(--border-solid);border-radius:16px;padding:24px 28px;margin-bottom:20px;box-shadow:var(--sh-sm)}
+.wow-card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-4);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.wow-card-title span{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cobalt)}
+.task-tree-item{padding:12px 14px;border-radius:10px;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:background .15s}
+.task-tree-item:hover{background:var(--cobalt-dim)}
+.task-tree-item.parent{font-weight:700}
+.task-tree-children{margin-left:32px;margin-top:6px}
+.task-status-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.task-status-dot.done{background:var(--teal)}
+.task-status-dot.prog{background:var(--cobalt);animation:pulsedot 1.8s infinite}
+.task-status-dot.todo{background:var(--border-solid)}
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-bottom:24px}
+.proj-card{background:var(--card);border:1px solid var(--border-solid);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--sh-sm);transition:box-shadow .2s}
+.proj-card:hover{box-shadow:var(--sh-md)}
+.proj-card-name{font-size:14px;font-weight:700;color:var(--text-1);line-height:1.3}
+.proj-card-phase{font-size:11px;color:var(--text-4)}
+.proj-card-pct{font-size:24px;font-weight:900;font-family:'Outfit',sans-serif;letter-spacing:-.02em}
+.tasks-loading{text-align:center;padding:24px;color:var(--text-4);font-size:13px}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -961,11 +982,15 @@ function switchTab(tab,btn){
   const panel=document.getElementById('panel-'+tab);
   if(panel)panel.classList.add('active');
   if(tab==='status'&&!_statusRendered&&_data){renderStatus();_statusRendered=true;}
+  else if(tab==='status'&&_statusRendered){renderStatusExtras();}
   if(tab==='uat'&&!_uatRendered&&_data){renderUAT();_uatRendered=true;}
   if(tab==='ci'&&!_ciRendered&&_data){renderCI();_ciRendered=true;}
 }
 
 // ── Load ──────────────────────────────────────────────────────────────────────
+var _history=[];
+var _tasks=[];
+
 async function load(){
   try{
     const r=await fetch('/api/portal/'+TOKEN);
@@ -974,6 +999,15 @@ async function load(){
     if(!d.ok){showErr();return;}
     _data=d.data;
     renderPortal();
+    // Fetch history and tasks in background — update status tab if already visible
+    Promise.all([
+      fetch('/api/portal/'+TOKEN+'/history').then(r=>r.ok?r.json():null).catch(()=>null),
+      fetch('/api/portal/'+TOKEN+'/tasks').then(r=>r.ok?r.json():null).catch(()=>null)
+    ]).then(([hd,td])=>{
+      if(hd&&hd.ok) _history=hd.history||[];
+      if(td&&td.ok) _tasks=td.tasks||[];
+      if(_statusRendered) renderStatusExtras();
+    });
   }catch(e){showErr();}
 }
 function showErr(){
@@ -1056,6 +1090,19 @@ function renderPortal(){
 }
 
 // ── Project Status ────────────────────────────────────────────────────────────
+var _wowChart=null;
+
+function _statusClr(pct){ return pct>=80?'#11C98D':pct>=50?'#3B6EFA':'#FF5C5C'; }
+function _ring(pct,clr,size){
+  size=size||110; const r=(size/2)-10, circ=2*Math.PI*r, dash=circ*pct/100;
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" style="transform:rotate(-90deg)">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--border-solid)" stroke-width="9"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${clr}" stroke-width="9"
+      stroke-linecap="round" stroke-dasharray="${dash.toFixed(2)} ${circ.toFixed(2)}"
+      style="transition:stroke-dasharray .9s cubic-bezier(.16,1,.3,1)"/>
+  </svg>`;
+}
+
 function renderStatus(){
   const el=document.getElementById('statusContent');
   const ps=_data.projectStatus;
@@ -1063,77 +1110,200 @@ function renderStatus(){
     el.innerHTML=`<div class="empty-state"><div class="empty-icon">🗓️</div><div class="empty-title">Timeline not connected yet</div><div class="empty-desc">Your Bluecopa team will connect the project timeline soon.</div></div>`;
     return;
   }
+
   const pct=ps.completion||0;
-  const clr=pct>=80?'#11C98D':pct>=50?'#3B6EFA':'#FF5C5C';
-  const r=44,circ=2*Math.PI*r,dash=circ*pct/100;
-  let html=`
-  <div class="status-hero-card">
-    <div class="status-ring-wrap">
-      <svg viewBox="0 0 110 110" width="110" height="110" style="transform:rotate(-90deg)">
-        <circle cx="55" cy="55" r="${r}" fill="none" stroke="var(--border-solid)" stroke-width="10"/>
-        <circle cx="55" cy="55" r="${r}" fill="none" stroke="${clr}" stroke-width="10"
-          stroke-linecap="round" stroke-dasharray="${dash} ${circ}"
-          style="transition:stroke-dasharray .85s cubic-bezier(.16,1,.3,1)"/>
-      </svg>
-      <div class="status-ring-inner">
-        <div class="status-ring-pct" style="color:${clr}">${pct}%</div>
-        <div class="status-ring-sub">Complete</div>
+  const clr=_statusClr(pct);
+  let html='';
+
+  // ── Client-scope: multi-project grid ──────────────────────────────────────
+  if(ps.isClientScope){
+    const projs=ps.projects||[];
+    html+=`<div class="status-hero-card" style="margin-bottom:24px">
+      <div class="status-ring-wrap">${_ring(pct,clr)}
+        <div class="status-ring-inner"><div class="status-ring-pct" style="color:${clr}">${pct}%</div><div class="status-ring-sub">Portfolio avg</div></div>
       </div>
-    </div>
-    <div style="flex:1;min-width:0">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-4);margin-bottom:5px">Active Project</div>
-      <div class="status-proj-name">${esc(ps.projectName)}</div>
-      ${ps.currentPhase?`<div class="status-phase-info">Current phase: <strong>${esc(ps.currentPhase)}</strong></div>`:''}
-      <div class="prog-track" style="margin-top:${ps.currentPhase?'0':'16px'}">
-        <div class="prog-fill" style="width:${pct}%;background:${clr}"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-4);margin-bottom:6px">All Projects</div>
+        <div class="status-proj-name">${esc(ps.clientName)}</div>
+        <div style="font-size:12px;color:var(--text-4);margin-top:4px">${projs.length} project${projs.length!==1?'s':''}</div>
+        <div class="prog-track" style="margin-top:14px"><div class="prog-fill" style="width:${pct}%;background:${clr}"></div></div>
       </div>
-    </div>
+    </div>`;
+
+    if(projs.length){
+      html+=`<div class="sec-hd"><div class="sec-hd-text">Projects</div><div class="sec-hd-line"></div></div><div class="proj-grid">`;
+      projs.forEach(proj=>{
+        const pc=proj.completion||0; const pc_clr=_statusClr(pc);
+        html+=`<div class="proj-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <div class="proj-card-pct" style="color:${pc_clr}">${pc}%</div>
+            <div style="flex-shrink:0">${_ring(pc,pc_clr,72)}</div>
+          </div>
+          <div class="proj-card-name">${esc(proj.projectName)}</div>
+          ${proj.currentPhase?`<div class="proj-card-phase">Phase: ${esc(proj.currentPhase)}</div>`:''}
+          ${proj.status?`<div class="proj-card-phase">Status: ${esc(proj.status)}</div>`:''}
+          <div class="prog-track"><div class="prog-fill" style="width:${pc}%;background:${pc_clr}"></div></div>
+        </div>`;
+      });
+      html+=`</div>`;
+
+      // Phase breakdown across all projects with phases
+      const allPhaseProjs=projs.filter(p=>(p.phases||[]).length);
+      if(allPhaseProjs.length){
+        html+=`<div class="sec-hd"><div class="sec-hd-text">Phase Breakdown</div><div class="sec-hd-line"></div></div>`;
+        allPhaseProjs.forEach(proj=>{
+          html+=`<div style="margin-bottom:18px"><div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:10px">${esc(proj.projectName)}</div>`;
+          html+=_renderPhases(proj.phases);
+          html+='</div>';
+        });
+      }
+    }
+  } else {
+    // ── Single-project view ──────────────────────────────────────────────────
+    html+=`<div class="status-hero-card">
+      <div class="status-ring-wrap">${_ring(pct,clr)}
+        <div class="status-ring-inner"><div class="status-ring-pct" style="color:${clr}">${pct}%</div><div class="status-ring-sub">Complete</div></div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-4);margin-bottom:5px">Active Project</div>
+        <div class="status-proj-name">${esc(ps.projectName)}</div>
+        ${ps.currentPhase?`<div class="status-phase-info">Current phase: <strong>${esc(ps.currentPhase)}</strong></div>`:''}
+        <div class="prog-track" style="margin-top:14px"><div class="prog-fill" style="width:${pct}%;background:${clr}"></div></div>
+      </div>
+    </div>`;
+
+    if((ps.phases||[]).length){
+      html+=`<div class="sec-hd"><div class="sec-hd-text">Phases</div><div class="sec-hd-line"></div></div>`;
+      html+=_renderPhases(ps.phases);
+    }
+  }
+
+  // WoW chart placeholder (filled by renderStatusExtras)
+  html+=`<div class="sec-hd" id="wowSection" style="display:none"><div class="sec-hd-text">Week-on-Week Progress</div><div class="sec-hd-line"></div></div>
+  <div class="wow-card" id="wowCard" style="display:none">
+    <div class="wow-card-title"><span></span>Completion % over time</div>
+    <canvas id="wowChart" height="160"></canvas>
   </div>`;
 
-  if((ps.phases||[]).length){
-    html+=`<div class="sec-hd"><div class="sec-hd-text">Phases</div><div class="sec-hd-line"></div></div>`;
-    html+=`<div class="tl-wrap">`;
-    ps.phases.forEach(ph=>{
-      const dotCls=ph.status==='completed'?'completed':ph.status==='in_progress'?'in_progress':'upcoming';
-      const bdgCls=ph.status==='completed'?'ph-done':ph.status==='in_progress'?'ph-prog':'ph-up';
-      const bdgTxt=ph.status==='completed'?'✓ Completed':ph.status==='in_progress'?'In Progress':'Upcoming';
-      const phClr=ph.status==='completed'?'#11C98D':ph.status==='in_progress'?'#3B6EFA':'#D1D5DB';
-      const ico=ph.status==='completed'?'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>':'';
-      html+=`
-      <div class="tl-item">
-        <div class="tl-dot ${dotCls}">${ico}</div>
-        <div class="tl-card">
-          <div class="tl-phase-row">
-            <div class="tl-phase-name">${esc(ph.name)}</div>
-            <span class="ph-badge ${bdgCls}">${bdgTxt}</span>
-          </div>
-          ${(ph.startDate||ph.endDate)?`<div class="tl-dates">${ph.startDate?fmtDate(ph.startDate):''}${ph.startDate&&ph.endDate?' → ':''}${ph.endDate?fmtDate(ph.endDate):''}</div>`:''}
-          <div class="prog-track">
-            <div class="prog-fill" style="width:${ph.completion}%;background:${phClr}"></div>
-          </div>
-          <div class="tl-pct-label" style="color:${phClr}">${ph.completion}% complete</div>
-          ${ph.milestones&&ph.milestones.length?`
-          <div class="ms-list">
-            ${ph.milestones.map(m=>`
-            <div class="ms-row">
-              <span class="ms-dot ${m.status==='completed'?'ms-done-dot':'ms-pend-dot'}"></span>
-              <span style="color:${m.status==='completed'?'var(--text-3)':'var(--text-1)'};text-decoration:${m.status==='completed'?'line-through':'none'}">${esc(m.name)}</span>
-              ${m.dueDate?`<span class="ms-due">${fmtDate(m.dueDate)}</span>`:''}
-            </div>`).join('')}
-          </div>`:'' }
-        </div>
-      </div>`;
-    });
-    html+=`</div>`;
-  }
+  // Tasks placeholder
+  html+=`<div class="sec-hd" id="tasksSection" style="display:none"><div class="sec-hd-text">Tasks</div><div class="sec-hd-line"></div></div>
+  <div id="tasksContent"><div class="tasks-loading" id="tasksLoading">Loading tasks…</div></div>`;
+
   el.innerHTML=html;
-  // Trigger progress bar animations
+
+  // Animate progress bars
   setTimeout(()=>{
     el.querySelectorAll('.prog-fill').forEach(bar=>{
-      const w=bar.style.width;bar.style.width='0';
-      requestAnimationFrame(()=>{bar.style.width=w;});
+      const w=bar.style.width; bar.style.width='0';
+      requestAnimationFrame(()=>{ bar.style.width=w; });
     });
   },60);
+
+  // If history/tasks already loaded, render extras now
+  renderStatusExtras();
+}
+
+function _renderPhases(phases){
+  let html=`<div class="tl-wrap">`;
+  (phases||[]).forEach(ph=>{
+    const dotCls=ph.status==='completed'?'completed':ph.status==='in_progress'?'in_progress':'upcoming';
+    const bdgCls=ph.status==='completed'?'ph-done':ph.status==='in_progress'?'ph-prog':'ph-up';
+    const bdgTxt=ph.status==='completed'?'✓ Completed':ph.status==='in_progress'?'In Progress':'Upcoming';
+    const phClr=ph.status==='completed'?'#11C98D':ph.status==='in_progress'?'#3B6EFA':'#D1D5DB';
+    const ico=ph.status==='completed'?'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>':'';
+    html+=`<div class="tl-item">
+      <div class="tl-dot ${dotCls}">${ico}</div>
+      <div class="tl-card">
+        <div class="tl-phase-row"><div class="tl-phase-name">${esc(ph.name)}</div><span class="ph-badge ${bdgCls}">${bdgTxt}</span></div>
+        ${(ph.startDate||ph.endDate)?`<div class="tl-dates">${ph.startDate?fmtDate(ph.startDate):''}${ph.startDate&&ph.endDate?' → ':''}${ph.endDate?fmtDate(ph.endDate):''}</div>`:''}
+        <div class="prog-track"><div class="prog-fill" style="width:${ph.completion}%;background:${phClr}"></div></div>
+        <div class="tl-pct-label" style="color:${phClr}">${ph.completion}% complete</div>
+        ${ph.milestones&&ph.milestones.length?`<div class="ms-list">${ph.milestones.map(m=>`
+          <div class="ms-row">
+            <span class="ms-dot ${m.status==='completed'?'ms-done-dot':'ms-pend-dot'}"></span>
+            <span style="color:${m.status==='completed'?'var(--text-3)':'var(--text-1)'};text-decoration:${m.status==='completed'?'line-through':'none'}">${esc(m.name)}</span>
+            ${m.dueDate?`<span class="ms-due">${fmtDate(m.dueDate)}</span>`:''}
+          </div>`).join('')}</div>`:''}
+      </div>
+    </div>`;
+  });
+  html+=`</div>`;
+  return html;
+}
+
+function _taskDotCls(status){
+  const s=(status||'').toLowerCase();
+  if(s.includes('complet')||s.includes('done')) return 'done';
+  if(s.includes('progress')||s.includes('active')) return 'prog';
+  return 'todo';
+}
+
+function _renderTaskTree(tasks, depth){
+  depth=depth||0;
+  return tasks.map(t=>{
+    const dotCls=_taskDotCls(t.status);
+    const assignee=t.assignees&&t.assignees.length?t.assignees[0]:'';
+    const hasKids=(t.children||[]).length>0;
+    return `<div class="task-tree-item ${hasKids?'parent':''}" style="margin-left:${depth*20}px">
+      <span class="task-status-dot ${dotCls}"></span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.name)}</div>
+        <div style="display:flex;gap:12px;margin-top:4px">
+          ${t.section?`<span style="font-size:11px;color:var(--text-4)">${esc(t.section)}</span>`:''}
+          ${assignee?`<span style="font-size:11px;color:var(--cobalt)">${esc(assignee)}</span>`:''}
+          ${t.dueDate?`<span style="font-size:11px;color:var(--text-4)">${fmtDate(t.dueDate)}</span>`:''}
+          ${t.status?`<span style="font-size:10px;font-weight:700;color:${dotCls==='done'?'var(--teal)':dotCls==='prog'?'var(--cobalt)':'var(--text-4)'};text-transform:uppercase;letter-spacing:.4px">${esc(t.status)}</span>`:''}
+        </div>
+      </div>
+      ${hasKids?`<span style="font-size:10px;font-weight:700;background:var(--border-solid);padding:2px 7px;border-radius:99px;color:var(--text-3)">${t.children.length}</span>`:''}
+    </div>
+    ${hasKids?`<div class="task-tree-children">${_renderTaskTree(t.children,depth)}</div>`:''}`;
+  }).join('');
+}
+
+function renderStatusExtras(){
+  // WoW chart
+  const wowSection=document.getElementById('wowSection');
+  const wowCard=document.getElementById('wowCard');
+  const wowCanvas=document.getElementById('wowChart');
+  if(wowSection&&wowCard&&wowCanvas&&_history.length>=2){
+    wowSection.style.display='flex';
+    wowCard.style.display='block';
+    if(_wowChart){ _wowChart.destroy(); _wowChart=null; }
+    const labels=_history.map(h=>{
+      const d=new Date(h.capturedAt); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+    });
+    const vals=_history.map(h=>h.completion);
+    const lastVal=vals[vals.length-1]||0;
+    const gradClr=lastVal>=80?'#11C98D':lastVal>=50?'#3B6EFA':'#FF5C5C';
+    const ctx=wowCanvas.getContext('2d');
+    const grad=ctx.createLinearGradient(0,0,0,160);
+    grad.addColorStop(0,gradClr+'55');
+    grad.addColorStop(1,gradClr+'00');
+    _wowChart=new Chart(ctx,{
+      type:'line',
+      data:{ labels, datasets:[{ label:'Completion %', data:vals, borderColor:gradClr, backgroundColor:grad, borderWidth:2.5, pointRadius:4, pointBackgroundColor:gradClr, pointBorderColor:'#fff', pointBorderWidth:2, tension:.35, fill:true }] },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx=>`${ctx.parsed.y}% complete` } } },
+        scales:{
+          x:{ grid:{color:'rgba(0,0,0,.05)'}, ticks:{font:{size:11},color:'#9ca3af'} },
+          y:{ min:0, max:100, grid:{color:'rgba(0,0,0,.05)'}, ticks:{font:{size:11},color:'#9ca3af',callback:v=>v+'%'} }
+        }
+      }
+    });
+  }
+
+  // Tasks
+  const tasksSection=document.getElementById('tasksSection');
+  const tasksContent=document.getElementById('tasksContent');
+  if(!tasksSection||!tasksContent) return;
+  if(_tasks.length){
+    tasksSection.style.display='flex';
+    tasksContent.innerHTML=_renderTaskTree(_tasks,0);
+  } else {
+    tasksContent.innerHTML='';
+  }
 }
 
 // ── UAT Testing ───────────────────────────────────────────────────────────────
