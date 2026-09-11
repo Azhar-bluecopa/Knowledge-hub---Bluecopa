@@ -14430,9 +14430,37 @@ window.rlInitDashboard = rlInitDashboard;
 window.rlInitDashboard = rlInitDashboard;
 
 // ── RL Customer Link Modal ────────────────────────────────────────────────────
+var SEL_STYLE = 'width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-size:13px;font-family:\'DM Sans\',sans-serif;outline:none;box-sizing:border-box;appearance:none;-webkit-appearance:none;';
+var LABEL_STYLE = 'font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;';
+
+window.rlFilterProjects = function rlFilterProjects(clientName) {
+  var projects = (_rlData && _rlData.projects) ? _rlData.projects : [];
+  var filtered = projects.filter(function(p) { return (p.customer || '') === clientName; });
+  var sel = document.getElementById('rlCustLinkProject');
+  if (!sel) return;
+  if (!clientName) {
+    sel.innerHTML = '<option value="">— Select a client first —</option>';
+    sel.disabled = true;
+    return;
+  }
+  sel.disabled = false;
+  // "All Projects" option carries all projectIds as comma-separated in its value
+  var allIds = filtered.map(function(p) { return p.projectId; }).join(',');
+  sel.innerHTML = '<option value="">— Select a project —</option>' +
+    '<option value="ALL:'+escHtmlRL(allIds)+'">All Projects ('+filtered.length+')</option>' +
+    filtered.map(function(p) {
+      return '<option value="'+escHtmlRL(String(p.projectId))+'">'+escHtmlRL(p.projectName||p.name||'')+'</option>';
+    }).join('');
+};
+
 window.rlOpenCustomerLinkModal = function rlOpenCustomerLinkModal() {
   var projects = (_rlData && _rlData.projects) ? _rlData.projects : [];
-  var opts = projects.map(function(p) { return '<option value="'+p.projectId+'">'+escHtmlRL(p.projectName||p.name||'')+(p.customer?' ('+escHtmlRL(p.customer)+')':'')+'</option>'; }).join('');
+  var clientSet = {};
+  projects.forEach(function(p) { if (p.customer) clientSet[p.customer] = true; });
+  var clientOpts = Object.keys(clientSet).sort().map(function(c) {
+    return '<option value="'+escHtmlRL(c)+'">'+escHtmlRL(c)+'</option>';
+  }).join('');
+
   var existing = document.getElementById('rlCustLinkModal');
   if (existing) existing.remove();
   var modal = document.createElement('div');
@@ -14441,21 +14469,36 @@ window.rlOpenCustomerLinkModal = function rlOpenCustomerLinkModal() {
   modal.innerHTML = '<div style="background:#13141f;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:32px;width:min(480px,92vw);box-shadow:0 24px 80px rgba(0,0,0,.6);">'
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">'
     +'<div><div style="font-size:16px;font-weight:800;color:#f0f0f6;">🔗 Generate Customer Link</div><div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:3px;">Gives customer view of Project Status only</div></div>'
-    +'<button onclick="this.closest(\'#rlCustLinkModal\').remove()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;cursor:pointer;padding:4px 8px;">×</button>'
+    +'<button onclick="document.getElementById(\'rlCustLinkModal\').remove()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;cursor:pointer;padding:4px 8px;">×</button>'
     +'</div>'
     +'<div style="display:flex;flex-direction:column;gap:14px;">'
-    +'<div><label style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;">Select Project</label>'
-    +'<select id="rlCustLinkProject" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-size:13px;font-family:\'DM Sans\',sans-serif;outline:none;box-sizing:border-box;"><option value="">— Select a project —</option>'+opts+'</select></div>'
+    // Client dropdown
+    +'<div><label style="'+LABEL_STYLE+'">Client</label>'
+    +'<select id="rlCustLinkClient" onchange="rlFilterProjects(this.value)" style="'+SEL_STYLE+'">'
+    +'<option value="">— Select a client —</option>'+clientOpts
+    +'</select></div>'
+    // Project dropdown (disabled until client chosen)
+    +'<div><label style="'+LABEL_STYLE+'">Project</label>'
+    +'<select id="rlCustLinkProject" disabled style="'+SEL_STYLE+'opacity:.45;cursor:not-allowed;">'
+    +'<option value="">— Select a client first —</option>'
+    +'</select></div>'
+    // Generated link display
     +'<div id="rlCustLinkDisplay" style="display:none;align-items:center;gap:8px;background:rgba(53,72,255,.12);border:1px solid rgba(53,72,255,.3);border-radius:10px;padding:12px 14px;">'
     +'<span class="rl-link-url" style="font-size:11px;color:#93c5fd;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>'
     +'<button onclick="var url=this.previousElementSibling.dataset.url;navigator.clipboard.writeText(url||\'\')" style="flex-shrink:0;padding:5px 12px;font-size:11px;font-weight:700;background:#3548FF;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:\'DM Sans\',sans-serif;">Copy</button>'
     +'</div>'
     +'</div>'
     +'<div style="display:flex;gap:12px;margin-top:24px;">'
-    +'<button onclick="this.closest(\'#rlCustLinkModal\').remove()" style="flex:1;padding:11px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(255,255,255,.5);font-size:13px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif;">Cancel</button>'
+    +'<button onclick="document.getElementById(\'rlCustLinkModal\').remove()" style="flex:1;padding:11px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(255,255,255,.5);font-size:13px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif;">Cancel</button>'
     +'<button onclick="rlSubmitCustomerLink()" style="flex:2;padding:11px;background:linear-gradient(135deg,#3548FF,#7c3aed);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif;">Generate Link →</button>'
     +'</div>'
     +'</div>';
+
+  // Re-enable project dropdown style when enabled
+  var style = document.createElement('style');
+  style.textContent = '#rlCustLinkProject:not([disabled]){opacity:1!important;cursor:auto!important;}';
+  modal.appendChild(style);
+
   document.body.appendChild(modal);
 };
 
@@ -14464,22 +14507,26 @@ function escHtmlRL(s) { var d=document.createElement('div'); d.textContent=s||''
 window.rlSubmitCustomerLink = async function rlSubmitCustomerLink() {
   var modal = document.getElementById('rlCustLinkModal');
   if (!modal) return;
-  var sel = modal.querySelector('#rlCustLinkProject');
-  var rlProjectId = sel ? sel.value : '';
+
+  var clientSel = document.getElementById('rlCustLinkClient');
+  var projectSel = document.getElementById('rlCustLinkProject');
+  var clientName = clientSel ? clientSel.value : '';
+  var rlProjectId = projectSel ? projectSel.value : '';
+
+  if (!clientName) { alert('Please select a client.'); return; }
   if (!rlProjectId) { alert('Please select a project.'); return; }
-  var opt = sel.options[sel.selectedIndex];
-  var text = opt ? opt.textContent : '';
-  var match = text.match(/^(.*?)\s*\(([^)]+)\)$/);
-  var projectName = match ? match[1].trim() : text;
-  var clientName = match ? match[2].trim() : text;
+  if (rlProjectId.indexOf('ALL:') === 0) { alert('Please select a specific project to generate a link.'); return; }
+
+  var projectOpt = projectSel.options[projectSel.selectedIndex];
+  var projectName = projectOpt ? projectOpt.textContent : '';
 
   var submitBtn = modal.querySelector('button[onclick="rlSubmitCustomerLink()"]');
   if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Generating…'; }
 
   try {
-    var link = await clCreate('status', { clientName: clientName || projectName, projectName: projectName, rlProjectId: String(rlProjectId) });
+    var link = await clCreate('status', { clientName: clientName, projectName: projectName, rlProjectId: String(rlProjectId) });
     var url = window.location.origin + '/portal/' + link.token;
-    var display = modal.querySelector('#rlCustLinkDisplay');
+    var display = document.getElementById('rlCustLinkDisplay');
     var span = modal.querySelector('.rl-link-url');
     if (display) display.style.display = 'flex';
     if (span) { span.textContent = url; span.dataset.url = url; }
