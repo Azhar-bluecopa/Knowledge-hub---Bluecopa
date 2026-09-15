@@ -5827,6 +5827,58 @@ app.get('/api/leaderboard/history', async (req, res) => {
   }
 });
 
+// ── Engagement: Moments (birthdays, anniversaries, gallery photos) ────────────
+app.get('/api/engagement/moments', async (req, res) => {
+  await getDbInitPromise();
+  res.json({ moments: db.engagement?.moments || { photos: [], birthdays: [], anniversaries: [] } });
+});
+
+app.put('/api/engagement/moments', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  await getDbInitPromise();
+  const { moments } = req.body;
+  if (!moments) return res.status(400).json({ error: 'moments required' });
+  if (!db.engagement) db.engagement = { ideas: [], nextIdeaId: 1 };
+  db.engagement.moments = moments;
+  await saveDB(db);
+  res.json({ ok: true });
+});
+
+// ── Engagement: Spotlight ─────────────────────────────────────────────────────
+app.get('/api/engagement/spotlight', async (req, res) => {
+  await getDbInitPromise();
+  res.json({ spotlight: db.engagement?.spotlight || {} });
+});
+
+app.put('/api/engagement/spotlight', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  await getDbInitPromise();
+  const { type, data } = req.body;
+  if (!type || !data) return res.status(400).json({ error: 'type and data required' });
+  if (!db.engagement) db.engagement = { ideas: [], nextIdeaId: 1 };
+  if (!db.engagement.spotlight) db.engagement.spotlight = {};
+  db.engagement.spotlight[type] = data;
+  await saveDB(db);
+  res.json({ ok: true });
+});
+
+// ── Engagement: Achievements ──────────────────────────────────────────────────
+app.get('/api/engagement/achievements', async (req, res) => {
+  await getDbInitPromise();
+  res.json({ achievements: db.engagement?.achievements || [] });
+});
+
+app.put('/api/engagement/achievements', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  await getDbInitPromise();
+  const { achievements } = req.body;
+  if (!Array.isArray(achievements)) return res.status(400).json({ error: 'achievements array required' });
+  if (!db.engagement) db.engagement = { ideas: [], nextIdeaId: 1 };
+  db.engagement.achievements = achievements;
+  await saveDB(db);
+  res.json({ ok: true });
+});
+
 // ── Debug endpoint (DB state snapshot) ───────────────────────────────────────
 app.get('/api/debug/db', async (req, res) => {
   await getDbInitPromise();
