@@ -5827,6 +5827,37 @@ app.get('/api/leaderboard/history', async (req, res) => {
   }
 });
 
+// ── Engagement: Main combined GET (used by eehLoad in app.js) ────────────────
+app.get('/api/engagement', async (req, res) => {
+  await getDbInitPromise();
+  const eng = db.engagement || {};
+  res.json({
+    moments:      eng.moments      || { photos: [], birthdays: [], anniversaries: [] },
+    spotlight:    eng.spotlight    || {},
+    achievements: eng.achievements || [],
+    ideas:        eng.ideas        || [],
+    nextIdeaId:   eng.nextIdeaId   || 1,
+  });
+});
+
+// ── Engagement: Ideas (used by eehLoad separately) ────────────────────────────
+app.get('/api/ideas', async (req, res) => {
+  await getDbInitPromise();
+  res.json((db.engagement && db.engagement.ideas) || []);
+});
+
+app.post('/api/ideas', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
+  await getDbInitPromise();
+  const { title, text, author } = req.body;
+  if (!text?.trim()) return res.status(400).json({ error: 'text required' });
+  if (!db.engagement) db.engagement = { ideas: [], nextIdeaId: 1 };
+  const idea = { id: db.engagement.nextIdeaId++, title, text, author, date: new Date().toISOString() };
+  db.engagement.ideas.unshift(idea);
+  await saveDB(db);
+  res.status(201).json(idea);
+});
+
 // ── Engagement: Moments (birthdays, anniversaries, gallery photos) ────────────
 app.get('/api/engagement/moments', async (req, res) => {
   await getDbInitPromise();
