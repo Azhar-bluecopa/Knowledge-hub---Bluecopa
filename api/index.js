@@ -374,7 +374,7 @@ function getUserACL(email) {
     return {
       skillMatrix: member.acl?.skillMatrix || ORG_MEMBER_ACL.skillMatrix,
       kpis:        member.acl?.kpis        || ORG_MEMBER_ACL.kpis,
-      uat:         member.acl?.uat         || ORG_MEMBER_ACL.uat,
+      uat:         member.acl?.uat         || { type: 'all', selected: [] },
       ews:         member.acl?.ews         || ORG_MEMBER_ACL.ews,
       rocketlane:  member.acl?.rocketlane  || ORG_MEMBER_ACL.rocketlane
     };

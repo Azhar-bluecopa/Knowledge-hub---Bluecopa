@@ -10713,6 +10713,7 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
         if (uatPerm && uatPerm.type === 'none') {
           showToast('You do not have access to the UAT module. Contact your admin.', 'error'); return;
         }
+        if(typeof hideLanding==='function') hideLanding();
         history.pushState({screen:'uat'}, '');
         _origUatOpen.apply(this, arguments);
       };
