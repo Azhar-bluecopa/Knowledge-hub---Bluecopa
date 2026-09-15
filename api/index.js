@@ -754,7 +754,9 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
+let _analyticsCache = null, _analyticsCacheTs = 0;
 app.get('/api/analytics', (req, res) => {
+  if (_analyticsCache && Date.now() - _analyticsCacheTs < 60000) return res.json(_analyticsCache);
   const articles   = db.articles   || [];
   const categories = db.categories || [];
   const viewLog    = db.viewLog    || [];
@@ -865,7 +867,7 @@ app.get('/api/analytics', (req, res) => {
 
   const totalViews = articles.reduce((s, a) => s + (a.views || 0), 0);
 
-  res.json({
+  const result = {
     totals: {
       articles:   articles.length,
       categories: categories.length,
@@ -888,7 +890,9 @@ app.get('/api/analytics', (req, res) => {
     recentActivity,
     dailyViews,
     zeroViewArticles,
-  });
+  };
+  _analyticsCache = result; _analyticsCacheTs = Date.now();
+  res.json(result);
 });
 
 // ── AI Ask (Claude / Anthropic) ───────────────────────────────────────────────
@@ -1312,11 +1316,13 @@ app.put('/api/uat/testcases/:id', async (req, res) => {
   if (clientComments   !== undefined) tc.clientComments   = clientComments;
   if (attachments      !== undefined) tc.attachments       = attachments;
   Object.assign(tc, rest, { id:tc.id, bluecopaStatus:tc.bluecopaStatus, clientStatus:tc.clientStatus, bluecopaComments:tc.bluecopaComments, clientComments:tc.clientComments, attachments:tc.attachments, updatedAt:new Date().toISOString() });
-  await saveDB(db); res.json({ ok:true, data:tc });
+  const ok=await atomicUpdate({$set:{'uat.testcases':u.testcases,'uat.activity':u.activity}}); if(!ok) await saveDB(db);
+  res.json({ ok:true, data:tc });
 });
 app.delete('/api/uat/testcases/:id', async (req, res) => {
   await _dbReady; const u=uatDB(); u.testcases=u.testcases.filter(x=>x.id!==req.params.id);
-  await saveDB(db); res.json({ ok:true });
+  const ok=await atomicUpdate({$set:{'uat.testcases':u.testcases}}); if(!ok) await saveDB(db);
+  res.json({ ok:true });
 });
 app.post('/api/uat/testcases/bulk', async (req, res) => {
   await _dbReady; const u=uatDB(); const { ids=[], bluecopaStatus, clientStatus } = req.body;
@@ -1369,7 +1375,8 @@ app.put('/api/uat/issues/:id', async (req, res) => {
   if ((rest.status === 'resolved' || rest.status === 'solved') && !issue.resolvedAt) rest.resolvedAt = now;
   if (rest.severity) rest.severity = rest.severity.toLowerCase();
   Object.assign(issue, rest, { id:issue.id, updatedAt:now });
-  await saveDB(db); res.json({ ok:true, data:issue });
+  const _oi=await atomicUpdate({$set:{'uat.issues':u.issues,'uat.activity':u.activity}}); if(!_oi) await saveDB(db);
+  res.json({ ok:true, data:issue });
 });
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
@@ -1382,8 +1389,13 @@ app.get('/api/uat/dashboard', async (req, res) => {
   const permittedProjectIds = new Set(permittedProjects.map(p => p.id));
   const permittedTCs = u.testcases.filter(t => permittedProjectIds.has(t.projectId));
   const permittedIssues = u.issues.filter(i => permittedProjectIds.has(i.projectId));
+  // Pre-build lookup Maps — O(N) once instead of O(N×P) in projectStats
+  const tcByProject = new Map(); const issuesByProject = new Map();
+  for (const tc of u.testcases) { if (!tcByProject.has(tc.projectId)) tcByProject.set(tc.projectId,[]); tcByProject.get(tc.projectId).push(tc); }
+  for (const iss of u.issues)   { if (!issuesByProject.has(iss.projectId)) issuesByProject.set(iss.projectId,[]); issuesByProject.get(iss.projectId).push(iss); }
+  const clientMap = new Map(u.clients.map(c=>[c.id,c]));
   function projectStats(p) {
-    const tc=u.testcases.filter(t=>t.projectId===p.id);
+    const tc=tcByProject.get(p.id)||[];
     const bPassed=tc.filter(t=>t.bluecopaStatus==='pass').length;
     const cPassed=tc.filter(t=>t.clientStatus==='pass').length;
     const blocked=tc.filter(t=>t.bluecopaStatus==='blocked'||t.clientStatus==='blocked').length;
@@ -1395,9 +1407,10 @@ app.get('/api/uat/dashboard', async (req, res) => {
       if(t.bluecopaStatus==='fail'||t.clientStatus==='fail') byCategory[t.category].fail++;
       if(t.bluecopaStatus==='blocked'||t.clientStatus==='blocked') byCategory[t.category].blocked++;
     });
-    const client=u.clients.find(c=>c.id===p.clientId);
+    const client=clientMap.get(p.clientId);
     const goLiveScore = tc.length ? Math.min(100, Math.round(((bPassed*0.6)+(cPassed*0.4))/tc.length*100)) : 0;
-    return { ...p, clientName:client?.name||'', total:tc.length, bPassed, cPassed, failed:tc.filter(t=>t.bluecopaStatus==='fail'||t.clientStatus==='fail').length, blocked, goLiveScore, byCategory, openIssues:u.issues.filter(i=>i.projectId===p.id&&['open','in_progress'].includes(i.status)).length };
+    const openIssues=(issuesByProject.get(p.id)||[]).filter(i=>['open','in_progress'].includes(i.status)).length;
+    return { ...p, clientName:client?.name||'', total:tc.length, bPassed, cPassed, failed:tc.filter(t=>t.bluecopaStatus==='fail'||t.clientStatus==='fail').length, blocked, goLiveScore, byCategory, openIssues };
   }
   const allTCs=permittedTCs;
   const permittedClientIds = new Set(permittedProjects.map(p=>p.clientId));
@@ -1441,7 +1454,8 @@ app.get('/api/uat/repository', async (req, res) => {
   if (category)  tcs=tcs.filter(t=>t.category===category);
   if (priority)  tcs=tcs.filter(t=>t.priority===priority);
   if (q) { const ql=q.toLowerCase(); tcs=tcs.filter(t=>(t.testDescription||'').toLowerCase().includes(ql)||(t.subCategory||'').toLowerCase().includes(ql)||(t.category||'').toLowerCase().includes(ql)); }
-  const enriched=tcs.slice(0,200).map(t=>{ const p=u.projects.find(x=>x.id===t.projectId); const c=u.clients.find(x=>x.id===t.clientId); return {category:t.category,subCategory:t.subCategory,testDescription:t.testDescription,expectedResult:t.expectedResult,priority:t.priority,projectName:p?.name||'',clientName:c?.name||'',bluecopaStatus:t.bluecopaStatus,clientStatus:t.clientStatus}; });
+  const pMap=new Map(u.projects.map(p=>[p.id,p])); const cMap=new Map(u.clients.map(c=>[c.id,c]));
+  const enriched=tcs.slice(0,200).map(t=>{ const p=pMap.get(t.projectId); const c=cMap.get(t.clientId); return {category:t.category,subCategory:t.subCategory,testDescription:t.testDescription,expectedResult:t.expectedResult,priority:t.priority,projectName:p?.name||'',clientName:c?.name||'',bluecopaStatus:t.bluecopaStatus,clientStatus:t.clientStatus}; });
   res.json({ ok:true, data:enriched });
 });
 
@@ -1516,7 +1530,8 @@ app.put('/api/uat/portal/:token/tc/:id', async (req, res) => {
   }
   if (attachments !== undefined) tc.attachments=attachments;
   tc.updatedAt=new Date().toISOString();
-  await saveDB(db); res.json({ ok:true, data:tc });
+  const _ok=await atomicUpdate({$set:{'uat.testcases':u.testcases,'uat.activity':u.activity}}); if(!_ok) await saveDB(db);
+  res.json({ ok:true, data:tc });
 });
 
 // ── Client Portal HTML (standalone page) ─────────────────────────────────────
