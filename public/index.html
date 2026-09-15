@@ -21,10 +21,10 @@ html.dw-restoring #dwCover{display:block;position:fixed;top:0;left:0;right:0;bot
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Non-blocking font load: media=print swapped to all once loaded -->
   <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:wght@400;600&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap"
     media="print" onload="this.media='all'">
   <noscript>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bebas+Neue&family=Cinzel:wght@600&family=Pacifico&family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:wght@400;600&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
   <link rel="stylesheet" href="/style.css?v=104">
   <link rel="stylesheet" href="/uat.css?v=27" media="print" onload="this.media='all'">
@@ -7413,7 +7413,6 @@ async function updateFeedbackStatus(id) {
   </div>
 </div>
 
-  <script src="/courses.js?v=17" defer></script>
   <script src="/app.js?v=109" defer></script>
 <script>
 // Inline fetch — runs immediately, not gated on app.js cache
@@ -7421,6 +7420,26 @@ async function updateFeedbackStatus(id) {
 </script>
   <script src="/uat.js?v=59" defer></script>
   <script src="/ews.js?v=8" defer></script>
+  <script>
+  // Lazy-load courses.js (502 KB) only when Learning section first opens
+  (function(){
+    var _cl=false;
+    function _lc(cb){
+      if(window.MLC){cb&&cb();return;}
+      if(_cl){cb&&window.addEventListener('_coursesReady',cb,{once:true});return;}
+      _cl=true;
+      var s=document.createElement('script');s.src='/courses.js?v=17';
+      s.onload=function(){window.dispatchEvent(new Event('_coursesReady'));cb&&cb();};
+      document.head.appendChild(s);
+    }
+    window.addEventListener('load',function(){
+      var _go=window.dwGoLearning;
+      if(typeof _go==='function') window.dwGoLearning=function(){_lc(function(){_go.apply(window,arguments);});};
+      var _mc=window.mcOpenCourse;
+      if(typeof _mc==='function') window.mcOpenCourse=function(e){_lc(function(){_mc.call(window,e);});};
+    });
+  })();
+  </script>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY

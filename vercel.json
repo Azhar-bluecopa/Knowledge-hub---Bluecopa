@@ -43,7 +43,7 @@
     {
       "src": "/(.*\\.(css|js))",
       "dest": "/public/$1",
-      "headers": { "cache-control": "no-cache, no-store, must-revalidate" }
+      "headers": { "cache-control": "public, max-age=31536000, immutable" }
     },
     {
       "src": "/(.*)",

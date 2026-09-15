@@ -753,6 +753,13 @@ app.post('/api/admin/login', (req, res) => {
   return res.status(403).json({ error: 'Not authorized' });
 });
 
+// ── UAT caches ────────────────────────────────────────────────────────────────
+const _uatDashCache = new Map(); // email → {data, ts}  (10s TTL)
+const _uatTcCache   = new Map(); // `${email}:${projectId}` → {data, ts}  (8s TTL)
+function _uatTcCacheInvalidate(projectId) {
+  for (const k of _uatTcCache.keys()) { if (k.includes(':'+projectId)) _uatTcCache.delete(k); }
+}
+
 // ── Analytics ─────────────────────────────────────────────────────────────────
 let _analyticsCache = null, _analyticsCacheTs = 0;
 app.get('/api/analytics', (req, res) => {
@@ -1282,16 +1289,25 @@ app.post('/api/uat/projects/:id/signoff', async (req, res) => {
 app.get('/api/uat/testcases', async (req, res) => {
   await _dbReady; ensureACL();
   const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  const pId = req.query.projectId;
+  // Short-lived cache only for simple per-project requests (no extra filters)
+  const _simpleReq = pId && !req.query.clientId && !req.query.category && !req.query.bStatus && !req.query.cStatus && !req.query.q;
+  if (_simpleReq) {
+    const _tc = _uatTcCache.get(email+':'+pId);
+    if (_tc && Date.now() - _tc.ts < 8000) return res.json(_tc.data);
+  }
   const allowedIds = getAllowedUATProjectIds(email);
   let list = uatDB().testcases;
   if (allowedIds !== null) list = list.filter(t => allowedIds.includes(t.projectId));
-  if (req.query.projectId) list=list.filter(t=>t.projectId===req.query.projectId);
+  if (pId)               list=list.filter(t=>t.projectId===pId);
   if (req.query.clientId)  list=list.filter(t=>t.clientId===req.query.clientId);
   if (req.query.category)  list=list.filter(t=>t.category===req.query.category);
   if (req.query.bStatus)   list=list.filter(t=>t.bluecopaStatus===req.query.bStatus);
   if (req.query.cStatus)   list=list.filter(t=>t.clientStatus===req.query.cStatus);
   if (req.query.q) { const ql=req.query.q.toLowerCase(); list=list.filter(t=>(t.testDescription||'').toLowerCase().includes(ql)||(t.subCategory||'').toLowerCase().includes(ql)||(t.category||'').toLowerCase().includes(ql)); }
-  res.json({ ok:true, data:list });
+  const _tcResult = { ok:true, data:list };
+  if (_simpleReq) _uatTcCache.set(email+':'+pId, { data:_tcResult, ts:Date.now() });
+  res.json(_tcResult);
 });
 app.post('/api/uat/testcases', async (req, res) => {
   await _dbReady; const u = uatDB();
@@ -1317,21 +1333,29 @@ app.put('/api/uat/testcases/:id', async (req, res) => {
   if (attachments      !== undefined) tc.attachments       = attachments;
   Object.assign(tc, rest, { id:tc.id, bluecopaStatus:tc.bluecopaStatus, clientStatus:tc.clientStatus, bluecopaComments:tc.bluecopaComments, clientComments:tc.clientComments, attachments:tc.attachments, updatedAt:new Date().toISOString() });
   const ok=await atomicUpdate({$set:{'uat.testcases':u.testcases,'uat.activity':u.activity}}); if(!ok) await saveDB(db);
+  _uatTcCacheInvalidate(tc.projectId); _uatDashCache.clear();
   res.json({ ok:true, data:tc });
 });
 app.delete('/api/uat/testcases/:id', async (req, res) => {
-  await _dbReady; const u=uatDB(); u.testcases=u.testcases.filter(x=>x.id!==req.params.id);
+  await _dbReady; const u=uatDB();
+  const _del=u.testcases.find(x=>x.id===req.params.id);
+  u.testcases=u.testcases.filter(x=>x.id!==req.params.id);
   const ok=await atomicUpdate({$set:{'uat.testcases':u.testcases}}); if(!ok) await saveDB(db);
+  if(_del) { _uatTcCacheInvalidate(_del.projectId); _uatDashCache.clear(); }
   res.json({ ok:true });
 });
 app.post('/api/uat/testcases/bulk', async (req, res) => {
   await _dbReady; const u=uatDB(); const { ids=[], bluecopaStatus, clientStatus } = req.body;
+  const affectedProjects = new Set();
   ids.forEach(id=>{ const t=u.testcases.find(x=>x.id===id); if(!t) return;
     if (bluecopaStatus) t.bluecopaStatus=bluecopaStatus;
     if (clientStatus)   t.clientStatus=clientStatus;
     t.updatedAt=new Date().toISOString();
+    if(t.projectId) affectedProjects.add(t.projectId);
   });
-  await saveDB(db); res.json({ ok:true });
+  await saveDB(db);
+  affectedProjects.forEach(pid=>_uatTcCacheInvalidate(pid)); _uatDashCache.clear();
+  res.json({ ok:true });
 });
 // Reorder test cases within a project
 app.post('/api/uat/testcases/reorder', async (req, res) => {
@@ -1381,8 +1405,11 @@ app.put('/api/uat/issues/:id', async (req, res) => {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 app.get('/api/uat/dashboard', async (req, res) => {
-  await _dbReady; ensureACL(); const u=uatDB();
+  await _dbReady; ensureACL();
   const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  const _dc = _uatDashCache.get(email);
+  if (_dc && Date.now() - _dc.ts < 10000) return res.json(_dc.data);
+  const u=uatDB();
   const allowedIds = getAllowedUATProjectIds(email);
   // Restrict dashboard to permitted projects so all stats recalculate correctly
   const permittedProjects = allowedIds !== null ? u.projects.filter(p => allowedIds.includes(p.id)) : u.projects;
@@ -1425,7 +1452,9 @@ app.get('/api/uat/dashboard', async (req, res) => {
     projects: permittedProjects.map(projectStats),
     activity: u.activity.filter(a => !a.projectId || permittedProjectIds.has(a.projectId)).slice(0,30),
   };
-  res.json({ ok:true, data:stats });
+  const _dashResult = { ok:true, data:stats };
+  _uatDashCache.set(email, { data:_dashResult, ts:Date.now() });
+  res.json(_dashResult);
 });
 
 // ── Templates ─────────────────────────────────────────────────────────────────
