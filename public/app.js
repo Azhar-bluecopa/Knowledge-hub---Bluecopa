@@ -1098,4 +1098,196 @@ window.eehGalleryLightbox=eehGalleryLightbox;window.eehLightboxNav=eehLightboxNa
 async function eehHandlePhotoFiles(files){if(!files||!files.length)return;const statusEl=document.getElementById("photoUploadStatus");if(statusEl)statusEl.style.display="block";const file=Array.from(files).find(f=>f.type.startsWith("image/"));if(!file){if(statusEl)statusEl.style.display="none";return;}if(statusEl)statusEl.textContent="Compressing photo…";try{const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=e=>{const img=new Image();img.onload=()=>{const MAX=1400;let w=img.width,h=img.height;if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;canvas.getContext("2d").drawImage(img,0,0,w,h);resolve(canvas.toDataURL("image/jpeg",.78));};img.onerror=reject;img.src=e.target.result;};reader.onerror=reject;reader.readAsDataURL(file);});document.getElementById("photoUrl").value=dataUrl;if(statusEl)statusEl.textContent="✓ Ready — add a caption and click Add Photo";}catch(err){if(statusEl)statusEl.textContent="Failed to process image — try again";}}
 function eehHandlePhotoDrop(event){event.preventDefault();const dz=document.getElementById("photoDropZone");if(dz)dz.style.borderColor="rgba(255,255,255,.15)";eehHandlePhotoFiles(event.dataTransfer.files);}
 window.eehHandlePhotoFiles=eehHandlePhotoFiles;window.eehHandlePhotoDrop=eehHandlePhotoDrop;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REDESIGNED EVENT GALLERY — overrides old eehRenderGallery + lightbox above
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Migrate legacy flat photos[] → events[] (runs once on first render)
+function _eehMigrateToEvents() {
+  const m = _eehData.moments || {};
+  if (!m.events) m.events = [];
+  if (m.photos && m.photos.length && !m.events.length) {
+    m.events.push({
+      id: 'evt_' + Date.now(),
+      name: 'Ganesh Chaturthi Celebrations',
+      emoji: '🪔',
+      date: '2025-09-01',
+      photos: m.photos.map(p => ({url: p.url, caption: p.caption || ''}))
+    });
+  }
+  _eehData.moments = m;
+}
+
+function eehRenderGallery() {
+  const el = document.getElementById('eehGallery');
+  if (!el) return;
+  _eehMigrateToEvents();
+  const events = (_eehData.moments || {}).events || [];
+  if (!events.length) {
+    el.innerHTML = '<div class="eeh-ev-empty"><span class="eeh-ev-empty-icon">📸</span><div>No team memories yet</div><div style="font-size:12px;opacity:.5;margin-top:4px">Add your first event to get started</div></div>';
+    return;
+  }
+  el.innerHTML = '<div class="eeh-ev-grid">' + events.map((ev, i) => {
+    const cover = ev.photos && ev.photos[0] ? ev.photos[0].url : '';
+    const count = (ev.photos || []).length;
+    const featured = i === 0 ? ' eeh-ev-featured' : '';
+    return `<div class="eeh-ev-card${featured}" style="animation-delay:${(i * 0.09).toFixed(2)}s" onclick="eehOpenEvent(${i})">
+      <div class="eeh-ev-cover">${cover ? `<img src="${cover}" alt="${ev.name}" loading="lazy">` : '<div class="eeh-ev-no-photo">📸</div>'}</div>
+      <div class="eeh-ev-overlay">
+        <div class="eeh-ev-badge">${count} photo${count !== 1 ? 's' : ''}</div>
+        <div class="eeh-ev-info">
+          <div class="eeh-ev-emoji-name"><span>${ev.emoji || '📸'}</span> <span class="eeh-ev-name">${ev.name}</span></div>
+          ${ev.date ? `<div class="eeh-ev-date">${new Date(ev.date + 'T00:00:00').toLocaleDateString('en-IN',{month:'long',year:'numeric'})}</div>` : ''}
+        </div>
+        <div class="eeh-ev-cta">View Gallery <span style="font-size:16px">→</span></div>
+      </div>
+      ${isAdminUser() ? `<button class="eeh-ev-del" onclick="event.stopPropagation();eehDeleteEvent(${i})" title="Delete event">✕</button>` : ''}
+    </div>`;
+  }).join('') + '</div>';
+}
+
+// ── Slideshow state ──────────────────────────────────────────────────────────
+let _evSlideshow = null;
+
+function eehOpenEvent(evtIdx) {
+  _eehMigrateToEvents();
+  const events = (_eehData.moments || {}).events || [];
+  const ev = events[evtIdx];
+  if (!ev || !ev.photos || !ev.photos.length) return;
+  _evSlideshow = { evtIdx, photoIdx: 0, photos: ev.photos, name: ev.name, emoji: ev.emoji || '📸' };
+  _eehRenderSlideshow();
+}
+
+function _eehRenderSlideshow() {
+  const existing = document.getElementById('eehSlideshow');
+  if (existing) { existing.remove(); }
+  const { photos, photoIdx, name, emoji, evtIdx } = _evSlideshow;
+  const p = photos[photoIdx];
+  const dots = photos.map((_, i) =>
+    `<button class="eeh-sl-dot${i === photoIdx ? ' active' : ''}" onclick="eehSlideshowGo(${i})"></button>`
+  ).join('');
+  const navBtns = photos.length > 1
+    ? `<button class="eeh-sl-nav eeh-sl-prev" onclick="eehSlideshowNav(-1)">&#8249;</button>
+       <button class="eeh-sl-nav eeh-sl-next" onclick="eehSlideshowNav(1)">&#8250;</button>`
+    : '';
+  const delBtn = isAdminUser()
+    ? `<button class="eeh-sl-del-photo" onclick="eehSlideshowDeletePhoto(${evtIdx},${photoIdx})">Remove this photo</button>`
+    : '';
+  document.body.insertAdjacentHTML('beforeend', `
+    <div class="eeh-slideshow" id="eehSlideshow">
+      <div class="eeh-sl-header">
+        <div class="eeh-sl-title"><span class="eeh-sl-title-emoji">${emoji}</span>${name}</div>
+        <div class="eeh-sl-counter">${photoIdx + 1} <span style="opacity:.4">/</span> ${photos.length}</div>
+        <button class="eeh-sl-close" onclick="eehSlideshowClose()">&#10005;</button>
+      </div>
+      <div class="eeh-sl-stage">
+        ${navBtns}
+        <div class="eeh-sl-img-wrap" onclick="event.stopPropagation()">
+          <img class="eeh-sl-img" src="${p.url}" alt="${p.caption || ''}">
+        </div>
+      </div>
+      <div class="eeh-sl-footer">
+        ${p.caption ? `<div class="eeh-sl-caption">${p.caption}</div>` : ''}
+        <div class="eeh-sl-dots">${dots}</div>
+        ${delBtn}
+      </div>
+    </div>
+  `);
+  if (window._slKeyHandler) document.removeEventListener('keydown', window._slKeyHandler);
+  window._slKeyHandler = e => {
+    if (e.key === 'Escape') eehSlideshowClose();
+    else if (e.key === 'ArrowLeft') eehSlideshowNav(-1);
+    else if (e.key === 'ArrowRight') eehSlideshowNav(1);
+  };
+  document.addEventListener('keydown', window._slKeyHandler);
+}
+
+function eehSlideshowNav(dir) {
+  if (!_evSlideshow) return;
+  const len = _evSlideshow.photos.length;
+  _evSlideshow.photoIdx = (_evSlideshow.photoIdx + dir + len) % len;
+  _eehRenderSlideshow();
+}
+
+function eehSlideshowGo(idx) {
+  if (!_evSlideshow) return;
+  _evSlideshow.photoIdx = idx;
+  _eehRenderSlideshow();
+}
+
+function eehSlideshowClose() {
+  const el = document.getElementById('eehSlideshow');
+  if (el) { el.classList.add('eeh-sl-closing'); setTimeout(() => el.remove(), 180); }
+  if (window._slKeyHandler) document.removeEventListener('keydown', window._slKeyHandler);
+  _evSlideshow = null;
+}
+
+async function eehSlideshowDeletePhoto(evtIdx, photoIdx) {
+  const events = _eehData.moments.events;
+  events[evtIdx].photos.splice(photoIdx, 1);
+  if (!events[evtIdx].photos.length) {
+    events.splice(evtIdx, 1);
+    eehSlideshowClose();
+  } else {
+    _evSlideshow.photos = events[evtIdx].photos;
+    _evSlideshow.photoIdx = Math.min(photoIdx, _evSlideshow.photos.length - 1);
+    _eehRenderSlideshow();
+  }
+  await _eehSaveMoments();
+  eehRenderGallery();
+}
+
+async function eehDeleteEvent(evtIdx) {
+  if (!confirm('Delete this entire event and all its photos?')) return;
+  _eehData.moments.events.splice(evtIdx, 1);
+  await _eehSaveMoments();
+  eehRenderGallery();
+}
+
+// Override old eehOpenPhotoModal to populate event datalist
+function eehOpenPhotoModal() {
+  ['photoUrl','photoCaption','photoEventName'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const s = document.getElementById('photoUploadStatus');
+  if (s) s.style.display = 'none';
+  // Populate event name datalist
+  const dl = document.getElementById('eehEventList');
+  if (dl) {
+    _eehMigrateToEvents();
+    const events = (_eehData.moments || {}).events || [];
+    dl.innerHTML = events.map(ev => `<option value="${ev.name}">`).join('');
+  }
+  document.getElementById('eehPhotoModalBg').classList.add('open');
+}
+
+// Override old eehSavePhoto to use events structure
+async function eehSavePhoto() {
+  const url = (document.getElementById('photoUrl') || {}).value?.trim();
+  const caption = (document.getElementById('photoCaption') || {}).value?.trim() || '';
+  const eventName = (document.getElementById('photoEventName') || {}).value?.trim() || 'Team Memories';
+  const eventEmoji = (document.getElementById('photoEventEmoji') || {}).value?.trim() || '📸';
+  if (!url) return;
+  _eehMigrateToEvents();
+  if (!_eehData.moments) _eehData.moments = { photos: [], birthdays: [], anniversaries: [], events: [] };
+  if (!_eehData.moments.events) _eehData.moments.events = [];
+  let ev = _eehData.moments.events.find(e => e.name.toLowerCase() === eventName.toLowerCase());
+  if (!ev) {
+    ev = { id: 'evt_' + Date.now(), name: eventName, emoji: eventEmoji, date: new Date().toISOString().slice(0,10), photos: [] };
+    _eehData.moments.events.unshift(ev);
+  }
+  ev.photos.push({ url, caption });
+  await _eehSaveMoments();
+  document.getElementById('eehPhotoModalBg').classList.remove('open');
+  ['photoUrl','photoCaption','photoEventName'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  eehRenderGallery();
+}
+
+window.eehOpenEvent = eehOpenEvent;
+window.eehSlideshowNav = eehSlideshowNav;
+window.eehSlideshowGo = eehSlideshowGo;
+window.eehSlideshowClose = eehSlideshowClose;
+window.eehSlideshowDeletePhoto = eehSlideshowDeletePhoto;
+window.eehDeleteEvent = eehDeleteEvent;
+window.eehOpenPhotoModal = eehOpenPhotoModal;
+window.eehSavePhoto = eehSavePhoto;
 async function _eehSaveMoments(){const e=JSON.parse(localStorage.getItem("kb_user")||"{}");await fetch("/api/engagement/moments",{method:"PUT",headers:{"Content-Type":"application/json","x-user-email":e.email||""},body:JSON.stringify({moments:_eehData.moments})})}async function eehSaveBirthday(){const e={name:document.getElementById("bdName").value.trim(),dept:document.getElementById("bdDept").value.trim(),date:document.getElementById("bdDate").value,photo:document.getElementById("bdPhoto").value.trim()};e.name&&e.date&&(_eehData.moments||(_eehData.moments={photos:[],birthdays:[],anniversaries:[]}),_eehData.moments.birthdays.push(e),await _eehSaveMoments(),document.getElementById("eehBirthdayModalBg").classList.remove("open"),eehRenderBirthdays())}async function eehSaveAnniversary(){const e={name:document.getElementById("annName").value.trim(),dept:document.getElementById("annDept").value.trim(),date:document.getElementById("annDate").value,photo:document.getElementById("annPhoto").value.trim()};e.name&&e.date&&(_eehData.moments||(_eehData.moments={photos:[],birthdays:[],anniversaries:[]}),_eehData.moments.anniversaries.push(e),await _eehSaveMoments(),document.getElementById("eehAnniversaryModalBg").classList.remove("open"),eehRenderAnniversaries())}async function eehSavePhoto(){const url=document.getElementById("photoUrl").value.trim();const caption=document.getElementById("photoCaption").value.trim();if(!url)return;_eehData.moments||(_eehData.moments={photos:[],birthdays:[],anniversaries:[]});_eehData.moments.photos.unshift({url,caption});await _eehSaveMoments();document.getElementById("eehPhotoModalBg").classList.remove("open");document.getElementById("photoUrl").value="";document.getElementById("photoCaption").value="";eehRenderGallery();}async function eehDeleteMoment(e,t){_eehData.moments[e].splice(t,1),await _eehSaveMoments(),eehRenderMoments()}function eehSelectCategory(e,t){_eehSelectedCategory=e,document.querySelectorAll(".eeh-cat-tile").forEach(e=>e.classList.remove("selected")),t.classList.add("selected")}const CAT_LABELS={website:"🖥️ Website",process:"⚙️ Process",product:"🚀 Product",culture:"🤝 Culture",other:"💬 Other"},STATUS_LABELS={new:"New",review:"Under Review",inprogress:"In Progress",implemented:"Implemented"};function eehRenderIdeas(){const e=document.getElementById("eehIdeasList");if(!e)return;const t=JSON.parse(localStorage.getItem("kb_user")||"{}"),n=isAdminUser();let a=_eehAllIdeas;"all"!==_eehCurrentFilter&&(a=a.filter(e=>e.category===_eehCurrentFilter)),a.length?e.innerHTML=a.map(e=>{const a=(e.voters||[]).includes(t.email||""),s={new:"eeh-status-new",review:"eeh-status-review",inprogress:"eeh-status-inprogress",implemented:"eeh-status-implemented"}[e.status]||"eeh-status-new",o={website:"eeh-cat-website",process:"eeh-cat-process",product:"eeh-cat-product",culture:"eeh-cat-culture",other:"eeh-cat-other"}[e.category]||"eeh-cat-other",i=new Date(e.date).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});return`<div class="eeh-idea-card" id="idea-${e.id}">\n      <div class="eeh-idea-vote">\n        <button class="eeh-vote-btn ${a?"voted":""}" onclick="eehToggleVote(${e.id})" title="${a?"Remove vote":"Upvote"}">▲</button>\n        <div class="eeh-vote-count" id="vote-count-${e.id}">${e.votes||0}</div>\n      </div>\n      <div class="eeh-idea-body">\n        <div class="eeh-idea-header">\n          <div class="eeh-idea-title">${e.title}</div>\n          <span class="eeh-idea-cat ${o}">${CAT_LABELS[e.category]||e.category}</span>\n          <span class="eeh-idea-status ${s}">${STATUS_LABELS[e.status]||e.status}</span>\n        </div>\n        <div class="eeh-idea-desc">${e.description}</div>\n        <div class="eeh-idea-meta">\n          <span>by ${e.author||"Anonymous"}</span>\n          <span>${i}</span>\n        </div>\n        ${n?`<div class="eeh-idea-admin-actions">\n          <button class="eeh-idea-status-btn" onclick="eehSetIdeaStatus(${e.id},'review')">Under Review</button>\n          <button class="eeh-idea-status-btn" onclick="eehSetIdeaStatus(${e.id},'inprogress')">In Progress</button>\n          <button class="eeh-idea-status-btn" onclick="eehSetIdeaStatus(${e.id},'implemented')">Implemented</button>\n          <button class="eeh-idea-del-btn" onclick="eehDeleteIdea(${e.id})">Delete</button>\n        </div>`:""}\n      </div>\n    </div>`}).join(""):e.innerHTML='<div class="eeh-empty"><span class="eeh-empty-icon">💡</span>No ideas yet — be the first to share one!</div>'}function eehFilterIdeas(e,t){_eehCurrentFilter=e,document.querySelectorAll(".eeh-idea-filter").forEach(e=>e.classList.remove("active")),t.classList.add("active"),eehRenderIdeas()}async function eehSubmitIdea(){const e=document.getElementById("ideaTitle").value.trim(),t=_eehSelectedCategory,n=document.getElementById("ideaDescription").value.trim(),a=document.getElementById("ideaAuthor").value.trim();if(!e||!t||!n)return void alert("Please fill in the title, pick a category tile, and add a description.");const s=JSON.parse(localStorage.getItem("kb_user")||"{}"),o=await fetch("/api/ideas",{method:"POST",headers:{"Content-Type":"application/json","x-user-email":s.email||""},body:JSON.stringify({title:e,category:t,description:n,author:a||s.name||"Anonymous"})}),i=await o.json();_eehAllIdeas.unshift(i),document.getElementById("ideaTitle").value="",document.getElementById("ideaDescription").value="",document.getElementById("ideaAuthor").value="",_eehSelectedCategory="",document.querySelectorAll(".eeh-cat-tile").forEach(e=>e.classList.remove("selected")),_eehCurrentFilter="all",document.querySelectorAll(".eeh-idea-filter").forEach(e=>e.classList.toggle("active","all"===e.dataset.filter)),eehRenderIdeas()}async function eehToggleVote(e){const t=JSON.parse(localStorage.getItem("kb_user")||"{}");if(!t.email)return;const n=await fetch(`/api/ideas/${e}/vote`,{method:"POST",headers:{"Content-Type":"application/json","x-user-email":t.email},body:JSON.stringify({voterEmail:t.email})}),a=await n.json(),s=_eehAllIdeas.find(t=>t.id===e);s&&(s.votes=a.votes,a.voted?s.voters.push(t.email):s.voters=s.voters.filter(e=>e!==t.email));const o=document.getElementById(`vote-count-${e}`);o&&(o.textContent=a.votes);const i=document.querySelector(`#idea-${e} .eeh-vote-btn`);i&&i.classList.toggle("voted",a.voted)}async function eehSetIdeaStatus(e,t){const n=JSON.parse(localStorage.getItem("kb_user")||"{}");await fetch(`/api/ideas/${e}/status`,{method:"PUT",headers:{"Content-Type":"application/json","x-user-email":n.email||""},body:JSON.stringify({status:t})});const a=_eehAllIdeas.find(t=>t.id===e);a&&(a.status=t),eehRenderIdeas()}async function eehDeleteIdea(e){if(!confirm("Delete this idea?"))return;const t=JSON.parse(localStorage.getItem("kb_user")||"{}");await fetch(`/api/ideas/${e}`,{method:"DELETE",headers:{"x-user-email":t.email||""}}),_eehAllIdeas=_eehAllIdeas.filter(t=>t.id!==e),eehRenderIdeas()}window.addEventListener("popstate",e=>{document.getElementById("eehOverlay").classList.contains("active")&&eehClose()});
