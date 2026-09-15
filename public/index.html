@@ -7414,7 +7414,7 @@ async function updateFeedbackStatus(id) {
 </div>
 
   <script src="/courses.js?v=17" defer></script>
-  <script src="/app.js?v=108" defer></script>
+  <script src="/app.js?v=109" defer></script>
 <script>
 // Inline fetch — runs immediately, not gated on app.js cache
 (async()=>{try{const r=await fetch('/api/delivery-team/count');if(r.ok){const d=await r.json();const el=document.getElementById('dwStatSMPeople');if(el&&d.count){el.textContent=d.count;}}}catch(e){}})();
@@ -7761,7 +7761,9 @@ async function updateFeedbackStatus(id) {
                 <th><input type="checkbox" class="uat-checkbox" onchange="UAT.selectAll(this.checked)"></th>
                 <th>#</th>
                 <th>Category</th>
+                <th>Sub-Category</th>
                 <th>Test Description</th>
+                <th>Expected Result</th>
                 <th>Priority</th>
                 <th>Bluecopa Status</th>
                 <th>Client Status</th>
