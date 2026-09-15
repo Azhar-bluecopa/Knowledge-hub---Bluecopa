@@ -7437,6 +7437,8 @@ async function updateFeedbackStatus(id) {
       if(typeof _go==='function') window.dwGoLearning=function(){_lc(function(){_go.apply(window,arguments);});};
       var _mc=window.mcOpenCourse;
       if(typeof _mc==='function') window.mcOpenCourse=function(e){_lc(function(){_mc.call(window,e);});};
+      // Preload courses.js in background after 1s so landing stats show ML count
+      setTimeout(function(){ _lc(); }, 1000);
     });
   })();
   </script>
@@ -7444,7 +7446,7 @@ async function updateFeedbackStatus(id) {
 <!-- ══════════════════════════════════════════════════════════════════════════
      UAT PLATFORM OVERLAY
 ═══════════════════════════════════════════════════════════════════════════ -->
-<div id="uatOverlay" style="display:none">
+<div id="uatOverlay" style="display:none;position:fixed;inset:0;z-index:600;background:#F3F4F8;flex-direction:column">
 
   <!-- Top bar -->
   <div class="uat-topbar">
@@ -8202,7 +8204,7 @@ async function updateFeedbackStatus(id) {
 <!-- ══════════════════════════════════════════════════════════════════════════
      EWS — EARLY WARNING SYSTEM OVERLAY
 ═══════════════════════════════════════════════════════════════════════════ -->
-<div id="ewsOverlay" style="display:none">
+<div id="ewsOverlay" style="display:none;position:fixed;inset:0;z-index:9000;background:#F3F4F8;flex-direction:column;overflow:hidden"
 
   <!-- Topbar -->
   <div class="ews-topbar">
