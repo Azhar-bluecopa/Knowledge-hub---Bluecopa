@@ -7413,7 +7413,7 @@ async function updateFeedbackStatus(id) {
   </div>
 </div>
 
-  <script src="/app.js?v=109" defer></script>
+  <script src="/app.js?v=110" defer></script>
 <script>
 // Inline fetch — runs immediately, not gated on app.js cache
 (async()=>{try{const r=await fetch('/api/delivery-team/count');if(r.ok){const d=await r.json();const el=document.getElementById('dwStatSMPeople');if(el&&d.count){el.textContent=d.count;}}}catch(e){}})();
@@ -7429,7 +7429,7 @@ async function updateFeedbackStatus(id) {
       if(_cl){cb&&window.addEventListener('_coursesReady',cb,{once:true});return;}
       _cl=true;
       var s=document.createElement('script');s.src='/courses.js?v=17';
-      s.onload=function(){window.dispatchEvent(new Event('_coursesReady'));cb&&cb();};
+      s.onload=function(){window.dispatchEvent(new Event('_coursesReady'));cb&&cb();if(typeof updateLandingStats==='function')updateLandingStats();};
       document.head.appendChild(s);
     }
     window.addEventListener('load',function(){
