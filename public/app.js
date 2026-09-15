@@ -1095,7 +1095,7 @@ function eehLightboxNav(dir){const photos=(_eehData.moments||{}).photos||[];wind
 function eehLightboxGo(idx){const lb=document.getElementById("eehGcLb");if(lb)lb.remove();window._gcLbIdx=idx;eehGalleryLightbox(idx);}
 function eehLightboxClose(){const lb=document.getElementById("eehGcLb");if(lb)lb.remove();if(window._gcKH)document.removeEventListener("keydown",window._gcKH);}
 window.eehGalleryLightbox=eehGalleryLightbox;window.eehLightboxNav=eehLightboxNav;window.eehLightboxGo=eehLightboxGo;window.eehLightboxClose=eehLightboxClose;function eehOpenBirthdayModal(){document.getElementById("eehBirthdayModalBg").classList.add("open")}function eehOpenAnniversaryModal(){document.getElementById("eehAnniversaryModalBg").classList.add("open")}function eehOpenPhotoModal(){document.getElementById("photoUrl").value="";document.getElementById("photoCaption").value="";const s=document.getElementById("photoUploadStatus");s&&(s.style.display="none");document.getElementById("eehPhotoModalBg").classList.add("open");}
-async function eehHandlePhotoFiles(files){if(!files||!files.length)return;const statusEl=document.getElementById("photoUploadStatus");if(statusEl)statusEl.style.display="block";const file=Array.from(files).find(f=>f.type.startsWith("image/"));if(!file){if(statusEl)statusEl.style.display="none";return;}if(statusEl)statusEl.textContent="Compressing photo…";try{const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=e=>{const img=new Image();img.onload=()=>{const MAX=1400;let w=img.width,h=img.height;if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;canvas.getContext("2d").drawImage(img,0,0,w,h);resolve(canvas.toDataURL("image/jpeg",.78));};img.onerror=reject;img.src=e.target.result;};reader.onerror=reject;reader.readAsDataURL(file);});document.getElementById("photoUrl").value=dataUrl;if(statusEl)statusEl.textContent="✓ Ready — add a caption and click Add Photo";}catch(err){if(statusEl)statusEl.textContent="Failed to process image — try again";}}
+async function eehHandlePhotoFiles(files){if(!files||!files.length)return;const statusEl=document.getElementById("photoUploadStatus");if(statusEl)statusEl.style.display="block";const file=Array.from(files).find(f=>f.type.startsWith("image/"));if(!file){if(statusEl)statusEl.style.display="none";return;}if(statusEl)statusEl.textContent="Compressing photo…";try{const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=e=>{const img=new Image();img.onload=()=>{const MAX=2160;let w=img.width,h=img.height;if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;const ctx=canvas.getContext("2d");ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";ctx.drawImage(img,0,0,w,h);resolve(canvas.toDataURL("image/jpeg",.92));};img.onerror=reject;img.src=e.target.result;};reader.onerror=reject;reader.readAsDataURL(file);});document.getElementById("photoUrl").value=dataUrl;if(statusEl)statusEl.textContent="✓ Ready — add a caption and click Add Photo";}catch(err){if(statusEl)statusEl.textContent="Failed to process image — try again";}}
 function eehHandlePhotoDrop(event){event.preventDefault();const dz=document.getElementById("photoDropZone");if(dz)dz.style.borderColor="rgba(255,255,255,.15)";eehHandlePhotoFiles(event.dataTransfer.files);}
 window.eehHandlePhotoFiles=eehHandlePhotoFiles;window.eehHandlePhotoDrop=eehHandlePhotoDrop;
 
@@ -1176,16 +1176,17 @@ function _eehRenderSlideshow() {
     : '';
   document.body.insertAdjacentHTML('beforeend', `
     <div class="eeh-slideshow" id="eehSlideshow">
+      <div class="eeh-sl-stage">
+        <div class="eeh-sl-bg" style="background-image:url('${p.url}')"></div>
+        <div class="eeh-sl-img-wrap">
+          <img class="eeh-sl-img" src="${p.url}" alt="${p.caption || ''}">
+        </div>
+        ${navBtns}
+      </div>
       <div class="eeh-sl-header">
         <div class="eeh-sl-title"><span class="eeh-sl-title-emoji">${emoji}</span>${name}</div>
         <div class="eeh-sl-counter">${photoIdx + 1} <span style="opacity:.4">/</span> ${photos.length}</div>
         <button class="eeh-sl-close" onclick="eehSlideshowClose()">&#10005;</button>
-      </div>
-      <div class="eeh-sl-stage">
-        ${navBtns}
-        <div class="eeh-sl-img-wrap" onclick="event.stopPropagation()">
-          <img class="eeh-sl-img" src="${p.url}" alt="${p.caption || ''}">
-        </div>
       </div>
       <div class="eeh-sl-footer">
         ${p.caption ? `<div class="eeh-sl-caption">${p.caption}</div>` : ''}
