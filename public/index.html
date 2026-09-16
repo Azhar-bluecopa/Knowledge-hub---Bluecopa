@@ -7418,7 +7418,7 @@ async function updateFeedbackStatus(id) {
 // Inline fetch — runs immediately, not gated on app.js cache
 (async()=>{try{const r=await fetch('/api/delivery-team/count');if(r.ok){const d=await r.json();const el=document.getElementById('dwStatSMPeople');if(el&&d.count){el.textContent=d.count;}}}catch(e){}})();
 </script>
-  <script src="/uat.js?v=59" defer></script>
+  <script src="/uat.js?v=60" defer></script>
   <script src="/ews.js?v=8" defer></script>
   <script>
   // Lazy-load courses.js (502 KB) only when Learning section first opens
