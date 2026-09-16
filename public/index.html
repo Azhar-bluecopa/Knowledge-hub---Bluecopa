@@ -10733,8 +10733,12 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
         uo.style.top = document.body.classList.contains('proxy-active') ? '48px' : '0px';
         uo.style.display = 'flex';
       }
-      // Trigger UAT data load via original (pre-patch) open, which handles init/refresh
-      if (_origUatOpen) _origUatOpen.call(typeof UAT!=='undefined'?UAT:window);
+      // Trigger UAT data load — UAT.init() fetches fresh data directly; fallback to _origUatOpen
+      if (typeof UAT !== 'undefined' && typeof UAT.init === 'function') {
+        UAT.init();
+      } else if (_origUatOpen) {
+        _origUatOpen.call(typeof UAT !== 'undefined' ? UAT : window);
+      }
     };
     // Patch EWS.open to save state
     if(typeof EWS!=='undefined' && typeof EWS.open==='function'){
