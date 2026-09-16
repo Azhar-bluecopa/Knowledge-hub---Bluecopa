@@ -5871,12 +5871,52 @@ app.get('/api/leaderboard/history', async (req, res) => {
   }
 });
 
+// ── Engagement photos ─────────────────────────────────────────────────────────
+// Gallery photos are stored as base64 data: URLs (~150-200 KB each) and were
+// being inlined into every /api/engagement response (1.2 MB of JSON). GET
+// responses now rewrite each to a content-addressed /api/engagement/photo/<sha1>
+// path served with immutable caching; PUT resolves those paths back to the
+// stored data: URLs so a client save never drops the image bytes.
+const _ENG_PHOTO_PREFIX = '/api/engagement/photo/';
+let _engPhotoIdx = null; // { byHash: Map<sha1, dataUrl>, hashOf: Map<dataUrl, sha1> }
+function _engPhotoIndex() {
+  if (_engPhotoIdx) return _engPhotoIdx;
+  const byHash = new Map(), hashOf = new Map();
+  const add = ph => { for (const p of ph || []) { const u = p && p.url; if (typeof u === 'string' && u.startsWith('data:')) { const h = require('crypto').createHash('sha1').update(u).digest('hex'); byHash.set(h, u); hashOf.set(u, h); } } };
+  const m = db.engagement?.moments || {};
+  add(m.photos); for (const ev of m.events || []) add(ev.photos);
+  return (_engPhotoIdx = { byHash, hashOf });
+}
+function _engMomentsForClient(m) {
+  if (!m) return m;
+  const { hashOf } = _engPhotoIndex();
+  const conv = ph => (ph || []).map(p => { const u = p && p.url; const h = typeof u === 'string' && hashOf.get(u); return h ? { ...p, url: _ENG_PHOTO_PREFIX + h } : p; });
+  const out = { ...m, photos: conv(m.photos) };
+  if (m.events) out.events = m.events.map(ev => ({ ...ev, photos: conv(ev.photos) }));
+  return out;
+}
+function _engResolvePhotoPaths(m) {
+  if (!m) return;
+  const { byHash } = _engPhotoIndex();
+  const fix = ph => { for (const p of ph || []) { const u = p && p.url; if (typeof u === 'string' && u.startsWith(_ENG_PHOTO_PREFIX)) { const d = byHash.get(u.slice(_ENG_PHOTO_PREFIX.length)); if (d) p.url = d; } } };
+  fix(m.photos); for (const ev of m.events || []) fix(ev.photos);
+}
+app.get('/api/engagement/photo/:hash', async (req, res) => {
+  await getDbInitPromise();
+  const u = _engPhotoIndex().byHash.get(String(req.params.hash));
+  const m = u && /^data:([^;,]+)(;base64)?,([\s\S]*)$/.exec(u);
+  if (!m) return res.status(404).end();
+  const buf = m[2] ? Buffer.from(m[3], 'base64') : Buffer.from(decodeURIComponent(m[3]), 'utf8');
+  res.set({ 'Content-Type': m[1], 'Cache-Control': 'public, max-age=31536000, immutable', 'Content-Length': buf.length });
+  res.end(buf);
+});
+
 // ── Engagement: Main combined GET (used by eehLoad in app.js) ────────────────
 app.get('/api/engagement', async (req, res) => {
   await getDbInitPromise();
   const eng = db.engagement || {};
   res.json({
-    moments:      eng.moments      || { photos: [], birthdays: [], anniversaries: [] },
+    moments:      _engMomentsForClient(eng.moments) || { photos: [], birthdays: [], anniversaries: [] },
     spotlight:    eng.spotlight    || {},
     achievements: eng.achievements || [],
     ideas:        eng.ideas        || [],
@@ -5905,7 +5945,7 @@ app.post('/api/ideas', async (req, res) => {
 // ── Engagement: Moments (birthdays, anniversaries, gallery photos) ────────────
 app.get('/api/engagement/moments', async (req, res) => {
   await getDbInitPromise();
-  res.json({ moments: db.engagement?.moments || { photos: [], birthdays: [], anniversaries: [] } });
+  res.json({ moments: _engMomentsForClient(db.engagement?.moments) || { photos: [], birthdays: [], anniversaries: [] } });
 });
 
 app.put('/api/engagement/moments', async (req, res) => {
@@ -5914,7 +5954,9 @@ app.put('/api/engagement/moments', async (req, res) => {
   const { moments } = req.body;
   if (!moments) return res.status(400).json({ error: 'moments required' });
   if (!db.engagement) db.engagement = { ideas: [], nextIdeaId: 1 };
+  _engResolvePhotoPaths(moments);
   db.engagement.moments = moments;
+  _engPhotoIdx = null;
   await saveDB(db);
   res.json({ ok: true });
 });

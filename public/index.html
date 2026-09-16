@@ -26,7 +26,7 @@ html.dw-restoring #dwCover{display:block;position:fixed;top:0;left:0;right:0;bot
   <noscript>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:wght@400;600&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
   </noscript>
-  <link rel="stylesheet" href="/style.css?v=104">
+  <link rel="stylesheet" href="/style.css?v=105">
   <link rel="stylesheet" href="/uat.css?v=27" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="/ews.css?v=9" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="/uat.css?v=27"><link rel="stylesheet" href="/ews.css?v=9"></noscript>
@@ -3244,9 +3244,18 @@ async function removeAdminEmail(email) {
 // ── WebSocket ─────────────────────────────────────────────────────────────────
 function connectWS() {
   const proto=location.protocol==='https:'?'wss:':'ws:';
-  const ws=new WebSocket(`${proto}//${location.host}`);
-  ws.onopen=()=>document.getElementById('onlineStatus').textContent='live · synced';
-  ws.onclose=()=>{ document.getElementById('onlineStatus').textContent='reconnecting…'; setTimeout(connectWS,3000); };
+  const st=document.getElementById('onlineStatus');
+  let ws;
+  try { ws=new WebSocket(`${proto}//${location.host}`); } catch(e) { if(st) st.textContent='online'; return; }
+  ws.onopen=()=>{ connectWS._fails=0; connectWS._everOpened=true; if(st) st.textContent='live · synced'; };
+  ws.onclose=()=>{
+    connectWS._fails=(connectWS._fails||0)+1;
+    if(st) st.textContent='online';
+    // Serverless hosting has no WS server — stop retrying after 3 failed attempts unless a
+    // connection previously succeeded (real disconnect); back off exponentially, capped at 30s.
+    if(!connectWS._everOpened && connectWS._fails>=3) return;
+    setTimeout(connectWS, Math.min(30000, 3000*Math.pow(2, connectWS._fails-1)));
+  };
   ws.onmessage=evt=>{
     const m=JSON.parse(evt.data);
     if (m.type==='article_created') {
@@ -7413,12 +7422,12 @@ async function updateFeedbackStatus(id) {
   </div>
 </div>
 
-  <script src="/app.js?v=110" defer></script>
+  <script src="/app.js?v=111" defer></script>
 <script>
 // Inline fetch — runs immediately, not gated on app.js cache
 (async()=>{try{const r=await fetch('/api/delivery-team/count');if(r.ok){const d=await r.json();const el=document.getElementById('dwStatSMPeople');if(el&&d.count){el.textContent=d.count;}}}catch(e){}})();
 </script>
-  <script src="/uat.js?v=61" defer></script>
+  <script src="/uat.js?v=62" defer></script>
   <script src="/ews.js?v=8" defer></script>
   <script>
   // Lazy-load courses.js (502 KB) only when Learning section first opens
@@ -9490,18 +9499,6 @@ async function updateFeedbackStatus(id) {
   </div>
 </div>
 
-<!-- Test case detail drawer -->
-<div id="uatDrawerBackdrop" class="uat-drawer-backdrop" onclick="UAT.closeTCDetail()"></div>
-<div id="uatDrawer" class="uat-drawer">
-  <div class="uat-drawer-header">
-    <div style="flex:1;min-width:0">
-      <div style="font-size:15px;font-weight:700;color:#0d1117;margin-bottom:4px" id="uatDrawerTitle">Test Case</div>
-      <div id="uatDrawerSub" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"></div>
-    </div>
-    <button class="uat-modal-close" style="margin-left:12px;flex-shrink:0" onclick="UAT.closeTCDetail()">✕</button>
-  </div>
-  <div class="uat-drawer-body" id="uatDrawerContent"></div>
-</div>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      ISSUE RESOLUTION PORTAL

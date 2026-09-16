@@ -174,3 +174,11 @@ body.proxy-active #rlOverlay{top:48px!important}
   .eeh-sl-nav{width:40px;height:40px;font-size:22px;}
   .eeh-sl-prev{left:8px;}.eeh-sl-next{right:8px;}
 }
+
+/* Course viewer: stack sidebar above content on narrow screens */
+@media (max-width:768px){
+  .mlcv-wrap{flex-direction:column}
+  .mlcv-sidebar{width:100%;flex:0 0 auto;max-height:36vh;border-right:0;border-bottom:1px solid rgba(255,255,255,.07);padding:10px 0}
+  .mlcv-main{flex:1 1 auto;min-height:0}
+  .mlcv-top-prog-track{width:70px}
+}
