@@ -7425,7 +7425,7 @@ async function updateFeedbackStatus(id) {
   (function(){
     var _cl=false;
     function _lc(cb){
-      if(window.MLC){cb&&cb();return;}
+      if(typeof MLC!=='undefined'){cb&&cb();return;}
       if(_cl){cb&&window.addEventListener('_coursesReady',cb,{once:true});return;}
       _cl=true;
       var s=document.createElement('script');s.src='/courses.js?v=17';
