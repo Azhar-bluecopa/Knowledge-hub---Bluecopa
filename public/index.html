@@ -4805,7 +4805,7 @@ async function updateFeedbackStatus(id) {
           <span class="mc-drop-badge mc-drop-soon">Soon</span>
         </div>
         <div class="mc-drop-divider"></div>
-        <div class="mc-drop-item" onclick="UAT.open();mcCloseBrowse()">
+        <div class="mc-drop-item" onclick="openUATPlatform();mcCloseBrowse()">
           <div class="mc-drop-icon" style="background:rgba(59,130,246,.1);">🧪</div>
           <div class="mc-drop-text"><div class="mc-drop-title">UAT Platform</div><div class="mc-drop-sub">Client UAT management & sign-off</div></div>
           <span class="mc-drop-badge mc-drop-live">Live</span>
@@ -8978,7 +8978,7 @@ async function updateFeedbackStatus(id) {
 
       <!-- UAT card -->
       <div class="csh-tool-card" style="animation:csh-fade-up .5s .8s ease both;"
-           onclick="cshClose();UAT.open()"
+           onclick="cshClose();openUATPlatform()"
            onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(59,130,246,.12)';this.style.borderColor='rgba(59,130,246,.4)';this.style.background='rgba(59,130,246,.06)'"
            onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='rgba(255,255,255,.08)';this.style.background='rgba(255,255,255,.035)'">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;">
@@ -10706,8 +10706,9 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
     }
 
     // Patch UAT.open to save state (UAT.open() doesn't call pushState itself)
+    var _origUatOpen = null;
     if(typeof UAT!=='undefined' && typeof UAT.open==='function'){
-      var _origUatOpen = UAT.open;
+      _origUatOpen = UAT.open;
       UAT.open = function(){
         var uatPerm = (window._userACL && window._userACL.uat) || null;
         if (uatPerm && uatPerm.type === 'none') {
@@ -10718,6 +10719,23 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
         _origUatOpen.apply(this, arguments);
       };
     }
+    // Global: open UAT from anywhere (CSH, shortcuts, etc.) — bypasses patch to avoid double push
+    window.openUATPlatform = function(){
+      var uatPerm = (window._userACL && window._userACL.uat) || null;
+      if (uatPerm && uatPerm.type === 'none') {
+        if(typeof showToast==='function') showToast('You do not have access to the UAT module. Contact your admin.', 'error');
+        return;
+      }
+      if(typeof hideLanding==='function') hideLanding();
+      history.pushState({screen:'uat'}, '');
+      var uo = document.getElementById('uatOverlay');
+      if (uo) {
+        uo.style.top = document.body.classList.contains('proxy-active') ? '48px' : '0px';
+        uo.style.display = 'flex';
+      }
+      // Trigger UAT data load via original (pre-patch) open, which handles init/refresh
+      if (_origUatOpen) _origUatOpen.call(typeof UAT!=='undefined'?UAT:window);
+    };
     // Patch EWS.open to save state
     if(typeof EWS!=='undefined' && typeof EWS.open==='function'){
       var _origEwsOpen = EWS.open;
@@ -10751,7 +10769,7 @@ function ipRenderAnalytics(d) { ipRenderDashboard(); }
         'roadmap':       function(){ if(typeof showRoadmap==='function') showRoadmap(); },
         'admin':         function(){ if(typeof openAdminPanel==='function') openAdminPanel(); },
         'about':         function(){ if(typeof openAbout==='function') openAbout(); },
-        'uat':           function(){ if(typeof UAT!=='undefined' && typeof UAT.open==='function') UAT.open(); },
+        'uat':           function(){ if(typeof openUATPlatform==='function') openUATPlatform(); },
         'ews':           function(){ if(typeof EWS!=='undefined' && typeof EWS.open==='function') EWS.open(); },
         'rocketlane-dashboard': function(){ if(typeof rlOpen==='function') rlOpen(); },
         'article-detail':function(){ if(typeof dwGoKnowledge==='function') dwGoKnowledge(); },
