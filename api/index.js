@@ -4994,14 +4994,71 @@ ${_emailFooter(url)}
   return { subject, html, text };
 }
 
-app.get('/api/learning/assignments', (req, res) => {
+// ── Learning: identity + persistence helpers ─────────────────────────────────
+// Assignments are keyed by the admin-entered employee name while the client
+// identifies itself by Google display name + email. Names drift ("Loganathan KS"
+// vs "Loganathan K S"), so every lookup also resolves through the email.
+function _lnorm(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+function learningNamesFor({ name, email }) {
   ensureLearning();
+  const names = new Set();
+  if (name) names.add(_lnorm(name));
+  const lc = (email || '').toLowerCase().trim();
+  if (lc) {
+    for (const [n, e] of Object.entries(db.learning.memberEmails)) if ((e || '').toLowerCase() === lc) names.add(_lnorm(n));
+    const dt = (db.deliveryTeam || []).find(m => (m.email || '').toLowerCase() === lc);
+    if (dt && dt.name) names.add(_lnorm(dt.name));
+    const rn = resolveNameFromEmail(lc); if (rn) names.add(_lnorm(rn));
+  }
+  return names;
+}
+function learningAssignmentsFor(ident) {
+  const names = learningNamesFor(ident);
+  return db.learning.assignments.filter(a => names.has(_lnorm(a.userName)));
+}
+function learningEmailFor(userName, fallback) {
+  const me = db.learning.memberEmails;
+  const hit = me[userName] || (Object.entries(me).find(([n]) => _lnorm(n) === _lnorm(userName)) || [])[1];
+  if (hit) return hit;
+  const dt = (db.deliveryTeam || []).find(m => _lnorm(m.name) === _lnorm(userName));
+  return (dt && dt.email) || fallback || null;
+}
+// Lambdas each hold an in-memory copy of the store; always re-read before a learning write.
+async function learningFresh() { dbCacheTs = 0; await freshDB(); ensureLearning(); }
+// Field-level write so a stale copy elsewhere can never erase a completion.
+async function persistAssignmentComplete(a) {
+  if (mongoCol) {
+    try {
+      await mongoCol.updateOne({ _id: 'main' }, { $set: { 'learning.assignments.$[el].completedAt': a.completedAt } }, { arrayFilters: [{ 'el.id': a.id }] });
+      dbCacheTs = 0; return;
+    } catch (e) { console.error('[learning complete/mongo]', e.message); }
+  }
+  await saveDB(db);
+}
+// Courses actually assigned to this user in the same path (not the path's whole catalogue).
+function learningGroup(a) {
+  return db.learning.assignments.filter(x => _lnorm(x.userName) === _lnorm(a.userName) && (x.pathId || null) === (a.pathId || null));
+}
+async function sendCompletionProgressEmail(a, fallbackEmail) {
+  const toEmail = learningEmailFor(a.userName, fallbackEmail);
+  if (!toEmail) return;
+  const group = learningGroup(a);
+  const allIds = [...new Set(group.map(x => x.courseId))];
+  const completedIds = group.filter(x => x.completedAt && x.courseId !== a.courseId).map(x => x.courseId).concat([a.courseId]);
+  const path = db.learning.paths.find(p => p.id === a.pathId);
+  const { subject, html, text } = buildProgressEmail({
+    memberName: a.userName, allCourseIds: allIds, completedCourseIds: completedIds,
+    dueDate: a.dueDate, pathName: path ? path.name : undefined
+  });
+  await Promise.race([ sendEmail({ to: toEmail, subject, html, text }), new Promise(r => setTimeout(r, 9000)) ]);
+}
+
+app.get('/api/learning/assignments', async (req, res) => {
+  await learningFresh();
   const { user } = req.query;
-  if (user) {
-    const list = db.learning.assignments.filter(
-      a => a.userName.toLowerCase() === user.toLowerCase()
-    );
-    return res.json({ assignments: list });
+  const email = req.headers['x-user-email'];
+  if (user || (email && !isAdmin(req))) {
+    return res.json({ assignments: learningAssignmentsFor({ name: user, email }) });
   }
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
   res.json({ assignments: db.learning.assignments, paths: db.learning.paths });
@@ -5009,7 +5066,7 @@ app.get('/api/learning/assignments', (req, res) => {
 
 app.post('/api/learning/assignments', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
-  ensureLearning();
+  await learningFresh();
   const { userName, courseId, type, dueDate, pathId } = req.body;
   if (!userName || !courseId) return res.status(400).json({ error: 'userName and courseId required' });
   const existing = db.learning.assignments.find(
@@ -5037,7 +5094,7 @@ app.post('/api/learning/assignments', async (req, res) => {
 
 app.put('/api/learning/assignments/:id', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
-  ensureLearning();
+  await learningFresh();
   const id = parseInt(req.params.id);
   const a  = db.learning.assignments.find(x => x.id === id);
   if (!a) return res.status(404).json({ error: 'Not found' });
@@ -5050,7 +5107,7 @@ app.put('/api/learning/assignments/:id', async (req, res) => {
 
 app.delete('/api/learning/assignments/:id', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
-  ensureLearning();
+  await learningFresh();
   const id = parseInt(req.params.id);
   db.learning.assignments = db.learning.assignments.filter(a => a.id !== id);
   await saveDB(db);
@@ -5059,7 +5116,7 @@ app.delete('/api/learning/assignments/:id', async (req, res) => {
 
 app.post('/api/learning/bulk-assign', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Admin required' });
-  ensureLearning();
+  await learningFresh();
   const { userNames, courseIds, pathId, type, dueDate, enrolleeEmails = {}, enrolledBy, context } = req.body;
   if (!Array.isArray(userNames) || !Array.isArray(courseIds))
     return res.status(400).json({ error: 'userNames[] and courseIds[] required' });
@@ -5110,73 +5167,34 @@ app.post('/api/learning/bulk-assign', async (req, res) => {
 });
 
 app.post('/api/learning/assignments/:id/complete', async (req, res) => {
-  ensureLearning();
+  await learningFresh();
   const id = parseInt(req.params.id);
   const a  = db.learning.assignments.find(x => x.id === id);
   if (!a) return res.status(404).json({ error: 'Not found' });
-  a.completedAt = a.completedAt || new Date().toISOString();
-  await saveDB(db);
-
-  // Send progress email before responding (setImmediate is killed on Vercel serverless)
-  try {
-    const toEmail = db.learning.memberEmails[a.userName];
-    if (toEmail) {
-      const path = db.learning.paths.find(p => p.id === a.pathId) || db.learning.paths[0];
-      if (path) {
-        const allIds       = path.courseIds || NJ_ALL;
-        const completedIds = db.learning.assignments
-          .filter(x => x.userName.toLowerCase() === a.userName.toLowerCase() && x.pathId === a.pathId && x.completedAt)
-          .map(x => x.courseId);
-        const { subject, html, text } = buildProgressEmail({
-          memberName: a.userName, allCourseIds: allIds,
-          completedCourseIds: completedIds, dueDate: a.dueDate,
-          pathName: path.name
-        });
-        await Promise.race([
-          sendEmail({ to: toEmail, subject, html, text }),
-          new Promise(r => setTimeout(r, 9000))
-        ]);
-      }
-    }
-  } catch(e) {
-    console.warn('[learning progress email]', a.userName, e.message);
+  if (a.completedAt) return res.json({ ok: true, alreadyComplete: true, assignment: a });
+  a.completedAt = new Date().toISOString();
+  await persistAssignmentComplete(a);
+  if (!req.body?.silent) {
+    try { await sendCompletionProgressEmail(a, req.headers['x-user-email']); }
+    catch (e) { console.warn('[learning progress email]', a.userName, e.message); }
   }
-
   res.json({ ok: true, assignment: a });
 });
 
 app.post('/api/learning/complete-by-course', async (req, res) => {
-  ensureLearning();
-  const { courseId, userName } = req.body;
+  const { courseId, userName, silent } = req.body;
   if (!courseId || !userName) return res.status(400).json({ error: 'courseId and userName required' });
-  const a = db.learning.assignments.find(x =>
-    x.courseId === courseId &&
-    x.userName.toLowerCase() === (userName||'').toLowerCase() &&
-    !x.completedAt
-  );
+  await learningFresh();
+  const mine = learningAssignmentsFor({ name: userName, email: req.headers['x-user-email'] }).filter(x => x.courseId === courseId);
+  if (!mine.length) return res.json({ ok: true, noAssignment: true });
+  const a = mine.find(x => !x.completedAt);
   if (!a) return res.json({ ok: true, alreadyComplete: true });
   a.completedAt = new Date().toISOString();
-  await saveDB(db);
-  try {
-    const toEmail = db.learning.memberEmails[a.userName];
-    if (toEmail) {
-      const path = db.learning.paths.find(p => p.id === a.pathId) || db.learning.paths[0];
-      if (path) {
-        const allIds = path.courseIds || NJ_ALL;
-        const completedIds = db.learning.assignments
-          .filter(x => x.userName.toLowerCase() === a.userName.toLowerCase() && x.pathId === a.pathId && x.completedAt)
-          .map(x => x.courseId);
-        const { subject, html, text } = buildProgressEmail({
-          memberName: a.userName, allCourseIds: allIds,
-          completedCourseIds: completedIds, dueDate: a.dueDate, pathName: path.name
-        });
-        await Promise.race([
-          sendEmail({ to: toEmail, subject, html, text }),
-          new Promise(r => setTimeout(r, 9000))
-        ]);
-      }
-    }
-  } catch(e) { console.warn('[complete-by-course email]', userName, e.message); }
+  await persistAssignmentComplete(a);
+  if (!silent) {
+    try { await sendCompletionProgressEmail(a, req.headers['x-user-email']); }
+    catch (e) { console.warn('[complete-by-course email]', userName, e.message); }
+  }
   res.json({ ok: true, completedAt: a.completedAt });
 });
 
@@ -5209,25 +5227,26 @@ app.post('/api/learning/preview-email', async (req, res) => {
 });
 
 async function runLearningReminders() {
-  ensureLearning();
+  await learningFresh();
   const now  = new Date();
   const today = now.toISOString().slice(0, 10);
   const paths  = db.learning.paths;
   const byUser = {};
   for (const a of db.learning.assignments) {
     if (!a.pathId || !a.dueDate) continue;
-    const key = `${a.userName}::${a.pathId}::${a.dueDate}`;
+    const key = `${_lnorm(a.userName)}::${a.pathId}::${a.dueDate}`;
     if (!byUser[key]) byUser[key] = [];
     byUser[key].push(a);
   }
   for (const key of Object.keys(byUser)) {
     const assignments = byUser[key];
     const { userName, pathId, dueDate } = assignments[0];
-    const toEmail = db.learning.memberEmails[userName];
+    const toEmail = learningEmailFor(userName);
     if (!toEmail) continue;
     const path     = paths.find(p => p.id === pathId);
     if (!path)     continue;
-    const allIds       = path.courseIds || NJ_ALL;
+    // Judge completion against what was actually assigned, not the path's whole catalogue
+    const allIds       = [...new Set(assignments.map(a => a.courseId))];
     const completedIds = assignments.filter(a => a.completedAt).map(a => a.courseId);
     if (completedIds.length >= allIds.length) continue;
     const due    = new Date(dueDate);
@@ -5248,12 +5267,12 @@ async function runLearningReminders() {
       }
       await sendEmail({ to:toEmail, subject:emailData.subject, html:emailData.html, text:emailData.text });
       db.learning.remindersSent.push(dedupeKey);
+      await atomicUpdate({ $addToSet: { 'learning.remindersSent': dedupeKey } });
       console.log(`[learning reminders] sent ${emailType} to ${userName}`);
     } catch(e) {
       console.warn(`[learning reminders] ${userName}`, e.message);
     }
   }
-  await saveDB(db);
 }
 
 app.get('/api/cron/learning-reminders', async (req, res) => {
