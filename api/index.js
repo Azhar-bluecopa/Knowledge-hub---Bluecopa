@@ -6356,6 +6356,14 @@ function ciDB() {
 }
 function ciId() { return `ci_${Date.now()}_${Math.random().toString(36).slice(2,6)}`; }
 
+// Same warm-lambda staleness issue as /api/uat/* and /api/portal/* (see the
+// comment above the clients route) — force a fresh read before every CI write
+// so one lambda's save can never silently erase another's.
+app.use('/api/ci', async (req, res, next) => {
+  if (req.method !== 'GET') { dbCacheTs = 0; await freshDB(); }
+  next();
+});
+
 // GET all assessments (admin)
 app.get('/api/ci/assessments', async (req, res) => {
   await _dbReady;
