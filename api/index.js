@@ -1219,8 +1219,13 @@ app.put('/api/uat/clients/:id', async (req, res) => {
 });
 app.delete('/api/uat/clients/:id', async (req, res) => {
   await _dbReady; const u = uatDB(); const id=req.params.id;
+  // Test cases and issues carry a projectId, not a clientId — cascade through the
+  // client's projects instead of a field that doesn't exist on them, or deleting a
+  // client just orphans every test case under it forever.
+  const projectIds = new Set(u.projects.filter(x=>x.clientId===id).map(x=>x.id));
   u.clients=u.clients.filter(x=>x.id!==id); u.projects=u.projects.filter(x=>x.clientId!==id);
-  u.testcases=u.testcases.filter(x=>x.clientId!==id); u.issues=u.issues.filter(x=>x.clientId!==id);
+  u.testcases=u.testcases.filter(x=>!projectIds.has(x.projectId));
+  u.issues=u.issues.filter(x=>!projectIds.has(x.projectId));
   await saveDB(db); res.json({ ok:true });
 });
 
