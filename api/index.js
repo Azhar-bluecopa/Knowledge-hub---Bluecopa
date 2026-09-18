@@ -1126,7 +1126,7 @@ function uatLog(type, msg, extras={}) {
   if (u.activity.length > 500) u.activity = u.activity.slice(0, 500);
 }
 function uatNewTC(base={}) {
-  return { id:uatId(), category:'', subCategory:'', testDescription:'', expectedResult:'', priority:'medium', owner:'',
+  return { id:uatId(), entity:'', category:'', subCategory:'', testDescription:'', expectedResult:'', priority:'medium', owner:'',
     bluecopaStatus:'not_tested', clientStatus:'not_tested', bluecopaComments:'', clientComments:'',
     attachments:[], tags:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(), ...base };
 }
@@ -1264,6 +1264,21 @@ app.put('/api/uat/projects/:id', async (req, res) => {
     const c = u.clients.find(x => x.id === cid);
     if (c) c.website = req.body.clientWebsite.trim();
   }
+  // If the entity list shrank, un-assign (not delete) test cases that pointed at a
+  // removed entity so they stay visible under "All Entities" instead of vanishing.
+  if (Array.isArray(req.body.entities)) {
+    const removed = (p.entities || []).filter(en => !req.body.entities.includes(en));
+    if (removed.length) {
+      const removedSet = new Set(removed);
+      u.testcases.filter(t => t.projectId === p.id).forEach(tc => {
+        let touched = false;
+        if (removedSet.has(tc.entity)) { tc.entity = ''; touched = true; }
+        removed.forEach(en => { if (tc.entityStatuses && tc.entityStatuses[en]) { delete tc.entityStatuses[en]; touched = true; } });
+        if (touched) tc.updatedAt = new Date().toISOString();
+      });
+      _uatTcCacheInvalidate(p.id); _uatDashCache.clear();
+    }
+  }
   Object.assign(p, req.body, { id:p.id, updatedAt:new Date().toISOString() });
   await saveDB(db); res.json({ ok:true, data:p });
 });
@@ -1315,6 +1330,68 @@ app.post('/api/uat/testcases', async (req, res) => {
   const seq = u.testcases.filter(t=>t.projectId===req.body.projectId).length + 1;
   const tc = uatNewTC({ ...req.body, seq, id:uatId() });
   u.testcases.push(tc); await saveDB(db); res.json({ ok:true, data:tc });
+});
+// Bulk-create test cases parsed client-side from an uploaded Excel/CSV file.
+// The client already validated required fields and deduped against what it had
+// loaded; this endpoint re-validates and re-dedupes against the live server
+// state (defense in depth against stale client data / concurrent imports) so a
+// row can never silently land under the wrong project or duplicate an
+// existing case. Any entity name not yet on the project is added automatically.
+app.post('/api/uat/testcases/import', async (req, res) => {
+  await _dbReady; const u = uatDB();
+  const { projectId, rows } = req.body || {};
+  if (!projectId) return res.status(400).json({ ok:false, error:'projectId required' });
+  const p = u.projects.find(x => x.id === projectId);
+  if (!p) return res.status(404).json({ ok:false, error:'project not found' });
+  if (!Array.isArray(rows) || !rows.length) return res.status(400).json({ ok:false, error:'rows[] required' });
+
+  const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const dedupeKey = r => `${norm(r.entity)}|${norm(r.category)}|${norm(r.subCategory)}|${norm(r.testDescription)}`;
+  const STATUS_OK = new Set(['not_tested', 'in_progress', 'pass', 'fail', 'blocked']);
+  const PRIORITY_OK = new Set(['critical', 'high', 'medium', 'low']);
+
+  const existingKeys = new Set(u.testcases.filter(t => t.projectId === projectId).map(dedupeKey));
+  const seenInBatch = new Set();
+  let seq = u.testcases.filter(t => t.projectId === projectId).length;
+  const created = [];
+  let skippedInvalid = 0, skippedDuplicate = 0;
+  const newEntities = [];
+
+  for (const r of rows) {
+    const entity = String(r?.entity || '').trim();
+    const category = String(r?.category || '').trim();
+    const testDescription = String(r?.testDescription || '').trim();
+    if (!category || !testDescription) { skippedInvalid++; continue; }
+    const k = dedupeKey({ entity, category, subCategory: r.subCategory, testDescription });
+    if (existingKeys.has(k) || seenInBatch.has(k)) { skippedDuplicate++; continue; }
+    seenInBatch.add(k);
+    seq++;
+    const tc = uatNewTC({
+      projectId, seq, entity,
+      category, subCategory: String(r.subCategory || '').trim(),
+      testDescription, expectedResult: String(r.expectedResult || '').trim(),
+      priority: PRIORITY_OK.has(r.priority) ? r.priority : 'medium',
+      owner: String(r.owner || '').trim(),
+      tags: Array.isArray(r.tags) ? r.tags.filter(Boolean).map(String) : [],
+      bluecopaStatus: STATUS_OK.has(r.bluecopaStatus) ? r.bluecopaStatus : 'not_tested',
+      clientStatus: STATUS_OK.has(r.clientStatus) ? r.clientStatus : 'not_tested',
+      bluecopaComments: String(r.bluecopaComments || '').trim(),
+      clientComments: String(r.clientComments || '').trim(),
+    });
+    u.testcases.push(tc);
+    created.push(tc);
+    if (entity && !(p.entities || []).includes(entity) && !newEntities.includes(entity)) newEntities.push(entity);
+  }
+
+  if (newEntities.length) p.entities = [...(p.entities || []), ...newEntities];
+  if (created.length || newEntities.length) {
+    p.updatedAt = new Date().toISOString();
+    await saveDB(db);
+    _uatTcCacheInvalidate(projectId); _uatDashCache.clear();
+    uatLog('testcases_imported', `${created.length} test case(s) imported into "${p.name}"${newEntities.length ? ` (added ${newEntities.length} new entit${newEntities.length === 1 ? 'y' : 'ies'})` : ''}`, { projectId });
+  }
+
+  res.json({ ok:true, data:{ created: created.length, skippedDuplicates: skippedDuplicate, skippedInvalid, entitiesAdded: newEntities, project: { entities: p.entities } } });
 });
 app.put('/api/uat/testcases/:id', async (req, res) => {
   await _dbReady; const u = uatDB(); const tc=u.testcases.find(x=>x.id===req.params.id);
@@ -2257,14 +2334,21 @@ app.post('/api/uat/projects/:id/rename-entity', async (req, res) => {
   if (idx===-1) return res.status(404).json({ ok:false, error:'entity not found' });
   p.entities[idx]=newName;
   u.testcases.filter(t=>t.projectId===p.id).forEach(tc=>{
+    let touched=false;
+    // Primary: each test case now carries its own entity directly
+    if (tc.entity===oldName) { tc.entity=newName; touched=true; }
+    // Legacy: some older test cases only recorded status per-entity in entityStatuses
     if (tc.entityStatuses&&tc.entityStatuses[oldName]) {
       tc.entityStatuses[newName]=tc.entityStatuses[oldName];
       delete tc.entityStatuses[oldName];
-      tc.updatedAt=new Date().toISOString();
+      touched=true;
     }
+    if (touched) tc.updatedAt=new Date().toISOString();
   });
   p.updatedAt=new Date().toISOString();
-  await saveDB(db); res.json({ ok:true, data:p });
+  await saveDB(db);
+  _uatTcCacheInvalidate(p.id); _uatDashCache.clear();
+  res.json({ ok:true, data:p });
 });
 
 // ── Project-level Client Portal ───────────────────────────────────────────────
@@ -2295,11 +2379,16 @@ function buildUATPortalData(projectId, entity) {
   const u = uatDB();
   const p = u.projects.find(x=>x.id===projectId);
   if (!p) return { linked:false, stats:{total:0,passed:0,failed:0,blocked:0,inProgress:0,pending:0,openIssues:0}, testcases:[], issues:[], signoff:null, allEntitySignoffs:{}, entities:[], signedOff:false };
-  const testcases = u.testcases.filter(t=>t.projectId===p.id).sort((a,b)=>a.seq-b.seq);
+  // A test belongs to the entity recorded on it directly; only a test with no entity of
+  // its own falls back to the legacy per-entity entityStatuses map. Entity-scoped portal
+  // links must only show — and only write to — that entity's own test cases.
+  let testcases = u.testcases.filter(t=>t.projectId===p.id);
+  if (entity) testcases = testcases.filter(t => t.entity ? t.entity===entity : !!(t.entityStatuses && t.entityStatuses[entity]));
+  testcases = testcases.sort((a,b)=>a.seq-b.seq);
   const entityList = p.entities||[];
   const tcs = testcases.map(tc => {
     let clientStatus,bluecopaStatus,clientComments='',bluecopaComments='';
-    if (entity && tc.entityStatuses) {
+    if (entity && !tc.entity && tc.entityStatuses) {
       const es=tc.entityStatuses[entity]||{};
       clientStatus=es.clientStatus||'not_tested'; clientComments=es.clientComments||'';
       bluecopaStatus=es.bluecopaStatus||tc.bluecopaStatus||'not_tested'; bluecopaComments=es.bluecopaComments||tc.bluecopaComments||'';
@@ -2480,8 +2569,12 @@ app.put('/api/portal/:token/tc/:id', async (req, res) => {
   const tc=u.testcases.find(x=>x.id===req.params.id&&x.projectId===p.id);
   if (!tc) return res.status(404).json({ ok:false, error:'not found' });
   const { clientStatus, clientComments, entity }=req.body;
-  const prevStatus = entity ? (tc.entityStatuses?.[entity]?.clientStatus||'not_tested') : (tc.clientStatus||'not_tested');
-  if (entity) {
+  // Only fall back to the legacy per-entity map for a test with no entity of its own —
+  // a test that already carries tc.entity writes straight to its real clientStatus,
+  // matching what the internal admin table and dashboard read.
+  const usesEntityMap = !!(entity && !tc.entity);
+  const prevStatus = usesEntityMap ? (tc.entityStatuses?.[entity]?.clientStatus||'not_tested') : (tc.clientStatus||'not_tested');
+  if (usesEntityMap) {
     if (!tc.entityStatuses) tc.entityStatuses={};
     if (!tc.entityStatuses[entity]) tc.entityStatuses[entity]={};
     if (clientStatus!==undefined) tc.entityStatuses[entity].clientStatus=clientStatus;
@@ -2492,7 +2585,7 @@ app.put('/api/portal/:token/tc/:id', async (req, res) => {
   }
   // Auto-create UAT issue when client marks fail with a comment (first time only)
   const newStatus = clientStatus !== undefined ? clientStatus : prevStatus;
-  const newComment = clientComments !== undefined ? clientComments : (entity ? (tc.entityStatuses?.[entity]?.clientComments||'') : (tc.clientComments||''));
+  const newComment = clientComments !== undefined ? clientComments : (usesEntityMap ? (tc.entityStatuses?.[entity]?.clientComments||'') : (tc.clientComments||''));
   if (newStatus === 'fail' && newComment && prevStatus !== 'fail') {
     if (!u.issues) u.issues = [];
     const alreadyExists = u.issues.find(i=>i.testCaseId===tc.id&&i.source==='client_portal'&&i.status==='open');

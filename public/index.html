@@ -7427,7 +7427,7 @@ async function updateFeedbackStatus(id) {
 // Inline fetch — runs immediately, not gated on app.js cache
 (async()=>{try{const r=await fetch('/api/delivery-team/count');if(r.ok){const d=await r.json();const el=document.getElementById('dwStatSMPeople');if(el&&d.count){el.textContent=d.count;}}}catch(e){}})();
 </script>
-  <script src="/uat.js?v=63" defer></script>
+  <script src="/uat.js?v=64" defer></script>
   <script src="/ews.js?v=8" defer></script>
   <script>
   // Lazy-load courses.js (502 KB) only when Learning section first opens
@@ -7474,7 +7474,7 @@ async function updateFeedbackStatus(id) {
     <button class="uat-nav-tab active" data-view="dashboard" onclick="UAT.setView('dashboard')">
       Dashboard
     </button>
-    <button class="uat-nav-tab" data-view="projects" onclick="UAT.setView('projects')">
+    <button class="uat-nav-tab" data-view="projects" onclick="UAT.showAllProjects()">
       Projects <span class="uat-nav-badge" id="uatNavBadge_projects">0</span>
     </button>
     <button class="uat-nav-tab" data-view="issues" onclick="UAT.setView('issues')">
@@ -7767,6 +7767,7 @@ async function updateFeedbackStatus(id) {
         </select>
         <div style="margin-left:auto;display:flex;gap:8px">
           <button class="uat-btn uat-btn-primary uat-btn-sm" onclick="UAT.showAddTestModal()">+ Add Test</button>
+          <button class="uat-btn uat-btn-secondary uat-btn-sm" onclick="UAT.showImportModal()">⬆ Import</button>
           <button class="uat-btn uat-btn-secondary uat-btn-sm" onclick="UAT.exportCSV()">⬇ Export CSV</button>
           <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.sharePortal()" style="border-color:#c9a227;color:#c9a227">🔗 Share Portal</button>
           <button class="uat-btn uat-btn-ghost uat-btn-sm" onclick="UAT.openSignoffModal()" style="border-color:#22c55e;color:#15803d">✅ Sign Off</button>
@@ -8046,6 +8047,10 @@ async function updateFeedbackStatus(id) {
       </div>
       <form id="uatFormAddTest" onsubmit="event.preventDefault();UAT.submitNewTest()">
         <div class="uat-modal-body">
+          <div class="uat-form-group" id="uatAddTestEntityGroup" style="display:none">
+            <label class="uat-form-label">Entity *</label>
+            <select class="uat-form-select" name="entity" id="uatAddTestEntity"></select>
+          </div>
           <div class="uat-form-row">
             <div class="uat-form-group">
               <label class="uat-form-label">Category *</label>
@@ -8089,6 +8094,63 @@ async function updateFeedbackStatus(id) {
           <button type="submit" class="uat-btn uat-btn-primary">Add Test Case</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ── Modal: Import Test Cases from Excel/CSV ─────────────────────────
+       Multi-sheet .xlsx → each sheet becomes a separate entity. .csv has no
+       sheet concept, so the user names the single entity it imports into.
+       Parsing happens entirely client-side (SheetJS, lazy-loaded on first
+       open) — nothing is uploaded until the user reviews the preview and
+       confirms, at which point only the parsed rows (not the file) are sent.
+  ───────────────────────────────────────────────────────────────────── -->
+  <div class="uat-modal-backdrop" id="uatModalImport" onclick="if(event.target===this)UAT.hideImportModal()">
+    <div class="uat-modal" style="max-width:760px">
+      <div class="uat-modal-header">
+        <div class="uat-modal-title">Import Test Cases</div>
+        <button class="uat-drawer-close" onclick="UAT.hideImportModal()">×</button>
+      </div>
+      <div class="uat-modal-body" style="max-height:70vh;overflow-y:auto">
+        <div id="uatImportStep1">
+          <p style="font-size:13px;color:#6b7280;margin:0 0 14px">
+            Upload an <strong>.xlsx</strong> or <strong>.csv</strong> file of test cases. If the workbook has multiple sheets,
+            each sheet becomes its own entity (e.g. a "Workings" sheet and a "Trial Balance" sheet import as two entities).
+            Expected columns: <strong>Category</strong>, <strong>Sub-Category</strong>, <strong>Test Description</strong>,
+            Expected Result, Priority, Owner (header names are matched flexibly).
+          </p>
+          <input type="file" id="uatImportFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="UAT.handleImportFile(this.files[0])">
+          <div id="uatImportDrop" onclick="document.getElementById('uatImportFile').click()"
+               ondragover="event.preventDefault();this.style.borderColor='#c9a227'"
+               ondragleave="this.style.borderColor='#d7dae0'"
+               ondrop="event.preventDefault();this.style.borderColor='#d7dae0';UAT.handleImportFile(event.dataTransfer.files[0])"
+               style="border:2px dashed #d7dae0;border-radius:10px;padding:36px 20px;text-align:center;cursor:pointer;color:#6b7280;font-size:13px;transition:border-color .15s">
+            <div style="font-size:28px;margin-bottom:8px">📄</div>
+            <div><strong style="color:#0d1117">Click to choose a file</strong> or drag it here</div>
+            <div style="font-size:11px;color:#9ca3af;margin-top:4px">.xlsx or .csv</div>
+          </div>
+          <div id="uatImportLoading" style="display:none;text-align:center;padding:24px;color:#6b7280;font-size:13px">Reading file…</div>
+          <div id="uatImportError" style="display:none;margin-top:12px;padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#dc2626;font-size:12.5px"></div>
+        </div>
+        <div id="uatImportStep2" style="display:none">
+          <div id="uatImportCsvEntity" style="display:none;margin-bottom:16px">
+            <label class="uat-form-label">Entity for this file *</label>
+            <input class="uat-form-input" id="uatImportCsvEntityInput" list="uatImportEntityDatalist" placeholder="e.g. Workings" oninput="UAT.reclassifyImportRows()">
+            <datalist id="uatImportEntityDatalist"></datalist>
+            <div style="font-size:11px;color:#9ca3af;margin-top:4px">CSV files don't carry sheet names, so all rows in this file will be imported under one entity.</div>
+          </div>
+          <div id="uatImportSummary" style="display:flex;gap:8px 20px;flex-wrap:wrap;align-items:center;padding:10px 14px;background:#f8f9fb;border:1px solid #e4e6ea;border-radius:8px;font-size:12.5px;margin-bottom:14px"></div>
+          <div id="uatImportEntityBreakdown" style="margin-bottom:14px"></div>
+          <div id="uatImportIssuesWrap" style="display:none">
+            <div style="font-size:12px;font-weight:700;color:#dc2626;margin-bottom:6px">Rows that will be skipped</div>
+            <div id="uatImportIssues" style="max-height:200px;overflow-y:auto;border:1px solid #fecaca;border-radius:8px;background:#fef2f2"></div>
+          </div>
+        </div>
+      </div>
+      <div class="uat-modal-footer">
+        <button type="button" class="uat-btn uat-btn-ghost" onclick="UAT.hideImportModal()">Cancel</button>
+        <button type="button" class="uat-btn uat-btn-ghost" id="uatImportBackBtn" style="display:none" onclick="UAT.resetImportModal()">← Choose different file</button>
+        <button type="button" class="uat-btn uat-btn-primary" id="uatImportConfirmBtn" style="display:none" onclick="UAT.confirmImport()">Import Test Cases</button>
+      </div>
     </div>
   </div>
 
