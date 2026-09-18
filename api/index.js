@@ -1187,6 +1187,19 @@ const UAT_DEFAULTS = [
   { category:'Integrations', subCategory:'API & Webhooks', priority:'medium', testDescription:'Verify webhook fires on key events: invoice created, payment processed, PO approved', expectedResult:'Webhook payload received by external system within 30 seconds, payload schema matches API documentation' },
 ];
 
+// Vercel keeps warm lambda instances between requests, each with its own in-memory
+// `db` snapshot from whenever it last read Mongo. uatDB() never re-reads on its own,
+// and saveDB() does a full-document replace — so two requests landing on different
+// warm instances can silently clobber each other (a write on instance B can undo
+// what instance A just saved, or a read on instance C can return data instance A's
+// write never reached). Force a fresh read before every UAT mutation so a write
+// always builds on the current server state; GETs keep their existing short-TTL
+// caches (uatTcCache/uatDashCache) since staleness there is bounded and cheap.
+app.use('/api/uat', async (req, res, next) => {
+  if (req.method !== 'GET') { dbCacheTs = 0; await freshDB(); }
+  next();
+});
+
 // ── Clients ───────────────────────────────────────────────────────────────────
 app.get('/api/uat/clients', async (req, res) => { await _dbReady; res.json({ ok:true, data: uatDB().clients }); });
 app.post('/api/uat/clients', async (req, res) => {
@@ -2490,6 +2503,14 @@ async function portalFromCustomerLink(req, res, cl) {
   const ci=showCI && cl.ciAssessmentId ? buildCIPortalData(cl.ciAssessmentId) : {linked:false};
   return res.json({ ok:true, data:{ scope, client, projectStatus, uat, ci } });
 }
+
+// Same warm-lambda staleness issue as /api/uat/* (see comment above the clients
+// route) — a client marking a test pass/fail must never silently land on a stale
+// snapshot and get overwritten by the next full-document save.
+app.use('/api/portal', async (req, res, next) => {
+  if (req.method !== 'GET') { dbCacheTs = 0; await freshDB(); }
+  next();
+});
 
 app.get('/api/portal/:token', async (req, res) => {
   await _dbReady; const u=uatDB();
