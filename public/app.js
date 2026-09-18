@@ -682,10 +682,15 @@ function ciRenderDetail() {
   const hubLinkHtml = lnkToken
     ? `<div style="margin-top:10px;display:flex;align-items:center;gap:8px;background:rgba(53,72,255,.15);border:1px solid rgba(53,72,255,.3);border-radius:8px;padding:8px 12px"><span style="font-size:11px;color:#93c5fd;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔗 ${window.location.origin}/portal/${escHtml(lnkToken)}</span><button onclick="navigator.clipboard.writeText('${window.location.origin}/portal/${escHtml(lnkToken)}').then(()=>showToast&&showToast('CI link copied!')).catch(()=>{})" style="flex-shrink:0;padding:4px 10px;font-size:11px;font-weight:700;background:#3548FF;color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif">Copy CI Link</button></div>`
     : `<div style="margin-top:10px"><button onclick="ciGenerateLink('${escHtml(a.id)}')" style="padding:6px 14px;font-size:12px;font-weight:700;background:rgba(53,72,255,.2);color:#93c5fd;border:1px solid rgba(53,72,255,.4);border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔗 Generate CI Portal Link</button></div>`;
+  const rlStatusHtml = `<div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:11px;color:${a.inRocketlane?'#a78bfa':'rgba(255,255,255,.35)'};font-weight:${a.inRocketlane?'700':'400'}">${a.inRocketlane?'🔗 Rocketlane: '+escHtml(a.rlClientName||''):'Not in Rocketlane'}</span>
+      <button onclick="ciEditRocketlaneLink('${escHtml(a.id)}')" style="padding:2px 8px;font-size:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif">${a.inRocketlane?'Edit':'Link to Rocketlane'}</button>
+    </div>`;
   el.innerHTML = `
     <div style="padding:24px;border-bottom:1px solid rgba(255,255,255,.07);">
       <div style="font-size:18px;font-weight:800;color:#f0f0f6;margin-bottom:4px;">${escHtml(a.clientName)}</div>
       <div style="font-size:13px;color:rgba(255,255,255,.45);">${escHtml(a.projectName||'')}</div>
+      ${rlStatusHtml}
       ${hubLinkHtml}
     </div>
     <div style="display:flex;gap:0;padding:0 24px;border-bottom:1px solid rgba(255,255,255,.07);">
@@ -698,6 +703,173 @@ function ciRenderDetail() {
 function ciAdminTab(tab) { _ciAdminTab = tab; ciRenderDetail(); }
 
 const _ADMIN_HEADERS = { 'Content-Type':'application/json', 'x-user-email':'azhar.m@bluecopa.com', 'x-user-password':'Bluecopa@12345' };
+
+// ── Rocketlane Client/Project linking — shared across UAT project creation, CI
+// assessment creation, retroactive editing of either, and the Customer Success
+// Hub link modal. One cascading Client→Project picker, one "is this in
+// Rocketlane" toggle, reused everywhere instead of rebuilt per screen.
+let _rlProjectListCache = null;
+async function rlFetchClientProjectList(force) {
+  if (_rlProjectListCache && !force) return _rlProjectListCache;
+  const r = await fetch('/api/rocketlane/projects-full', { headers: _ADMIN_HEADERS });
+  const j = await r.json();
+  const projects = j.projects || [];
+  const byClient = {};
+  projects.forEach(p => { if (p.customer) (byClient[p.customer] = byClient[p.customer] || []).push(p); });
+  const clients = Object.keys(byClient).sort((a,b)=>a.localeCompare(b));
+  return (_rlProjectListCache = { clients, byClient });
+}
+
+// idPrefix -> { onProject, manualSelector } — lets each instance's callbacks
+// and "what to hide when Yes is picked" target be looked up by the plain
+// onclick="..." handlers the rest of this codebase uses (no closures survive
+// across the innerHTML strings, so state lives in this small registry instead).
+const _rlLinkInstances = {};
+
+// theme: 'light' (public/index.html's .uat-form-* classes) or 'dark' (the
+// CI admin modal's inline-styled dark theme) — same logic, different markup.
+function rlLinkToggleHtml(idPrefix, theme, pre) {
+  pre = pre || {};
+  const yes = !!pre.inRocketlane;
+  if (theme === 'dark') {
+    const lbl = 'display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;';
+    const sel = 'width:100%;padding:10px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#f0f0f6;font-family:\'DM Sans\',sans-serif;font-size:13px;box-sizing:border-box;';
+    return `
+      <div>
+        <label style="${lbl}">Is this project available in Rocketlane?</label>
+        <div style="display:flex;gap:18px;padding-top:2px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:rgba(255,255,255,.7);cursor:pointer"><input type="radio" name="${idPrefix}_yn" value="yes" ${yes?'checked':''} onchange="rlLinkToggle('${idPrefix}',true)"> Yes</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:rgba(255,255,255,.7);cursor:pointer"><input type="radio" name="${idPrefix}_yn" value="no" ${yes?'':'checked'} onchange="rlLinkToggle('${idPrefix}',false)"> No</label>
+        </div>
+      </div>
+      <div id="${idPrefix}_rlPickers" style="display:${yes?'flex':'none'};flex-direction:column;gap:14px">
+        <div>
+          <label style="${lbl}">Rocketlane Client *</label>
+          <select id="${idPrefix}_rlClient" onchange="rlLinkClientChange('${idPrefix}')" style="${sel}"><option value="">Loading…</option></select>
+        </div>
+        <div>
+          <label style="${lbl}">Rocketlane Project *</label>
+          <select id="${idPrefix}_rlProject" onchange="rlLinkProjectChange('${idPrefix}')" disabled style="${sel}opacity:.5"><option value="">— Select a client first —</option></select>
+        </div>
+      </div>`;
+  }
+  return `
+    <div class="uat-form-group">
+      <label class="uat-form-label">Is this project available in Rocketlane?</label>
+      <div style="display:flex;gap:18px;padding-top:2px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="${idPrefix}_yn" value="yes" ${yes?'checked':''} onchange="rlLinkToggle('${idPrefix}',true)"> Yes</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="${idPrefix}_yn" value="no" ${yes?'':'checked'} onchange="rlLinkToggle('${idPrefix}',false)"> No</label>
+      </div>
+    </div>
+    <div id="${idPrefix}_rlPickers" style="display:${yes?'':'none'}">
+      <div class="uat-form-group">
+        <label class="uat-form-label">Rocketlane Client *</label>
+        <select class="uat-form-select" id="${idPrefix}_rlClient" onchange="rlLinkClientChange('${idPrefix}')"><option value="">Loading…</option></select>
+      </div>
+      <div class="uat-form-group">
+        <label class="uat-form-label">Rocketlane Project *</label>
+        <select class="uat-form-select" id="${idPrefix}_rlProject" onchange="rlLinkProjectChange('${idPrefix}')" disabled><option value="">— Select a client first —</option></select>
+      </div>
+    </div>`;
+}
+
+// Renders the toggle+pickers into containerId and wires it up. opts:
+//   pre: {inRocketlane, rlClientName, rlProjectId} — preselect current state (editing)
+//   theme: 'light'|'dark' (default 'light')
+//   manualSelector: CSS selector for this screen's own free-text client/project
+//     fields, hidden while "Yes" is selected and shown again on "No"
+//   onProject(rlProjectId, rlProjectName, rlClientName): fired when a project is picked
+function rlRenderLinkToggle(containerId, idPrefix, opts) {
+  opts = opts || {};
+  const pre = opts.pre || {};
+  const theme = opts.theme || 'light';
+  _rlLinkInstances[idPrefix] = { onProject: opts.onProject || null, manualSelector: opts.manualSelector || null };
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = rlLinkToggleHtml(idPrefix, theme, pre);
+  rlLinkToggle(idPrefix, !!pre.inRocketlane);
+  rlFetchClientProjectList().then(list => {
+    const sel = document.getElementById(idPrefix + '_rlClient');
+    if (!sel) return; // container was replaced/closed before the fetch resolved
+    sel.innerHTML = '<option value="">— Select a client —</option>' + list.clients.map(c => `<option value="${escHtml(c)}" ${c===pre.rlClientName?'selected':''}>${escHtml(c)}</option>`).join('');
+    if (pre.rlClientName && list.byClient[pre.rlClientName]) rlLinkClientChange(idPrefix, pre.rlProjectId);
+  }).catch(()=>{});
+}
+
+function rlLinkToggle(idPrefix, yes) {
+  const pickers = document.getElementById(idPrefix + '_rlPickers');
+  if (pickers) pickers.style.display = yes ? '' : 'none';
+  const inst = _rlLinkInstances[idPrefix];
+  if (inst && inst.manualSelector) {
+    document.querySelectorAll(inst.manualSelector).forEach(el => { el.style.display = yes ? 'none' : ''; });
+  }
+}
+
+async function rlLinkClientChange(idPrefix, preselectProjectId) {
+  const list = await rlFetchClientProjectList();
+  const clientSel = document.getElementById(idPrefix + '_rlClient');
+  const projSel = document.getElementById(idPrefix + '_rlProject');
+  if (!clientSel || !projSel) return;
+  const clientName = clientSel.value;
+  if (!clientName) { projSel.innerHTML = '<option value="">— Select a client first —</option>'; projSel.disabled = true; return; }
+  const projects = list.byClient[clientName] || [];
+  projSel.disabled = false;
+  projSel.innerHTML = '<option value="">— Select a project —</option>' + projects.map(p => `<option value="${escHtml(String(p.projectId))}" ${String(p.projectId)===String(preselectProjectId)?'selected':''}>${escHtml(p.projectName||'')}</option>`).join('');
+  if (preselectProjectId) rlLinkProjectChange(idPrefix);
+}
+
+function rlLinkProjectChange(idPrefix) {
+  const clientSel = document.getElementById(idPrefix + '_rlClient');
+  const projSel = document.getElementById(idPrefix + '_rlProject');
+  if (!clientSel || !projSel || !projSel.value) return;
+  const opt = projSel.options[projSel.selectedIndex];
+  const inst = _rlLinkInstances[idPrefix];
+  if (inst && inst.onProject) inst.onProject(projSel.value, opt ? opt.textContent : '', clientSel.value);
+}
+
+// Reads the current state of a rendered toggle instance — used by submit handlers.
+function rlLinkReadState(idPrefix) {
+  const yn = document.querySelector(`input[name="${idPrefix}_yn"]:checked`);
+  if (!yn || yn.value !== 'yes') return { inRocketlane:false, rlProjectId:null, rlClientName:null };
+  const projSel = document.getElementById(idPrefix + '_rlProject');
+  const clientSel = document.getElementById(idPrefix + '_rlClient');
+  return { inRocketlane:true, rlProjectId: (projSel && projSel.value) || null, rlClientName: (clientSel && clientSel.value) || null };
+}
+
+// Standalone "Edit Rocketlane Link" modal for an existing UAT project or CI
+// assessment (retroactive linking — the toggle+pickers above are normally
+// embedded in a creation form, this wraps them in their own small modal).
+function rlOpenEditLinkModal(label, current, onSave) {
+  let modal = document.getElementById('rlEditLinkModal');
+  if (modal) modal.remove();
+  modal = document.createElement('div');
+  modal.id = 'rlEditLinkModal';
+  modal.className = 'uat-modal-backdrop';
+  modal.style.cssText = 'display:flex;z-index:2000';
+  modal.innerHTML = `
+    <div class="uat-modal" style="max-width:440px">
+      <div class="uat-modal-header">
+        <div class="uat-modal-title">Rocketlane Link — ${escHtml(label)}</div>
+        <button class="uat-drawer-close" onclick="document.getElementById('rlEditLinkModal').remove()">×</button>
+      </div>
+      <div class="uat-modal-body" id="rlEditLinkBody"></div>
+      <div class="uat-modal-footer">
+        <button type="button" class="uat-btn uat-btn-ghost" onclick="document.getElementById('rlEditLinkModal').remove()">Cancel</button>
+        <button type="button" class="uat-btn uat-btn-primary" id="rlEditLinkSaveBtn">Save</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  rlRenderLinkToggle('rlEditLinkBody', 'rlEdit', { pre: current, theme: 'light' });
+  document.getElementById('rlEditLinkSaveBtn').onclick = async () => {
+    const state = rlLinkReadState('rlEdit');
+    if (state.inRocketlane && !state.rlProjectId) { alert('Please select a Rocketlane project.'); return; }
+    const btn = document.getElementById('rlEditLinkSaveBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try { await onSave(state); modal.remove(); }
+    catch(e) { alert('Error: ' + e.message); btn.disabled = false; btn.textContent = 'Save'; }
+  };
+}
 
 async function clCreate(scope, opts) {
   const r = await fetch('/api/customer-links', { method:'POST', headers:_ADMIN_HEADERS, body:JSON.stringify({ scope, ...opts }) });
@@ -718,6 +890,20 @@ async function ciGenerateLink(id) {
   } catch(e) { alert('Error: '+e.message); }
 }
 
+function ciEditRocketlaneLink(id) {
+  const a = _ciAssessments.find(x=>x.id===id);
+  if (!a) return;
+  rlOpenEditLinkModal(a.clientName || a.projectName || 'Confidence Index', { inRocketlane: !!a.inRocketlane, rlProjectId: a.rlProjectId||null, rlClientName: a.rlClientName||null }, async (state) => {
+    const r = await fetch('/api/ci/assessments/'+id, { method:'PUT', headers:{'Content-Type':'application/json','x-user-email':getAdminPwd()||''}, body: JSON.stringify(state) });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error||'Failed to save');
+    Object.assign(a, state);
+    if (_ciSelected && _ciSelected.id===id) Object.assign(_ciSelected, state);
+    ciRenderDetail();
+    showToast && showToast('Rocketlane link updated');
+  });
+}
+
 // Rocketlane — generate scoped status link
 async function rlGenerateCustomerLink(rlProjectId, projectName, customerName) {
   try {
@@ -730,19 +916,45 @@ async function rlGenerateCustomerLink(rlProjectId, projectName, customerName) {
 }
 
 // CSH — generate consolidated hub link with validation
+// What's already linked to the Rocketlane project currently selected in the
+// Hub modal — populated by cshOnRLProjectChange, read by cshHubModalCreate.
+let _cshHubLinked = { uatProject: null, ciAssessment: null };
+
 async function cshGenerateHubLink() {
   const modal = document.getElementById('cshHubLinkModal');
   if (!modal) return;
-  // Load data for dropdowns
-  const [uatRes, ciRes] = await Promise.all([
-    fetch('/api/uat/projects', { headers:_ADMIN_HEADERS }).then(r=>r.json()).catch(()=>({ok:false,data:[]})),
-    fetch('/api/ci/assessments', { headers:_ADMIN_HEADERS }).then(r=>r.json()).catch(()=>({ok:false,data:[]})),
-  ]);
-  const uatProjects = uatRes.data || [];
-  const ciAssessments = ciRes.data || [];
-  modal.querySelector('#cshHubUAT').innerHTML = '<option value="">— None —</option>' + uatProjects.map(p=>`<option value="${p.id}">${escHtml(p.clientName||'')} / ${escHtml(p.name||'')}</option>`).join('');
-  modal.querySelector('#cshHubCI').innerHTML = '<option value="">— None —</option>' + ciAssessments.map(a=>`<option value="${a.id}">${escHtml(a.clientName||'')} / ${escHtml(a.projectName||'')}</option>`).join('');
+  document.getElementById('cshHubResult').style.display = 'none';
+  document.getElementById('cshHubLinkedStatus').style.display = 'none';
+  _cshHubLinked = { uatProject: null, ciAssessment: null };
+  const clientSel = document.getElementById('cshHub_rlClient');
+  clientSel.innerHTML = '<option value="">Loading…</option>';
+  const projSel = document.getElementById('cshHub_rlProject');
+  projSel.innerHTML = '<option value="">— Select a client first —</option>';
+  projSel.disabled = true;
   modal.style.display = 'flex';
+  _rlLinkInstances['cshHub'] = { onProject: cshOnRLProjectChange, manualSelector: null };
+  try {
+    const list = await rlFetchClientProjectList();
+    clientSel.innerHTML = '<option value="">— Select a client —</option>' + list.clients.map(c=>`<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
+  } catch(e) {
+    clientSel.innerHTML = '<option value="">Failed to load Rocketlane clients</option>';
+  }
+}
+
+async function cshOnRLProjectChange(rlProjectId, rlProjectName, rlClientName) {
+  const box = document.getElementById('cshHubLinkedStatus');
+  box.style.display = 'flex';
+  box.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,.4)">Checking what\'s already linked…</div>';
+  try {
+    const r = await fetch('/api/rocketlane/linked/' + encodeURIComponent(rlProjectId), { headers:_ADMIN_HEADERS });
+    const j = await r.json();
+    _cshHubLinked = j.ok ? j.data : { uatProject:null, ciAssessment:null };
+  } catch(e) { _cshHubLinked = { uatProject:null, ciAssessment:null }; }
+  const line = (ok, label, name) => ok
+    ? `<div style="font-size:12px;color:#4ade80">✅ ${label}: ${escHtml(name)}</div>`
+    : `<div style="font-size:12px;color:rgba(255,255,255,.4)">⚠️ No ${label} linked to this Rocketlane project yet</div>`;
+  box.innerHTML = line(!!_cshHubLinked.uatProject, 'UAT Project', _cshHubLinked.uatProject && _cshHubLinked.uatProject.name)
+    + line(!!_cshHubLinked.ciAssessment, 'Confidence Index', _cshHubLinked.ciAssessment && _cshHubLinked.ciAssessment.projectName);
 }
 
 function cshHubModalClose() {
@@ -751,22 +963,25 @@ function cshHubModalClose() {
 }
 
 async function cshHubModalCreate() {
-  const modal = document.getElementById('cshHubLinkModal');
-  const uatProjectId = modal.querySelector('#cshHubUAT').value || null;
-  const ciAssessmentId = modal.querySelector('#cshHubCI').value || null;
-  const rlProjectId = (modal.querySelector('#cshHubRL').value||'').trim() || null;
-  const clientName = (modal.querySelector('#cshHubClient').value||'').trim();
-  const projectName = (modal.querySelector('#cshHubProject').value||'').trim();
-  if (!clientName) { alert('Please enter a client name.'); return; }
-  if (!uatProjectId && !ciAssessmentId && !rlProjectId) { alert('Please link at least one module.'); return; }
-  const btn = modal.querySelector('#cshHubCreateBtn');
+  const clientSel = document.getElementById('cshHub_rlClient');
+  const projSel = document.getElementById('cshHub_rlProject');
+  const clientName = clientSel.value;
+  const rlProjectId = projSel.value;
+  if (!clientName) { alert('Please select a Rocketlane client.'); return; }
+  if (!rlProjectId) { alert('Please select a Rocketlane project.'); return; }
+  const projectOpt = projSel.options[projSel.selectedIndex];
+  const projectName = projectOpt ? projectOpt.textContent : '';
+  const uatProjectId = _cshHubLinked.uatProject ? _cshHubLinked.uatProject.id : null;
+  const ciAssessmentId = _cshHubLinked.ciAssessment ? _cshHubLinked.ciAssessment.id : null;
+  if (!uatProjectId && !ciAssessmentId && !confirm('No UAT project or Confidence Index is linked to this Rocketlane project yet, so the hub will only show Project Status. Continue anyway?')) return;
+  const btn = document.getElementById('cshHubCreateBtn');
   btn.disabled = true; btn.textContent = 'Creating…';
   try {
     const link = await clCreate('all', { clientName, projectName, uatProjectId, ciAssessmentId, rlProjectId });
     const url = window.location.origin+'/portal/'+link.token;
-    modal.querySelector('#cshHubResult').style.display = 'flex';
-    modal.querySelector('#cshHubResultUrl').textContent = url;
-    modal.querySelector('#cshHubResultUrl').dataset.url = url;
+    document.getElementById('cshHubResult').style.display = 'flex';
+    document.getElementById('cshHubResultUrl').textContent = url;
+    document.getElementById('cshHubResultUrl').dataset.url = url;
     navigator.clipboard.writeText(url).then(()=>{ if(window.showToast) showToast('Hub link created & copied!'); }).catch(()=>{});
   } catch(e) { alert('Error: '+e.message); }
   btn.disabled = false; btn.textContent = 'Create Hub Link →';
@@ -916,8 +1131,11 @@ async function ciNewAssessment() {
       </div>
       <div style="padding:24px 28px;display:flex;flex-direction:column;gap:18px;">
 
+        <!-- Rocketlane link -->
+        <div id="ciNM_rlToggle" style="display:flex;flex-direction:column;gap:18px;"></div>
+
         <!-- Client -->
-        <div>
+        <div class="ciNM-manual-field">
           <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Client <span style="color:#f87171;">*</span></label>
           ${clients.length ? `
           <select id="ciNM_client" onchange="ciNM_syncName()" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#f0f0f6;font-family:'DM Sans',sans-serif;font-size:13px;appearance:none;">
@@ -928,7 +1146,7 @@ async function ciNewAssessment() {
         </div>
 
         <!-- Project name -->
-        <div>
+        <div class="ciNM-manual-field">
           <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Project Name</label>
           <input id="ciNM_project" placeholder="e.g. Phase 1 Implementation" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#f0f0f6;font-family:'DM Sans',sans-serif;font-size:13px;box-sizing:border-box;">
         </div>
@@ -972,6 +1190,13 @@ async function ciNewAssessment() {
   `;
   document.body.appendChild(modal);
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  rlRenderLinkToggle('ciNM_rlToggle', 'ciNM', {
+    pre: {}, theme: 'dark', manualSelector: '.ciNM-manual-field',
+    onProject: (rlProjectId, rlProjectName, rlClientName) => {
+      const proj = document.getElementById('ciNM_project');
+      if (proj && !proj.value.trim()) proj.value = rlProjectName;
+    }
+  });
 }
 
 // Store extra entities beyond "Overall"
@@ -1016,9 +1241,11 @@ function ciNM_addCustomPA() {
 }
 
 async function ciNM_submit() {
+  const rl = rlLinkReadState('ciNM');
+  if (rl.inRocketlane && !rl.rlProjectId) { alert('Please select a Rocketlane project.'); return; }
   const clientSel = document.getElementById('ciNM_client');
   const clientId = clientSel ? clientSel.value : '';
-  const clientName = (document.getElementById('ciNM_clientName')||{}).value?.trim();
+  const clientName = rl.inRocketlane ? rl.rlClientName : (document.getElementById('ciNM_clientName')||{}).value?.trim();
   if (!clientName) { alert('Please enter a client name.'); return; }
   const projectName = (document.getElementById('ciNM_projectName')||document.getElementById('ciNM_project')||{}).value?.trim() || '';
   const entities = ['Overall', ..._ciNM_entities];
@@ -1027,7 +1254,7 @@ async function ciNM_submit() {
   const btn = document.querySelector('#ciNewModal button[onclick="ciNM_submit()"]');
   if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
   try {
-    const r = await fetch('/api/ci/assessments', { method:'POST', headers:{'Content-Type':'application/json','x-user-email':getAdminPwd()||''}, body: JSON.stringify({ clientId, clientName, projectName, entities, processAreaNames: checkedPAs }) });
+    const r = await fetch('/api/ci/assessments', { method:'POST', headers:{'Content-Type':'application/json','x-user-email':getAdminPwd()||''}, body: JSON.stringify({ clientId, clientName, projectName, entities, processAreaNames: checkedPAs, inRocketlane: rl.inRocketlane, rlProjectId: rl.rlProjectId, rlClientName: rl.rlClientName }) });
     const d = await r.json();
     if (d.ok) {
       document.getElementById('ciNewModal')?.remove();

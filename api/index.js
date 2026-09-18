@@ -1241,7 +1241,7 @@ app.get('/api/uat/projects', async (req, res) => {
 });
 app.post('/api/uat/projects', async (req, res) => {
   await _dbReady; const u = uatDB();
-  const { clientId: rawClientId, clientName: rawClientName='', clientWebsite='', name, entity='', businessUnit='', goLiveDate='', description='', seedDefaults=false } = req.body;
+  const { clientId: rawClientId, clientName: rawClientName='', clientWebsite='', name, entity='', entities, businessUnit='', goLiveDate='', description='', seedDefaults=false, inRocketlane=false, rlProjectId=null, rlClientName=null } = req.body;
   if (!name) return res.status(400).json({ ok:false, error:'Project name required' });
   let clientId = rawClientId || '';
   let clientName = rawClientName.trim();
@@ -1255,7 +1255,10 @@ app.post('/api/uat/projects', async (req, res) => {
     const c = u.clients.find(x => x.id === clientId);
     if (c) { clientName = c.name; if (website) c.website = website; }
   }
-  const p = { id:uatId(), clientId, clientName, clientWebsite: website, name, entity, businessUnit, goLiveDate, description, phase:'uat', status:'active', uatRound:1, signoff:null, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
+  const p = { id:uatId(), clientId, clientName, clientWebsite: website, name, entity, businessUnit, goLiveDate, description, phase:'uat', status:'active', uatRound:1, signoff:null,
+    inRocketlane: !!inRocketlane, rlProjectId: inRocketlane ? (rlProjectId || null) : null, rlClientName: inRocketlane ? (rlClientName || null) : null,
+    createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
+  if (Array.isArray(entities) && entities.length) p.entities = entities.filter(Boolean);
   u.projects.push(p);
   if (seedDefaults) {
     const tcs = UAT_DEFAULTS.map((d,i) => uatNewTC({ ...d, id:uatId(), projectId:p.id, clientId, seq:i+1 }));
@@ -2494,6 +2497,25 @@ function buildRLPortalData(rlProjectId, clientName) {
 
   return { linked:false };
 }
+
+// Given a Rocketlane project id, find the UAT project and/or CI assessment already
+// linked to it (via inRocketlane/rlProjectId, set at creation or retroactively).
+// Used by the "Generate Customer Success Hub Link" modal so the admin never has to
+// independently re-pick a UAT project or CI assessment — the Rocketlane project
+// selection is the single source of truth for what belongs together.
+function rlFindLinkedRecords(rlProjectId) {
+  const id = String(rlProjectId);
+  const uatProject = uatDB().projects.find(p => p.inRocketlane && String(p.rlProjectId) === id) || null;
+  const ciAssessment = ciDB().assessments.find(a => a.inRocketlane && String(a.rlProjectId) === id) || null;
+  return {
+    uatProject: uatProject ? { id: uatProject.id, name: uatProject.name, clientName: uatProject.clientName } : null,
+    ciAssessment: ciAssessment ? { id: ciAssessment.id, projectName: ciAssessment.projectName, clientName: ciAssessment.clientName } : null,
+  };
+}
+app.get('/api/rocketlane/linked/:rlProjectId', async (req, res) => {
+  await _dbReady;
+  res.json({ ok:true, data: rlFindLinkedRecords(req.params.rlProjectId) });
+});
 
 async function portalFromCustomerLink(req, res, cl) {
   const u=uatDB(); const scope=cl.scope; const entity=req.query.entity||'';
@@ -6353,13 +6375,15 @@ app.get('/api/ci/assessments', async (req, res) => {
 app.post('/api/ci/assessments', async (req, res) => {
   await _dbReady;
   if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
-  const { clientId='', clientName, projectName, entities=[], processAreaNames } = req.body;
+  const { clientId='', clientName, projectName, entities=[], processAreaNames, inRocketlane=false, rlProjectId=null, rlClientName=null } = req.body;
   if (!clientName) return res.status(400).json({ ok:false, error:'clientName required' });
   const ci = ciDB();
   const now = new Date().toISOString();
   const paNames = Array.isArray(processAreaNames) && processAreaNames.length ? processAreaNames : CI_DEFAULT_PROCESS_AREAS;
   const processAreas = paNames.map((name,i) => ({ id:ciId(), name, order:i, description:'' }));
-  const assessment = { id:ciId(), clientId, clientName, projectName:projectName||'', entities:['Overall',...(entities||[]).filter(e=>e&&e!=='Overall')], processAreas, ratings:{}, actions:[], status:'active', createdAt:now, updatedAt:now };
+  const assessment = { id:ciId(), clientId, clientName, projectName:projectName||'', entities:['Overall',...(entities||[]).filter(e=>e&&e!=='Overall')], processAreas, ratings:{}, actions:[], status:'active',
+    inRocketlane: !!inRocketlane, rlProjectId: inRocketlane ? (rlProjectId || null) : null, rlClientName: inRocketlane ? (rlClientName || null) : null,
+    createdAt:now, updatedAt:now };
   ci.assessments.push(assessment);
   await saveDB(db); res.json({ ok:true, data:assessment });
 });
@@ -6370,11 +6394,16 @@ app.put('/api/ci/assessments/:id', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
   if (!a) return res.status(404).json({ ok:false, error:'Not found' });
-  const { clientName, projectName, entities, status } = req.body;
+  const { clientName, projectName, entities, status, inRocketlane, rlProjectId, rlClientName } = req.body;
   if (clientName !== undefined) a.clientName = clientName;
   if (projectName !== undefined) a.projectName = projectName;
   if (entities !== undefined) { a.entities = ['Overall',...(entities||[]).filter(e=>e&&e!=='Overall')]; }
   if (status !== undefined) a.status = status;
+  if (inRocketlane !== undefined) {
+    a.inRocketlane = !!inRocketlane;
+    a.rlProjectId = inRocketlane ? (rlProjectId || null) : null;
+    a.rlClientName = inRocketlane ? (rlClientName || null) : null;
+  }
   a.updatedAt = new Date().toISOString();
   await saveDB(db); res.json({ ok:true, data:a });
 });
@@ -6637,89 +6666,6 @@ app.get('/portal', (req, res) => {
 app.get('/portal/:token', (req, res) => {
   const file = req.query.hub === '1' ? 'customer-portal.html' : 'customer-landing.html';
   res.sendFile(require('path').join(__dirname, '../public', file));
-});
-
-// GET /api/portal/:token — unified data endpoint
-app.get('/api/portal/:token', async (req, res) => {
-  await _dbReady;
-  const u = uatDB();
-  const c = u.clients.find(x=>x.portalToken===req.params.token);
-  if (!c) return res.status(404).json({ ok:false, error:'not found' });
-
-  // UAT data
-  const projects = u.projects.filter(p=>p.clientId===c.id);
-  const allTc = u.testcases.filter(t=>projects.some(p=>p.id===t.projectId));
-  const allIssues = u.issues.filter(i=>i.clientId===c.id);
-  const total = allTc.length;
-  const passed = allTc.filter(t=>t.clientStatus==='pass').length;
-  const failed = allTc.filter(t=>t.clientStatus==='fail').length;
-  const pending = allTc.filter(t=>!t.clientStatus||t.clientStatus==='not_tested'||t.clientStatus==='in_progress').length;
-  const openIssues = allIssues.filter(i=>i.status==='open'||i.status==='in_progress').length;
-  const signedOff = projects.length > 0 && projects.every(p=>p.signoff&&p.signoff.status==='signed'||p.portalSignoff);
-
-  // Project status (Rocketlane)
-  let projectStatus = { linked: false };
-  const rlProject = projects.find(p=>p.rlProjectId);
-  if (rlProject && process.env.ROCKETLANE_API_KEY) {
-    try {
-      const fetch = require('node-fetch');
-      const r = await fetch(`https://api.rocketlane.com/api/1.0/projects/${rlProject.rlProjectId}`, {
-        headers: { Authorization: `Bearer ${process.env.ROCKETLANE_API_KEY}` }
-      });
-      if (r.ok) {
-        const d = await r.json();
-        const proj = d.project || d;
-        const pct = proj.completionPct||proj.completion_pct||0;
-        const phases = (proj.phases||[]).map(ph => {
-          const tasks = (ph.tasks||ph.milestones||[]).filter(t=>!t.isPrivate&&!t.internal);
-          const done = tasks.filter(t=>t.completed||t.status==='completed'||t.status==='done').length;
-          const phPct = tasks.length ? Math.round(done/tasks.length*100) : 0;
-          const status = phPct===100 ? 'completed' : phPct>0 ? 'in_progress' : 'upcoming';
-          return {
-            name: ph.name||'',
-            completion: phPct,
-            startDate: ph.startDate||ph.start_date||'',
-            endDate: ph.endDate||ph.end_date||ph.dueDate||'',
-            status,
-            milestones: tasks.map(t=>({ name:t.name||t.title||'', dueDate:t.dueDate||t.due_date||'', status:t.completed||t.status==='completed'?'completed':'pending' }))
-          };
-        });
-        const currentPhase = phases.find(p=>p.status==='in_progress')||phases.find(p=>p.status==='upcoming')||null;
-        projectStatus = { linked:true, projectName:proj.name||'', completion:pct, currentPhase:currentPhase?currentPhase.name:'', phases };
-      }
-    } catch(e) { /* keep linked:false */ }
-  }
-
-  // Confidence Index
-  let ci = { linked: false };
-  const ciAss = ciDB().assessments.find(a=>a.clientId===c.id&&a.status==='active');
-  if (ciAss) {
-    const allRatings = Object.values(ciAss.ratings||{}).flatMap(er=>Object.values(er)).map(r=>r.score).filter(Boolean);
-    const avgScore = allRatings.length ? Math.round(allRatings.reduce((s,v)=>s+v,0)/allRatings.length*10)/10 : 0;
-    ci = {
-      linked: true,
-      assessmentId: ciAss.id,
-      avgScore,
-      entities: ciAss.entities||['Overall'],
-      processAreas: ciAss.processAreas||[],
-      ratings: ciAss.ratings||{},
-      actions: (ciAss.actions||[]).map(ac=>({ id:ac.id, processAreaId:ac.processAreaId, entityKey:ac.entityKey, training:ac.training, supportRequired:ac.supportRequired, owner:ac.owner, targetDate:ac.targetDate, status:ac.status }))
-    };
-  }
-
-  res.json({
-    ok: true,
-    client: { id:c.id, name:c.name, shortCode:c.shortCode },
-    projectStatus,
-    uat: {
-      testcases: allTc,
-      issues: allIssues,
-      projects: projects.map(p=>({ id:p.id, name:p.name, signoff:p.signoff, portalSignoff:p.portalSignoff })),
-      signedOff,
-      stats: { total, passed, failed, pending, openIssues }
-    },
-    ci
-  });
 });
 
 // PUT /api/portal/:token/ci/ratings — save CI rating from unified portal

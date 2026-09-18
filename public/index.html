@@ -7422,12 +7422,12 @@ async function updateFeedbackStatus(id) {
   </div>
 </div>
 
-  <script src="/app.js?v=111" defer></script>
+  <script src="/app.js?v=112" defer></script>
 <script>
 // Inline fetch — runs immediately, not gated on app.js cache
 (async()=>{try{const r=await fetch('/api/delivery-team/count');if(r.ok){const d=await r.json();const el=document.getElementById('dwStatSMPeople');if(el&&d.count){el.textContent=d.count;}}}catch(e){}})();
 </script>
-  <script src="/uat.js?v=64" defer></script>
+  <script src="/uat.js?v=65" defer></script>
   <script src="/ews.js?v=8" defer></script>
   <script>
   // Lazy-load courses.js (502 KB) only when Learning section first opens
@@ -7996,7 +7996,8 @@ async function updateFeedbackStatus(id) {
       </div>
       <form id="uatFormNewProject" onsubmit="event.preventDefault();UAT.submitNewProject()">
         <div class="uat-modal-body">
-          <div class="uat-form-group">
+          <div class="uat-form-group" id="uatNP_rlToggle"></div>
+          <div class="uat-form-group uatNP-manual-field">
             <label class="uat-form-label">Client Name *</label>
             <input class="uat-form-input" name="clientName" list="uatClientDatalist" placeholder="Type new or select existing client…" autocomplete="off" required>
             <datalist id="uatClientDatalist"></datalist>
@@ -9100,27 +9101,16 @@ async function updateFeedbackStatus(id) {
       <button onclick="cshHubModalClose()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;cursor:pointer;line-height:1;padding:4px 8px;">×</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:16px;">
+      <div style="font-size:12px;color:rgba(255,255,255,.4);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px 14px;">A Customer Success Hub link always anchors to one real Rocketlane project — this is what keeps its UAT and Confidence Index tabs strictly scoped to that client. Projects not yet in Rocketlane can still get their own UAT-only or CI-only link from their respective screens.</div>
       <div>
-        <label style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;">Client Name *</label>
-        <input id="cshHubClient" placeholder="e.g. Navi" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;">
+        <label style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;">Rocketlane Client *</label>
+        <select id="cshHub_rlClient" onchange="rlLinkClientChange('cshHub')" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;"><option value="">Loading…</option></select>
       </div>
       <div>
-        <label style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;">Project Name</label>
-        <input id="cshHubProject" placeholder="e.g. Navi Phase 1" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;">
+        <label style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;">Rocketlane Project *</label>
+        <select id="cshHub_rlProject" onchange="rlLinkProjectChange('cshHub')" disabled style="width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;opacity:.5;"><option value="">— Select a client first —</option></select>
       </div>
-      <div>
-        <label style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;">UAT Project</label>
-        <select id="cshHubUAT" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;"><option value="">— None —</option></select>
-      </div>
-      <div>
-        <label style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;">Confidence Index Assessment</label>
-        <select id="cshHubCI" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;"><option value="">— None —</option></select>
-      </div>
-      <div>
-        <label style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;">Rocketlane Project ID (optional)</label>
-        <input id="cshHubRL" placeholder="e.g. 12345" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f0f0f6;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;">
-        <div style="font-size:11px;color:rgba(255,255,255,.25);margin-top:4px;">Find the ID from the Rocketlane Dashboard</div>
-      </div>
+      <div id="cshHubLinkedStatus" style="display:none;flex-direction:column;gap:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;"></div>
     </div>
     <div id="cshHubResult" style="display:none;margin-top:20px;align-items:center;gap:8px;background:rgba(53,72,255,.12);border:1px solid rgba(53,72,255,.3);border-radius:10px;padding:12px 14px;">
       <span class="rl-link-url" id="cshHubResultUrl" style="font-size:11px;color:#93c5fd;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
