@@ -2469,7 +2469,7 @@ function _extractPhases(proj) {
   return phases;
 }
 
-function buildRLPortalData(rlProjectId, clientName) {
+async function buildRLPortalData(rlProjectId, clientName) {
   const rl=db.rocketlane||{};
   const snaps=(rl.snapshots||[]).slice().sort((a,b)=>new Date(b.capturedAt)-new Date(a.capturedAt));
 
@@ -2477,7 +2477,14 @@ function buildRLPortalData(rlProjectId, clientName) {
     // Single-project lookup. Completion/name/customer prefer a snapshot (stable,
     // matches the week-on-week history chart) when one exists; phases/milestones
     // always come from the live enriched cache since snapshots never have them.
-    const fullProj = rlFullCache && (rlFullCache.projects||[]).find(p=>String(p.projectId)===String(rlProjectId));
+    // rlFullCache lives in this lambda instance's memory only — a request landed
+    // on an instance that has never warmed it (or warmed it before this project
+    // existed) would otherwise show empty phases forever. Do a live fetch here
+    // rather than depend on some other request having warmed this instance first.
+    let fullProj = rlFullCache && (rlFullCache.projects||[]).find(p=>String(p.projectId)===String(rlProjectId));
+    if (!fullProj && process.env.ROCKETLANE_API_KEY) {
+      try { const fresh = await rlDoFullFetch(process.env.ROCKETLANE_API_KEY); fullProj = (fresh.projects||[]).find(p=>String(p.projectId)===String(rlProjectId)); } catch(e) { /* fall through to snapshot/rlCache below */ }
+    }
     const phasesFromFull = fullProj ? _extractPhases(fullProj) : [];
 
     for (const snap of snaps) {
@@ -2558,7 +2565,7 @@ async function portalFromCustomerLink(req, res, cl) {
   const showStatus=scope==='status'||scope==='all';
   const showUAT=scope==='uat'||scope==='all';
   const showCI=scope==='ci'||scope==='all';
-  const projectStatus=showStatus ? buildRLPortalData(cl.rlProjectId||'', clientName) : {linked:false};
+  const projectStatus=showStatus ? await buildRLPortalData(cl.rlProjectId||'', clientName) : {linked:false};
   const uat=showUAT && cl.uatProjectId ? buildUATPortalData(cl.uatProjectId, entity) : {linked:false,stats:{total:0,passed:0,failed:0,blocked:0,inProgress:0,pending:0,openIssues:0},testcases:[],issues:[],signoff:null,allEntitySignoffs:{},entities:[],signedOff:false};
   const ci=showCI && cl.ciAssessmentId ? buildCIPortalData(cl.ciAssessmentId) : {linked:false};
   return res.json({ ok:true, data:{ scope, client, projectStatus, uat, ci } });
@@ -6814,26 +6821,23 @@ app.get('/api/portal/:token/tasks', async (req, res) => {
   try {
     const normalise = s=>(s||'').toLowerCase().trim();
     const cn = normalise(cl.clientName);
+    // rlFetchAllTasks is the same proven, paginated fetch already used by
+    // projects-full/my-work — it self-caches (2 min) and self-refreshes, so this
+    // works regardless of which lambda instance's in-memory cache happens to be
+    // warm. The previous per-project `?projectId=` query param was not a real
+    // Rocketlane filter and silently returned nothing on every call.
+    const allTasks = await rlFetchAllTasks(apiKey);
     // Determine project IDs to fetch
     let projectIds = cl.rlProjectId ? [String(cl.rlProjectId)] : [];
-    if (!projectIds.length && rlAllTasksCache) {
-      const clientTasks = rlAllTasksCache.filter(t=>normalise(t.project?.customer?.companyName||t.project?.customer||'')===cn);
+    if (!projectIds.length) {
+      const clientTasks = allTasks.filter(t=>normalise(t.project?.customer?.companyName||t.project?.customer||'')===cn);
       projectIds = [...new Set(clientTasks.map(t=>String(t.project?.projectId)).filter(Boolean))];
     }
     if (!projectIds.length && rlCache) {
       const ps=(rlCache.data||rlCache.projects||[]).filter(p=>normalise(p.customer?.companyName||p.customer)===cn);
       projectIds = ps.map(p=>String(p.projectId));
     }
-    // Get tasks from cache or fetch
-    let rawTasks = rlAllTasksCache ? rlAllTasksCache.filter(t=>projectIds.includes(String(t.project?.projectId))) : [];
-    if (!rawTasks.length && projectIds.length) {
-      for (const pid of projectIds.slice(0,5)) {
-        try {
-          const r = await fetch(`https://api.rocketlane.com/api/1.0/tasks?projectId=${pid}&pageSize=200&includeAllFields=true`, { headers:{'api-key':apiKey,'Accept':'application/json'} });
-          if (r.ok) { const d=await r.json(); rawTasks=rawTasks.concat(Array.isArray(d.data)?d.data:[]); }
-        } catch{}
-      }
-    }
+    const rawTasks = allTasks.filter(t=>projectIds.includes(String(t.project?.projectId)));
     // Build parent->children map
     const byId = {};
     rawTasks.forEach(t=>{ byId[t.taskId]=t; });
