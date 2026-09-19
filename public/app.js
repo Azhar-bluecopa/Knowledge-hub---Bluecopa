@@ -801,7 +801,15 @@ function rlLinkToggle(idPrefix, yes) {
   if (pickers) pickers.style.display = yes ? '' : 'none';
   const inst = _rlLinkInstances[idPrefix];
   if (inst && inst.manualSelector) {
-    document.querySelectorAll(inst.manualSelector).forEach(el => { el.style.display = yes ? 'none' : ''; });
+    document.querySelectorAll(inst.manualSelector).forEach(el => {
+      el.style.display = yes ? 'none' : '';
+      // Hiding the *container* isn't enough — Chrome still runs native constraint
+      // validation on a required field whose parent (not the field itself) is
+      // display:none, so the submit button silently does nothing. Toggle
+      // `required` on the fields themselves, restoring it when shown again.
+      el.querySelectorAll('[required]').forEach(f => { f.dataset.wasRequired='1'; f.required=false; });
+      if (!yes) el.querySelectorAll('[data-was-required]').forEach(f => { f.required=true; });
+    });
   }
 }
 
