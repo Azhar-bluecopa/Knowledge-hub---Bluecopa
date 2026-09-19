@@ -2435,11 +2435,36 @@ function buildCIPortalData(assessmentId) {
   return { linked:true, assessmentId:a.id, avgScore:total?sum/total:0, entities, processAreas:a.processAreas||[], ratings:allRatings, actions:a.actions||[] };
 }
 
+// proj.phases (from the Bluecopa delivery-methodology engine, _rlDoFullFetch) looks
+// like { engage:{tasks:[{taskId,taskName,status,dueDate,startDate,completed,owner}],pct},
+// drive:{...}, enable:{...}, convert:{...} }. Weekly snapshots and the raw /projects
+// cache never carry this — only the enriched full-fetch (rlFullCache) does. Each
+// methodology task here is itself a real Rocketlane parent task with its own
+// subtasks, so we surface it to clients as a milestone under its phase.
+const _RL_PHASE_LABEL = { engage:'Engage', drive:'Drive', enable:'Enable', convert:'Convert' };
 function _extractPhases(proj) {
   const phases=[];
-  if (proj.phases&&typeof proj.phases==='object') {
-    const ord=['engage','drive','enable','convert'];
-    ord.forEach(k=>{ if(proj.phases[k]){ const ph=proj.phases[k]; phases.push({ name:ph.name||k, status:ph.status||'upcoming', completion:ph.completionPct||0, startDate:ph.startDate||'', endDate:ph.endDate||ph.dueDate||'', milestones:(ph.milestones||[]).map(m=>({name:m.name||m.title||'',status:m.status||'upcoming',dueDate:m.dueDate||''})) }); } });
+  if (proj.phases && typeof proj.phases === 'object' && !Array.isArray(proj.phases)) {
+    ['engage','drive','enable','convert'].forEach(k=>{
+      const ph=proj.phases[k];
+      if(!ph) return;
+      const tasks=ph.tasks||[];
+      const dates=tasks.flatMap(t=>[t.startDate,t.dueDate]).filter(Boolean).sort();
+      const pct=ph.pct||0;
+      phases.push({
+        name: _RL_PHASE_LABEL[k]||k,
+        status: pct>=100?'completed':pct>0?'in_progress':'upcoming',
+        completion: pct,
+        startDate: dates[0]||'',
+        endDate: dates.length?dates[dates.length-1]:'',
+        milestones: tasks.map(t=>({
+          name: t.taskName||'',
+          status: t.completed?'completed':/progress/i.test(t.status||'')?'in_progress':'upcoming',
+          dueDate: t.dueDate||'',
+          owner: t.owner||''
+        }))
+      });
+    });
   }
   return phases;
 }
@@ -2449,14 +2474,22 @@ function buildRLPortalData(rlProjectId, clientName) {
   const snaps=(rl.snapshots||[]).slice().sort((a,b)=>new Date(b.capturedAt)-new Date(a.capturedAt));
 
   if (rlProjectId) {
-    // Single-project lookup
+    // Single-project lookup. Completion/name/customer prefer a snapshot (stable,
+    // matches the week-on-week history chart) when one exists; phases/milestones
+    // always come from the live enriched cache since snapshots never have them.
+    const fullProj = rlFullCache && (rlFullCache.projects||[]).find(p=>String(p.projectId)===String(rlProjectId));
+    const phasesFromFull = fullProj ? _extractPhases(fullProj) : [];
+
     for (const snap of snaps) {
       const proj=(snap.projects||[]).find(p=>String(p.projectId)===String(rlProjectId));
       if (proj) {
-        return { linked:true, rlProjectId, projectName:proj.projectName||proj.name||'', completion:proj.completionPct||proj.overallPct||0, currentPhase:proj.currentPhase||'', customer:proj.customer||'', phases:_extractPhases(proj), snappedAt:snap.capturedAt };
+        return { linked:true, rlProjectId, projectName:proj.projectName||proj.name||'', completion:proj.completionPct||proj.overallPct||0, currentPhase:(fullProj&&fullProj.currentPhase)||proj.currentPhase||'', customer:proj.customer||'', phases:phasesFromFull, snappedAt:snap.capturedAt };
       }
     }
-    // Fallback: found in rlCache (live data)
+    if (fullProj) {
+      return { linked:true, rlProjectId, projectName:fullProj.projectName||'', completion:fullProj.overallPct||0, currentPhase:fullProj.currentPhase||'', customer:fullProj.customer||'', phases:phasesFromFull };
+    }
+    // Last-resort fallback: found only in the bare /projects cache (no phase data at all)
     if (rlCache) {
       const proj=(rlCache.data||rlCache.projects||[]).find(p=>String(p.projectId)===String(rlProjectId));
       if (proj) return { linked:true, rlProjectId, projectName:proj.name||proj.projectName||'', completion:proj.completionPct||0, currentPhase:'', customer:proj.customer?.companyName||proj.customer||'', phases:[] };
@@ -6811,7 +6844,17 @@ app.get('/api/portal/:token/tasks', async (req, res) => {
       else roots.push(t);
     });
     function mapTask(t) {
-      return { taskId:t.taskId, name:t.name||t.title||'', status:(t.status&&(t.status.label||t.status))||'', assignees:(t.assignees||[]).map(a=>a.name||a.email||''), dueDate:t.dueDate||'', completionPct:t.completionPct||0, section:t.section?.name||'', projectId:String(t.project?.projectId||''), projectName:t.project?.name||t.project?.projectName||'', children:(childMap[t.taskId]||[]).map(mapTask) };
+      // Rocketlane's real task shape: taskName (not name/title), assignees is
+      // {members:[...], placeholders:[...]} (not a bare array) — this endpoint
+      // was crashing on every call (assignees.map is not a function), silently
+      // swallowed by the catch below, so it always returned an empty task list.
+      const assigneeMembers = t.assignees?.members || [];
+      return { taskId:t.taskId, name:t.taskName||t.name||t.title||'', status:(t.status&&(t.status.label||t.status))||'',
+        assignees: assigneeMembers.map(a=>[a.firstName,a.lastName].filter(Boolean).join(' ')||a.emailId||a.name||a.email||'').filter(Boolean),
+        dueDate:t.dueDate||'', startDate:t.startDate||'', completionPct:t.completionPct||0,
+        parentTaskId: t.parentTask?.taskId || null, isParent: !!(childMap[t.taskId]||[]).length,
+        section:t.section?.name||'', projectId:String(t.project?.projectId||''), projectName:t.project?.name||t.project?.projectName||'',
+        children:(childMap[t.taskId]||[]).map(mapTask) };
     }
     const tasks = roots.map(mapTask);
     res.json({ ok:true, tasks });

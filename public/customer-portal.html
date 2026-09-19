@@ -407,6 +407,22 @@ body{
 .ms-done-dot{background:var(--teal)}
 .ms-pend-dot{background:var(--border-solid)}
 .ms-due{margin-left:auto;font-size:11px;color:var(--text-4);flex-shrink:0}
+.ms-owner{margin-left:10px;font-size:11px;color:var(--text-4);flex-shrink:0}
+.ms-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-4);margin-top:14px;margin-bottom:2px}
+
+.up-list{display:flex;flex-direction:column;gap:8px}
+.up-row{
+  display:flex;align-items:center;gap:14px;
+  background:var(--card);border:1px solid var(--border-solid);border-radius:var(--r-sm);
+  padding:14px 18px;box-shadow:var(--sh-sm);transition:box-shadow .2s;
+}
+.up-row:hover{box-shadow:var(--sh-md)}
+.up-row-main{flex:1;min-width:0}
+.up-row-name{font-size:13px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.up-row-meta{display:flex;gap:10px;margin-top:4px}
+.up-row-meta span{font-size:11px;color:var(--text-4)}
+.up-row-due{flex-shrink:0;text-align:right;font-size:12px;font-weight:700}
+.up-row-date{font-size:10px;font-weight:400;color:var(--text-4);margin-top:2px}
 
 /* ── UAT tab ── */
 .uat-stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:22px}
@@ -1185,9 +1201,9 @@ function renderStatus(){
     <canvas id="wowChart" height="160"></canvas>
   </div>`;
 
-  // Tasks placeholder
-  html+=`<div class="sec-hd" id="tasksSection" style="display:none"><div class="sec-hd-text">Tasks</div><div class="sec-hd-line"></div></div>
-  <div id="tasksContent"><div class="tasks-loading" id="tasksLoading">Loading tasks…</div></div>`;
+  // Upcoming activities placeholder
+  html+=`<div class="sec-hd" id="upcomingSection" style="display:none"><div class="sec-hd-text">Upcoming Activities — Next 2 Weeks</div><div class="sec-hd-line"></div></div>
+  <div id="upcomingContent"><div class="tasks-loading" id="upcomingLoading">Loading…</div></div>`;
 
   el.innerHTML=html;
 
@@ -1218,10 +1234,11 @@ function _renderPhases(phases){
         ${(ph.startDate||ph.endDate)?`<div class="tl-dates">${ph.startDate?fmtDate(ph.startDate):''}${ph.startDate&&ph.endDate?' → ':''}${ph.endDate?fmtDate(ph.endDate):''}</div>`:''}
         <div class="prog-track"><div class="prog-fill" style="width:${ph.completion}%;background:${phClr}"></div></div>
         <div class="tl-pct-label" style="color:${phClr}">${ph.completion}% complete</div>
-        ${ph.milestones&&ph.milestones.length?`<div class="ms-list">${ph.milestones.map(m=>`
+        ${ph.milestones&&ph.milestones.length?`<div class="ms-label">Milestones</div><div class="ms-list">${ph.milestones.map(m=>`
           <div class="ms-row">
             <span class="ms-dot ${m.status==='completed'?'ms-done-dot':'ms-pend-dot'}"></span>
             <span style="color:${m.status==='completed'?'var(--text-3)':'var(--text-1)'};text-decoration:${m.status==='completed'?'line-through':'none'}">${esc(m.name)}</span>
+            ${m.owner?`<span class="ms-owner">${esc(m.owner)}</span>`:''}
             ${m.dueDate?`<span class="ms-due">${fmtDate(m.dueDate)}</span>`:''}
           </div>`).join('')}</div>`:''}
       </div>
@@ -1261,6 +1278,39 @@ function _renderTaskTree(tasks, depth){
   }).join('');
 }
 
+function _flattenTasks(tasks){
+  const out=[];
+  (tasks||[]).forEach(t=>{ out.push(t); if(t.children&&t.children.length) out.push.apply(out,_flattenTasks(t.children)); });
+  return out;
+}
+function _isTaskDone(status){ const s=(status||'').toLowerCase(); return s.indexOf('complet')!==-1||s.indexOf('done')!==-1; }
+function _upcomingActivities(){
+  const start=new Date(); start.setHours(0,0,0,0);
+  const end=new Date(start); end.setDate(end.getDate()+14);
+  return _flattenTasks(_tasks)
+    .filter(t=>t.dueDate&&!_isTaskDone(t.status))
+    .map(t=>Object.assign({},t,{_due:new Date(t.dueDate)}))
+    .filter(t=>!isNaN(t._due)&&t._due>=start&&t._due<=end)
+    .sort((a,b)=>a._due-b._due);
+}
+function _renderUpcoming(items){
+  if(!items.length) return `<div class="empty-state" style="padding:32px 24px"><div class="empty-icon">🗓️</div><div class="empty-title">Nothing due in the next 2 weeks</div><div class="empty-desc">All caught up for now.</div></div>`;
+  const today=new Date(); today.setHours(0,0,0,0);
+  return `<div class="up-list">${items.map(t=>{
+    const days=Math.round((t._due-today)/86400000);
+    const dLabel=days===0?'Today':days===1?'Tomorrow':`In ${days} days`;
+    const dClr=days<=2?'#FF5C5C':days<=7?'#F5B53F':'#3B6EFA';
+    const assignee=t.assignees&&t.assignees.length?t.assignees[0]:'';
+    return `<div class="up-row">
+      <div class="up-row-main">
+        <div class="up-row-name">${esc(t.name)}</div>
+        <div class="up-row-meta">${t.section?`<span>${esc(t.section)}</span>`:''}${assignee?`<span>${esc(assignee)}</span>`:''}</div>
+      </div>
+      <div class="up-row-due" style="color:${dClr}">${dLabel}<div class="up-row-date">${fmtDate(t.dueDate)}</div></div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
 function renderStatusExtras(){
   // WoW chart
   const wowSection=document.getElementById('wowSection');
@@ -1294,15 +1344,15 @@ function renderStatusExtras(){
     });
   }
 
-  // Tasks
-  const tasksSection=document.getElementById('tasksSection');
-  const tasksContent=document.getElementById('tasksContent');
-  if(!tasksSection||!tasksContent) return;
+  // Upcoming activities — next 2 weeks, flattened across the whole task tree
+  const upcomingSection=document.getElementById('upcomingSection');
+  const upcomingContent=document.getElementById('upcomingContent');
+  if(!upcomingSection||!upcomingContent) return;
   if(_tasks.length){
-    tasksSection.style.display='flex';
-    tasksContent.innerHTML=_renderTaskTree(_tasks,0);
+    upcomingSection.style.display='flex';
+    upcomingContent.innerHTML=_renderUpcoming(_upcomingActivities());
   } else {
-    tasksContent.innerHTML='';
+    upcomingContent.innerHTML='';
   }
 }
 
