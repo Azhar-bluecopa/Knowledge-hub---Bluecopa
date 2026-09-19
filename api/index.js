@@ -2417,13 +2417,15 @@ function buildUATPortalData(projectId, entity) {
       clientStatus=tc.clientStatus||'not_tested'; clientComments=tc.clientComments||'';
       bluecopaStatus=tc.bluecopaStatus||'not_tested'; bluecopaComments=tc.bluecopaComments||'';
     }
-    return { id:tc.id, seq:tc.seq, title:tc.testDescription||tc.testScenario||'', category:tc.category||tc.processArea||'', priority:tc.priority||'medium', clientStatus, clientComments, bluecopaStatus, bluecopaComments };
+    return { id:tc.id, seq:tc.seq, entity:tc.entity||'', title:tc.testDescription||tc.testScenario||'', category:tc.category||tc.processArea||'', priority:tc.priority||'medium', clientStatus, clientComments, bluecopaStatus, bluecopaComments };
   });
   const total=tcs.length, passed=tcs.filter(t=>t.clientStatus==='pass').length, failed=tcs.filter(t=>t.clientStatus==='fail').length, blocked=tcs.filter(t=>t.clientStatus==='blocked').length, inProgress=tcs.filter(t=>t.clientStatus==='in_progress').length;
   const issues=u.issues.filter(i=>i.projectId===p.id);
   const openIssues=issues.filter(i=>i.status==='open'||i.status==='in_progress').length;
   const signoff=((p.entitySignoffs||{})[entity||''])||null;
-  return { linked:true, projectId:p.id, uatToken:p.portalToken||'', stats:{total,passed,failed,blocked,inProgress,pending:total-passed-failed-blocked-inProgress,openIssues}, testcases:tcs, issues, signoff, allEntitySignoffs:p.entitySignoffs||{}, bluecopaSignoff:((p.bluecopaEntitySignoffs||{})[entity||''])||null, entities:entityList, signedOff:!!(signoff&&signoff.signedAt) };
+  // allEntitySignoffs/allBluecopaEntitySignoffs carry every entity's sign-off (not just the
+  // requested one) so the client can switch entity tabs without a round-trip per tab.
+  return { linked:true, projectId:p.id, uatToken:p.portalToken||'', stats:{total,passed,failed,blocked,inProgress,pending:total-passed-failed-blocked-inProgress,openIssues}, testcases:tcs, issues, signoff, allEntitySignoffs:p.entitySignoffs||{}, allBluecopaEntitySignoffs:p.bluecopaEntitySignoffs||{}, bluecopaSignoff:((p.bluecopaEntitySignoffs||{})[entity||''])||null, entities:entityList, signedOff:!!(signoff&&signoff.signedAt) };
 }
 
 function buildCIPortalData(assessmentId) {
@@ -2603,9 +2605,25 @@ app.get('/api/portal/:token', async (req, res) => {
   return res.status(404).json({ ok:false, error:'invalid link' });
 });
 
+// Every write a client makes from the Hub (/portal/:token) arrives with a
+// CustomerLink token, not the legacy project-level portalToken these three
+// handlers originally checked — that lookup could never match, so a client
+// updating a test's status or submitting sign-off from the new Hub UI would
+// silently 403. Resolve a CustomerLink first (uatProjectId -> project), then
+// fall back to the legacy token so old standalone project links still work.
+function resolveUATProjectByToken(token) {
+  const u = uatDB();
+  const cl = clDB().find(x => x.token === token);
+  if (cl && cl.uatProjectId) {
+    const p = u.projects.find(x => x.id === cl.uatProjectId);
+    if (p) return p;
+  }
+  return u.projects.find(x => x.portalToken === token) || null;
+}
+
 app.put('/api/portal/:token/issue/:id', async (req, res) => {
   await _dbReady; const u=uatDB();
-  const p=u.projects.find(x=>x.portalToken===req.params.token);
+  const p=resolveUATProjectByToken(req.params.token);
   if (!p) return res.status(403).json({ ok:false, error:'invalid token' });
   const issue=u.issues.find(x=>x.id===req.params.id&&x.projectId===p.id);
   if (!issue) return res.status(404).json({ ok:false, error:'not found' });
@@ -2639,7 +2657,7 @@ app.put('/api/uat/projects/:id/entity-signoff', async (req, res) => {
 
 app.put('/api/portal/:token/signoff', async (req, res) => {
   await _dbReady; const u=uatDB();
-  const p=u.projects.find(x=>x.portalToken===req.params.token);
+  const p=resolveUATProjectByToken(req.params.token);
   if (!p) return res.status(403).json({ ok:false, error:'invalid token' });
   const { name, role, date, entity }=req.body;
   if (!name||!name.trim()) return res.status(400).json({ ok:false, error:'name required' });
@@ -2652,7 +2670,7 @@ app.put('/api/portal/:token/signoff', async (req, res) => {
 
 app.put('/api/portal/:token/tc/:id', async (req, res) => {
   await _dbReady; const u=uatDB();
-  const p=u.projects.find(x=>x.portalToken===req.params.token);
+  const p=resolveUATProjectByToken(req.params.token);
   if (!p) return res.status(403).json({ ok:false, error:'invalid token' });
   const tc=u.testcases.find(x=>x.id===req.params.id&&x.projectId===p.id);
   if (!tc) return res.status(404).json({ ok:false, error:'not found' });

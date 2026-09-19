@@ -510,6 +510,40 @@ body{
 .pri-medium{color:var(--amber);font-weight:600;font-size:11px}
 .pri-low{color:var(--text-4);font-size:11px}
 
+.uat-status-select{
+  appearance:none;-webkit-appearance:none;border:none;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;
+  padding:5px 22px 5px 10px;border-radius:99px;
+  background-repeat:no-repeat;background-position:right 7px center;background-size:9px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23000' stroke-width='1.4' fill='none' opacity='.45'/%3E%3C/svg%3E");
+}
+.uat-status-select.ch-pass{background-color:var(--teal-dim);color:#0a7a58}
+.uat-status-select.ch-fail{background-color:var(--coral-dim);color:#c73d3d}
+.uat-status-select.ch-not_tested{background-color:rgba(0,0,0,.06);color:var(--text-3)}
+.uat-status-select.ch-in_progress{background-color:var(--cobalt-dim);color:var(--cobalt)}
+.uat-status-select.ch-blocked{background-color:var(--amber-dim);color:#a07010}
+.uat-notes-cell{max-width:180px}
+.uat-notes-text{font-size:11px;color:var(--text-3);cursor:text;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:4px 6px;border-radius:6px;border:1px dashed transparent}
+.uat-notes-text:hover{border-color:var(--border-solid);background:rgba(0,0,0,.02)}
+.uat-notes-input{width:100%;font-family:'DM Sans',sans-serif;font-size:11px;color:var(--text-1);border:1.5px solid var(--cobalt);border-radius:6px;padding:5px 7px;resize:vertical;min-height:32px}
+
+.uat-signoff-card{
+  background:var(--card);border:1px solid var(--border-solid);border-radius:var(--r-sm);
+  padding:22px 24px;margin:20px 0;box-shadow:var(--sh-sm);
+}
+.uat-signoff-title{font-size:14px;font-weight:800;color:var(--text-1);margin-bottom:4px}
+.uat-signoff-sub{font-size:12px;color:var(--text-3);margin-bottom:16px}
+.uat-signoff-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.uat-signoff-field{flex:1;min-width:160px}
+.uat-signoff-field label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-4);margin-bottom:6px}
+.uat-signoff-field input{
+  width:100%;border:1.5px solid var(--border-solid);border-radius:var(--r-sm);
+  padding:10px 12px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text-1);
+  background:var(--card);box-sizing:border-box;transition:border-color .15s;
+}
+.uat-signoff-field input:focus{outline:none;border-color:var(--cobalt)}
+.uat-bluecopa-signed-note{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-3);margin-bottom:16px;padding:10px 14px;background:var(--bg);border-radius:var(--r-sm)}
+
 .signoff-bar{
   display:flex;align-items:center;gap:14px;
   background:var(--teal-dim);
@@ -1357,31 +1391,57 @@ function renderStatusExtras(){
 }
 
 // ── UAT Testing ───────────────────────────────────────────────────────────────
+var _uatEntity='';
+const STATUS_LABEL={not_tested:'Not Tested',in_progress:'In Progress',pass:'Pass',fail:'Fail',blocked:'Blocked'};
+
+function uatSelectEntity(ent){ _uatEntity=ent; renderUAT(); }
+
 function renderUAT(){
   const el=document.getElementById('uatContent');
   const uat=_data.uat;
-  const stats=uat.stats;
-  const total=stats.total;
-  const uatPct=total?Math.round(stats.passed/total*100):0;
+  const entities=uat.entities||[];
+  // A test with no entity of its own (older/legacy tests, or a project with no
+  // entities at all) always counts; once an entity IS selected, only its own tests do.
+  const allTcs=uat.testcases||[];
+  const tcs=_uatEntity?allTcs.filter(t=>t.entity===_uatEntity):allTcs;
+  const total=tcs.length;
+  const passed=tcs.filter(t=>t.clientStatus==='pass').length;
+  const failed=tcs.filter(t=>t.clientStatus==='fail').length;
+  const blocked=tcs.filter(t=>t.clientStatus==='blocked').length;
+  const pending=total-passed-failed-blocked-tcs.filter(t=>t.clientStatus==='in_progress').length;
+  const openIssuesAll=(uat.issues||[]).filter(i=>i.status==='open'||i.status==='in_progress');
+  const openIssues=_uatEntity?openIssuesAll.filter(i=>!i.entity||i.entity===_uatEntity):openIssuesAll;
+  const uatPct=total?Math.round(passed/total*100):0;
   const pctClr=uatPct>=80?'#11C98D':uatPct>=50?'#3B6EFA':'#9CA3AF';
   let html='';
 
-  if(uat.signedOff){
+  if(entities.length){
+    html+=`<div class="ci-entity-row">
+      <button class="ci-ent-btn${_uatEntity?'':' active'}" onclick="uatSelectEntity('')">All Entities</button>
+      ${entities.map(ent=>`<button class="ci-ent-btn${ent===_uatEntity?' active':''}" onclick="uatSelectEntity('${esc(ent)}')">${esc(ent)}</button>`).join('')}
+    </div>`;
+  }
+
+  const signoffKey=_uatEntity||'';
+  const mySignoff=(uat.allEntitySignoffs||{})[signoffKey]||null;
+  const bcSignoff=(uat.allBluecopaEntitySignoffs||{})[signoffKey]||null;
+
+  if(mySignoff&&mySignoff.signedAt){
     html+=`<div class="signoff-bar">
       <div class="signoff-ico"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
       <div>
-        <div style="font-size:14px;font-weight:800;color:#0a7a58">UAT Signed Off</div>
-        <div style="font-size:12px;color:#0d6b4e;margin-top:2px">All UAT rounds have been formally signed off.</div>
+        <div style="font-size:14px;font-weight:800;color:#0a7a58">${_uatEntity?esc(_uatEntity)+' — ':''}Signed Off</div>
+        <div style="font-size:12px;color:#0d6b4e;margin-top:2px">${esc(mySignoff.name)}${mySignoff.role?', '+esc(mySignoff.role):''} · ${fmtDate(mySignoff.date)}</div>
       </div>
     </div>`;
   }
 
   html+=`<div class="uat-stat-grid">
     <div class="uat-stat"><div class="uat-stat-n" style="color:#3B6EFA">${total}</div><div class="uat-stat-l">Total</div></div>
-    <div class="uat-stat"><div class="uat-stat-n" style="color:#11C98D">${stats.passed}</div><div class="uat-stat-l">Passed</div></div>
-    <div class="uat-stat"><div class="uat-stat-n" style="color:#FF5C5C">${stats.failed}</div><div class="uat-stat-l">Failed</div></div>
-    <div class="uat-stat"><div class="uat-stat-n" style="color:#F5B53F">${stats.pending}</div><div class="uat-stat-l">Pending</div></div>
-    <div class="uat-stat"><div class="uat-stat-n" style="color:#FF5C5C">${stats.openIssues}</div><div class="uat-stat-l">Open Issues</div></div>
+    <div class="uat-stat"><div class="uat-stat-n" style="color:#11C98D">${passed}</div><div class="uat-stat-l">Passed</div></div>
+    <div class="uat-stat"><div class="uat-stat-n" style="color:#FF5C5C">${failed}</div><div class="uat-stat-l">Failed</div></div>
+    <div class="uat-stat"><div class="uat-stat-n" style="color:#F5B53F">${pending}</div><div class="uat-stat-l">Pending</div></div>
+    <div class="uat-stat"><div class="uat-stat-n" style="color:#FF5C5C">${openIssues.length}</div><div class="uat-stat-l">Open Issues</div></div>
   </div>`;
 
   html+=`<div class="uat-prog-row">
@@ -1390,12 +1450,12 @@ function renderUAT(){
       <div class="prog-track" style="height:8px">
         <div class="prog-fill" style="width:${uatPct}%;background:linear-gradient(90deg,${pctClr},${pctClr}aa)"></div>
       </div>
-      <div class="uat-prog-sub">${stats.passed} of ${total} test cases passed</div>
+      <div class="uat-prog-sub">${passed} of ${total} test cases passed</div>
     </div>
   </div>`;
 
   const categories={};
-  (uat.testcases||[]).forEach(tc=>{
+  tcs.forEach(tc=>{
     const cat=tc.category||'General';
     if(!categories[cat])categories[cat]=[];
     categories[cat].push(tc);
@@ -1403,9 +1463,9 @@ function renderUAT(){
 
   if(Object.keys(categories).length){
     html+=`<div class="sec-hd"><div class="sec-hd-text">Test Cases</div><div class="sec-hd-line"></div></div>`;
-    Object.entries(categories).forEach(([cat,tcs])=>{
-      const catPassed=tcs.filter(t=>t.clientStatus==='pass').length;
-      const catPct=tcs.length?Math.round(catPassed/tcs.length*100):0;
+    Object.entries(categories).forEach(([cat,catTcs])=>{
+      const catPassed=catTcs.filter(t=>t.clientStatus==='pass').length;
+      const catPct=catTcs.length?Math.round(catPassed/catTcs.length*100):0;
       const cClr=catPct>=80?'#11C98D':catPct>=50?'#3B6EFA':'#9CA3AF';
       const sid='cat_'+cat.replace(/\W/g,'_');
       html+=`<div class="cat-card">
@@ -1419,7 +1479,7 @@ function renderUAT(){
             </div>
           </div>
           <div class="cat-hd-right" style="margin-left:14px">
-            <div class="cat-hd-count">${catPassed}/${tcs.length}</div>
+            <div class="cat-hd-count">${catPassed}/${catTcs.length}</div>
             <div class="cat-hd-pct">${catPct}%</div>
           </div>
           <div class="cat-chevron">⌄</div>
@@ -1427,19 +1487,25 @@ function renderUAT(){
         <div id="${sid}" class="tc-wrap">
           <table class="tc-table">
             <thead><tr>
-              <th>#</th><th>Test Case</th><th>Priority</th><th>Status</th>
+              <th>#</th><th>Test Case</th><th>Priority</th><th>Bluecopa</th><th>Your Status</th><th>Your Notes</th>
             </tr></thead>
             <tbody>
-              ${tcs.map(tc=>{
+              ${catTcs.map(tc=>{
                 const st=tc.clientStatus||'not_tested';
-                const stL={not_tested:'Not Tested',in_progress:'In Progress',pass:'Pass',fail:'Fail',blocked:'Blocked'}[st]||st;
+                const bst=tc.bluecopaStatus||'not_tested';
                 const pri=(tc.priority||'').toLowerCase();
                 const priCls=pri==='critical'?'pri-critical':pri==='high'?'pri-high':pri==='medium'?'pri-medium':'pri-low';
                 return`<tr>
                   <td class="tc-ref">TC-${tc.seq||'?'}</td>
                   <td class="tc-title">${esc(tc.title||tc.description||'')}</td>
                   <td class="${priCls}">${esc(tc.priority||'—')}</td>
-                  <td><span class="chip ch-${st.replace('_','-')}">${stL}</span></td>
+                  <td><span class="chip ch-${bst.replace('_','-')}" title="${bst==='not_tested'?'':esc(tc.bluecopaComments||'')}">${esc(STATUS_LABEL[bst]||bst)}</span></td>
+                  <td>
+                    <select class="uat-status-select ch-${st.replace('_','-')}" data-tcid="${esc(tc.id)}" onchange="uatSetStatus('${esc(tc.id)}',this.value,this)">
+                      ${Object.entries(STATUS_LABEL).map(([v,l])=>`<option value="${v}"${v===st?' selected':''}>${l}</option>`).join('')}
+                    </select>
+                  </td>
+                  <td class="uat-notes-cell"><div class="uat-notes-text" title="${esc(tc.clientComments||'')}" onclick="uatEditNotes(this,'${esc(tc.id)}')">${esc(tc.clientComments||'Add a note…')}</div></td>
                 </tr>`;
               }).join('')}
             </tbody>
@@ -1449,7 +1515,6 @@ function renderUAT(){
     });
   }
 
-  const openIssues=(uat.issues||[]).filter(i=>i.status==='open'||i.status==='in_progress');
   if(openIssues.length){
     html+=`<div class="sec-hd" style="margin-top:28px"><div class="sec-hd-text">Open Issues (${openIssues.length})</div><div class="sec-hd-line"></div></div>`;
     openIssues.forEach(iss=>{
@@ -1469,12 +1534,24 @@ function renderUAT(){
     });
   }
 
-  html+=`<div class="uat-foot">`;
-  if(uat.signedOff){
-    html+=`<span style="font-size:13px;color:#0a7a58;font-weight:700">✓ UAT formally signed off</span>`;
+  // ── Sign-off ──────────────────────────────────────────────────────────────
+  html+=`<div class="sec-hd" style="margin-top:28px"><div class="sec-hd-text">Sign-off${_uatEntity?' — '+esc(_uatEntity):''}</div><div class="sec-hd-line"></div></div>`;
+  html+=`<div class="uat-signoff-card">`;
+  if(bcSignoff&&bcSignoff.signedAt){
+    html+=`<div class="uat-bluecopa-signed-note">✓ Bluecopa has signed off — ${esc(bcSignoff.name)}${bcSignoff.role?', '+esc(bcSignoff.role):''} · ${fmtDate(bcSignoff.date)}</div>`;
+  }
+  if(mySignoff&&mySignoff.signedAt){
+    html+=`<div class="uat-signoff-title">You've signed off${_uatEntity?' on '+esc(_uatEntity):''}</div>
+    <div class="uat-signoff-sub">${esc(mySignoff.name)}${mySignoff.role?', '+esc(mySignoff.role):''} · ${fmtDate(mySignoff.date)}</div>`;
   }else{
-    html+=`<span style="font-size:13px;color:var(--text-3)">Need to update test statuses or sign off?</span>
-    <a href="/uat/portal/${TOKEN}" class="uat-foot-link">Open Full UAT Portal →</a>`;
+    html+=`<div class="uat-signoff-title">Ready to sign off${_uatEntity?' on '+esc(_uatEntity):''}?</div>
+    <div class="uat-signoff-sub">By signing off, you confirm UAT testing is complete and results are accepted.</div>
+    <div class="uat-signoff-row">
+      <div class="uat-signoff-field"><label>Full Name *</label><input id="uatSoName" placeholder="e.g. Priya Sharma"></div>
+      <div class="uat-signoff-field"><label>Role (optional)</label><input id="uatSoRole" placeholder="e.g. Finance Lead"></div>
+      <div class="uat-signoff-field" style="max-width:180px"><label>Date</label><input id="uatSoDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+    </div>
+    <button class="ci-save-btn" id="uatSoBtn" onclick="uatSubmitSignoff()">Submit Sign-off</button>`;
   }
   html+=`</div>`;
 
@@ -1485,6 +1562,65 @@ function renderUAT(){
       requestAnimationFrame(()=>{bar.style.width=w;});
     });
   },60);
+}
+
+async function uatSetStatus(tcId,newStatus,selectEl){
+  selectEl.className='uat-status-select ch-'+newStatus.replace('_','-');
+  const tc=(_data.uat.testcases||[]).find(t=>t.id===tcId);
+  const prevStatus=tc?tc.clientStatus:null;
+  if(tc)tc.clientStatus=newStatus;
+  try{
+    const r=await fetch('/api/portal/'+TOKEN+'/tc/'+tcId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientStatus:newStatus,entity:_uatEntity||undefined})});
+    if(!r.ok)throw new Error();
+    toast('Status updated');
+    const stats=_data.uat.stats;
+    // Keep the summary numbers in sync without a full re-fetch
+    renderUAT();
+  }catch(e){
+    if(tc)tc.clientStatus=prevStatus;
+    selectEl.value=prevStatus;
+    selectEl.className='uat-status-select ch-'+(prevStatus||'not_tested').replace('_','-');
+    toast('Could not save — please try again.');
+  }
+}
+
+function uatEditNotes(el,tcId){
+  if(el.querySelector('textarea'))return;
+  const tc=(_data.uat.testcases||[]).find(t=>t.id===tcId);
+  const current=tc?tc.clientComments||'':'';
+  el.innerHTML=`<textarea class="uat-notes-input" onclick="event.stopPropagation()">${esc(current)}</textarea>`;
+  const ta=el.querySelector('textarea');
+  ta.focus();
+  ta.addEventListener('blur',async()=>{
+    const val=ta.value.trim();
+    el.innerHTML=esc(val||'Add a note…');
+    el.title=val;
+    if(tc)tc.clientComments=val;
+    try{
+      await fetch('/api/portal/'+TOKEN+'/tc/'+tcId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientComments:val,entity:_uatEntity||undefined})});
+    }catch(e){toast('Could not save note — please try again.');}
+  });
+}
+
+async function uatSubmitSignoff(){
+  const name=(document.getElementById('uatSoName').value||'').trim();
+  if(!name){toast('Please enter your name.');document.getElementById('uatSoName').focus();return;}
+  const role=(document.getElementById('uatSoRole').value||'').trim();
+  const date=document.getElementById('uatSoDate').value;
+  const btn=document.getElementById('uatSoBtn');
+  btn.disabled=true;btn.textContent='Submitting…';
+  try{
+    const r=await fetch('/api/portal/'+TOKEN+'/signoff',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,role,date,entity:_uatEntity||undefined})});
+    const d=await r.json();
+    if(!d.ok)throw new Error(d.error||'Failed');
+    if(!_data.uat.allEntitySignoffs)_data.uat.allEntitySignoffs={};
+    _data.uat.allEntitySignoffs[_uatEntity||'']=d.signoff;
+    toast('Signed off — thank you!');
+    renderUAT();
+  }catch(e){
+    toast('Could not submit sign-off — please try again.');
+    btn.disabled=false;btn.textContent='Submit Sign-off';
+  }
 }
 
 function toggleCat(id){
