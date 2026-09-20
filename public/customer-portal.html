@@ -117,6 +117,18 @@ body{
   box-shadow:0 4px 12px rgba(59,110,250,.4);
 }
 .topbar-sep{width:1px;height:20px;background:rgba(255,255,255,.1);flex-shrink:0}
+.topbar-home-btn{
+  display:inline-flex;align-items:center;gap:6px;flex-shrink:0;
+  padding:6px 14px;border-radius:99px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.7);
+  font-family:'DM Sans',sans-serif;
+  font-size:12px;font-weight:600;
+  cursor:pointer;transition:background .15s,border-color .15s,color .15s;
+}
+.topbar-home-btn:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.22);color:#fff}
+.topbar-home-btn svg{width:14px;height:14px;flex-shrink:0}
 .topbar-client{
   font-size:13px;font-weight:500;
   color:rgba(255,255,255,.65);
@@ -849,6 +861,8 @@ body{
   .hub-hero{padding:28px 24px 24px;border-radius:14px}
   .hub-greeting{font-size:28px}
   .topbar-badge{display:none}
+  .topbar-home-btn{padding:6px 10px}
+  .topbar-home-label{display:none}
   .tab-btn{padding:0 14px;font-size:12px}
   .tab-btn .ti{display:none}
 }
@@ -909,6 +923,10 @@ body{
     </div>
     <div class="topbar-sep"></div>
     <div class="topbar-client" id="topbarClient">—</div>
+    <button class="topbar-home-btn" onclick="localStorage.removeItem('bc_hub_'+TOKEN);location.href='/portal/'+TOKEN" title="Back to home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>
+      <span class="topbar-home-label">Home</span>
+    </button>
     <div class="topbar-badge">Client Hub</div>
   </div>
 
