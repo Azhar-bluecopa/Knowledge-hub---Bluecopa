@@ -116,16 +116,16 @@ body::after{
 /* ── Success badge (abstract "customer success" motif) ── */
 .success-badge{
   position:fixed;top:50%;left:50%;
-  width:440px;height:440px;
+  width:680px;height:680px;
   transform:translate(-50%,-50%);
   z-index:2;pointer-events:none;
-  opacity:.85;
-  filter:drop-shadow(0 0 46px rgba(217,70,239,.4)) drop-shadow(0 0 90px rgba(124,58,237,.28));
+  opacity:.4;
+  filter:blur(1.5px) drop-shadow(0 0 46px rgba(217,70,239,.35)) drop-shadow(0 0 90px rgba(124,58,237,.22));
   animation:badgeIn 1.8s .1s cubic-bezier(.16,1,.3,1) both,badgeBreathe 6s 1.8s ease-in-out infinite;
 }
 @keyframes badgeIn{
   0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}
-  100%{opacity:.85;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:.4;transform:translate(-50%,-50%) scale(1)}
 }
 @keyframes badgeBreathe{
   0%,100%{transform:translate(-50%,-50%) scale(1)}
@@ -226,21 +226,23 @@ body::after{
   0%,100%{opacity:.4;filter:blur(48px)}
   50%{opacity:.6;filter:blur(56px)}
 }
+.name-reveal{
+  display:inline-block;position:relative;z-index:1;
+  animation:nameReveal 1.2s .2s cubic-bezier(.16,1,.3,1) both;
+}
 .client-name{
   font-family:'Outfit',sans-serif;
   font-size:clamp(52px,8.5vw,108px);
-  font-weight:900;line-height:1;
+  font-weight:900;line-height:1;letter-spacing:-.04em;
   background:linear-gradient(180deg,#fff 20%,rgba(255,255,255,.68) 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   background-clip:text;
-  position:relative;z-index:1;
   display:inline-block;
-  animation:nameReveal 1.2s .2s cubic-bezier(.16,1,.3,1) both;
 }
 @keyframes nameReveal{
-  0%{opacity:0;filter:blur(26px);letter-spacing:.18em;transform:scale(.92) translateY(14px)}
+  0%{opacity:0;filter:blur(26px);transform:scale(.92) translateY(14px)}
   55%{opacity:1;filter:blur(3px)}
-  100%{opacity:1;filter:blur(0);letter-spacing:-.04em;transform:scale(1) translateY(0)}
+  100%{opacity:1;filter:blur(0);transform:scale(1) translateY(0)}
 }
 .name-period{
   background:linear-gradient(180deg,#f0abfc 0%,#c026d3 100%);
@@ -379,7 +381,7 @@ body::after{
     <circle class="badge-ring-outer" cx="100" cy="100" r="92" fill="none" stroke="url(#badgeGrad)" stroke-width="1.2" opacity=".35" stroke-dasharray="3 9"/>
     <circle cx="100" cy="100" r="78" fill="none" stroke="url(#badgeGrad)" stroke-width="1.4" opacity=".3"/>
     <circle cx="100" cy="100" r="62" fill="rgba(217,70,239,.05)" stroke="url(#badgeGrad)" stroke-width="2" opacity=".55"/>
-    <path d="M72 101 L91 120 L130 79" fill="none" stroke="url(#badgeGrad)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>
+    <path d="M72 101 L91 120 L130 79" fill="none" stroke="url(#badgeGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity=".4"/>
   </svg>
 </div>
 
@@ -406,7 +408,9 @@ body::after{
 
   <div class="name-wrap">
     <div class="name-glow" id="nameGlow" aria-hidden="true">—.</div>
-    <div class="client-name" id="clientName">—<span class="name-period">.</span></div>
+    <div class="name-reveal">
+      <div class="client-name" id="clientName">—<span class="name-period">.</span></div>
+    </div>
   </div>
 
   <div class="hero-sub">Your implementation progress, milestones, and readiness — all in one place.</div>
