@@ -6323,17 +6323,14 @@ async function rlAutoSnapshot() {
   ensureRL();
 
   const now = new Date();
-  const dayOfWeek = now.getUTCDay();
-  const mondayUTC = new Date(now);
-  mondayUTC.setUTCDate(now.getUTCDate() - ((dayOfWeek + 6) % 7));
-  mondayUTC.setUTCHours(0, 0, 0, 0);
-  const thisWeekKey = mondayUTC.toISOString().slice(0, 10);
+  const thisMonthKey = now.toISOString().slice(0, 7); // YYYY-MM
 
-  // Dedup by weekKey (not capturedAt prefix) so manual retriggers on non-Monday days don't duplicate
+  // Dedup by monthKey (not capturedAt prefix) so a manual retrigger later in the
+  // month doesn't duplicate that month's snapshot
   const alreadyDone = db.rocketlane.snapshots.some(s =>
-    s.type === 'weekly' && s.weekKey === thisWeekKey
+    s.type === 'monthly' && s.monthKey === thisMonthKey
   );
-  if (alreadyDone) return { ok: true, skipped: true, reason: 'already_captured_this_week' };
+  if (alreadyDone) return { ok: true, skipped: true, reason: 'already_captured_this_month' };
 
   try {
     const [projResp, allTasks] = await Promise.all([
@@ -6372,10 +6369,10 @@ async function rlAutoSnapshot() {
       };
     });
 
-    const label = `Week of ${mondayUTC.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} (auto)`;
+    const label = `${now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })} (auto)`;
     const snap = {
       id: db.rocketlane.nextSnapshotId++,
-      type: 'weekly', label, weekKey: thisWeekKey,
+      type: 'monthly', label, monthKey: thisMonthKey,
       capturedAt: now.toISOString(),
       projects, auto: true
     };
@@ -6387,8 +6384,8 @@ async function rlAutoSnapshot() {
   }
 }
 
-// Vercel Cron: every Monday at 4:20 AM UTC (9:50 AM IST)
-// Schedule defined in vercel.json: "20 4 * * 1"
+// Vercel Cron: 1st of every month at 4:20 AM UTC (9:50 AM IST)
+// Schedule defined in vercel.json: "20 4 1 * *"
 app.get('/api/cron/rl-snapshot', async (req, res) => {
   const secret = process.env.CRON_SECRET;
   if (secret && req.headers.authorization !== `Bearer ${secret}`)
@@ -6894,7 +6891,7 @@ app.get('/api/portal/:token/history', async (req, res) => {
   const cl = clDB().find(x=>x.token===req.params.token);
   if (!cl) return res.status(404).json({ ok:false, error:'not found' });
   const snaps = (db.rocketlane?.snapshots||[])
-    .filter(s=>s.type==='weekly')
+    .filter(s=>s.type==='weekly'||s.type==='monthly')
     .slice()
     .sort((a,b)=>new Date(a.capturedAt)-new Date(b.capturedAt))
     .slice(-10);
@@ -6909,7 +6906,7 @@ app.get('/api/portal/:token/history', async (req, res) => {
       const ps=(snap.projects||[]).filter(p=>normalise(p.customer)===cn||normalise(p.customer?.companyName)===cn);
       if (ps.length) completion=Math.round(ps.reduce((s,p)=>s+(p.completionPct||p.overallPct||0),0)/ps.length);
     }
-    return { week:snap.weekId||snap.label||snap.capturedAt.slice(0,10), capturedAt:snap.capturedAt, completion };
+    return { week:snap.weekId||snap.monthKey||snap.label||snap.capturedAt.slice(0,10), capturedAt:snap.capturedAt, completion };
   });
   res.json({ ok:true, history });
 });
@@ -7040,12 +7037,11 @@ app.post('/api/rocketlane/weekly-snapshot/trigger', async (req, res) => {
   } catch(e) { res.status(500).json({ ok:false, error:e.message }); }
 });
 
-// Schedule check every hour; captures on Monday 4:20-5:19 AM UTC (= 9:50-10:49 AM IST)
-setInterval(async ()=>{
-  const now=new Date();
-  if (now.getUTCDay()===1 && now.getUTCHours()===4 && now.getUTCMinutes()>=20) {
-    try { await captureWeeklyRLSnapshot(); } catch(e) { console.error('[RL-weekly] interval error:', e.message); }
-  }
-}, 60*60*1000);
+// The old hourly setInterval that used to self-trigger captureWeeklyRLSnapshot()
+// here was removed: it both duplicated /api/cron/rl-snapshot's job (the real,
+// Vercel Cron-driven mechanism above) with its own separate dedup log, and — on
+// serverless, where an instance rarely stays warm across a whole in-process
+// setInterval tick — was unreliable besides. Leaving it in place would have kept
+// silently racing a *weekly* snapshot in against the monthly cadence below.
 
 module.exports = app;

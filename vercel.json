@@ -4,7 +4,7 @@
   "crons": [
     {
       "path": "/api/cron/rl-snapshot",
-      "schedule": "20 4 * * 1"
+      "schedule": "20 4 1 * *"
     },
     {
       "path": "/api/cron/learning-reminders",

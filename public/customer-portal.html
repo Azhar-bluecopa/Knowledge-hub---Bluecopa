@@ -403,9 +403,10 @@ body{
   border-top:1px solid var(--bg);
   font-size:12px;color:var(--text-2);
 }
-.ms-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.ms-dot{width:15px;height:15px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.ms-dot svg{width:9px;height:9px;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
 .ms-done-dot{background:var(--teal)}
-.ms-pend-dot{background:var(--border-solid)}
+.ms-pend-dot{background:transparent;border:1.5px solid var(--border-solid)}
 .ms-due{margin-left:auto;font-size:11px;color:var(--text-4);flex-shrink:0}
 .ms-owner{margin-left:10px;font-size:11px;color:var(--text-4);flex-shrink:0}
 .ms-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-4);margin-top:14px;margin-bottom:2px}
@@ -824,6 +825,7 @@ body{
 
 /* ── WoW chart & task tree (status tab extras) ── */
 .wow-card{background:var(--card);border:1px solid var(--border-solid);border-radius:16px;padding:24px 28px;margin-bottom:20px;box-shadow:var(--sh-sm)}
+.wow-chart-wrap{position:relative;height:240px}
 .wow-card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-4);margin-bottom:18px;display:flex;align-items:center;gap:8px}
 .wow-card-title span{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cobalt)}
 .task-tree-item{padding:12px 14px;border-radius:10px;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:background .15s}
@@ -1305,10 +1307,10 @@ function renderStatus(){
   }
 
   // WoW chart placeholder (filled by renderStatusExtras)
-  html+=`<div class="sec-hd" id="wowSection" style="display:none"><div class="sec-hd-text">Week-on-Week Progress</div><div class="sec-hd-line"></div></div>
+  html+=`<div class="sec-hd" id="wowSection" style="display:none"><div class="sec-hd-text">Progress Over Time</div><div class="sec-hd-line"></div></div>
   <div class="wow-card" id="wowCard" style="display:none">
     <div class="wow-card-title"><span></span>Completion % over time</div>
-    <canvas id="wowChart" height="160"></canvas>
+    <div class="wow-chart-wrap"><canvas id="wowChart"></canvas></div>
   </div>`;
 
   // Upcoming activities placeholder
@@ -1346,7 +1348,7 @@ function _renderPhases(phases){
         <div class="tl-pct-label" style="color:${phClr}">${ph.completion}% complete</div>
         ${ph.milestones&&ph.milestones.length?`<div class="ms-label">Milestones</div><div class="ms-list">${ph.milestones.map(m=>`
           <div class="ms-row">
-            <span class="ms-dot ${m.status==='completed'?'ms-done-dot':'ms-pend-dot'}"></span>
+            <span class="ms-dot ${m.status==='completed'?'ms-done-dot':'ms-pend-dot'}">${m.status==='completed'?'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>':''}</span>
             <span style="color:${m.status==='completed'?'var(--text-3)':'var(--text-1)'};text-decoration:${m.status==='completed'?'line-through':'none'}">${esc(m.name)}</span>
             ${m.owner?`<span class="ms-owner">${esc(m.owner)}</span>`:''}
             ${m.dueDate?`<span class="ms-due">${fmtDate(m.dueDate)}</span>`:''}
@@ -1437,7 +1439,7 @@ function renderStatusExtras(){
     const lastVal=vals[vals.length-1]||0;
     const gradClr=lastVal>=80?'#11C98D':lastVal>=50?'#3B6EFA':'#FF5C5C';
     const ctx=wowCanvas.getContext('2d');
-    const grad=ctx.createLinearGradient(0,0,0,160);
+    const grad=ctx.createLinearGradient(0,0,0,240);
     grad.addColorStop(0,gradClr+'55');
     grad.addColorStop(1,gradClr+'00');
     _wowChart=new Chart(ctx,{
