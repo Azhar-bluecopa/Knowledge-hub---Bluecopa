@@ -522,10 +522,48 @@ body{
 .uat-status-select.ch-not_tested{background-color:rgba(0,0,0,.06);color:var(--text-3)}
 .uat-status-select.ch-in_progress{background-color:var(--cobalt-dim);color:var(--cobalt)}
 .uat-status-select.ch-blocked{background-color:var(--amber-dim);color:#a07010}
-.uat-notes-cell{max-width:180px}
+.uat-bnotes-cell{max-width:190px}
+.uat-bnotes-text{font-size:11px;color:var(--text-3);white-space:pre-wrap;line-height:1.5;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.uat-bnotes-empty{font-size:11px;color:var(--text-4);font-style:italic}
+.uat-bnotes-more{font-size:10px;font-weight:700;color:var(--cobalt);cursor:pointer;margin-top:3px;display:inline-block;background:none;border:none;padding:0;font-family:inherit}
+.uat-notes-cell{max-width:190px}
 .uat-notes-text{font-size:11px;color:var(--text-3);cursor:text;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:4px 6px;border-radius:6px;border:1px dashed transparent}
 .uat-notes-text:hover{border-color:var(--border-solid);background:rgba(0,0,0,.02)}
 .uat-notes-input{width:100%;font-family:'DM Sans',sans-serif;font-size:11px;color:var(--text-1);border:1.5px solid var(--cobalt);border-radius:6px;padding:5px 7px;resize:vertical;min-height:32px}
+.uat-notes-actions{display:flex;align-items:center;gap:6px;margin-top:5px}
+.uat-attach-btn{
+  display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--text-3);
+  background:none;border:1px dashed var(--border-solid);border-radius:6px;padding:3px 7px;cursor:pointer;font-family:inherit;
+}
+.uat-attach-btn:hover{color:var(--cobalt);border-color:var(--cobalt-mid);background:var(--cobalt-dim)}
+.uat-shots{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.uat-shot-thumb{position:relative;width:34px;height:34px;border-radius:6px;overflow:hidden;border:1px solid var(--border-solid);cursor:pointer;flex-shrink:0}
+.uat-shot-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.uat-shot-remove{
+  position:absolute;top:-5px;right:-5px;width:15px;height:15px;border-radius:50%;
+  background:var(--coral);color:#fff;font-size:10px;line-height:15px;text-align:center;
+  cursor:pointer;display:none;font-weight:700;
+}
+.uat-shot-thumb:hover .uat-shot-remove{display:block}
+
+/* ── Modals (note viewer / screenshot viewer / screenshot redactor) ── */
+.uat-modal-overlay{position:fixed;inset:0;background:rgba(8,12,24,.6);display:flex;align-items:center;justify-content:center;z-index:2000;padding:20px}
+.uat-modal-overlay[hidden]{display:none}
+.uat-modal{background:var(--card);border-radius:var(--r);box-shadow:var(--sh-lg);max-width:640px;width:100%;max-height:86vh;overflow:auto;padding:22px 24px}
+.uat-modal-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.uat-modal-title{font-size:15px;font-weight:800;color:var(--text-1)}
+.uat-modal-close{cursor:pointer;color:var(--text-3);font-size:20px;line-height:1;background:none;border:none;padding:2px 4px}
+.uat-modal-close:hover{color:var(--text-1)}
+.uat-modal-body{font-size:13px;color:var(--text-2);white-space:pre-wrap;line-height:1.65}
+.uat-modal-img{max-width:100%;max-height:60vh;border-radius:var(--r-sm);display:block;margin:0 auto}
+.uat-shot-hint{font-size:12px;color:var(--text-3);margin-bottom:12px;line-height:1.5}
+.uat-shot-canvas-wrap{display:flex;justify-content:center;background:var(--bg);border-radius:var(--r-sm);padding:12px;margin-bottom:14px}
+#uatShotCanvas{cursor:crosshair;border-radius:6px;max-width:100%;touch-action:none}
+.uat-modal-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.uat-modal-btn-secondary{padding:9px 16px;border-radius:var(--r-sm);border:1.5px solid var(--border-solid);background:var(--card);color:var(--text-2);font-weight:700;font-size:12px;cursor:pointer;font-family:inherit}
+.uat-modal-btn-secondary:hover{border-color:var(--text-4)}
+.uat-modal-btn-primary{padding:9px 18px;border-radius:var(--r-sm);border:none;background:linear-gradient(135deg,var(--cobalt),#5b8bff);color:#fff;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit}
+.uat-modal-btn-primary:disabled{opacity:.6;cursor:default}
 
 .uat-signoff-card{
   background:var(--card);border:1px solid var(--border-solid);border-radius:var(--r-sm);
@@ -973,6 +1011,44 @@ body{
 </div><!-- /portalView -->
 
 <div class="toast" id="toast"></div>
+
+<input type="file" id="uatShotFileInput" accept="image/*" hidden>
+
+<div class="uat-modal-overlay" id="uatNoteModal" hidden onclick="if(event.target===this)uatCloseNoteModal()">
+  <div class="uat-modal">
+    <div class="uat-modal-hd">
+      <div class="uat-modal-title">Bluecopa Notes</div>
+      <button class="uat-modal-close" onclick="uatCloseNoteModal()">&times;</button>
+    </div>
+    <div class="uat-modal-body" id="uatNoteModalBody"></div>
+  </div>
+</div>
+
+<div class="uat-modal-overlay" id="uatShotViewModal" hidden onclick="if(event.target===this)uatCloseShotView()">
+  <div class="uat-modal">
+    <div class="uat-modal-hd">
+      <div class="uat-modal-title">Screenshot</div>
+      <button class="uat-modal-close" onclick="uatCloseShotView()">&times;</button>
+    </div>
+    <img class="uat-modal-img" id="uatShotViewImg" src="" alt="Attached screenshot">
+  </div>
+</div>
+
+<div class="uat-modal-overlay" id="uatShotEditModal" hidden>
+  <div class="uat-modal" style="max-width:720px">
+    <div class="uat-modal-hd">
+      <div class="uat-modal-title">Attach Screenshot</div>
+      <button class="uat-modal-close" onclick="uatCancelShotEdit()">&times;</button>
+    </div>
+    <div class="uat-shot-hint">Drag on the image to black out any sensitive information (optional) before attaching. Draw as many boxes as you need.</div>
+    <div class="uat-shot-canvas-wrap"><canvas id="uatShotCanvas"></canvas></div>
+    <div class="uat-modal-actions">
+      <button class="uat-modal-btn-secondary" onclick="uatShotUndoBox()">Undo last box</button>
+      <button class="uat-modal-btn-secondary" onclick="uatCancelShotEdit()">Cancel</button>
+      <button class="uat-modal-btn-primary" id="uatShotAttachBtn" onclick="uatConfirmShotEdit()">Attach Screenshot</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────────────
@@ -1487,7 +1563,7 @@ function renderUAT(){
         <div id="${sid}" class="tc-wrap">
           <table class="tc-table">
             <thead><tr>
-              <th>#</th><th>Test Case</th><th>Priority</th><th>Bluecopa</th><th>Your Status</th><th>Your Notes</th>
+              <th>#</th><th>Test Case</th><th>Priority</th><th>Bluecopa</th><th>Your Status</th><th>Bluecopa Notes</th><th>Your Notes</th>
             </tr></thead>
             <tbody>
               ${catTcs.map(tc=>{
@@ -1495,17 +1571,24 @@ function renderUAT(){
                 const bst=tc.bluecopaStatus||'not_tested';
                 const pri=(tc.priority||'').toLowerCase();
                 const priCls=pri==='critical'?'pri-critical':pri==='high'?'pri-high':pri==='medium'?'pri-medium':'pri-low';
+                const bNotes=tc.bluecopaComments||'';
+                const shots=tc.attachments||[];
                 return`<tr>
                   <td class="tc-ref">TC-${tc.seq||'?'}</td>
                   <td class="tc-title">${esc(tc.title||tc.description||'')}</td>
                   <td class="${priCls}">${esc(tc.priority||'—')}</td>
-                  <td><span class="chip ch-${bst.replace('_','-')}" title="${bst==='not_tested'?'':esc(tc.bluecopaComments||'')}">${esc(STATUS_LABEL[bst]||bst)}</span></td>
+                  <td><span class="chip ch-${bst.replace('_','-')}">${esc(STATUS_LABEL[bst]||bst)}</span></td>
                   <td>
                     <select class="uat-status-select ch-${st.replace('_','-')}" data-tcid="${esc(tc.id)}" onchange="uatSetStatus('${esc(tc.id)}',this.value,this)">
                       ${Object.entries(STATUS_LABEL).map(([v,l])=>`<option value="${v}"${v===st?' selected':''}>${l}</option>`).join('')}
                     </select>
                   </td>
-                  <td class="uat-notes-cell"><div class="uat-notes-text" title="${esc(tc.clientComments||'')}" onclick="uatEditNotes(this,'${esc(tc.id)}')">${esc(tc.clientComments||'Add a note…')}</div></td>
+                  <td class="uat-bnotes-cell">${bNotes?`<div class="uat-bnotes-text">${esc(bNotes)}</div><button class="uat-bnotes-more" onclick="uatShowNote('${esc(tc.id)}')">Read full note</button>`:`<span class="uat-bnotes-empty">—</span>`}</td>
+                  <td class="uat-notes-cell">
+                    <div class="uat-notes-text" title="${esc(tc.clientComments||'')}" onclick="uatEditNotes(this,'${esc(tc.id)}')">${esc(tc.clientComments||'Add a note…')}</div>
+                    <div class="uat-notes-actions"><button class="uat-attach-btn" type="button" onclick="uatOpenAttach('${esc(tc.id)}')">📎 Attach screenshot</button></div>
+                    ${shots.length?`<div class="uat-shots">${shots.map(id=>`<div class="uat-shot-thumb" onclick="uatViewShot('${esc(id)}')"><img src="/api/portal/${TOKEN}/attachments/${esc(id)}" loading="lazy"><span class="uat-shot-remove" onclick="event.stopPropagation();uatRemoveShot('${esc(tc.id)}','${esc(id)}')">&times;</span></div>`).join('')}</div>`:''}
+                  </td>
                 </tr>`;
               }).join('')}
             </tbody>
@@ -1591,6 +1674,20 @@ function uatEditNotes(el,tcId){
   el.innerHTML=`<textarea class="uat-notes-input" onclick="event.stopPropagation()">${esc(current)}</textarea>`;
   const ta=el.querySelector('textarea');
   ta.focus();
+  ta.addEventListener('paste',e=>{
+    const items=(e.clipboardData&&e.clipboardData.items)||[];
+    for(const item of items){
+      if(item.type&&item.type.startsWith('image/')){
+        e.preventDefault();
+        const file=item.getAsFile();
+        if(!file)continue;
+        const reader=new FileReader();
+        reader.onload=()=>{ _shotTcId=tcId; uatBeginShotEdit(reader.result); };
+        reader.readAsDataURL(file);
+        return;
+      }
+    }
+  });
   ta.addEventListener('blur',async()=>{
     const val=ta.value.trim();
     el.innerHTML=esc(val||'Add a note…');
@@ -1600,6 +1697,156 @@ function uatEditNotes(el,tcId){
       await fetch('/api/portal/'+TOKEN+'/tc/'+tcId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientComments:val,entity:_uatEntity||undefined})});
     }catch(e){toast('Could not save note — please try again.');}
   });
+}
+
+function uatShowNote(tcId){
+  const tc=(_data.uat.testcases||[]).find(t=>t.id===tcId);
+  document.getElementById('uatNoteModalBody').textContent=tc?tc.bluecopaComments||'':'';
+  document.getElementById('uatNoteModal').hidden=false;
+}
+function uatCloseNoteModal(){ document.getElementById('uatNoteModal').hidden=true; }
+
+// ── Screenshot attach + optional redaction ──────────────────────────────────
+let _shotTcId=null, _shotImg=null, _shotBoxes=[], _shotDrag=null, _shotStart=null;
+
+function uatOpenAttach(tcId){
+  _shotTcId=tcId;
+  const inp=document.getElementById('uatShotFileInput');
+  inp.value='';
+  inp.onchange=()=>{
+    const file=inp.files&&inp.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=()=>uatBeginShotEdit(reader.result);
+    reader.readAsDataURL(file);
+  };
+  inp.click();
+}
+
+function uatBeginShotEdit(dataUrl){
+  const img=new Image();
+  img.onload=()=>{
+    _shotImg=img; _shotBoxes=[];
+    const canvas=document.getElementById('uatShotCanvas');
+    const maxW=640,maxH=420;
+    const scale=Math.min(1, maxW/img.naturalWidth, maxH/img.naturalHeight);
+    canvas.width=Math.round(img.naturalWidth*scale);
+    canvas.height=Math.round(img.naturalHeight*scale);
+    uatShotRedraw();
+    document.getElementById('uatShotEditModal').hidden=false;
+  };
+  img.src=dataUrl;
+}
+
+function uatShotRedraw(){
+  const canvas=document.getElementById('uatShotCanvas');
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(_shotImg,0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#000';
+  _shotBoxes.forEach(b=>ctx.fillRect(b.x,b.y,b.w,b.h));
+  if(_shotDrag){
+    ctx.fillStyle='rgba(0,0,0,.55)';
+    ctx.fillRect(_shotDrag.x,_shotDrag.y,_shotDrag.w,_shotDrag.h);
+  }
+}
+
+(function(){
+  const canvas=document.getElementById('uatShotCanvas');
+  function pos(e){
+    const r=canvas.getBoundingClientRect();
+    const t=e.touches&&e.touches[0];
+    const cx=(t?t.clientX:e.clientX)-r.left, cy=(t?t.clientY:e.clientY)-r.top;
+    return { x:cx*(canvas.width/r.width), y:cy*(canvas.height/r.height) };
+  }
+  function start(e){
+    if(!_shotImg)return;
+    e.preventDefault();
+    _shotStart=pos(e);
+    _shotDrag={x:_shotStart.x,y:_shotStart.y,w:0,h:0};
+  }
+  function move(e){
+    if(!_shotStart)return;
+    e.preventDefault();
+    const p=pos(e);
+    _shotDrag={x:Math.min(_shotStart.x,p.x),y:Math.min(_shotStart.y,p.y),w:Math.abs(p.x-_shotStart.x),h:Math.abs(p.y-_shotStart.y)};
+    uatShotRedraw();
+  }
+  function end(){
+    if(!_shotStart)return;
+    if(_shotDrag&&_shotDrag.w>4&&_shotDrag.h>4)_shotBoxes.push(_shotDrag);
+    _shotStart=null; _shotDrag=null;
+    uatShotRedraw();
+  }
+  canvas.addEventListener('mousedown',start);
+  canvas.addEventListener('mousemove',move);
+  window.addEventListener('mouseup',end);
+  canvas.addEventListener('touchstart',start,{passive:false});
+  canvas.addEventListener('touchmove',move,{passive:false});
+  canvas.addEventListener('touchend',end);
+})();
+
+function uatShotUndoBox(){ _shotBoxes.pop(); uatShotRedraw(); }
+
+function uatCancelShotEdit(){
+  document.getElementById('uatShotEditModal').hidden=true;
+  _shotImg=null; _shotBoxes=[]; _shotTcId=null;
+}
+
+async function uatConfirmShotEdit(){
+  if(!_shotImg||!_shotTcId)return;
+  const btn=document.getElementById('uatShotAttachBtn');
+  btn.disabled=true; btn.textContent='Attaching…';
+  try{
+    // Redaction boxes were drawn against the editor canvas's (possibly downscaled)
+    // display size — rescale them onto the bounded output canvas below rather than
+    // the original resolution, since we deliberately cap the upload size.
+    const maxOut=1280;
+    const outScale=Math.min(1, maxOut/_shotImg.naturalWidth);
+    const out=document.createElement('canvas');
+    out.width=Math.round(_shotImg.naturalWidth*outScale);
+    out.height=Math.round(_shotImg.naturalHeight*outScale);
+    const octx=out.getContext('2d');
+    octx.drawImage(_shotImg,0,0,out.width,out.height);
+    const editCanvas=document.getElementById('uatShotCanvas');
+    const boxScale=out.width/editCanvas.width;
+    octx.fillStyle='#000';
+    _shotBoxes.forEach(b=>octx.fillRect(b.x*boxScale,b.y*boxScale,b.w*boxScale,b.h*boxScale));
+    const dataUrl=out.toDataURL('image/jpeg',0.75);
+    const tcId=_shotTcId;
+    const r=await fetch(`/api/portal/${TOKEN}/tc/${tcId}/attachments`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dataUrl,redacted:_shotBoxes.length>0,entity:_uatEntity||undefined})});
+    const d=await r.json();
+    if(!d.ok)throw new Error(d.error||'Failed');
+    const tc=(_data.uat.testcases||[]).find(t=>t.id===tcId);
+    if(tc){ if(!tc.attachments)tc.attachments=[]; tc.attachments.push(d.data.id); }
+    toast('Screenshot attached');
+    document.getElementById('uatShotEditModal').hidden=true;
+    _shotImg=null; _shotBoxes=[]; _shotTcId=null;
+    renderUAT();
+  }catch(e){
+    toast(e.message||'Could not attach screenshot — please try again.');
+  }finally{
+    btn.disabled=false; btn.textContent='Attach Screenshot';
+  }
+}
+
+function uatViewShot(attId){
+  document.getElementById('uatShotViewImg').src=`/api/portal/${TOKEN}/attachments/${attId}`;
+  document.getElementById('uatShotViewModal').hidden=false;
+}
+function uatCloseShotView(){ document.getElementById('uatShotViewModal').hidden=true; }
+
+async function uatRemoveShot(tcId,attId){
+  if(!confirm('Remove this screenshot?'))return;
+  try{
+    const r=await fetch(`/api/portal/${TOKEN}/tc/${tcId}/attachments/${attId}`,{method:'DELETE'});
+    const d=await r.json();
+    if(!d.ok)throw new Error();
+    const tc=(_data.uat.testcases||[]).find(t=>t.id===tcId);
+    if(tc)tc.attachments=(tc.attachments||[]).filter(id=>id!==attId);
+    toast('Screenshot removed');
+    renderUAT();
+  }catch(e){ toast('Could not remove screenshot — please try again.'); }
 }
 
 async function uatSubmitSignoff(){

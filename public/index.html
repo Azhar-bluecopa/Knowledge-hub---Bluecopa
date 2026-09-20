@@ -7427,7 +7427,7 @@ async function updateFeedbackStatus(id) {
 // Inline fetch — runs immediately, not gated on app.js cache
 (async()=>{try{const r=await fetch('/api/delivery-team/count');if(r.ok){const d=await r.json();const el=document.getElementById('dwStatSMPeople');if(el&&d.count){el.textContent=d.count;}}}catch(e){}})();
 </script>
-  <script src="/uat.js?v=66" defer></script>
+  <script src="/uat.js?v=67" defer></script>
   <script src="/ews.js?v=8" defer></script>
   <script>
   // Lazy-load courses.js (502 KB) only when Learning section first opens
@@ -7916,6 +7916,10 @@ async function updateFeedbackStatus(id) {
           </div>
         </div>
         <button class="uat-btn uat-btn-primary uat-drawer-save" onclick="UAT.saveDrawerComments()" style="margin-top:12px">Save Comments</button>
+        <div id="uatDrawerAttachRow" style="display:none;margin-top:14px">
+          <div class="uat-drawer-section-title" style="margin-bottom:8px">Client Screenshots</div>
+          <div id="uatDrawerAttachList" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        </div>
       </div>
 
       <!-- Procedure -->

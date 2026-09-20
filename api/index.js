@@ -1116,7 +1116,8 @@ ${roadmap.map(t => `Topic: ${t.topic}\n${t.articles.map(a => `  • "${a.title}"
 //  UAT PLATFORM v2  — /api/uat/*  |  /uat/portal/:token
 // ══════════════════════════════════════════════════════════════════════════════
 function uatDB() {
-  if (!db.uat) db.uat = { clients:[], projects:[], testcases:[], issues:[], templates:[], activity:[] };
+  if (!db.uat) db.uat = { clients:[], projects:[], testcases:[], issues:[], templates:[], activity:[], attachments:[] };
+  if (!db.uat.attachments) db.uat.attachments = [];
   return db.uat;
 }
 function uatId() { return `${Date.now()}_${Math.random().toString(36).slice(2,6)}`; }
@@ -2417,7 +2418,7 @@ function buildUATPortalData(projectId, entity) {
       clientStatus=tc.clientStatus||'not_tested'; clientComments=tc.clientComments||'';
       bluecopaStatus=tc.bluecopaStatus||'not_tested'; bluecopaComments=tc.bluecopaComments||'';
     }
-    return { id:tc.id, seq:tc.seq, entity:tc.entity||'', title:tc.testDescription||tc.testScenario||'', category:tc.category||tc.processArea||'', priority:tc.priority||'medium', clientStatus, clientComments, bluecopaStatus, bluecopaComments };
+    return { id:tc.id, seq:tc.seq, entity:tc.entity||'', title:tc.testDescription||tc.testScenario||'', category:tc.category||tc.processArea||'', priority:tc.priority||'medium', clientStatus, clientComments, bluecopaStatus, bluecopaComments, attachments:tc.attachments||[] };
   });
   const total=tcs.length, passed=tcs.filter(t=>t.clientStatus==='pass').length, failed=tcs.filter(t=>t.clientStatus==='fail').length, blocked=tcs.filter(t=>t.clientStatus==='blocked').length, inProgress=tcs.filter(t=>t.clientStatus==='in_progress').length;
   const issues=u.issues.filter(i=>i.projectId===p.id);
@@ -2709,6 +2710,75 @@ app.put('/api/portal/:token/tc/:id', async (req, res) => {
   }
   tc.updatedAt=new Date().toISOString();
   await saveDB(db); res.json({ ok:true });
+});
+
+// Client-attached screenshots for a test case. Stored as base64 in their own
+// uat.attachments array (never inlined into bulk /api/uat/testcases or
+// /api/portal/:token responses, which only ever carry attachment ids) so those
+// list payloads stay small; a hard size cap here protects the single Mongo
+// document (_id:'main', replaced wholesale on every save) from unbounded growth
+// the way the engagement-photo gallery once did.
+const UAT_ATTACHMENT_MAX_LEN = 1.5 * 1024 * 1024; // ~1.5MB base64 string
+function uatAttachmentsArr() { return uatDB().attachments; }
+
+app.post('/api/portal/:token/tc/:id/attachments', async (req, res) => {
+  await _dbReady; const u=uatDB();
+  const p=resolveUATProjectByToken(req.params.token);
+  if (!p) return res.status(403).json({ ok:false, error:'invalid token' });
+  const tc=u.testcases.find(x=>x.id===req.params.id&&x.projectId===p.id);
+  if (!tc) return res.status(404).json({ ok:false, error:'not found' });
+  const { dataUrl, redacted, entity }=req.body;
+  if (!dataUrl || typeof dataUrl!=='string' || !dataUrl.startsWith('data:image/')) return res.status(400).json({ ok:false, error:'invalid image' });
+  if (dataUrl.length > UAT_ATTACHMENT_MAX_LEN) return res.status(413).json({ ok:false, error:'Screenshot is too large — please try again.' });
+  const att = { id:uatId(), testCaseId:tc.id, projectId:p.id, entity:entity||tc.entity||'', dataUrl, redacted:!!redacted, uploadedBy:'client', createdAt:new Date().toISOString() };
+  uatAttachmentsArr().push(att);
+  if (!tc.attachments) tc.attachments=[];
+  tc.attachments.push(att.id);
+  tc.updatedAt=new Date().toISOString();
+  uatLog('attachment_added', `Client attached a screenshot to TC-${tc.seq}`, {projectId:p.id, clientId:p.clientId});
+  await saveDB(db); res.json({ ok:true, data:{ id:att.id } });
+});
+
+app.delete('/api/portal/:token/tc/:id/attachments/:attId', async (req, res) => {
+  await _dbReady; const u=uatDB();
+  const p=resolveUATProjectByToken(req.params.token);
+  if (!p) return res.status(403).json({ ok:false, error:'invalid token' });
+  const tc=u.testcases.find(x=>x.id===req.params.id&&x.projectId===p.id);
+  if (!tc) return res.status(404).json({ ok:false, error:'not found' });
+  const arr=uatAttachmentsArr();
+  const att=arr.find(a=>a.id===req.params.attId&&a.testCaseId===tc.id);
+  if (!att || att.uploadedBy!=='client') return res.status(404).json({ ok:false, error:'not found' });
+  u.attachments=arr.filter(a=>a.id!==att.id);
+  tc.attachments=(tc.attachments||[]).filter(id=>id!==att.id);
+  tc.updatedAt=new Date().toISOString();
+  await saveDB(db); res.json({ ok:true });
+});
+
+app.get('/api/portal/:token/attachments/:attId', async (req, res) => {
+  await _dbReady;
+  const p=resolveUATProjectByToken(req.params.token);
+  if (!p) return res.status(403).end();
+  const att=uatAttachmentsArr().find(a=>a.id===req.params.attId&&a.projectId===p.id);
+  if (!att) return res.status(404).end();
+  const m=/^data:([^;,]+)(;base64)?,([\s\S]*)$/.exec(att.dataUrl);
+  if (!m) return res.status(404).end();
+  const buf = m[2] ? Buffer.from(m[3], 'base64') : Buffer.from(decodeURIComponent(m[3]), 'utf8');
+  res.set({ 'Content-Type':m[1], 'Cache-Control':'private, max-age=3600' });
+  res.end(buf);
+});
+
+app.get('/api/uat/attachments/:attId', async (req, res) => {
+  await _dbReady;
+  const email=(req.headers['x-user-email']||'').toLowerCase().trim();
+  const allowedIds=getAllowedUATProjectIds(email);
+  const att=uatAttachmentsArr().find(a=>a.id===req.params.attId);
+  if (!att) return res.status(404).end();
+  if (allowedIds!==null && !allowedIds.includes(att.projectId)) return res.status(403).end();
+  const m=/^data:([^;,]+)(;base64)?,([\s\S]*)$/.exec(att.dataUrl);
+  if (!m) return res.status(404).end();
+  const buf = m[2] ? Buffer.from(m[3], 'base64') : Buffer.from(decodeURIComponent(m[3]), 'utf8');
+  res.set({ 'Content-Type':m[1], 'Cache-Control':'private, max-age=3600' });
+  res.end(buf);
 });
 
 // ══ EWS — EARLY WARNING SYSTEM ═══════════════════════════════════════════════
