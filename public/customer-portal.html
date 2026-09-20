@@ -171,45 +171,49 @@ body{
 /* ── Hub hero (dark) ── */
 .hub-hero{
   border-radius:20px;
-  padding:40px 40px 36px;
+  padding:48px 44px 40px;
   margin-bottom:24px;
   position:relative;
   overflow:hidden;
-  background:var(--midnight);
+  background:linear-gradient(165deg,#120b24 0%,#0b0e21 55%,#08061a 100%);
 }
 .hub-hero::before{
   content:'';position:absolute;
-  top:-80px;right:-60px;
-  width:400px;height:400px;
-  background:radial-gradient(circle,rgba(59,110,250,.18) 0%,transparent 65%);
+  top:-140px;right:-90px;
+  width:520px;height:520px;
+  background:radial-gradient(circle,rgba(186,74,232,.42) 0%,transparent 65%);
   pointer-events:none;
 }
 .hub-hero::after{
   content:'';position:absolute;
-  bottom:-100px;left:10%;
-  width:300px;height:300px;
-  background:radial-gradient(circle,rgba(17,201,141,.1) 0%,transparent 65%);
+  bottom:-160px;left:-60px;
+  width:460px;height:460px;
+  background:radial-gradient(circle,rgba(91,70,255,.34) 0%,transparent 65%);
   pointer-events:none;
 }
 /* subtle dot grid */
 .hub-hero-dots{
   position:absolute;inset:0;
-  background-image:radial-gradient(circle,rgba(255,255,255,.06) 1px,transparent 1px);
+  background-image:radial-gradient(circle,rgba(255,255,255,.07) 1px,transparent 1px);
   background-size:28px 28px;
   pointer-events:none;
 }
 .hub-hero-top{
   position:relative;z-index:1;
-  margin-bottom:32px;
+  margin-bottom:36px;
 }
 .hub-greeting{
   font-family:'Outfit',sans-serif;
-  font-size:30px;font-weight:800;
-  color:#fff;letter-spacing:-.4px;
-  margin-bottom:5px;
+  font-size:42px;font-weight:800;
+  color:#fff;letter-spacing:-1px;
+  margin-bottom:8px;
   text-wrap:balance;
 }
-.hub-sub{font-size:13px;font-weight:400;color:rgba(255,255,255,.45)}
+.hub-greeting .grad-name{
+  background:linear-gradient(100deg,#e8a6ff 0%,#b98bff 45%,#7ba3ff 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hub-sub{font-size:14px;font-weight:400;color:rgba(255,255,255,.5)}
 
 /* metric grid inside hero */
 .metric-grid{
@@ -271,7 +275,7 @@ body{
 }
 .hub-nav-card:hover{
   transform:translateY(-4px);
-  box-shadow:var(--sh-lg);
+  box-shadow:var(--sh-lg),0 0 32px -10px var(--nav-accent,transparent);
 }
 .hub-nav-card:hover .nav-arrow{transform:translateX(4px)}
 .nav-card-stripe{
@@ -843,7 +847,7 @@ body{
   .topbar,.tab-nav{padding:0 16px}
   .content{padding:20px 14px}
   .hub-hero{padding:28px 24px 24px;border-radius:14px}
-  .hub-greeting{font-size:24px}
+  .hub-greeting{font-size:28px}
   .topbar-badge{display:none}
   .tab-btn{padding:0 14px;font-size:12px}
   .tab-btn .ti{display:none}
@@ -983,21 +987,21 @@ body{
 
       <!-- Nav cards -->
       <div class="hub-nav-grid">
-        <div class="hub-nav-card" onclick="switchTab('status',document.querySelector('[data-tab=status]'))">
+        <div class="hub-nav-card" style="--nav-accent:#3B6EFA" onclick="switchTab('status',document.querySelector('[data-tab=status]'))">
           <div class="nav-card-stripe" style="background:linear-gradient(90deg,#3B6EFA,#7b9ffd)"></div>
           <div class="nav-icon-wrap" style="background:rgba(59,110,250,.1)">📋</div>
           <div class="nav-title">Project Status</div>
           <div class="nav-desc">View your implementation timeline, phases, and milestone completion with live Rocketlane data.</div>
           <div class="nav-arrow" style="color:var(--cobalt)">View Timeline <span>→</span></div>
         </div>
-        <div class="hub-nav-card" onclick="switchTab('uat',document.querySelector('[data-tab=uat]'))">
+        <div class="hub-nav-card" style="--nav-accent:#11C98D" onclick="switchTab('uat',document.querySelector('[data-tab=uat]'))">
           <div class="nav-card-stripe" style="background:linear-gradient(90deg,#11C98D,#3de8b5)"></div>
           <div class="nav-icon-wrap" style="background:rgba(17,201,141,.1)">🧪</div>
           <div class="nav-title">UAT Testing</div>
           <div class="nav-desc">Review test cases by category, track progress, manage issues, and sign off on UAT.</div>
           <div class="nav-arrow" style="color:var(--teal)">Review Tests <span>→</span></div>
         </div>
-        <div class="hub-nav-card" onclick="switchTab('ci',document.querySelector('[data-tab=ci]'))">
+        <div class="hub-nav-card" style="--nav-accent:#F5B53F" onclick="switchTab('ci',document.querySelector('[data-tab=ci]'))">
           <div class="nav-card-stripe" style="background:linear-gradient(90deg,#F5B53F,#ffd27a)"></div>
           <div class="nav-icon-wrap" style="background:rgba(245,181,63,.1)">🎯</div>
           <div class="nav-title">Confidence Index</div>
@@ -1121,7 +1125,7 @@ function animRing(el,pct,color){
   if(!el)return;
   const circ=2*Math.PI*30;
   const target=circ*Math.max(0,Math.min(100,pct))/100;
-  if(color)el.setAttribute('stroke',color);
+  if(color){ el.setAttribute('stroke',color); el.style.filter='drop-shadow(0 0 7px '+color+'99)'; }
   const dur=900,t0=performance.now();
   (function tick(now){
     const p=Math.min((now-t0)/dur,1);
@@ -1196,7 +1200,7 @@ function renderPortal(){
 
   document.getElementById('topbarClient').textContent=client.name;
   document.title=(scope==='uat'?'UAT':scope==='ci'?'Confidence Index':scope==='status'?'Project Status':'Hub')+' — '+client.name;
-  document.getElementById('welcomeTitle').textContent='Hello, '+client.name+'!';
+  document.getElementById('welcomeTitle').innerHTML='Hello, <span class="grad-name">'+esc(client.name)+'</span>!';
 
   if(!showHub)return;
 
