@@ -113,47 +113,29 @@ body::after{
   transition:background .05s;
 }
 
-/* ── Success badge (abstract "customer success" motif) ── */
-.success-badge{
+/* ── Rotating globe (centered background motif, "Customer Success Hub" sits on top) ── */
+.globe{
   position:fixed;top:50%;left:50%;
-  width:680px;height:680px;
+  width:640px;height:640px;
   transform:translate(-50%,-50%);
   z-index:2;pointer-events:none;
   opacity:.4;
-  filter:blur(1.5px) drop-shadow(0 0 46px rgba(217,70,239,.35)) drop-shadow(0 0 90px rgba(124,58,237,.22));
-  animation:badgeIn 1.8s .1s cubic-bezier(.16,1,.3,1) both,badgeBreathe 6s 1.8s ease-in-out infinite;
+  filter:drop-shadow(0 0 50px rgba(217,70,239,.35)) drop-shadow(0 0 95px rgba(124,58,237,.24));
+  animation:globeIn 1.8s .1s cubic-bezier(.16,1,.3,1) both,globeBreathe 6s 1.8s ease-in-out infinite;
 }
-@keyframes badgeIn{
+@keyframes globeIn{
   0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}
   100%{opacity:.4;transform:translate(-50%,-50%) scale(1)}
 }
-@keyframes badgeBreathe{
+@keyframes globeBreathe{
   0%,100%{transform:translate(-50%,-50%) scale(1)}
   50%{transform:translate(-50%,-50%) scale(1.035)}
 }
-.success-badge svg{display:block;width:100%;height:100%}
-.badge-ring-outer{
-  transform-origin:100px 100px;
-  animation:badgeSpin 50s linear infinite;
-}
-@keyframes badgeSpin{ to{transform:rotate(360deg)} }
-
-/* ── Rotating globe (background decoration) ── */
-.globe{
-  position:fixed;
-  bottom:-180px;right:-180px;
-  width:560px;height:560px;
-  z-index:1;pointer-events:none;
-  opacity:.3;
-  filter:drop-shadow(0 0 60px rgba(168,85,247,.35));
-  animation:globeIn 2s .4s cubic-bezier(.16,1,.3,1) both;
-}
 .globe svg{display:block;width:100%;height:100%}
-.globe-spin{transform-origin:100px 100px;animation:globeSpin 90s linear infinite}
+.globe-spin{transform-origin:100px 100px;animation:globeSpin 70s linear infinite}
 .globe-tilt{transform-origin:100px 100px;transform:rotate(-18deg)}
 @keyframes globeSpin{to{transform:rotate(360deg)}}
-@keyframes globeIn{0%{opacity:0;transform:scale(.85)}100%{opacity:.3;transform:scale(1)}}
-@media(max-width:700px){ .globe{width:380px;height:380px;bottom:-120px;right:-120px} }
+@media(max-width:700px){ .globe{width:420px;height:420px} }
 
 /* ── Floating particles ── */
 .particles{position:fixed;inset:0;z-index:4;pointer-events:none;overflow:hidden}
@@ -386,23 +368,7 @@ body::after{
 <!-- Mouse spotlight -->
 <div class="spotlight" id="spotlight"></div>
 
-<!-- Success badge (abstract customer-success motif) -->
-<div class="success-badge" aria-hidden="true">
-  <svg viewBox="0 0 200 200">
-    <defs>
-      <linearGradient id="badgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#f0abfc"/>
-        <stop offset="100%" stop-color="#7c3aed"/>
-      </linearGradient>
-    </defs>
-    <circle class="badge-ring-outer" cx="100" cy="100" r="92" fill="none" stroke="url(#badgeGrad)" stroke-width="1.2" opacity=".35" stroke-dasharray="3 9"/>
-    <circle cx="100" cy="100" r="78" fill="none" stroke="url(#badgeGrad)" stroke-width="1.4" opacity=".3"/>
-    <circle cx="100" cy="100" r="62" fill="rgba(217,70,239,.05)" stroke="url(#badgeGrad)" stroke-width="2" opacity=".55"/>
-    <path d="M72 101 L91 120 L130 79" fill="none" stroke="url(#badgeGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity=".4"/>
-  </svg>
-</div>
-
-<!-- Rotating globe -->
+<!-- Rotating globe (centered background motif) -->
 <div class="globe" aria-hidden="true">
   <svg viewBox="0 0 200 200">
     <defs>
