@@ -411,6 +411,32 @@ body{
 .ms-owner{margin-left:10px;font-size:11px;color:var(--text-4);flex-shrink:0}
 .ms-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-4);margin-top:14px;margin-bottom:2px}
 
+/* ── Gantt-style phase timeline ── */
+.gantt-card{background:var(--card);border:1px solid var(--border-solid);border-radius:var(--r);padding:24px 28px;margin-bottom:24px;box-shadow:var(--sh-sm);overflow-x:auto}
+.gantt-legend{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:18px}
+.gantt-leg-item{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--text-3)}
+.gantt-leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.gantt-inner{min-width:480px}
+.gantt-axis{display:flex;margin-bottom:10px}
+.gantt-axis-spacer{width:118px;flex-shrink:0}
+.gantt-axis-track{position:relative;flex:1;height:14px}
+.gantt-axis-tick{position:absolute;top:0;transform:translateX(-50%);font-size:10px;font-weight:600;color:var(--text-4);white-space:nowrap}
+.gantt-body{position:relative}
+.gantt-today{position:absolute;top:0;bottom:0;width:2px;background:var(--coral);z-index:2}
+.gantt-today-label{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;color:#fff;background:var(--coral);padding:2px 6px;border-radius:5px;white-space:nowrap}
+.gantt-row{display:flex;align-items:center;gap:0;margin-bottom:12px}
+.gantt-row:last-child{margin-bottom:0}
+.gantt-row-label{width:118px;flex-shrink:0;font-size:12px;font-weight:700;color:var(--text-2);padding-right:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gantt-row-track{position:relative;flex:1;height:32px;background:var(--bg);border-radius:9px}
+.gantt-bar{
+  position:absolute;top:3px;bottom:3px;border-radius:8px;
+  display:flex;align-items:center;justify-content:flex-end;gap:5px;
+  padding:0 10px;box-shadow:0 2px 6px rgba(0,0,0,.15);
+  transition:width .5s ease,left .5s ease;
+}
+.gantt-bar-tick{width:11px;height:11px;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.gantt-bar-pct{font-size:10.5px;font-weight:800;color:#fff;white-space:nowrap}
+
 .up-list{display:flex;flex-direction:column;gap:8px}
 .up-row{
   display:flex;align-items:center;gap:14px;
@@ -1281,6 +1307,7 @@ function renderStatus(){
         html+=`<div class="sec-hd"><div class="sec-hd-text">Phase Breakdown</div><div class="sec-hd-line"></div></div>`;
         allPhaseProjs.forEach(proj=>{
           html+=`<div style="margin-bottom:18px"><div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:10px">${esc(proj.projectName)}</div>`;
+          html+=_renderGantt(proj.phases);
           html+=_renderPhases(proj.phases);
           html+='</div>';
         });
@@ -1301,6 +1328,8 @@ function renderStatus(){
     </div>`;
 
     if((ps.phases||[]).length){
+      html+=`<div class="sec-hd"><div class="sec-hd-text">Project Timeline</div><div class="sec-hd-line"></div></div>`;
+      html+=_renderGantt(ps.phases);
       html+=`<div class="sec-hd"><div class="sec-hd-text">Phases</div><div class="sec-hd-line"></div></div>`;
       html+=_renderPhases(ps.phases);
     }
@@ -1329,6 +1358,56 @@ function renderStatus(){
 
   // If history/tasks already loaded, render extras now
   renderStatusExtras();
+}
+
+function _fmtShort(t){
+  try{ return new Date(t).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); }
+  catch{ return ''; }
+}
+
+function _renderGantt(phases){
+  const withDates=(phases||[]).filter(ph=>ph.startDate&&ph.endDate);
+  if(withDates.length<2) return '';
+  const PHASE_CLR={completed:'#11C98D',in_progress:'#3B6EFA',upcoming:'#B9C2D6'};
+  const toTime=d=>new Date(d).getTime();
+  const minT=Math.min.apply(null,withDates.map(ph=>toTime(ph.startDate)));
+  const maxT=Math.max.apply(null,withDates.map(ph=>toTime(ph.endDate)));
+  const span=Math.max(1,maxT-minT);
+  const pctOf=t=>Math.max(0,Math.min(100,(t-minT)/span*100));
+  const todayT=Date.now();
+  const todayPct=(todayT>=minT&&todayT<=maxT)?pctOf(todayT):null;
+  const tickTimes=[0,.25,.5,.75,1].map(f=>minT+span*f);
+
+  return `<div class="gantt-card">
+    <div class="gantt-legend">
+      <span class="gantt-leg-item"><span class="gantt-leg-dot" style="background:${PHASE_CLR.completed}"></span>Completed</span>
+      <span class="gantt-leg-item"><span class="gantt-leg-dot" style="background:${PHASE_CLR.in_progress}"></span>In Progress</span>
+      <span class="gantt-leg-item"><span class="gantt-leg-dot" style="background:${PHASE_CLR.upcoming}"></span>Upcoming</span>
+    </div>
+    <div class="gantt-inner">
+      <div class="gantt-axis">
+        <div class="gantt-axis-spacer"></div>
+        <div class="gantt-axis-track">${tickTimes.map(t=>`<span class="gantt-axis-tick" style="left:${pctOf(t)}%">${_fmtShort(t)}</span>`).join('')}</div>
+      </div>
+      <div class="gantt-body">
+        ${todayPct!==null?`<div class="gantt-today" style="left:calc(118px + (100% - 118px) * ${todayPct/100})"><div class="gantt-today-label">Today</div></div>`:''}
+        ${withDates.map(ph=>{
+          const left=pctOf(toTime(ph.startDate));
+          const width=Math.max(2.5,pctOf(toTime(ph.endDate))-left);
+          const clr=PHASE_CLR[ph.status]||PHASE_CLR.upcoming;
+          return `<div class="gantt-row">
+            <div class="gantt-row-label">${esc(ph.name)}</div>
+            <div class="gantt-row-track">
+              <div class="gantt-bar" style="left:${left}%;width:${width}%;background:linear-gradient(90deg,${clr},${clr}cc)">
+                ${ph.status==='completed'?'<svg viewBox="0 0 24 24" class="gantt-bar-tick"><polyline points="20 6 9 17 4 12"/></svg>':''}
+                <span class="gantt-bar-pct">${ph.completion}%</span>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>`;
 }
 
 function _renderPhases(phases){
