@@ -6813,6 +6813,9 @@ app.get('/portal', (req, res) => {
 // Serve portal — landing splash first, hub on ?hub=1
 app.get('/portal/:token', (req, res) => {
   const file = req.query.hub === '1' ? 'customer-portal.html' : 'customer-landing.html';
+  // These pages get iterated on often; res.sendFile's default caching let a stale
+  // copy stick in some browsers' disk cache across deploys, so force revalidation.
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.sendFile(require('path').join(__dirname, '../public', file));
 });
 

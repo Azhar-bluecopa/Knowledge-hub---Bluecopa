@@ -138,6 +138,23 @@ body::after{
 }
 @keyframes badgeSpin{ to{transform:rotate(360deg)} }
 
+/* ── Rotating globe (background decoration) ── */
+.globe{
+  position:fixed;
+  bottom:-180px;right:-180px;
+  width:560px;height:560px;
+  z-index:1;pointer-events:none;
+  opacity:.3;
+  filter:drop-shadow(0 0 60px rgba(168,85,247,.35));
+  animation:globeIn 2s .4s cubic-bezier(.16,1,.3,1) both;
+}
+.globe svg{display:block;width:100%;height:100%}
+.globe-spin{transform-origin:100px 100px;animation:globeSpin 90s linear infinite}
+.globe-tilt{transform-origin:100px 100px;transform:rotate(-18deg)}
+@keyframes globeSpin{to{transform:rotate(360deg)}}
+@keyframes globeIn{0%{opacity:0;transform:scale(.85)}100%{opacity:.3;transform:scale(1)}}
+@media(max-width:700px){ .globe{width:380px;height:380px;bottom:-120px;right:-120px} }
+
 /* ── Floating particles ── */
 .particles{position:fixed;inset:0;z-index:4;pointer-events:none;overflow:hidden}
 .particle{
@@ -385,6 +402,29 @@ body::after{
   </svg>
 </div>
 
+<!-- Rotating globe -->
+<div class="globe" aria-hidden="true">
+  <svg viewBox="0 0 200 200">
+    <defs>
+      <linearGradient id="globeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#f0abfc"/>
+        <stop offset="100%" stop-color="#7c3aed"/>
+      </linearGradient>
+    </defs>
+    <g class="globe-spin">
+      <g class="globe-tilt">
+        <circle cx="100" cy="100" r="90" fill="none" stroke="url(#globeGrad)" stroke-width="1"/>
+        <ellipse cx="100" cy="100" rx="90" ry="20" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
+        <ellipse cx="100" cy="100" rx="90" ry="45" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
+        <ellipse cx="100" cy="100" rx="90" ry="70" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
+        <ellipse cx="100" cy="100" rx="20" ry="90" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
+        <ellipse cx="100" cy="100" rx="45" ry="90" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
+        <ellipse cx="100" cy="100" rx="70" ry="90" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
+      </g>
+    </g>
+  </svg>
+</div>
+
 <!-- Floating particles -->
 <div class="particles" id="particles"></div>
 
@@ -404,7 +444,7 @@ body::after{
   <div class="accent accent-3"><svg width="14" height="14" viewBox="0 0 24 24" fill="#d946ef"><circle cx="12" cy="12" r="12"/></svg></div>
   <div class="accent accent-4"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c026d3" stroke-width="1.6"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg></div>
 
-  <div class="badge"><span class="badge-dot"></span>Customer Hub</div>
+  <div class="badge"><span class="badge-dot"></span>Customer Success Hub</div>
 
   <div class="name-wrap">
     <div class="name-glow" id="nameGlow" aria-hidden="true">—.</div>
