@@ -2783,6 +2783,19 @@ app.get('/api/uat/attachments/:attId', async (req, res) => {
   res.end(buf);
 });
 
+app.delete('/api/uat/attachments/:attId', async (req, res) => {
+  await _dbReady; const u=uatDB();
+  const email=(req.headers['x-user-email']||'').toLowerCase().trim();
+  const allowedIds=getAllowedUATProjectIds(email);
+  const att=u.attachments.find(a=>a.id===req.params.attId);
+  if (!att) return res.status(404).json({ ok:false, error:'not found' });
+  if (allowedIds!==null && !allowedIds.includes(att.projectId)) return res.status(403).json({ ok:false, error:'forbidden' });
+  u.attachments=u.attachments.filter(a=>a.id!==att.id);
+  const tc=u.testcases.find(x=>x.id===att.testCaseId);
+  if (tc) tc.attachments=(tc.attachments||[]).filter(id=>id!==att.id);
+  await saveDB(db); res.json({ ok:true });
+});
+
 // ══ EWS — EARLY WARNING SYSTEM ═══════════════════════════════════════════════
 
 function ewsDB() {
