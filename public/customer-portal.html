@@ -2109,32 +2109,33 @@ function renderCIContent(){
   // Week-on-week trend: compare current live avg against the most recent stored
   // snapshot for this entity (that snapshot represents "as of last Monday").
   const histForEntity=_ciHistory.map(h=>({week:h.week,pct:Math.round(((h.entityScores||{})[_ciEntity]||0)/5*100)})).filter(h=>h.pct>0);
-  let trendHtml='';
+  let trendClr='rgba(255,255,255,.5)',trendTxt='',trendDisplay='none';
   if(histForEntity.length){
     const prevPct=histForEntity[histForEntity.length-1].pct;
     const delta=pct-prevPct;
-    const trendClr=delta>0?'#11C98D':delta<0?'#FF5C5C':'rgba(255,255,255,.5)';
+    trendClr=delta>0?'#11C98D':delta<0?'#FF5C5C':'rgba(255,255,255,.5)';
     const arrow=delta>0?'▲':delta<0?'▼':'—';
-    trendHtml=`<div class="ci-trend-pill" style="color:${trendClr}">${arrow} ${delta===0?'No change':(delta>0?'+':'')+delta+'%'} vs last week</div>`;
+    trendTxt=`${arrow} ${delta===0?'No change':(delta>0?'+':'')+delta+'%'} vs last week`;
+    trendDisplay='';
   }
 
-  html+=`<div class="ci-hero-card" style="--ci-glow:${_hexToRgba(lvlClr,.32)};--ci-glow-strong:${_hexToRgba(lvlClr,.5)}">
+  html+=`<div class="ci-hero-card" id="ciHeroCard" style="--ci-glow:${_hexToRgba(lvlClr,.32)};--ci-glow-strong:${_hexToRgba(lvlClr,.5)}">
     <div class="ci-gauge-wrap">
       <svg viewBox="0 0 130 130" width="150" height="150" class="ci-gauge-svg">
         <circle cx="65" cy="65" r="${gR}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="14"/>
-        <circle cx="65" cy="65" r="${gR}" fill="none" stroke="${lvlClr}" stroke-width="14"
+        <circle id="ciGaugeFill" cx="65" cy="65" r="${gR}" fill="none" stroke="${lvlClr}" stroke-width="14"
           stroke-linecap="round" stroke-dasharray="${gD} ${gC}"/>
       </svg>
       <div class="ci-gauge-center">
-        <div class="ci-gauge-pct">${pct}%</div>
+        <div class="ci-gauge-pct" id="ciGaugePct">${pct}%</div>
         <div class="ci-gauge-sub">Confidence</div>
       </div>
     </div>
     <div class="ci-hero-info">
-      <div class="ci-level-label" style="color:${lvlClr}">${scoreLabel(avg)||'Not Rated'}</div>
-      ${avg?`<div class="ci-avg-label" style="color:${lvlClr}">${avg.toFixed(1)} / 5.0 average</div>`:''}
-      <div class="ci-rated-info">${rated.length} of ${pas.length} areas rated${entities.length>1?' for '+_ciEntity:''}</div>
-      ${trendHtml}
+      <div class="ci-level-label" id="ciLevelLabel" style="color:${lvlClr}">${scoreLabel(avg)||'Not Rated'}</div>
+      <div class="ci-avg-label" id="ciAvgLabel" style="color:${lvlClr};display:${avg?'':'none'}">${avg.toFixed(1)} / 5.0 average</div>
+      <div class="ci-rated-info" id="ciRatedInfo">${rated.length} of ${pas.length} areas rated${entities.length>1?' for '+_ciEntity:''}</div>
+      <div class="ci-trend-pill" id="ciTrendPill" style="color:${trendClr};display:${trendDisplay}">${trendTxt}</div>
     </div>
   </div>`;
 
@@ -2228,6 +2229,56 @@ function ciSetScore(paId,v){
   }
   const cmt=document.getElementById('cmt_'+paId);
   if(cmt)cmt.classList.toggle('show',v>0&&v<=2);
+  const card=document.getElementById('parow_'+paId);
+  if(card)card.style.setProperty('--pa-accent',scoreColor(v));
+  _ciUpdateHero();
+}
+
+// Recomputes the hero card (gauge %, level, average, rated count, trend pill) from
+// the in-memory _ciPendingRatings — ciSetScore only patched the clicked row's own
+// stars in place, so without this the hero stayed frozen at whatever it showed on
+// the last full render until the user saved or reloaded.
+function _ciUpdateHero(){
+  const ci=_data.ci;
+  const pas=(ci.processAreas||[]).slice().sort((a,b)=>(a.order||0)-(b.order||0));
+  const entities=ci.entities||['Overall'];
+  const er=_ciPendingRatings[_ciEntity]||{};
+  const scores=pas.map(pa=>er[pa.id]?er[pa.id].score:0);
+  const rated=scores.filter(s=>s>0);
+  const avg=rated.length?rated.reduce((a,b)=>a+b,0)/rated.length:0;
+  const pct=Math.round(avg/5*100);
+  const lvlClr=scoreColor(avg);
+  const gR=52,gC=2*Math.PI*gR,gD=gC*pct/100;
+
+  const heroCard=document.getElementById('ciHeroCard');
+  if(heroCard){
+    heroCard.style.setProperty('--ci-glow',_hexToRgba(lvlClr,.32));
+    heroCard.style.setProperty('--ci-glow-strong',_hexToRgba(lvlClr,.5));
+  }
+  const fill=document.getElementById('ciGaugeFill');
+  if(fill){ fill.setAttribute('stroke',lvlClr); fill.setAttribute('stroke-dasharray',`${gD} ${gC}`); }
+  const pctEl=document.getElementById('ciGaugePct'); if(pctEl)pctEl.textContent=pct+'%';
+  const lvlEl=document.getElementById('ciLevelLabel'); if(lvlEl){lvlEl.textContent=scoreLabel(avg)||'Not Rated';lvlEl.style.color=lvlClr;}
+  const avgEl=document.getElementById('ciAvgLabel');
+  if(avgEl){ avgEl.style.display=avg?'':'none'; avgEl.style.color=lvlClr; avgEl.textContent=avg.toFixed(1)+' / 5.0 average'; }
+  const ratedEl=document.getElementById('ciRatedInfo');
+  if(ratedEl)ratedEl.textContent=`${rated.length} of ${pas.length} areas rated${entities.length>1?' for '+_ciEntity:''}`;
+
+  const pillEl=document.getElementById('ciTrendPill');
+  if(pillEl){
+    const histForEntity=_ciHistory.map(h=>Math.round(((h.entityScores||{})[_ciEntity]||0)/5*100)).filter(p=>p>0);
+    if(histForEntity.length){
+      const prevPct=histForEntity[histForEntity.length-1];
+      const delta=pct-prevPct;
+      const trendClr=delta>0?'#11C98D':delta<0?'#FF5C5C':'rgba(255,255,255,.5)';
+      const arrow=delta>0?'▲':delta<0?'▼':'—';
+      pillEl.style.display='';
+      pillEl.style.color=trendClr;
+      pillEl.textContent=`${arrow} ${delta===0?'No change':(delta>0?'+':'')+delta+'%'} vs last week`;
+    }else{
+      pillEl.style.display='none';
+    }
+  }
 }
 
 function ciUpdateComment(paId,val){
