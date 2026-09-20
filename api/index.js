@@ -6891,17 +6891,43 @@ app.get('/portal/:token', (req, res) => {
 });
 
 // PUT /api/portal/:token/ci/ratings — save CI rating from unified portal
+// The client saves every rated process area as its own parallel PUT (Promise.all
+// over N requests), and each one used to mutate the whole in-memory db then call
+// saveDB()'s full-document replaceOne. Two of those requests landing on different
+// warm lambda instances race: whichever's replaceOne finishes last wins and its
+// stale snapshot silently erases the other's rating — exactly what "some entries
+// go missing after saving" was. Field-level $set with arrayFilters touches only
+// this one rating, so concurrent saves for different process areas can never
+// clobber each other, mirroring persistAssignmentComplete's fix for learning.
+async function persistCIRating(assessmentId, entityKey, paId, rating) {
+  if (mongoCol) {
+    try {
+      await mongoCol.updateOne(
+        { _id: 'main' },
+        { $set: { [`confidenceIndex.assessments.$[a].ratings.${entityKey}.${paId}`]: rating, 'confidenceIndex.assessments.$[a].updatedAt': rating.updatedAt } },
+        { arrayFilters: [{ 'a.id': assessmentId }] }
+      );
+      dbCacheTs = 0;
+      return true;
+    } catch (e) { console.error('[ci rating/mongo]', e.message); }
+  }
+  return false;
+}
+
 app.put('/api/portal/:token/ci/ratings', async (req, res) => {
   await _dbReady;
   const { paId, entityKey='Overall', score, comment='' } = req.body;
   if (!paId||!score) return res.status(400).json({ ok:false, error:'paId and score required' });
   const a = resolveCIAssessmentByToken(req.params.token);
   if (!a) return res.status(403).json({ ok:false, error:'No CI assessment linked to this token' });
+  const rating = { score:Math.min(5,Math.max(1,parseInt(score))), comment, updatedAt:new Date().toISOString() };
+  const persisted = await persistCIRating(a.id, entityKey, paId, rating);
   if (!a.ratings) a.ratings = {};
   if (!a.ratings[entityKey]) a.ratings[entityKey] = {};
-  a.ratings[entityKey][paId] = { score:Math.min(5,Math.max(1,parseInt(score))), comment, updatedAt:new Date().toISOString() };
-  a.updatedAt = new Date().toISOString();
-  await saveDB(db); res.json({ ok:true });
+  a.ratings[entityKey][paId] = rating;
+  a.updatedAt = rating.updatedAt;
+  if (!persisted) await saveDB(db);
+  res.json({ ok:true });
 });
 
 // GET /api/portal/:token/ci/history — week-on-week confidence trend
