@@ -1573,7 +1573,7 @@ function renderUAT(){
                 const priCls=pri==='critical'?'pri-critical':pri==='high'?'pri-high':pri==='medium'?'pri-medium':'pri-low';
                 const bNotes=tc.bluecopaComments||'';
                 const shots=tc.attachments||[];
-                return`<tr>
+                return`<tr onmouseenter="_uatActiveTcId='${esc(tc.id)}'">
                   <td class="tc-ref">TC-${tc.seq||'?'}</td>
                   <td class="tc-title">${esc(tc.title||tc.description||'')}</td>
                   <td class="${priCls}">${esc(tc.priority||'—')}</td>
@@ -1586,7 +1586,7 @@ function renderUAT(){
                   <td class="uat-bnotes-cell">${bNotes?`<div class="uat-bnotes-text">${esc(bNotes)}</div><button class="uat-bnotes-more" onclick="uatShowNote('${esc(tc.id)}')">Read full note</button>`:`<span class="uat-bnotes-empty">—</span>`}</td>
                   <td class="uat-notes-cell">
                     <div class="uat-notes-text" title="${esc(tc.clientComments||'')}" onclick="uatEditNotes(this,'${esc(tc.id)}')">${esc(tc.clientComments||'Add a note…')}</div>
-                    <div class="uat-notes-actions"><button class="uat-attach-btn" type="button" onclick="uatOpenAttach('${esc(tc.id)}')">📎 Attach screenshot</button></div>
+                    <div class="uat-notes-actions"><button class="uat-attach-btn" type="button" title="Click to browse, or just hover this row and paste (Ctrl/Cmd+V)" onclick="uatOpenAttach('${esc(tc.id)}')">📎 Attach or paste screenshot</button></div>
                     ${shots.length?`<div class="uat-shots">${shots.map(id=>`<div class="uat-shot-thumb" onclick="uatViewShot('${esc(id)}')"><img src="/api/portal/${TOKEN}/attachments/${esc(id)}" loading="lazy"><span class="uat-shot-remove" onclick="event.stopPropagation();uatRemoveShot('${esc(tc.id)}','${esc(id)}')">&times;</span></div>`).join('')}</div>`:''}
                   </td>
                 </tr>`;
@@ -1708,8 +1708,33 @@ function uatCloseNoteModal(){ document.getElementById('uatNoteModal').hidden=tru
 
 // ── Screenshot attach + optional redaction ──────────────────────────────────
 let _shotTcId=null, _shotImg=null, _shotBoxes=[], _shotDrag=null, _shotStart=null;
+let _uatActiveTcId=null; // last test-case row the pointer was over — lets a bare Ctrl/Cmd+V (no click needed) target the right row
+
+// A plain paste anywhere on the page — not just inside the note textarea — attaches
+// an image to whichever row the mouse last hovered. Skipped when a text field is
+// focused (name/role/date on the sign-off form, or the note textarea itself, which
+// already has its own paste handler) so this never steals a normal text paste.
+document.addEventListener('paste', e=>{
+  const active=document.activeElement;
+  if(active && (active.tagName==='TEXTAREA' || active.tagName==='INPUT')) return;
+  if(!_uatActiveTcId) return;
+  const items=(e.clipboardData&&e.clipboardData.items)||[];
+  for(const item of items){
+    if(item.type&&item.type.startsWith('image/')){
+      e.preventDefault();
+      const file=item.getAsFile();
+      if(!file)continue;
+      const reader=new FileReader();
+      const tcId=_uatActiveTcId;
+      reader.onload=()=>{ _shotTcId=tcId; uatBeginShotEdit(reader.result); };
+      reader.readAsDataURL(file);
+      return;
+    }
+  }
+});
 
 function uatOpenAttach(tcId){
+  _uatActiveTcId=tcId;
   _shotTcId=tcId;
   const inp=document.getElementById('uatShotFileInput');
   inp.value='';
