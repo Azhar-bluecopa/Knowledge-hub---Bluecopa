@@ -6394,6 +6394,22 @@ app.get('/api/cron/rl-snapshot', async (req, res) => {
   res.json(result);
 });
 
+// Vercel Cron: every Monday at 4:20 AM UTC (9:50 AM IST)
+// Schedule defined in vercel.json: "20 4 * * 1"
+app.get('/api/cron/ci-snapshot', async (req, res) => {
+  const secret = process.env.CRON_SECRET;
+  if (secret && req.headers.authorization !== `Bearer ${secret}`)
+    return res.status(401).json({ error: 'Unauthorized' });
+  await _dbReady;
+  try {
+    const captured = ciAutoSnapshot();
+    await saveDB(db);
+    res.json({ ok: true, captured });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // ── Skill Matrix Upgrade Requests ──────────────────────────────────────────
 
 const SM_LEVELS_API = ['', 'Beginner', 'Intermediate', 'Advanced', 'Expert'];
@@ -6491,10 +6507,65 @@ const CI_DEFAULT_PROCESS_AREAS = [
 ];
 
 function ciDB() {
-  if (!db.confidenceIndex) db.confidenceIndex = { assessments: [] };
+  if (!db.confidenceIndex) db.confidenceIndex = { assessments: [], snapshots: [] };
+  if (!db.confidenceIndex.snapshots) db.confidenceIndex.snapshots = [];
   return db.confidenceIndex;
 }
 function ciId() { return `ci_${Date.now()}_${Math.random().toString(36).slice(2,6)}`; }
+
+// Every assessment carries its own token-facing tokens, so a CustomerLink or legacy
+// token resolves to an assessment the same way in both the ratings-save endpoint and
+// the history endpoint below — factored out once rather than duplicated twice.
+function resolveCIAssessmentByToken(token) {
+  const ci = ciDB();
+  const cl = clDB().find(x => x.token === token);
+  if (cl && cl.ciAssessmentId) {
+    const a = ci.assessments.find(x => x.id === cl.ciAssessmentId);
+    if (a) return a;
+  }
+  const byOwnToken = ci.assessments.find(x => x.portalToken === token);
+  if (byOwnToken) return byOwnToken;
+  // Backwards compat: old UAT client portalToken
+  const c = uatDB().clients.find(x => x.portalToken === token);
+  if (c) {
+    const a2 = ci.assessments.find(x => x.clientId === c.id && x.status === 'active');
+    if (a2) return a2;
+  }
+  return null;
+}
+
+// Captures each assessment's average confidence score (overall and per entity) as a
+// weekly data point, so the customer portal can chart a trend rather than only ever
+// showing the current snapshot-in-time score. Dedup by weekKey (Monday of that ISO
+// week) so a manual retrigger later in the week doesn't duplicate that week's point.
+function ciAutoSnapshot() {
+  const ci = ciDB();
+  const now = new Date();
+  const dayOfWeek = now.getUTCDay();
+  const mondayUTC = new Date(now);
+  mondayUTC.setUTCDate(now.getUTCDate() - ((dayOfWeek + 6) % 7));
+  mondayUTC.setUTCHours(0, 0, 0, 0);
+  const weekKey = mondayUTC.toISOString().slice(0, 10);
+
+  let captured = 0;
+  ci.assessments.forEach(a => {
+    const alreadyDone = ci.snapshots.some(s => s.assessmentId === a.id && s.weekKey === weekKey);
+    if (alreadyDone) return;
+    const entities = a.entities || ['Overall'];
+    const entityScores = {};
+    entities.forEach(ent => {
+      const er = (a.ratings || {})[ent] || {};
+      let sum = 0, total = 0;
+      (a.processAreas || []).forEach(pa => { const r = er[pa.id]; if (r && r.score) { sum += r.score; total++; } });
+      entityScores[ent] = total ? +(sum / total).toFixed(2) : 0;
+    });
+    ci.snapshots.push({ id: ciId(), assessmentId: a.id, weekKey, capturedAt: now.toISOString(), entityScores });
+    captured++;
+  });
+  // Cap history length per assessment so this array can't grow unbounded forever
+  if (ci.snapshots.length > 2000) ci.snapshots = ci.snapshots.slice(-2000);
+  return captured;
+}
 
 // Same warm-lambda staleness issue as /api/uat/* and /api/portal/* (see the
 // comment above the clients route) — force a fresh read before every CI write
@@ -6822,32 +6893,29 @@ app.get('/portal/:token', (req, res) => {
 // PUT /api/portal/:token/ci/ratings — save CI rating from unified portal
 app.put('/api/portal/:token/ci/ratings', async (req, res) => {
   await _dbReady;
-  const token = req.params.token;
   const { paId, entityKey='Overall', score, comment='' } = req.body;
   if (!paId||!score) return res.status(400).json({ ok:false, error:'paId and score required' });
-
-  let assessmentId = null;
-  // Check CustomerLink
-  const cl = clDB().find(x=>x.token===token);
-  if (cl) { assessmentId = cl.ciAssessmentId; }
-  else {
-    // Backwards compat: old CI assessment portalToken
-    const ca = ciDB().assessments.find(x=>x.portalToken===token);
-    if (ca) assessmentId = ca.id;
-    else {
-      // Backwards compat: old UAT client portalToken
-      const u = uatDB(); const c = u.clients.find(x=>x.portalToken===token);
-      if (c) { const a2 = ciDB().assessments.find(x=>x.clientId===c.id&&x.status==='active'); if(a2) assessmentId=a2.id; }
-    }
-  }
-  if (!assessmentId) return res.status(403).json({ ok:false, error:'No CI assessment linked to this token' });
-  const a = ciDB().assessments.find(x=>x.id===assessmentId);
-  if (!a) return res.status(404).json({ ok:false, error:'Assessment not found' });
+  const a = resolveCIAssessmentByToken(req.params.token);
+  if (!a) return res.status(403).json({ ok:false, error:'No CI assessment linked to this token' });
   if (!a.ratings) a.ratings = {};
   if (!a.ratings[entityKey]) a.ratings[entityKey] = {};
   a.ratings[entityKey][paId] = { score:Math.min(5,Math.max(1,parseInt(score))), comment, updatedAt:new Date().toISOString() };
   a.updatedAt = new Date().toISOString();
   await saveDB(db); res.json({ ok:true });
+});
+
+// GET /api/portal/:token/ci/history — week-on-week confidence trend
+app.get('/api/portal/:token/ci/history', async (req, res) => {
+  await _dbReady;
+  const a = resolveCIAssessmentByToken(req.params.token);
+  if (!a) return res.status(403).json({ ok:false, error:'No CI assessment linked to this token' });
+  const snaps = ciDB().snapshots
+    .filter(s => s.assessmentId === a.id)
+    .slice()
+    .sort((x,y) => new Date(x.capturedAt) - new Date(y.capturedAt))
+    .slice(-12);
+  const history = snaps.map(s => ({ week: s.weekKey, capturedAt: s.capturedAt, entityScores: s.entityScores || {} }));
+  res.json({ ok:true, history });
 });
 
 // ══════════════════════════════════════════════════════════════════════════════

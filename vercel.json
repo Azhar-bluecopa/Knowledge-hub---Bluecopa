@@ -7,6 +7,10 @@
       "schedule": "20 4 1 * *"
     },
     {
+      "path": "/api/cron/ci-snapshot",
+      "schedule": "20 4 * * 1"
+    },
+    {
       "path": "/api/cron/learning-reminders",
       "schedule": "0 3 * * *"
     },

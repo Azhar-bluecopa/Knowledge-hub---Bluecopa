@@ -679,41 +679,55 @@ body{
 
 /* ── CI tab ── */
 .ci-hero-card{
-  background:var(--card);
+  background:linear-gradient(165deg,#120b24 0%,#0b0e21 55%,#08061a 100%);
   border:1px solid var(--border-solid);
-  border-radius:var(--r);padding:32px;
-  margin-bottom:22px;box-shadow:var(--sh-sm);
-  display:flex;align-items:center;gap:36px;
+  border-radius:var(--r);padding:36px 40px;
+  margin-bottom:22px;box-shadow:var(--sh-md);
+  display:flex;align-items:center;gap:40px;
   position:relative;overflow:hidden;
 }
+.ci-hero-card::before{
+  content:'';position:absolute;
+  top:-120px;left:-60px;width:420px;height:420px;
+  background:radial-gradient(circle,var(--ci-glow,rgba(59,110,250,.32)) 0%,transparent 65%);
+  pointer-events:none;transition:background .6s;
+}
 .ci-hero-card::after{
-  content:'';position:absolute;right:0;top:0;bottom:0;
-  width:220px;
-  background:radial-gradient(ellipse at right,rgba(59,110,250,.04),transparent);
+  content:'';position:absolute;inset:0;
+  background-image:radial-gradient(circle,rgba(255,255,255,.06) 1px,transparent 1px);
+  background-size:26px 26px;
   pointer-events:none;
 }
 .ci-gauge-wrap{
-  position:relative;
-  width:130px;height:130px;flex-shrink:0;
+  position:relative;z-index:1;
+  width:150px;height:150px;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
+  filter:drop-shadow(0 0 16px var(--ci-glow-strong,rgba(59,110,250,.5)));
 }
 .ci-gauge-svg{transform:rotate(-90deg)}
+.ci-gauge-svg circle:last-child{transition:stroke-dasharray .85s cubic-bezier(.16,1,.3,1),stroke .4s}
 .ci-gauge-center{
   position:absolute;inset:0;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
 }
 .ci-gauge-pct{
   font-family:'Outfit',sans-serif;
-  font-size:30px;font-weight:800;letter-spacing:-.5px;
+  font-size:34px;font-weight:800;letter-spacing:-.5px;color:#fff;
 }
-.ci-gauge-sub{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-4);margin-top:1px}
+.ci-gauge-sub{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,.4);margin-top:1px}
 .ci-hero-info{flex:1;min-width:0;position:relative;z-index:1}
 .ci-level-label{
   font-family:'Outfit',sans-serif;
-  font-size:26px;font-weight:800;letter-spacing:-.3px;margin-bottom:5px;
+  font-size:30px;font-weight:800;letter-spacing:-.4px;margin-bottom:6px;
 }
-.ci-avg-label{font-size:14px;font-weight:700;margin-bottom:5px}
-.ci-rated-info{font-size:13px;color:var(--text-3)}
+.ci-avg-label{font-size:14px;font-weight:700;margin-bottom:6px}
+.ci-rated-info{font-size:13px;color:rgba(255,255,255,.45)}
+.ci-trend-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  margin-top:12px;padding:5px 12px;border-radius:99px;
+  font-size:11.5px;font-weight:700;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
+}
 
 .ci-entity-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
 .ci-ent-btn{
@@ -742,25 +756,31 @@ body{
   background:var(--card);
   border:1px solid var(--border-solid);
   border-radius:var(--r-sm);
-  padding:20px 24px;margin-bottom:12px;
+  padding:22px 26px;margin-bottom:12px;
   box-shadow:var(--sh-sm);
-  transition:box-shadow .2s;
+  transition:box-shadow .2s,transform .2s,border-color .2s;
+  position:relative;overflow:hidden;
 }
-.pa-card:hover{box-shadow:var(--sh-md)}
-.pa-name{font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:13px}
-.pa-stars{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.pa-card::before{
+  content:'';position:absolute;top:0;bottom:0;left:0;width:4px;
+  background:var(--pa-accent,var(--border-solid));
+  transition:background .3s;
+}
+.pa-card:hover{box-shadow:var(--sh-md);transform:translateY(-1px)}
+.pa-name{font-size:14.5px;font-weight:700;color:var(--text-1);margin-bottom:14px}
+.pa-stars{display:flex;align-items:center;gap:7px;margin-bottom:8px}
 .ci-star{
-  font-size:26px;cursor:pointer;
+  font-size:27px;cursor:pointer;
   color:rgba(0,0,0,.1);
-  transition:color .1s,transform .1s;
+  transition:color .12s,transform .12s,filter .12s;
   user-select:none;line-height:1;
 }
 @media(prefers-color-scheme:dark){
   :root:not([data-theme="light"]) .ci-star{color:rgba(255,255,255,.1)}
 }
 :root[data-theme="dark"] .ci-star{color:rgba(255,255,255,.1)}
-.ci-star:hover{transform:scale(1.15)}
-.ci-star.active{color:var(--amber)}
+.ci-star:hover{transform:scale(1.18)}
+.ci-star.active{color:var(--amber);filter:drop-shadow(0 0 5px currentColor)}
 .ci-score-lbl{font-size:12px;font-weight:700;margin-left:6px}
 .pa-comment{
   width:100%;border:1.5px solid var(--border-solid);border-radius:var(--r-sm);
@@ -785,11 +805,18 @@ body{
   color:#fff;border:none;border-radius:var(--r-sm);
   font-size:14px;font-weight:700;cursor:pointer;
   font-family:'DM Sans',sans-serif;
+  position:relative;overflow:hidden;
   transition:opacity .15s,transform .15s;
   margin-top:20px;
   box-shadow:0 6px 20px rgba(59,110,250,.32);
 }
-.ci-save-btn:hover{opacity:.92;transform:translateY(-1px)}
+.ci-save-btn::before{
+  content:'';position:absolute;top:0;left:-120%;bottom:0;width:60%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);
+  transition:left .5s;
+}
+.ci-save-btn:hover::before{left:160%}
+.ci-save-btn:hover{opacity:.96;transform:translateY(-1px)}
 .ci-save-btn:disabled{opacity:.55;transform:none;cursor:not-allowed}
 
 /* ── Empty state ── */
@@ -1169,6 +1196,7 @@ function switchTab(tab,btn){
 // ── Load ──────────────────────────────────────────────────────────────────────
 var _history=[];
 var _tasks=[];
+var _ciHistory=[];
 
 async function load(){
   try{
@@ -1181,11 +1209,14 @@ async function load(){
     // Fetch history and tasks in background — update status tab if already visible
     Promise.all([
       fetch('/api/portal/'+TOKEN+'/history').then(r=>r.ok?r.json():null).catch(()=>null),
-      fetch('/api/portal/'+TOKEN+'/tasks').then(r=>r.ok?r.json():null).catch(()=>null)
-    ]).then(([hd,td])=>{
+      fetch('/api/portal/'+TOKEN+'/tasks').then(r=>r.ok?r.json():null).catch(()=>null),
+      fetch('/api/portal/'+TOKEN+'/ci/history').then(r=>r.ok?r.json():null).catch(()=>null)
+    ]).then(([hd,td,cid])=>{
       if(hd&&hd.ok) _history=hd.history||[];
       if(td&&td.ok) _tasks=td.tasks||[];
+      if(cid&&cid.ok) _ciHistory=cid.history||[];
       if(_statusRendered) renderStatusExtras();
+      if(_ciRendered) renderCIExtras();
     });
   }catch(e){showErr();}
 }
@@ -2023,6 +2054,11 @@ function scoreLabel(v){
   if(!v)return'Not rated';
   return[,'Very Low','Low','Moderate','High','Fully Confident'][Math.round(v)]||'';
 }
+function _hexToRgba(hex,a){
+  const h=hex.replace('#','');
+  const n=parseInt(h.length===3?h.split('').map(c=>c+c).join(''):h,16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+}
 
 function renderCI(){
   const el=document.getElementById('ciContent');
@@ -2070,16 +2106,27 @@ function renderCIContent(){
     html+=`</div>`;
   }
 
-  html+=`<div class="ci-hero-card">
+  // Week-on-week trend: compare current live avg against the most recent stored
+  // snapshot for this entity (that snapshot represents "as of last Monday").
+  const histForEntity=_ciHistory.map(h=>({week:h.week,pct:Math.round(((h.entityScores||{})[_ciEntity]||0)/5*100)})).filter(h=>h.pct>0);
+  let trendHtml='';
+  if(histForEntity.length){
+    const prevPct=histForEntity[histForEntity.length-1].pct;
+    const delta=pct-prevPct;
+    const trendClr=delta>0?'#11C98D':delta<0?'#FF5C5C':'rgba(255,255,255,.5)';
+    const arrow=delta>0?'▲':delta<0?'▼':'—';
+    trendHtml=`<div class="ci-trend-pill" style="color:${trendClr}">${arrow} ${delta===0?'No change':(delta>0?'+':'')+delta+'%'} vs last week</div>`;
+  }
+
+  html+=`<div class="ci-hero-card" style="--ci-glow:${_hexToRgba(lvlClr,.32)};--ci-glow-strong:${_hexToRgba(lvlClr,.5)}">
     <div class="ci-gauge-wrap">
-      <svg viewBox="0 0 130 130" width="130" height="130" class="ci-gauge-svg">
-        <circle cx="65" cy="65" r="${gR}" fill="none" stroke="var(--border-solid)" stroke-width="14"/>
+      <svg viewBox="0 0 130 130" width="150" height="150" class="ci-gauge-svg">
+        <circle cx="65" cy="65" r="${gR}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="14"/>
         <circle cx="65" cy="65" r="${gR}" fill="none" stroke="${lvlClr}" stroke-width="14"
-          stroke-linecap="round" stroke-dasharray="${gD} ${gC}"
-          style="transition:stroke-dasharray .85s cubic-bezier(.16,1,.3,1)"/>
+          stroke-linecap="round" stroke-dasharray="${gD} ${gC}"/>
       </svg>
       <div class="ci-gauge-center">
-        <div class="ci-gauge-pct" style="color:${lvlClr}">${pct}%</div>
+        <div class="ci-gauge-pct">${pct}%</div>
         <div class="ci-gauge-sub">Confidence</div>
       </div>
     </div>
@@ -2087,7 +2134,14 @@ function renderCIContent(){
       <div class="ci-level-label" style="color:${lvlClr}">${scoreLabel(avg)||'Not Rated'}</div>
       ${avg?`<div class="ci-avg-label" style="color:${lvlClr}">${avg.toFixed(1)} / 5.0 average</div>`:''}
       <div class="ci-rated-info">${rated.length} of ${pas.length} areas rated${entities.length>1?' for '+_ciEntity:''}</div>
+      ${trendHtml}
     </div>
+  </div>`;
+
+  html+=`<div class="sec-hd" id="ciTrendSection" style="display:none"><div class="sec-hd-text">Confidence Trend</div><div class="sec-hd-line"></div></div>
+  <div class="wow-card" id="ciTrendCard" style="display:none">
+    <div class="wow-card-title"><span></span>Week-on-week confidence</div>
+    <div class="wow-chart-wrap"><canvas id="ciTrendChart"></canvas></div>
   </div>`;
 
   html+=`<p class="ci-intro-note">Rate your confidence in each process area from 1 (Very Low) to 5 (Fully Confident). Your ratings help your Bluecopa team identify where additional support may be needed.</p>`;
@@ -2097,7 +2151,7 @@ function renderCIContent(){
     const score=r.score||0;
     const comment=r.comment||'';
     const paActs=actions.filter(a=>a.processAreaId===pa.id&&(a.entityKey===_ciEntity||a.entityKey==='Overall'));
-    html+=`<div class="pa-card" id="parow_${esc(pa.id)}">
+    html+=`<div class="pa-card" id="parow_${esc(pa.id)}" style="--pa-accent:${score?scoreColor(score):'var(--border-solid)'}">
       <div class="pa-name">${esc(pa.name)}</div>
       <div class="pa-stars" id="stars_${esc(pa.id)}">
         ${[1,2,3,4,5].map(v=>`<span class="ci-star${score>=v?' active':''}" style="${score>=v?'color:'+scoreColor(score):''}" data-paid="${esc(pa.id)}" data-v="${v}" onclick="ciSetScore('${esc(pa.id)}',${v})">★</span>`).join('')}
@@ -2121,6 +2175,39 @@ function renderCIContent(){
     html+=`<button class="ci-save-btn" onclick="ciSaveAll()">Save All Ratings</button>`;
   }
   el.innerHTML=html;
+  renderCIExtras();
+}
+
+var _ciTrendChart=null;
+function renderCIExtras(){
+  const section=document.getElementById('ciTrendSection');
+  const card=document.getElementById('ciTrendCard');
+  const canvas=document.getElementById('ciTrendChart');
+  if(!section||!card||!canvas)return;
+  const points=_ciHistory.map(h=>({week:h.week,pct:Math.round(((h.entityScores||{})[_ciEntity]||0)/5*100)})).filter(h=>h.pct>0);
+  if(points.length<2){ section.style.display='none'; card.style.display='none'; return; }
+  section.style.display='flex'; card.style.display='block';
+  if(_ciTrendChart){ _ciTrendChart.destroy(); _ciTrendChart=null; }
+  const labels=points.map(p=>{ const d=new Date(p.week); return isNaN(d)?p.week:d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); });
+  const vals=points.map(p=>p.pct);
+  const lastVal=vals[vals.length-1]||0;
+  const gradClr=lastVal>=80?'#11C98D':lastVal>=50?'#3B6EFA':'#FF5C5C';
+  const ctx=canvas.getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,0,240);
+  grad.addColorStop(0,gradClr+'55');
+  grad.addColorStop(1,gradClr+'00');
+  _ciTrendChart=new Chart(ctx,{
+    type:'line',
+    data:{ labels, datasets:[{ label:'Confidence %', data:vals, borderColor:gradClr, backgroundColor:grad, borderWidth:2.5, pointRadius:4, pointBackgroundColor:gradClr, pointBorderColor:'#fff', pointBorderWidth:2, tension:.35, fill:true }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx=>`${ctx.parsed.y}% confidence` } } },
+      scales:{
+        x:{ grid:{color:'rgba(0,0,0,.05)'}, ticks:{font:{size:11},color:'#9ca3af'} },
+        y:{ min:0, max:100, grid:{color:'rgba(0,0,0,.05)'}, ticks:{font:{size:11},color:'#9ca3af',callback:v=>v+'%'} }
+      }
+    }
+  });
 }
 
 function ciSelectEntity(ent){_ciEntity=ent;renderCIContent();}
