@@ -1227,6 +1227,7 @@ app.delete('/api/uat/clients/:id', async (req, res) => {
   u.clients=u.clients.filter(x=>x.id!==id); u.projects=u.projects.filter(x=>x.clientId!==id);
   u.testcases=u.testcases.filter(x=>!projectIds.has(x.projectId));
   u.issues=u.issues.filter(x=>!projectIds.has(x.projectId));
+  if (u.attachments) u.attachments = u.attachments.filter(x=>!projectIds.has(x.projectId));
   await saveDB(db); res.json({ ok:true });
 });
 
@@ -1439,7 +1440,8 @@ app.delete('/api/uat/testcases/:id', async (req, res) => {
   await _dbReady; const u=uatDB();
   const _del=u.testcases.find(x=>x.id===req.params.id);
   u.testcases=u.testcases.filter(x=>x.id!==req.params.id);
-  const ok=await atomicUpdate({$set:{'uat.testcases':u.testcases}}); if(!ok) await saveDB(db);
+  if (u.attachments) u.attachments = u.attachments.filter(x=>x.testCaseId!==req.params.id);
+  const ok=await atomicUpdate({$set:{'uat.testcases':u.testcases,'uat.attachments':u.attachments}}); if(!ok) await saveDB(db);
   if(_del) { _uatTcCacheInvalidate(_del.projectId); _uatDashCache.clear(); }
   res.json({ ok:true });
 });
