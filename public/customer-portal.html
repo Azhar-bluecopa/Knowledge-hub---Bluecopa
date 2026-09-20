@@ -435,6 +435,7 @@ body{
   transition:width .5s ease,left .5s ease;
 }
 .gantt-bar.narrow{justify-content:center;padding:0 4px}
+.gantt-bar.faded{opacity:.4}
 .gantt-bar-tick{width:11px;height:11px;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .gantt-bar-pct{font-size:10.5px;font-weight:800;color:#fff;white-space:nowrap}
 .gantt-bar-pct.outside{position:absolute;left:100%;margin-left:8px;color:var(--text-2)}
@@ -1309,8 +1310,8 @@ function renderStatus(){
         html+=`<div class="sec-hd"><div class="sec-hd-text">Phase Breakdown</div><div class="sec-hd-line"></div></div>`;
         allPhaseProjs.forEach(proj=>{
           html+=`<div style="margin-bottom:18px"><div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:10px">${esc(proj.projectName)}</div>`;
-          html+=_renderGantt(proj.phases);
           html+=_renderPhases(proj.phases);
+          html+=_renderGantt(proj.phases);
           html+='</div>';
         });
       }
@@ -1330,10 +1331,10 @@ function renderStatus(){
     </div>`;
 
     if((ps.phases||[]).length){
-      html+=`<div class="sec-hd"><div class="sec-hd-text">Project Timeline</div><div class="sec-hd-line"></div></div>`;
-      html+=_renderGantt(ps.phases);
       html+=`<div class="sec-hd"><div class="sec-hd-text">Phases</div><div class="sec-hd-line"></div></div>`;
       html+=_renderPhases(ps.phases);
+      html+=`<div class="sec-hd"><div class="sec-hd-text">Project Timeline</div><div class="sec-hd-line"></div></div>`;
+      html+=_renderGantt(ps.phases);
     }
   }
 
@@ -1367,10 +1368,11 @@ function _fmtShort(t){
   catch{ return ''; }
 }
 
+const GANTT_PALETTE=['#3B6EFA','#9B7CFF','#F5B53F','#11C98D','#FF5C5C','#2FB6C4'];
+
 function _renderGantt(phases){
   const withDates=(phases||[]).filter(ph=>ph.startDate&&ph.endDate);
   if(withDates.length<2) return '';
-  const PHASE_CLR={completed:'#11C98D',in_progress:'#3B6EFA',upcoming:'#B9C2D6'};
   const toTime=d=>new Date(d).getTime();
   const minT=Math.min.apply(null,withDates.map(ph=>toTime(ph.startDate)));
   const maxT=Math.max.apply(null,withDates.map(ph=>toTime(ph.endDate)));
@@ -1382,9 +1384,7 @@ function _renderGantt(phases){
 
   return `<div class="gantt-card">
     <div class="gantt-legend">
-      <span class="gantt-leg-item"><span class="gantt-leg-dot" style="background:${PHASE_CLR.completed}"></span>Completed</span>
-      <span class="gantt-leg-item"><span class="gantt-leg-dot" style="background:${PHASE_CLR.in_progress}"></span>In Progress</span>
-      <span class="gantt-leg-item"><span class="gantt-leg-dot" style="background:${PHASE_CLR.upcoming}"></span>Upcoming</span>
+      ${withDates.map((ph,i)=>`<span class="gantt-leg-item"><span class="gantt-leg-dot" style="background:${GANTT_PALETTE[i%GANTT_PALETTE.length]}"></span>${esc(ph.name)}</span>`).join('')}
     </div>
     <div class="gantt-inner">
       <div class="gantt-axis">
@@ -1393,16 +1393,17 @@ function _renderGantt(phases){
       </div>
       <div class="gantt-body">
         ${todayPct!==null?`<div class="gantt-today" style="left:calc(118px + (100% - 118px) * ${todayPct/100})"><div class="gantt-today-label">Today</div></div>`:''}
-        ${withDates.map(ph=>{
+        ${withDates.map((ph,i)=>{
           const left=pctOf(toTime(ph.startDate));
           const width=Math.max(2.5,pctOf(toTime(ph.endDate))-left);
-          const clr=PHASE_CLR[ph.status]||PHASE_CLR.upcoming;
+          const clr=GANTT_PALETTE[i%GANTT_PALETTE.length];
+          const faded=ph.status==='upcoming';
           const narrow=width<9;
           const tick=ph.status==='completed'?'<svg viewBox="0 0 24 24" class="gantt-bar-tick"><polyline points="20 6 9 17 4 12"/></svg>':'';
           return `<div class="gantt-row">
             <div class="gantt-row-label">${esc(ph.name)}</div>
             <div class="gantt-row-track">
-              <div class="gantt-bar${narrow?' narrow':''}" style="left:${left}%;width:${width}%;background:linear-gradient(90deg,${clr},${clr}cc)">
+              <div class="gantt-bar${narrow?' narrow':''}${faded?' faded':''}" style="left:${left}%;width:${width}%;background:linear-gradient(90deg,${clr},${clr}cc)">
                 ${narrow?tick:`${tick}<span class="gantt-bar-pct">${ph.completion}%</span>`}
                 ${narrow?`<span class="gantt-bar-pct outside">${ph.completion}%</span>`:''}
               </div>
