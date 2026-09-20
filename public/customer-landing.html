@@ -41,21 +41,21 @@ body::after{
   top:-20%;left:-15%;
   background:radial-gradient(circle,#9d174d 0%,#e0399e 40%,transparent 72%);
   opacity:.7;
-  animation:drift1 16s ease-in-out infinite;
+  animation:drift1 16s ease-in-out infinite,morph1 9s ease-in-out infinite;
 }
 .blob-2{
   width:55vw;height:55vw;
   top:-10%;right:-10%;
   background:radial-gradient(circle,#6d28d9 0%,#a855f7 40%,transparent 72%);
   opacity:.68;
-  animation:drift2 20s ease-in-out infinite;
+  animation:drift2 20s ease-in-out infinite,morph2 11s ease-in-out infinite;
 }
 .blob-3{
   width:50vw;height:50vw;
   bottom:-18%;left:22%;
   background:radial-gradient(circle,#86198f 0%,#d946ef 40%,transparent 72%);
   opacity:.5;
-  animation:drift3 18s ease-in-out infinite;
+  animation:drift3 18s ease-in-out infinite,morph3 10s ease-in-out infinite;
 }
 @keyframes drift1{
   0%,100%{transform:translate(0,0) scale(1)}
@@ -71,6 +71,19 @@ body::after{
   0%,100%{transform:translate(0,0) scale(1)}
   35%{transform:translate(7%,-7%) scale(1.08)}
   68%{transform:translate(-4%,5%) scale(.96)}
+}
+/* organic liquid wobble, layered on top of the drift/scale transforms above */
+@keyframes morph1{
+  0%,100%{border-radius:42% 58% 70% 30%/45% 45% 55% 55%}
+  50%{border-radius:62% 38% 35% 65%/55% 65% 35% 45%}
+}
+@keyframes morph2{
+  0%,100%{border-radius:55% 45% 40% 60%/40% 55% 45% 60%}
+  50%{border-radius:35% 65% 60% 40%/60% 40% 60% 40%}
+}
+@keyframes morph3{
+  0%,100%{border-radius:48% 52% 62% 38%/58% 42% 58% 42%}
+  50%{border-radius:65% 35% 45% 55%/40% 60% 40% 60%}
 }
 
 /* ── Dot grid ── */
@@ -93,11 +106,49 @@ body::after{
 
 /* ── Mouse spotlight ── */
 .spotlight{
-  position:fixed;inset:0;z-index:2;pointer-events:none;
+  position:fixed;inset:0;z-index:3;pointer-events:none;
   background:radial-gradient(600px circle at var(--mx,50%) var(--my,50%),
     rgba(217,70,239,.11) 0%,
     transparent 65%);
   transition:background .05s;
+}
+
+/* ── Success badge (abstract "customer success" motif) ── */
+.success-badge{
+  position:fixed;top:50%;left:50%;
+  width:440px;height:440px;
+  transform:translate(-50%,-50%);
+  z-index:2;pointer-events:none;
+  opacity:.85;
+  filter:drop-shadow(0 0 46px rgba(217,70,239,.4)) drop-shadow(0 0 90px rgba(124,58,237,.28));
+  animation:badgeIn 1.8s .1s cubic-bezier(.16,1,.3,1) both,badgeBreathe 6s 1.8s ease-in-out infinite;
+}
+@keyframes badgeIn{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}
+  100%{opacity:.85;transform:translate(-50%,-50%) scale(1)}
+}
+@keyframes badgeBreathe{
+  0%,100%{transform:translate(-50%,-50%) scale(1)}
+  50%{transform:translate(-50%,-50%) scale(1.035)}
+}
+.success-badge svg{display:block;width:100%;height:100%}
+.badge-ring-outer{
+  transform-origin:100px 100px;
+  animation:badgeSpin 50s linear infinite;
+}
+@keyframes badgeSpin{ to{transform:rotate(360deg)} }
+
+/* ── Floating particles ── */
+.particles{position:fixed;inset:0;z-index:4;pointer-events:none;overflow:hidden}
+.particle{
+  position:absolute;bottom:-10px;border-radius:50%;
+  animation-name:particleFloat;animation-timing-function:linear;animation-iteration-count:infinite;
+}
+@keyframes particleFloat{
+  0%{transform:translateY(0) scale(.7);opacity:0}
+  12%{opacity:var(--pop,.7)}
+  88%{opacity:var(--pop,.7)}
+  100%{transform:translateY(-108vh) scale(1);opacity:0}
 }
 
 /* ── Header ── */
@@ -159,7 +210,7 @@ body::after{
 }
 
 /* ── Name block ── */
-.name-wrap{position:relative;margin-bottom:24px;animation:fadeUp .7s .1s cubic-bezier(.22,1,.36,1) both}
+.name-wrap{position:relative;margin-bottom:24px}
 .name-glow{
   position:absolute;top:0;left:50%;transform:translateX(-50%);
   font-family:'Outfit',sans-serif;
@@ -178,11 +229,18 @@ body::after{
 .client-name{
   font-family:'Outfit',sans-serif;
   font-size:clamp(52px,8.5vw,108px);
-  font-weight:900;line-height:1;letter-spacing:-.04em;
+  font-weight:900;line-height:1;
   background:linear-gradient(180deg,#fff 20%,rgba(255,255,255,.68) 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   background-clip:text;
   position:relative;z-index:1;
+  display:inline-block;
+  animation:nameReveal 1.2s .2s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes nameReveal{
+  0%{opacity:0;filter:blur(26px);letter-spacing:.18em;transform:scale(.92) translateY(14px)}
+  55%{opacity:1;filter:blur(3px)}
+  100%{opacity:1;filter:blur(0);letter-spacing:-.04em;transform:scale(1) translateY(0)}
 }
 .name-period{
   background:linear-gradient(180deg,#f0abfc 0%,#c026d3 100%);
@@ -252,6 +310,22 @@ body::after{
   color:rgba(255,255,255,.18);
 }
 
+/* ── Floating accent shapes ── */
+.accent{
+  position:absolute;z-index:5;pointer-events:none;
+  opacity:0;
+  filter:drop-shadow(0 0 10px rgba(217,70,239,.5));
+  animation:accentIn .8s cubic-bezier(.22,1,.36,1) both;
+}
+.accent-1{top:20%;left:14%;animation-delay:.5s,.5s;animation-name:accentIn,bob1;animation-duration:.8s,7s;animation-timing-function:cubic-bezier(.22,1,.36,1),ease-in-out;animation-iteration-count:1,infinite}
+.accent-2{top:26%;right:13%;animation-delay:.65s,.65s;animation-name:accentIn,bob2;animation-duration:.8s,8.5s;animation-timing-function:cubic-bezier(.22,1,.36,1),ease-in-out;animation-iteration-count:1,infinite}
+.accent-3{bottom:24%;left:20%;animation-delay:.8s,.8s;animation-name:accentIn,bob3;animation-duration:.8s,6.5s;animation-timing-function:cubic-bezier(.22,1,.36,1),ease-in-out;animation-iteration-count:1,infinite}
+.accent-4{bottom:30%;right:19%;animation-delay:.95s,.95s;animation-name:accentIn,bob2;animation-duration:.8s,9s;animation-timing-function:cubic-bezier(.22,1,.36,1),ease-in-out;animation-iteration-count:1,infinite}
+@keyframes accentIn{from{opacity:0;transform:scale(.5)}to{opacity:.6;transform:scale(1)}}
+@keyframes bob1{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-16px) rotate(10deg)}}
+@keyframes bob2{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(14px) rotate(-10deg)}}
+@keyframes bob3{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-12px) scale(1.15)}}
+
 /* ── Footer ── */
 .footer{
   position:fixed;bottom:16px;right:32px;z-index:50;
@@ -293,6 +367,25 @@ body::after{
 <!-- Mouse spotlight -->
 <div class="spotlight" id="spotlight"></div>
 
+<!-- Success badge (abstract customer-success motif) -->
+<div class="success-badge" aria-hidden="true">
+  <svg viewBox="0 0 200 200">
+    <defs>
+      <linearGradient id="badgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#f0abfc"/>
+        <stop offset="100%" stop-color="#7c3aed"/>
+      </linearGradient>
+    </defs>
+    <circle class="badge-ring-outer" cx="100" cy="100" r="92" fill="none" stroke="url(#badgeGrad)" stroke-width="1.2" opacity=".35" stroke-dasharray="3 9"/>
+    <circle cx="100" cy="100" r="78" fill="none" stroke="url(#badgeGrad)" stroke-width="1.4" opacity=".3"/>
+    <circle cx="100" cy="100" r="62" fill="rgba(217,70,239,.05)" stroke="url(#badgeGrad)" stroke-width="2" opacity=".55"/>
+    <path d="M72 101 L91 120 L130 79" fill="none" stroke="url(#badgeGrad)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>
+  </svg>
+</div>
+
+<!-- Floating particles -->
+<div class="particles" id="particles"></div>
+
 <!-- Header -->
 <div class="hdr">
   <div class="hdr-logo">
@@ -304,6 +397,11 @@ body::after{
 
 <!-- Hero -->
 <div class="stage">
+  <div class="accent accent-1"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="url(#accentGrad)" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><defs><linearGradient id="accentGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f0abfc"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs></svg></div>
+  <div class="accent accent-2"><svg width="22" height="22" viewBox="0 0 24 24" fill="#e879f9"><path d="M12 2l2.2 6.8H21l-5.6 4.1 2.2 6.9L12 15.7 6.4 19.8l2.2-6.9L3 8.8h6.8z"/></svg></div>
+  <div class="accent accent-3"><svg width="14" height="14" viewBox="0 0 24 24" fill="#d946ef"><circle cx="12" cy="12" r="12"/></svg></div>
+  <div class="accent accent-4"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c026d3" stroke-width="1.6"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg></div>
+
   <div class="badge"><span class="badge-dot"></span>Customer Hub</div>
 
   <div class="name-wrap">
@@ -334,6 +432,29 @@ body::after{
 <div class="footer">Powered by Bluecopa</div>
 
 <script>
+// ── Floating particles ────────────────────────────────────────────────────────
+(() => {
+  const host = document.getElementById('particles');
+  const colors = ['#ffffff', '#f0abfc', '#e879f9', '#c084fc'];
+  const count = 26;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 2 + Math.random() * 4;
+    const duration = 10 + Math.random() * 12;
+    const delay = -Math.random() * (duration + 6);
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.width = size + 'px';
+    p.style.height = size + 'px';
+    p.style.background = colors[i % colors.length];
+    p.style.boxShadow = '0 0 ' + (size * 2) + 'px ' + colors[i % colors.length];
+    p.style.setProperty('--pop', (0.35 + Math.random() * 0.45).toFixed(2));
+    p.style.animationDuration = duration + 's';
+    p.style.animationDelay = delay + 's';
+    host.appendChild(p);
+  }
+})();
+
 // ── Mouse spotlight ────────────────────────────────────────────────────────────
 const spot = document.getElementById('spotlight');
 document.addEventListener('mousemove', e => {
