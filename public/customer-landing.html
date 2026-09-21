@@ -8,10 +8,11 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{
-  height:100%;background:#030712;color:#fff;overflow:hidden;
+  min-height:100%;background:#030712;color:#fff;overflow-x:hidden;
   font-family:'DM Sans',system-ui,sans-serif;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
 }
+@media(min-width:981px){ html,body{ height:100%;overflow:hidden } }
 
 /* ── Grain noise overlay ── */
 body::after{
@@ -113,43 +114,6 @@ body::after{
   transition:background .05s;
 }
 
-/* ── Rotating globe (centered background motif, "Customer Success Hub" sits on top) ── */
-.globe{
-  position:fixed;top:50%;left:50%;
-  width:640px;height:640px;
-  transform:translate(-50%,-50%);
-  z-index:2;pointer-events:none;
-  opacity:.4;
-  filter:drop-shadow(0 0 50px rgba(217,70,239,.35)) drop-shadow(0 0 95px rgba(124,58,237,.24));
-  animation:globeIn 1.8s .1s cubic-bezier(.16,1,.3,1) both,globeBreathe 6s 1.8s ease-in-out infinite;
-}
-@keyframes globeIn{
-  0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}
-  100%{opacity:.4;transform:translate(-50%,-50%) scale(1)}
-}
-@keyframes globeBreathe{
-  0%,100%{transform:translate(-50%,-50%) scale(1)}
-  50%{transform:translate(-50%,-50%) scale(1.035)}
-}
-.globe svg{display:block;width:100%;height:100%}
-.globe-spin{transform-origin:100px 100px;animation:globeSpin 70s linear infinite}
-.globe-tilt{transform-origin:100px 100px;transform:rotate(-18deg)}
-@keyframes globeSpin{to{transform:rotate(360deg)}}
-@media(max-width:700px){ .globe{width:420px;height:420px} }
-
-/* ── Floating particles ── */
-.particles{position:fixed;inset:0;z-index:4;pointer-events:none;overflow:hidden}
-.particle{
-  position:absolute;bottom:-10px;border-radius:50%;
-  animation-name:particleFloat;animation-timing-function:linear;animation-iteration-count:infinite;
-}
-@keyframes particleFloat{
-  0%{transform:translateY(0) scale(.7);opacity:0}
-  12%{opacity:var(--pop,.7)}
-  88%{opacity:var(--pop,.7)}
-  100%{transform:translateY(-108vh) scale(1);opacity:0}
-}
-
 /* ── Header ── */
 .hdr{
   position:fixed;top:0;left:0;right:0;z-index:50;
@@ -169,21 +133,34 @@ body::after{
   font-size:14px;font-weight:900;color:#fff;
   box-shadow:0 4px 14px rgba(79,110,247,.5);
 }
-.hdr-right{
+.hdr-cta{
   margin-left:auto;
-  font-size:10px;font-weight:600;letter-spacing:1.4px;
-  color:rgba(255,255,255,.22);
+  display:inline-flex;align-items:center;gap:7px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:99px;padding:9px 18px 9px 20px;
+  background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.86);
+  font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:700;letter-spacing:.2px;
+  cursor:pointer;transition:background .2s,border-color .2s,transform .2s;
 }
+.hdr-cta:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.26);transform:translateY(-1px)}
+.hdr-cta svg{transition:transform .2s}
+.hdr-cta:hover svg{transform:translateX(3px)}
 
 /* ── Hero stage ── */
 .stage{
   position:relative;z-index:10;
-  height:100vh;
+  min-height:100vh;
   display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  text-align:center;
-  padding:62px 24px 0;
+  justify-content:center;
+  padding:104px 40px 40px;
 }
+.hero-grid{
+  width:100%;max-width:1180px;margin:0 auto;
+  display:grid;grid-template-columns:1.05fr .95fr;
+  gap:32px;align-items:center;
+}
+.hero-left{text-align:left}
 
 /* ── Badge ── */
 .badge{
@@ -194,7 +171,7 @@ body::after{
   backdrop-filter:blur(6px);
   font-size:11px;font-weight:700;letter-spacing:1.1px;
   color:rgba(255,255,255,.5);
-  margin-bottom:30px;
+  margin-bottom:26px;
   animation:fadeUp .6s cubic-bezier(.22,1,.36,1) both;
 }
 .badge-dot{
@@ -208,22 +185,32 @@ body::after{
   50%{box-shadow:0 0 16px rgba(232,121,249,1),0 0 28px rgba(217,70,239,.45)}
 }
 
-/* ── Name block ── */
-.name-wrap{position:relative;margin-bottom:24px}
-.name-glow{
-  position:absolute;top:0;left:50%;transform:translateX(-50%);
+/* ── Headline ── */
+.hero-h1{margin-bottom:20px}
+.hero-h1-eyebrow{
+  display:block;
   font-family:'Outfit',sans-serif;
-  font-size:clamp(52px,8.5vw,108px);
-  font-weight:900;line-height:1;letter-spacing:-.04em;
+  font-size:clamp(20px,2.6vw,28px);
+  font-weight:400;line-height:1.15;letter-spacing:-.01em;
+  color:rgba(255,255,255,.5);
+  margin-bottom:2px;
+  animation:fadeUp .65s .05s cubic-bezier(.22,1,.36,1) both;
+}
+.name-wrap{position:relative;display:inline-block}
+.name-glow{
+  position:absolute;top:0;left:0;
+  font-family:'Outfit',sans-serif;
+  font-size:clamp(40px,5.6vw,78px);
+  font-weight:900;line-height:1.02;letter-spacing:-.04em;
   color:#d946ef;
-  filter:blur(48px);
+  filter:blur(46px);
   opacity:.5;
   pointer-events:none;white-space:nowrap;user-select:none;
   animation:glowPulse 3.4s ease-in-out infinite;
 }
 @keyframes glowPulse{
-  0%,100%{opacity:.4;filter:blur(48px)}
-  50%{opacity:.6;filter:blur(56px)}
+  0%,100%{opacity:.4;filter:blur(46px)}
+  50%{opacity:.6;filter:blur(54px)}
 }
 .name-reveal{
   display:inline-block;position:relative;z-index:1;
@@ -231,15 +218,15 @@ body::after{
 }
 .client-name{
   font-family:'Outfit',sans-serif;
-  font-size:clamp(52px,8.5vw,108px);
-  font-weight:900;line-height:1;letter-spacing:-.04em;
+  font-size:clamp(40px,5.6vw,78px);
+  font-weight:900;line-height:1.02;letter-spacing:-.04em;
   background:linear-gradient(180deg,#fff 20%,rgba(255,255,255,.68) 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   background-clip:text;
   display:inline-block;
 }
 @keyframes nameReveal{
-  0%{opacity:0;filter:blur(26px);transform:scale(.92) translateY(14px)}
+  0%{opacity:0;filter:blur(26px);transform:scale(.94) translateY(10px)}
   55%{opacity:1;filter:blur(3px)}
   100%{opacity:1;filter:blur(0);transform:scale(1) translateY(0)}
 }
@@ -252,15 +239,15 @@ body::after{
 /* ── Subtitle ── */
 .hero-sub{
   font-size:16px;font-weight:400;
-  color:rgba(255,255,255,.38);
-  line-height:1.75;max-width:400px;
-  margin-bottom:44px;
+  color:rgba(255,255,255,.4);
+  line-height:1.7;max-width:430px;
+  margin-bottom:34px;
   animation:fadeUp .7s .2s cubic-bezier(.22,1,.36,1) both;
 }
 
 /* ── CTA ── */
 .cta-group{
-  display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
   animation:fadeUp .7s .32s cubic-bezier(.22,1,.36,1) both;
 }
 .cta-primary{
@@ -287,45 +274,118 @@ body::after{
 .cta-arrow{transition:transform .2s;display:flex;align-items:center}
 .cta-primary:hover .cta-arrow{transform:translateX(5px)}
 
-/* ── Scroll indicator ── */
-.scroll-ring{
-  position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
-  z-index:10;
-  display:flex;flex-direction:column;align-items:center;gap:6px;
-  animation:fadeUp .8s .7s cubic-bezier(.22,1,.36,1) both;
+/* ── Trust note ── */
+.trust-note{
+  display:flex;align-items:center;gap:7px;
+  margin-top:16px;
+  font-size:11.5px;color:rgba(255,255,255,.32);
+  animation:fadeUp .7s .4s cubic-bezier(.22,1,.36,1) both;
 }
-.ring{
-  width:28px;height:46px;border:1.5px solid rgba(255,255,255,.15);
-  border-radius:99px;display:flex;justify-content:center;padding-top:7px;
-}
-.ring-dot{
-  width:3px;height:8px;background:#e879f9;border-radius:99px;
-  animation:scrollDot 2s ease-in-out infinite;
-}
-@keyframes scrollDot{
-  0%{opacity:1;transform:translateY(0)}
-  100%{opacity:0;transform:translateY(14px)}
-}
-.scroll-label{
-  font-size:9px;font-weight:700;letter-spacing:1.2px;
-  color:rgba(255,255,255,.18);
-}
+.trust-note svg{flex-shrink:0;opacity:.7}
 
-/* ── Floating accent shapes ── */
+/* ── Feature row ── */
+.feature-row{
+  display:flex;gap:12px;flex-wrap:wrap;
+  margin-top:38px;
+  animation:fadeUp .75s .5s cubic-bezier(.22,1,.36,1) both;
+}
+.feature-chip{
+  display:flex;align-items:flex-start;gap:11px;
+  padding:14px 15px;border-radius:14px;
+  background:rgba(255,255,255,.028);
+  border:1px solid rgba(255,255,255,.07);
+  max-width:172px;
+  transition:background .2s,border-color .2s,transform .2s;
+}
+.feature-chip:hover{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.13);transform:translateY(-2px)}
+.feature-chip-icon{
+  width:28px;height:28px;border-radius:8px;flex-shrink:0;
+  background:rgba(217,70,239,.12);
+  display:flex;align-items:center;justify-content:center;
+}
+.feature-chip-title{font-size:12.5px;font-weight:700;color:rgba(255,255,255,.86);margin-bottom:3px;letter-spacing:-.01em}
+.feature-chip-desc{font-size:10.5px;color:rgba(255,255,255,.38);line-height:1.4}
+
+/* ── Hero visual (right column) ── */
+.hero-right{position:relative;height:520px;display:flex;align-items:center;justify-content:center}
+
+/* ── Rotating globe ── */
+.globe{
+  position:absolute;top:50%;left:50%;
+  width:440px;height:440px;
+  transform:translate(-50%,-50%);
+  z-index:2;pointer-events:none;
+  opacity:.5;
+  filter:drop-shadow(0 0 46px rgba(217,70,239,.35)) drop-shadow(0 0 85px rgba(124,58,237,.24));
+  animation:globeIn 1.8s .1s cubic-bezier(.16,1,.3,1) both,globeBreathe 6s 1.8s ease-in-out infinite;
+}
+@keyframes globeIn{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}
+  100%{opacity:.5;transform:translate(-50%,-50%) scale(1)}
+}
+@keyframes globeBreathe{
+  0%,100%{transform:translate(-50%,-50%) scale(1)}
+  50%{transform:translate(-50%,-50%) scale(1.035)}
+}
+.globe svg{display:block;width:100%;height:100%}
+.globe-spin{transform-origin:100px 100px;animation:globeSpin 70s linear infinite}
+.globe-tilt{transform-origin:100px 100px;transform:rotate(-18deg)}
+@keyframes globeSpin{to{transform:rotate(360deg)}}
+
+/* ── Live stat cards ── */
+.stat-card{
+  position:absolute;z-index:6;
+  display:flex;align-items:center;gap:11px;
+  padding:13px 17px;border-radius:14px;
+  background:rgba(15,10,28,.55);
+  border:1px solid rgba(255,255,255,.1);
+  backdrop-filter:blur(14px);
+  box-shadow:0 10px 30px rgba(0,0,0,.4);
+  opacity:0;
+  animation-name:statIn,statBob;
+  animation-duration:.8s,7s;
+  animation-timing-function:cubic-bezier(.22,1,.36,1),ease-in-out;
+  animation-iteration-count:1,infinite;
+  animation-fill-mode:both;
+}
+.stat-card[hidden]{display:none}
+.stat-card-1{top:4%;left:-2%;animation-delay:1.1s,1.1s}
+.stat-card-2{bottom:16%;right:-4%;animation-delay:1.3s,1.3s}
+.stat-card-3{bottom:2%;left:8%;animation-delay:1.5s,1.5s}
+@keyframes statIn{from{opacity:0;transform:translateY(10px) scale(.92)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes statBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.stat-icon{width:34px;height:34px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(217,70,239,.16)}
+.stat-val{font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;color:#fff;line-height:1.1}
+.stat-lbl{font-size:10px;font-weight:600;letter-spacing:.3px;color:rgba(255,255,255,.4);margin-top:2px}
+
+/* ── Floating accent shapes (scattered around the visual) ── */
 .accent{
   position:absolute;z-index:5;pointer-events:none;
   opacity:0;
   filter:drop-shadow(0 0 10px rgba(217,70,239,.5));
   animation:accentIn .8s cubic-bezier(.22,1,.36,1) both;
 }
-.accent-1{top:20%;left:14%;animation-delay:.5s,.5s;animation-name:accentIn,bob1;animation-duration:.8s,7s;animation-timing-function:cubic-bezier(.22,1,.36,1),ease-in-out;animation-iteration-count:1,infinite}
-.accent-2{top:26%;right:13%;animation-delay:.65s,.65s;animation-name:accentIn,bob2;animation-duration:.8s,8.5s;animation-timing-function:cubic-bezier(.22,1,.36,1),ease-in-out;animation-iteration-count:1,infinite}
-.accent-3{bottom:24%;left:20%;animation-delay:.8s,.8s;animation-name:accentIn,bob3;animation-duration:.8s,6.5s;animation-timing-function:cubic-bezier(.22,1,.36,1),ease-in-out;animation-iteration-count:1,infinite}
-.accent-4{bottom:30%;right:19%;animation-delay:.95s,.95s;animation-name:accentIn,bob2;animation-duration:.8s,9s;animation-timing-function:cubic-bezier(.22,1,.36,1),ease-in-out;animation-iteration-count:1,infinite}
+.accent-1{top:0%;left:20%;animation-delay:.5s,.5s;animation-name:accentIn,bob1;animation-duration:.8s,7s;animation-timing-function:cubic-bezier(.22,1,.36,1),ease-in-out;animation-iteration-count:1,infinite}
+.accent-2{top:14%;right:0%;animation-delay:.65s,.65s;animation-name:accentIn,bob2;animation-duration:.8s,8.5s;animation-timing-function:cubic-bezier(.22,1,.36,1),ease-in-out;animation-iteration-count:1,infinite}
+.accent-3{bottom:30%;left:-6%;animation-delay:.8s,.8s;animation-name:accentIn,bob3;animation-duration:.8s,6.5s;animation-timing-function:cubic-bezier(.22,1,.36,1),ease-in-out;animation-iteration-count:1,infinite}
+.accent-4{bottom:0%;right:10%;animation-delay:.95s,.95s;animation-name:accentIn,bob2;animation-duration:.8s,9s;animation-timing-function:cubic-bezier(.22,1,.36,1),ease-in-out;animation-iteration-count:1,infinite}
 @keyframes accentIn{from{opacity:0;transform:scale(.5)}to{opacity:.6;transform:scale(1)}}
 @keyframes bob1{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-16px) rotate(10deg)}}
 @keyframes bob2{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(14px) rotate(-10deg)}}
 @keyframes bob3{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-12px) scale(1.15)}}
+
+/* ── Floating particles ── */
+.particles{position:fixed;inset:0;z-index:4;pointer-events:none;overflow:hidden}
+.particle{
+  position:absolute;bottom:-10px;border-radius:50%;
+  animation-name:particleFloat;animation-timing-function:linear;animation-iteration-count:infinite;
+}
+@keyframes particleFloat{
+  0%{transform:translateY(0) scale(.7);opacity:0}
+  12%{opacity:var(--pop,.7)}
+  88%{opacity:var(--pop,.7)}
+  100%{transform:translateY(-108vh) scale(1);opacity:0}
+}
 
 /* ── Footer ── */
 .footer{
@@ -340,10 +400,29 @@ body::after{
 }
 
 /* ── Responsive ── */
+@media(max-width:980px){
+  .stage{min-height:100vh;padding:96px 24px 60px}
+  .hero-grid{grid-template-columns:1fr;gap:12px}
+  .hero-left{text-align:center}
+  .badge,.cta-group,.feature-row,.trust-note{justify-content:center}
+  .name-wrap{margin:0 auto}
+  .name-glow{left:50%;transform:translateX(-50%)}
+  .hero-sub{margin-left:auto;margin-right:auto}
+  .feature-chip{text-align:left}
+  .hero-right{height:340px;margin-top:8px}
+  .globe{width:300px;height:300px}
+  .stat-card{padding:10px 13px}
+  .stat-card-1{left:2%}
+  .stat-card-2{right:0%}
+  .stat-card-3{left:22%}
+  .footer{display:none}
+}
 @media(max-width:600px){
-  .hdr{padding:0 20px}.hdr-right{display:none}
+  .hdr{padding:0 20px}
+  .hdr-cta span{display:none}
   .badge{font-size:9px;padding:6px 14px}
-  .scroll-ring{display:none}
+  .feature-row{gap:8px}
+  .feature-chip{max-width:none;flex:1 1 140px}
 }
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
@@ -368,29 +447,6 @@ body::after{
 <!-- Mouse spotlight -->
 <div class="spotlight" id="spotlight"></div>
 
-<!-- Rotating globe (centered background motif) -->
-<div class="globe" aria-hidden="true">
-  <svg viewBox="0 0 200 200">
-    <defs>
-      <linearGradient id="globeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#f0abfc"/>
-        <stop offset="100%" stop-color="#7c3aed"/>
-      </linearGradient>
-    </defs>
-    <g class="globe-spin">
-      <g class="globe-tilt">
-        <circle cx="100" cy="100" r="90" fill="none" stroke="url(#globeGrad)" stroke-width="1"/>
-        <ellipse cx="100" cy="100" rx="90" ry="20" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
-        <ellipse cx="100" cy="100" rx="90" ry="45" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
-        <ellipse cx="100" cy="100" rx="90" ry="70" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
-        <ellipse cx="100" cy="100" rx="20" ry="90" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
-        <ellipse cx="100" cy="100" rx="45" ry="90" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
-        <ellipse cx="100" cy="100" rx="70" ry="90" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
-      </g>
-    </g>
-  </svg>
-</div>
-
 <!-- Floating particles -->
 <div class="particles" id="particles"></div>
 
@@ -400,43 +456,123 @@ body::after{
     <div class="logo-mark">B</div>
     Bluecopa
   </div>
-  <div class="hdr-right">CUSTOMER SUCCESS</div>
+  <button class="hdr-cta" onclick="openHub()">
+    <span>Open Hub</span>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+    </svg>
+  </button>
 </div>
 
 <!-- Hero -->
 <div class="stage">
-  <div class="accent accent-1"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="url(#accentGrad)" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><defs><linearGradient id="accentGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f0abfc"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs></svg></div>
-  <div class="accent accent-2"><svg width="22" height="22" viewBox="0 0 24 24" fill="#e879f9"><path d="M12 2l2.2 6.8H21l-5.6 4.1 2.2 6.9L12 15.7 6.4 19.8l2.2-6.9L3 8.8h6.8z"/></svg></div>
-  <div class="accent accent-3"><svg width="14" height="14" viewBox="0 0 24 24" fill="#d946ef"><circle cx="12" cy="12" r="12"/></svg></div>
-  <div class="accent accent-4"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c026d3" stroke-width="1.6"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg></div>
+  <div class="hero-grid">
 
-  <div class="badge"><span class="badge-dot"></span>Customer Success Hub</div>
+    <div class="hero-left">
+      <div class="badge"><span class="badge-dot"></span>Customer Success Hub</div>
 
-  <div class="name-wrap">
-    <div class="name-glow" id="nameGlow" aria-hidden="true">—.</div>
-    <div class="name-reveal">
-      <div class="client-name" id="clientName">—<span class="name-period">.</span></div>
+      <h1 class="hero-h1">
+        <span class="hero-h1-eyebrow">Welcome back,</span>
+        <div class="name-wrap">
+          <div class="name-glow" id="nameGlow" aria-hidden="true">—.</div>
+          <div class="name-reveal">
+            <div class="client-name" id="clientName">—<span class="name-period">.</span></div>
+          </div>
+        </div>
+      </h1>
+
+      <div class="hero-sub">Track your project timeline, sign off on testing, and share how confident you're feeling — all synced live with your Bluecopa delivery team.</div>
+
+      <div class="cta-group">
+        <button class="cta-primary" onclick="openHub()">
+          Open Your Hub
+          <span class="cta-arrow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+            </svg>
+          </span>
+        </button>
+      </div>
+
+      <div class="trust-note">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        Private link — visible only to you, no login required
+      </div>
+
+      <div class="feature-row">
+        <div class="feature-chip">
+          <div class="feature-chip-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="url(#accentGrad)" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
+          </div>
+          <div>
+            <div class="feature-chip-title">Project Status</div>
+            <div class="feature-chip-desc">Live phases &amp; milestones</div>
+          </div>
+        </div>
+        <div class="feature-chip">
+          <div class="feature-chip-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="url(#accentGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg>
+          </div>
+          <div>
+            <div class="feature-chip-title">UAT Testing</div>
+            <div class="feature-chip-desc">Review &amp; sign off test cases</div>
+          </div>
+        </div>
+        <div class="feature-chip">
+          <div class="feature-chip-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="url(#accentGrad)" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".6" fill="url(#accentGrad)"/></svg>
+          </div>
+          <div>
+            <div class="feature-chip-title">Confidence Index</div>
+            <div class="feature-chip-desc">Rate readiness, see trends</div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <div class="hero-sub">Your implementation progress, milestones, and readiness — all in one place.</div>
+    <div class="hero-right">
+      <div class="accent accent-1"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="url(#accentGrad)" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><defs><linearGradient id="accentGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f0abfc"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs></svg></div>
+      <div class="accent accent-2"><svg width="22" height="22" viewBox="0 0 24 24" fill="#e879f9"><path d="M12 2l2.2 6.8H21l-5.6 4.1 2.2 6.9L12 15.7 6.4 19.8l2.2-6.9L3 8.8h6.8z"/></svg></div>
+      <div class="accent accent-3"><svg width="14" height="14" viewBox="0 0 24 24" fill="#d946ef"><circle cx="12" cy="12" r="12"/></svg></div>
+      <div class="accent accent-4"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c026d3" stroke-width="1.6"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg></div>
 
-  <div class="cta-group">
-    <button class="cta-primary" onclick="openHub()">
-      Open Your Hub
-      <span class="cta-arrow">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      <div class="globe" aria-hidden="true">
+        <svg viewBox="0 0 200 200">
+          <defs>
+            <linearGradient id="globeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#f0abfc"/>
+              <stop offset="100%" stop-color="#7c3aed"/>
+            </linearGradient>
+          </defs>
+          <g class="globe-spin">
+            <g class="globe-tilt">
+              <circle cx="100" cy="100" r="90" fill="none" stroke="url(#globeGrad)" stroke-width="1"/>
+              <ellipse cx="100" cy="100" rx="90" ry="20" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
+              <ellipse cx="100" cy="100" rx="90" ry="45" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
+              <ellipse cx="100" cy="100" rx="90" ry="70" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
+              <ellipse cx="100" cy="100" rx="20" ry="90" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
+              <ellipse cx="100" cy="100" rx="45" ry="90" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
+              <ellipse cx="100" cy="100" rx="70" ry="90" fill="none" stroke="url(#globeGrad)" stroke-width=".8"/>
+            </g>
+          </g>
         </svg>
-      </span>
-    </button>
-  </div>
-</div>
+      </div>
 
-<!-- Scroll ring -->
-<div class="scroll-ring">
-  <div class="ring"><div class="ring-dot"></div></div>
-  <div class="scroll-label">OPEN HUB</div>
+      <div class="stat-card stat-card-1" id="statProject" hidden>
+        <div class="stat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f0abfc" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg></div>
+        <div><div class="stat-val" id="statProjectVal">—</div><div class="stat-lbl">Project Progress</div></div>
+      </div>
+      <div class="stat-card stat-card-2" id="statUat" hidden>
+        <div class="stat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f0abfc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg></div>
+        <div><div class="stat-val" id="statUatVal">—</div><div class="stat-lbl">Tests Passed</div></div>
+      </div>
+      <div class="stat-card stat-card-3" id="statCi" hidden>
+        <div class="stat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f0abfc" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <div><div class="stat-val" id="statCiVal">—</div><div class="stat-lbl">Confidence Score</div></div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <div class="footer">Powered by Bluecopa</div>
@@ -486,20 +622,35 @@ function openHub() {
   setTimeout(() => { location.href = location.pathname + '?hub=1'; }, 160);
 }
 
-// Scroll ring click
-document.querySelector('.scroll-ring').addEventListener('click', openHub);
-
-// ── Fetch client name ─────────────────────────────────────────────────────────
+// ── Fetch client name + live stats ────────────────────────────────────────────
 (async () => {
   try {
     const r = await fetch('/api/portal/' + TOKEN);
     const d = await r.json();
-    if (d.ok && d.data && d.data.client) {
+    if (!d.ok || !d.data) return;
+
+    if (d.data.client) {
       const name = d.data.client.name || 'Welcome';
       document.getElementById('clientName').innerHTML =
         name + '<span class="name-period">.</span>';
       document.getElementById('nameGlow').textContent = name + '.';
       document.title = name + ' — Customer Hub';
+    }
+
+    const ps = d.data.projectStatus, uat = d.data.uat, ci = d.data.ci;
+
+    if (ps && ps.linked && !ps.isClientScope) {
+      document.getElementById('statProjectVal').textContent = Math.round(ps.completion || 0) + '%';
+      document.getElementById('statProject').hidden = false;
+    }
+    if (uat && uat.linked && uat.stats && uat.stats.total) {
+      const pct = Math.round((uat.stats.passed / uat.stats.total) * 100);
+      document.getElementById('statUatVal').textContent = pct + '%';
+      document.getElementById('statUat').hidden = false;
+    }
+    if (ci && ci.linked && ci.avgScore) {
+      document.getElementById('statCiVal').textContent = ci.avgScore.toFixed(1) + '/5';
+      document.getElementById('statCi').hidden = false;
     }
   } catch {}
 })();
