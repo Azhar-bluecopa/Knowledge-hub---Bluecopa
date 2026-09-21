@@ -1204,6 +1204,7 @@ function switchTab(tab,btn){
 // ── Load ──────────────────────────────────────────────────────────────────────
 var _history=[];
 var _tasks=[];
+var _tasksLoaded=false;
 var _ciHistory=[];
 
 async function load(){
@@ -1224,7 +1225,9 @@ async function load(){
       if(hd&&hd.ok){ _history=hd.history||[]; if(_statusRendered) renderStatusExtras(); }
     });
     fetch('/api/portal/'+TOKEN+'/tasks').then(r=>r.ok?r.json():null).catch(()=>null).then(td=>{
-      if(td&&td.ok){ _tasks=td.tasks||[]; if(_statusRendered) renderStatusExtras(); }
+      if(td&&td.ok) _tasks=td.tasks||[];
+      _tasksLoaded=true;
+      if(_statusRendered) renderStatusExtras();
     });
     fetch('/api/portal/'+TOKEN+'/ci/history').then(r=>r.ok?r.json():null).catch(()=>null).then(cid=>{
       if(cid&&cid.ok){ _ciHistory=cid.history||[]; if(_ciRendered) renderCIExtras(); }
@@ -1413,9 +1416,12 @@ function renderStatus(){
     <div class="wow-chart-wrap"><canvas id="wowChart"></canvas></div>
   </div>`;
 
-  // Upcoming activities placeholder
-  html+=`<div class="sec-hd" id="upcomingSection" style="display:none"><div class="sec-hd-text">Upcoming Activities — Next 2 Weeks</div><div class="sec-hd-line"></div></div>
-  <div id="upcomingContent"><div class="tasks-loading" id="upcomingLoading">Loading…</div></div>`;
+  // Upcoming activities placeholder — shown right away (not display:none) so the
+  // "Loading…" state is actually visible instead of the whole section just being
+  // absent; this list depends on a live Rocketlane task fetch that can take a
+  // while, and staying invisible until it resolves reads as the page being stuck.
+  html+=`<div class="sec-hd" id="upcomingSection"><div class="sec-hd-text">Upcoming Activities — Next 2 Weeks</div><div class="sec-hd-line"></div></div>
+  <div id="upcomingContent">${_tasksLoaded?_renderUpcoming(_upcomingActivities()):'<div class="tasks-loading" id="upcomingLoading">Loading…</div>'}</div>`;
 
   el.innerHTML=html;
 
@@ -1644,15 +1650,8 @@ function renderStatusExtras(){
   }
 
   // Upcoming activities — next 2 weeks, flattened across the whole task tree
-  const upcomingSection=document.getElementById('upcomingSection');
   const upcomingContent=document.getElementById('upcomingContent');
-  if(!upcomingSection||!upcomingContent) return;
-  if(_tasks.length){
-    upcomingSection.style.display='flex';
-    upcomingContent.innerHTML=_renderUpcoming(_upcomingActivities());
-  } else {
-    upcomingContent.innerHTML='';
-  }
+  if(upcomingContent&&_tasksLoaded) upcomingContent.innerHTML=_renderUpcoming(_upcomingActivities());
 }
 
 // ── UAT Testing ───────────────────────────────────────────────────────────────
