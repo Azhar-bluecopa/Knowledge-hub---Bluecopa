@@ -2608,6 +2608,31 @@ app.get('/api/portal/:token', async (req, res) => {
   return res.status(404).json({ ok:false, error:'invalid link' });
 });
 
+// Lightweight, Rocketlane-free lookup used by the pre-Hub splash page to show
+// the client's name. The full /api/portal/:token handler above resolves a
+// 'status'/'all' scoped link by calling buildRLPortalData, which — on a
+// serverless instance whose rlFullCache hasn't warmed yet — falls through to a
+// live rlDoFullFetch() that can take many seconds; the splash page only needs
+// the name, so it must not wait on that.
+app.get('/api/portal/:token/name', async (req, res) => {
+  await _dbReady; const u=uatDB();
+  const cl = clDB().find(x=>x.token===req.params.token);
+  let clientName=null;
+  if (cl) {
+    clientName=cl.clientName;
+    if (cl.uatProjectId) {
+      const p=u.projects.find(x=>x.id===cl.uatProjectId);
+      if (p&&p.clientId) { const uc=u.clients.find(c=>c.id===p.clientId); if (uc) clientName=uc.name||clientName; }
+    }
+  } else {
+    const p=u.projects.find(x=>x.portalToken===req.params.token);
+    if (p) clientName=p.clientName||(u.clients.find(c=>c.id===p.clientId)||{}).name||'Client';
+    else { const ca=ciDB().assessments.find(x=>x.portalToken===req.params.token); if (ca) clientName=ca.clientName; }
+  }
+  if (!clientName) return res.status(404).json({ ok:false, error:'invalid link' });
+  res.json({ ok:true, name:clientName });
+});
+
 // Every write a client makes from the Hub (/portal/:token) arrives with a
 // CustomerLink token, not the legacy project-level portalToken these three
 // handlers originally checked — that lookup could never match, so a client

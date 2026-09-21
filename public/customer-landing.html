@@ -587,11 +587,11 @@ function openHub() {
 // placeholder stuck) ──────────────────────────────────────────────────────────
 async function _loadClientName(attempt) {
   try {
-    const r = await fetch('/api/portal/' + TOKEN, { cache: 'no-store' });
+    const r = await fetch('/api/portal/' + TOKEN + '/name', { cache: 'no-store' });
     const d = await r.json();
-    if (!d.ok || !d.data || !d.data.client) throw new Error('bad response');
+    if (!d.ok || !d.name) throw new Error('bad response');
 
-    const name = d.data.client.name || 'Welcome';
+    const name = d.name || 'Welcome';
     document.getElementById('clientName').innerHTML =
       name + '<span class="name-period">.</span>';
     document.getElementById('nameGlow').textContent = name + '.';
