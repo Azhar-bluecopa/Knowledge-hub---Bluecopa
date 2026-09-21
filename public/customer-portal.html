@@ -901,6 +901,11 @@ body{
 .wow-card{background:var(--card);border:1px solid var(--border-solid);border-radius:16px;padding:24px 28px;margin-bottom:20px;box-shadow:var(--sh-sm)}
 .wow-chart-wrap{position:relative;height:240px}
 .wow-card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-4);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.wow-stat-row{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.wow-stat-current{display:flex;align-items:baseline;gap:8px}
+.wow-stat-val{font-family:'Outfit',sans-serif;font-size:34px;font-weight:800;letter-spacing:-.5px;color:var(--text-1);font-variant-numeric:tabular-nums}
+.wow-stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-4)}
+.wow-stat-delta{font-size:12px;font-weight:700;padding:4px 12px;border-radius:99px;background:var(--bg)}
 .wow-card-title span{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cobalt)}
 .task-tree-item{padding:12px 14px;border-radius:10px;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:background .15s}
 .task-tree-item:hover{background:var(--cobalt-dim)}
@@ -1395,6 +1400,10 @@ function renderStatus(){
   html+=`<div class="sec-hd" id="wowSection" style="display:none"><div class="sec-hd-text">Progress Over Time</div><div class="sec-hd-line"></div></div>
   <div class="wow-card" id="wowCard" style="display:none">
     <div class="wow-card-title"><span></span>Completion % over time</div>
+    <div class="wow-stat-row">
+      <div class="wow-stat-current"><span class="wow-stat-val" id="wowCurrentVal">—</span><span class="wow-stat-lbl">Current</span></div>
+      <div class="wow-stat-delta" id="wowDeltaVal"></div>
+    </div>
     <div class="wow-chart-wrap"><canvas id="wowChart"></canvas></div>
   </div>`;
 
@@ -1570,24 +1579,51 @@ function renderStatusExtras(){
     wowCard.style.display='block';
     if(_wowChart){ _wowChart.destroy(); _wowChart=null; }
     const labels=_history.map(h=>{
-      const d=new Date(h.capturedAt); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+      const d=new Date(h.capturedAt); return isNaN(d)?'':d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
     });
     const vals=_history.map(h=>h.completion);
     const lastVal=vals[vals.length-1]||0;
-    const gradClr=lastVal>=80?'#11C98D':lastVal>=50?'#3B6EFA':'#FF5C5C';
+    const firstVal=vals[0]||0;
+    const delta=lastVal-firstVal;
+    const gradClr=lastVal>=80?'#11C98D':lastVal>=50?'#3B6EFA':'#9B7CFF';
+
+    const curEl=document.getElementById('wowCurrentVal');
+    if(curEl){ curEl.textContent=lastVal+'%'; curEl.style.color=gradClr; }
+    const deltaEl=document.getElementById('wowDeltaVal');
+    if(deltaEl){
+      const arrow=delta>0?'▲':delta<0?'▼':'—';
+      const dClr=delta>0?'#11C98D':delta<0?'#FF5C5C':'var(--text-4)';
+      deltaEl.textContent=`${arrow} ${delta===0?'No change':(delta>0?'+':'')+delta+'%'} since ${labels[0]}`;
+      deltaEl.style.color=dClr;
+    }
+
     const ctx=wowCanvas.getContext('2d');
     const grad=ctx.createLinearGradient(0,0,0,240);
-    grad.addColorStop(0,gradClr+'55');
+    grad.addColorStop(0,gradClr+'4D');
     grad.addColorStop(1,gradClr+'00');
     _wowChart=new Chart(ctx,{
       type:'line',
-      data:{ labels, datasets:[{ label:'Completion %', data:vals, borderColor:gradClr, backgroundColor:grad, borderWidth:2.5, pointRadius:4, pointBackgroundColor:gradClr, pointBorderColor:'#fff', pointBorderWidth:2, tension:.35, fill:true }] },
+      data:{ labels, datasets:[{
+        label:'Completion %', data:vals,
+        borderColor:gradClr, backgroundColor:grad, borderWidth:3,
+        pointRadius:3.5, pointBackgroundColor:gradClr, pointBorderColor:gradClr, pointBorderWidth:0,
+        pointHoverRadius:6, pointHoverBorderWidth:2, pointHoverBorderColor:'#fff',
+        tension:.4, fill:true, cubicInterpolationMode:'monotone'
+      }] },
       options:{
         responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx=>`${ctx.parsed.y}% complete` } } },
+        interaction:{ intersect:false, mode:'index' },
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            backgroundColor:'rgba(17,24,39,.92)', titleColor:'#fff', bodyColor:'#fff',
+            padding:10, cornerRadius:8, displayColors:false,
+            callbacks:{ label: ctx=>`${ctx.parsed.y}% complete` }
+          }
+        },
         scales:{
-          x:{ grid:{color:'rgba(0,0,0,.05)'}, ticks:{font:{size:11},color:'#9ca3af'} },
-          y:{ min:0, max:100, grid:{color:'rgba(0,0,0,.05)'}, ticks:{font:{size:11},color:'#9ca3af',callback:v=>v+'%'} }
+          x:{ grid:{display:false}, border:{display:false}, ticks:{font:{size:11},color:'rgba(140,150,170,.8)'} },
+          y:{ min:0, max:100, border:{display:false}, grid:{color:'rgba(140,150,170,.12)'}, ticks:{font:{size:11},color:'rgba(140,150,170,.8)',callback:v=>v+'%'} }
         }
       }
     });
