@@ -583,20 +583,28 @@ function openHub() {
   setTimeout(() => { location.href = location.pathname + '?hub=1'; }, 160);
 }
 
-// ── Fetch client name ─────────────────────────────────────────────────────────
-(async () => {
+// ── Fetch client name (retries so a slow/cold API response never leaves the
+// placeholder stuck) ──────────────────────────────────────────────────────────
+async function _loadClientName(attempt) {
   try {
-    const r = await fetch('/api/portal/' + TOKEN);
+    const r = await fetch('/api/portal/' + TOKEN, { cache: 'no-store' });
     const d = await r.json();
-    if (!d.ok || !d.data || !d.data.client) return;
+    if (!d.ok || !d.data || !d.data.client) throw new Error('bad response');
 
     const name = d.data.client.name || 'Welcome';
     document.getElementById('clientName').innerHTML =
       name + '<span class="name-period">.</span>';
     document.getElementById('nameGlow').textContent = name + '.';
     document.title = name + ' — Customer Hub';
-  } catch {}
-})();
+  } catch (e) {
+    if (attempt < 3) {
+      setTimeout(() => _loadClientName(attempt + 1), 900 * (attempt + 1));
+    } else {
+      console.error('Customer Hub: could not load client name after retries', e);
+    }
+  }
+}
+_loadClientName(0);
 </script>
 </body>
 </html>
