@@ -1214,17 +1214,20 @@ async function load(){
     if(!d.ok){showErr();return;}
     _data=d.data;
     renderPortal();
-    // Fetch history and tasks in background — update status tab if already visible
-    Promise.all([
-      fetch('/api/portal/'+TOKEN+'/history').then(r=>r.ok?r.json():null).catch(()=>null),
-      fetch('/api/portal/'+TOKEN+'/tasks').then(r=>r.ok?r.json():null).catch(()=>null),
-      fetch('/api/portal/'+TOKEN+'/ci/history').then(r=>r.ok?r.json():null).catch(()=>null)
-    ]).then(([hd,td,cid])=>{
-      if(hd&&hd.ok) _history=hd.history||[];
-      if(td&&td.ok) _tasks=td.tasks||[];
-      if(cid&&cid.ok) _ciHistory=cid.history||[];
-      if(_statusRendered) renderStatusExtras();
-      if(_ciRendered) renderCIExtras();
+    // Fetch history, tasks, and CI history in the background — each updates its own
+    // piece of state and re-renders the moment IT resolves, rather than all three
+    // being gated behind one Promise.all. /tasks does a live Rocketlane fetch that
+    // can take several seconds (especially on a cold lambda), and there's no reason
+    // the fast, DB-only Progress Over Time / Confidence Trend charts should sit
+    // waiting on it too — that was why both looked slow to appear.
+    fetch('/api/portal/'+TOKEN+'/history').then(r=>r.ok?r.json():null).catch(()=>null).then(hd=>{
+      if(hd&&hd.ok){ _history=hd.history||[]; if(_statusRendered) renderStatusExtras(); }
+    });
+    fetch('/api/portal/'+TOKEN+'/tasks').then(r=>r.ok?r.json():null).catch(()=>null).then(td=>{
+      if(td&&td.ok){ _tasks=td.tasks||[]; if(_statusRendered) renderStatusExtras(); }
+    });
+    fetch('/api/portal/'+TOKEN+'/ci/history').then(r=>r.ok?r.json():null).catch(()=>null).then(cid=>{
+      if(cid&&cid.ok){ _ciHistory=cid.history||[]; if(_ciRendered) renderCIExtras(); }
     });
   }catch(e){showErr();}
 }
