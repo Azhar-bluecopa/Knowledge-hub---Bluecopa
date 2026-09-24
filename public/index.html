@@ -11926,9 +11926,19 @@ var RL_COMP_CATEGORIES = [
   {key:'closure',    label:'Closure Pending',            color:'#c9a227', icon:'🔒',  desc:'Delivery complete but Project Closure task missing or not done'}
 ];
 
+// On Hold / Blocked projects are excluded from compliance findings — their
+// tasks are frozen for reasons outside the delivery team's control, so
+// findings like overdue/stale dates there are noise, not something to act on.
+// Purely status-driven (not a stored exclusion list), so a project reappears
+// on its own here the moment its status moves off On Hold / Blocked.
+function rlComplianceExcluded(p) {
+  var st = (p.status||'').toLowerCase();
+  return st==='on hold' || st==='blocked';
+}
 function rlBuildAllIssues() {
   var allIssues = [];
   (_rlData.projects||[]).forEach(function(p){
+    if (rlComplianceExcluded(p)) return;
     // Build a task-name→details lookup from methodology phases (standard projects only)
     var taskLookup = {};
     if (p.phases) {
@@ -11988,7 +11998,7 @@ function rlBuildAllIssues() {
 
 function rlTabCompliance(body) {
   var allIssues     = rlBuildAllIssues();
-  var totalProjects = (_rlData.projects||[]).length;
+  var totalProjects = (_rlData.projects||[]).filter(function(p){return !rlComplianceExcluded(p);}).length;
 
   var timeAgoStr = '';
   var fetchedAt  = _rlData&&(_rlData.fetchedAt||_rlData.cachedAt);
