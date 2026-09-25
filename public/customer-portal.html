@@ -916,11 +916,15 @@ body{
 .task-status-dot.prog{background:var(--cobalt);animation:pulsedot 1.8s infinite}
 .task-status-dot.todo{background:var(--border-solid)}
 .proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-bottom:24px}
-.proj-card{background:var(--card);border:1px solid var(--border-solid);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--sh-sm);transition:box-shadow .2s}
-.proj-card:hover{box-shadow:var(--sh-md)}
+.proj-card{background:var(--card);border:1px solid var(--border-solid);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--sh-sm);transition:box-shadow .2s,transform .2s;cursor:pointer}
+.proj-card:hover{box-shadow:var(--sh-md);transform:translateY(-2px)}
+.proj-card:focus-visible{outline:2px solid #3B6EFA;outline-offset:2px}
 .proj-card-name{font-size:14px;font-weight:700;color:var(--text-1);line-height:1.3}
 .proj-card-phase{font-size:11px;color:var(--text-4)}
 .proj-card-pct{font-size:24px;font-weight:900;font-family:'Outfit',sans-serif;letter-spacing:-.02em}
+.proj-card-open{font-size:11px;font-weight:700;color:#3B6EFA;margin-top:2px}
+.cs-back-btn{background:none;border:1px solid var(--border-solid);color:var(--text-2);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.cs-back-btn:hover{background:var(--card)}
 .tasks-loading{text-align:center;padding:24px;color:var(--text-4);font-size:13px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -1206,6 +1210,7 @@ var _history=[];
 var _tasks=[];
 var _tasksLoaded=false;
 var _ciHistory=[];
+var _csDrillId=null; // selected project's rlProjectId, when viewing one project out of a client's multi-project grid
 
 async function load(){
   try{
@@ -1327,6 +1332,20 @@ function _ring(pct,clr,size){
   </svg>`;
 }
 
+function openClientProject(rlProjectId){
+  _csDrillId=rlProjectId;
+  renderStatus();
+  renderStatusExtras();
+  document.getElementById('statusContent').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function closeClientProject(){
+  _csDrillId=null;
+  renderStatus();
+  renderStatusExtras();
+}
+window.openClientProject=openClientProject;
+window.closeClientProject=closeClientProject;
+
 function renderStatus(){
   const el=document.getElementById('statusContent');
   const ps=_data.projectStatus;
@@ -1342,45 +1361,64 @@ function renderStatus(){
   // ── Client-scope: multi-project grid ──────────────────────────────────────
   if(ps.isClientScope){
     const projs=ps.projects||[];
-    html+=`<div class="status-hero-card" style="margin-bottom:24px">
-      <div class="status-ring-wrap">${_ring(pct,clr)}
-        <div class="status-ring-inner"><div class="status-ring-pct" style="color:${clr}">${pct}%</div><div class="status-ring-sub">Portfolio avg</div></div>
-      </div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-4);margin-bottom:6px">All Projects</div>
-        <div class="status-proj-name">${esc(ps.clientName)}</div>
-        <div style="font-size:12px;color:var(--text-4);margin-top:4px">${projs.length} project${projs.length!==1?'s':''}</div>
-        <div class="prog-track" style="margin-top:14px"><div class="prog-fill" style="width:${pct}%;background:${clr}"></div></div>
-      </div>
-    </div>`;
+    const drilled=_csDrillId?projs.find(p=>String(p.rlProjectId)===String(_csDrillId)):null;
 
-    if(projs.length){
-      html+=`<div class="sec-hd"><div class="sec-hd-text">Projects</div><div class="sec-hd-line"></div></div><div class="proj-grid">`;
-      projs.forEach(proj=>{
-        const pc=proj.completion||0; const pc_clr=_statusClr(pc);
-        html+=`<div class="proj-card">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-            <div class="proj-card-pct" style="color:${pc_clr}">${pc}%</div>
-            <div style="flex-shrink:0">${_ring(pc,pc_clr,72)}</div>
-          </div>
-          <div class="proj-card-name">${esc(proj.projectName)}</div>
-          ${proj.currentPhase?`<div class="proj-card-phase">Phase: ${esc(proj.currentPhase)}</div>`:''}
-          ${proj.status?`<div class="proj-card-phase">Status: ${esc(proj.status)}</div>`:''}
-          <div class="prog-track"><div class="prog-fill" style="width:${pc}%;background:${pc_clr}"></div></div>
-        </div>`;
-      });
-      html+=`</div>`;
+    if(drilled){
+      // ── Single project, opened from the grid below ──────────────────────────
+      const dc=drilled.completion||0, dclr=_statusClr(dc);
+      html+=`<button class="cs-back-btn" onclick="closeClientProject()">← All Projects</button>`;
+      html+=`<div class="status-hero-card" style="margin-top:14px">
+        <div class="status-ring-wrap">${_ring(dc,dclr)}
+          <div class="status-ring-inner"><div class="status-ring-pct" style="color:${dclr}">${dc}%</div><div class="status-ring-sub">Complete</div></div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-4);margin-bottom:5px">${esc(ps.clientName)}</div>
+          <div class="status-proj-name">${esc(drilled.projectName)}</div>
+          ${drilled.currentPhase?`<div class="status-phase-info">Current phase: <strong>${esc(drilled.currentPhase)}</strong></div>`:''}
+          ${drilled.status?`<div class="proj-card-phase" style="margin-top:4px">Status: ${esc(drilled.status)}</div>`:''}
+          <div class="prog-track" style="margin-top:14px"><div class="prog-fill" style="width:${dc}%;background:${dclr}"></div></div>
+        </div>
+      </div>`;
 
-      // Phase breakdown across all projects with phases
-      const allPhaseProjs=projs.filter(p=>(p.phases||[]).length);
-      if(allPhaseProjs.length){
-        html+=`<div class="sec-hd"><div class="sec-hd-text">Phase Breakdown</div><div class="sec-hd-line"></div></div>`;
-        allPhaseProjs.forEach(proj=>{
-          html+=`<div style="margin-bottom:18px"><div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:10px">${esc(proj.projectName)}</div>`;
-          html+=_renderPhases(proj.phases);
-          html+=_renderGantt(proj.phases);
-          html+='</div>';
+      if((drilled.phases||[]).length){
+        html+=`<div class="sec-hd"><div class="sec-hd-text">Phases</div><div class="sec-hd-line"></div></div>`;
+        html+=_renderPhases(drilled.phases);
+        html+=`<div class="sec-hd"><div class="sec-hd-text">Project Timeline</div><div class="sec-hd-line"></div></div>`;
+        html+=_renderGantt(drilled.phases);
+      } else {
+        html+=`<div class="empty-state"><div class="empty-icon">🗓️</div><div class="empty-title">Timeline not available</div><div class="empty-desc">A detailed phase breakdown isn't connected for this project yet.</div></div>`;
+      }
+    } else {
+      // ── Grid of every project ────────────────────────────────────────────────
+      html+=`<div class="status-hero-card" style="margin-bottom:24px">
+        <div class="status-ring-wrap">${_ring(pct,clr)}
+          <div class="status-ring-inner"><div class="status-ring-pct" style="color:${clr}">${pct}%</div><div class="status-ring-sub">Portfolio avg</div></div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-4);margin-bottom:6px">All Projects</div>
+          <div class="status-proj-name">${esc(ps.clientName)}</div>
+          <div style="font-size:12px;color:var(--text-4);margin-top:4px">${projs.length} project${projs.length!==1?'s':''}</div>
+          <div class="prog-track" style="margin-top:14px"><div class="prog-fill" style="width:${pct}%;background:${clr}"></div></div>
+        </div>
+      </div>`;
+
+      if(projs.length){
+        html+=`<div class="sec-hd"><div class="sec-hd-text">Projects — tap one to open</div><div class="sec-hd-line"></div></div><div class="proj-grid">`;
+        projs.forEach(proj=>{
+          const pc=proj.completion||0; const pc_clr=_statusClr(pc);
+          html+=`<div class="proj-card" onclick="openClientProject('${esc(proj.rlProjectId)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" role="button" tabindex="0">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+              <div class="proj-card-pct" style="color:${pc_clr}">${pc}%</div>
+              <div style="flex-shrink:0">${_ring(pc,pc_clr,72)}</div>
+            </div>
+            <div class="proj-card-name">${esc(proj.projectName)}</div>
+            ${proj.currentPhase?`<div class="proj-card-phase">Phase: ${esc(proj.currentPhase)}</div>`:''}
+            ${proj.status?`<div class="proj-card-phase">Status: ${esc(proj.status)}</div>`:''}
+            <div class="prog-track"><div class="prog-fill" style="width:${pc}%;background:${pc_clr}"></div></div>
+            <div class="proj-card-open">Open project →</div>
+          </div>`;
         });
+        html+=`</div>`;
       }
     }
   } else {
