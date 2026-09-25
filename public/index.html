@@ -14203,7 +14203,8 @@ function rlTabReview(body) {
         (attn>0 ? '<span style="font-size:10.5px;font-weight:700;color:#e8c97a;background:rgba(232,201,122,.1);border-radius:99px;padding:3px 10px;">'+attn+' need'+(attn!==1?'':'s')+' attention</span>' : '<span style="font-size:10.5px;font-weight:600;color:#22c55e;">✓ all on track</span>')+
       '</div>'+
       '<div style="background:rgba(255,255,255,.012);border:1px solid rgba(255,255,255,.07);border-top:none;border-radius:0 0 10px 10px;overflow:hidden;">'+
-        '<table style="width:100%;border-collapse:collapse;">'+
+        '<table style="width:100%;border-collapse:collapse;table-layout:fixed;">'+
+          '<colgroup><col style="width:30%;"><col style="width:20%;"><col style="width:20%;"><col style="width:30%;"></colgroup>'+
           '<thead><tr style="border-bottom:1px solid rgba(255,255,255,.07);">'+
             '<th style="'+thS+'">Project / Client</th>'+
             '<th style="'+thS+'">Progress</th>'+
