@@ -11338,6 +11338,17 @@ var RL_TABS = [
   { id: 'health',     label: 'Health Dashboard' },
   { id: 'projects',   label: 'Projects' }
 ];
+// Admin-only tab, inserted after "Projects" — used in the weekly PM review
+// meeting, so it's built fresh from RL_TABS (never mutated) each time it's
+// needed rather than stored, so admin status is re-checked on every render.
+function rlVisibleTabs() {
+  var tabs = RL_TABS.slice();
+  if (typeof getAdminPwd === 'function' && getAdminPwd()) {
+    var idx = tabs.map(function(t){return t.id;}).indexOf('projects');
+    tabs.splice(idx+1, 0, { id:'review', label:'Weekly Review' });
+  }
+  return tabs;
+}
 
 var _rlAutoRefreshTimer = null;
 
@@ -11410,7 +11421,7 @@ function rlRenderShell() {
   var el = document.getElementById('rlContent');
   if (!el || !_rlData) return;
   var s = _rlData.summary;
-  var tabsHTML = RL_TABS.map(function(t) {
+  var tabsHTML = rlVisibleTabs().map(function(t) {
     var a = t.id === _rlTab;
     return '<button onclick="rlSwitchTab(\''+t.id+'\')" style="background:none;border:none;cursor:pointer;padding:12px 16px;font-family:\'DM Sans\',sans-serif;font-size:13px;font-weight:'+(a?'600':'400')+';color:'+(a?'#c9a227':'rgba(255,255,255,.4)')+';border-bottom:2px solid '+(a?'#c9a227':'transparent')+';transition:all .15s;white-space:nowrap;min-height:44px;">'+t.label+'</button>';
   }).join('');
@@ -11431,7 +11442,7 @@ function rlRenderShell() {
 function rlSwitchTab(tabId) {
   _rlTab = tabId; _rlDrillProject = null; _rlProjectDrillId = null;
   var bar = document.getElementById('rlTabBar');
-  if (bar) RL_TABS.forEach(function(t, i) {
+  if (bar) rlVisibleTabs().forEach(function(t, i) {
     var btn = bar.children[i]; if (!btn) return;
     var a = t.id === tabId;
     btn.style.fontWeight = a ? '600' : '400';
@@ -11446,7 +11457,7 @@ function rlRenderActiveTab() {
   var body = document.getElementById('rlTabBody');
   if (!body || !_rlData) return;
   try {
-    ({ overview: rlTabOverview, executive: rlTabExecutive, compliance: rlTabCompliance, timeline: rlTabTimeline, trends: rlTabTrends, health: rlTabHealth, projects: rlTabProjects })[_rlTab](body);
+    ({ overview: rlTabOverview, executive: rlTabExecutive, compliance: rlTabCompliance, timeline: rlTabTimeline, trends: rlTabTrends, health: rlTabHealth, projects: rlTabProjects, review: rlTabReview })[_rlTab](body);
   } catch(e) {
     body.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626;font-size:13px;">Tab render error: ' + (e && e.message || String(e)) + '</div>';
   }
@@ -12332,7 +12343,7 @@ window.rlOpenCatDetail = rlOpenCatDetail;
 function rlBackToCompliance() {
   _rlTab = 'compliance';
   var bar = document.getElementById('rlTabBar');
-  if (bar) RL_TABS.forEach(function(t, i) {
+  if (bar) rlVisibleTabs().forEach(function(t, i) {
     var btn = bar.children[i]; if (!btn) return;
     var a = t.id === 'compliance';
     btn.style.fontWeight = a ? '600' : '400';
@@ -14011,6 +14022,156 @@ window.rlProjFilter = function(key, val) {
   var body = document.getElementById('rlTabBody');
   if (body) rlRenderProjectsList(body);
 };
+
+// ─── Tab: Weekly Review (admin-only) ─────────────────────────────────────────
+// Built for the weekly PM review meeting — one screen per PM showing both
+// delivery progress (phase, %, schedule variance) and project maintenance
+// (compliance findings from the same rlBuildAllIssues() the Compliance tab
+// uses, so the two views never disagree), so the meeting can look at data
+// instead of relying on verbal status updates.
+function rlTabReview(body) {
+  if (!(typeof getAdminPwd === 'function' && getAdminPwd())) {
+    body.innerHTML = '<div style="padding:56px;text-align:center;color:#8a92a0;font-size:13px;">This view is only available to admins.</div>';
+    return;
+  }
+  var projects  = (_rlData && _rlData.projects) || [];
+  var allIssues = rlBuildAllIssues(); // already excludes On Hold / Blocked projects
+
+  var findingsByProj = {}, highByProj = {};
+  allIssues.forEach(function(i){
+    findingsByProj[i.projectId] = (findingsByProj[i.projectId]||0) + 1;
+    if (i.severity === 'high') highByProj[i.projectId] = (highByProj[i.projectId]||0) + 1;
+  });
+
+  function isAtRisk(p) {
+    if (rlComplianceExcluded(p)) return false;
+    return (highByProj[p.projectId]||0) > 0 || p.onSchedule === 'delayed' || (p.overdueTaskCount||0) > 0;
+  }
+
+  var byPM = {};
+  projects.forEach(function(p){
+    var pm = p.projectOwner || 'Unassigned';
+    if (!byPM[pm]) byPM[pm] = [];
+    byPM[pm].push(p);
+  });
+  var pmNames = Object.keys(byPM).sort(function(a,b){
+    function score(pm){ return byPM[pm].reduce(function(s,p){return s+(findingsByProj[p.projectId]||0);},0); }
+    return score(b) - score(a);
+  });
+
+  var totalFindings = allIssues.length;
+  var atRiskCount = projects.filter(isAtRisk).length;
+
+  function kpi(val, label, sub, color) {
+    return '<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px 16px;flex:1;min-width:130px;">' +
+      '<div style="font-size:24px;font-weight:800;color:'+(color||'#f0f0f6')+';font-family:\'DM Mono\',monospace;line-height:1;letter-spacing:-.5px;">'+val+'</div>' +
+      '<div style="font-size:11px;font-weight:600;color:#c9d0da;margin-top:5px;">'+label+'</div>' +
+      (sub?'<div style="font-size:9px;color:#5a6270;margin-top:2px;font-family:\'DM Mono\',monospace;">'+sub+'</div>':'') +
+    '</div>';
+  }
+
+  var headerHtml =
+    '<div style="margin-bottom:18px;">'+
+      '<div style="font-size:9px;font-family:\'DM Mono\',monospace;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.14em;margin-bottom:4px;">Weekly Review · Admin Only</div>'+
+      '<div style="font-size:12px;color:#5a6270;">Grouped by project manager for the weekly review meeting — progress and maintenance side by side.</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;">'+
+      kpi(pmNames.length, 'Project Managers', null, '#93c5fd')+
+      kpi(projects.length, 'Total Projects', null, '#f0f0f6')+
+      kpi(atRiskCount, 'At-Risk Projects', 'overdue, delayed or high-severity', atRiskCount>0?'#dc2626':'#22c55e')+
+      kpi(totalFindings, 'Maintenance Findings', 'excludes On Hold / Blocked', totalFindings>0?'#e8c97a':'#22c55e')+
+    '</div>';
+
+  function phaseChip(p) {
+    if (!p.currentPhase || !RL_PHASES[p.currentPhase]) return '<span style="color:#5a6270;font-size:10px;">—</span>';
+    var c = RL_PHASES[p.currentPhase];
+    return '<span style="font-size:10px;font-weight:600;color:'+c.color+';background:'+c.light+';padding:2px 8px;border-radius:4px;font-family:\'DM Mono\',monospace;">'+c.label+'</span>';
+  }
+  function progressBar(p) {
+    var pct = Math.min(100, p.overallPct||0);
+    var barCol = (p.status||'').toLowerCase().includes('complet') ? '#22c55e' : rlComplianceExcluded(p) ? '#5a6270' : '#c9a227';
+    return '<div style="display:flex;align-items:center;gap:8px;min-width:120px;">'+
+      '<div style="flex:1;height:5px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;">'+
+        '<div style="height:100%;width:'+pct+'%;background:'+barCol+';border-radius:99px;"></div>'+
+      '</div>'+
+      '<span style="font-size:11px;color:#8a92a0;font-family:\'DM Mono\',monospace;min-width:28px;text-align:right;">'+pct+'%</span>'+
+    '</div>';
+  }
+  function scheduleChip(p) {
+    if (rlComplianceExcluded(p)) return '<span style="font-size:10px;color:rgba(255,255,255,.25);">—</span>';
+    if ((p.status||'').toLowerCase().includes('complet')) return '<span style="font-size:10px;color:#22c55e;">Delivered</span>';
+    if (p.onSchedule === 'delayed') {
+      var d = p.scheduleVarianceDays;
+      return '<span style="font-size:11px;color:#dc2626;font-weight:600;font-family:\'DM Mono\',monospace;">⚠ '+(d!=null?d+'d behind':'Delayed')+'</span>';
+    }
+    return '<span style="font-size:11px;color:#22c55e;font-family:\'DM Mono\',monospace;">On track</span>';
+  }
+  function findingsChip(p) {
+    if (rlComplianceExcluded(p)) return '<span style="font-size:11px;color:rgba(255,255,255,.25);font-style:italic;">excluded ('+p.status+')</span>';
+    var n = findingsByProj[p.projectId]||0, hi = highByProj[p.projectId]||0;
+    if (n === 0) return '<span style="font-size:11px;color:#22c55e;font-weight:600;">✓ Clean</span>';
+    var color = hi > 0 ? '#dc2626' : '#e8c97a';
+    return '<span style="font-size:11px;color:'+color+';font-weight:700;">'+n+' finding'+(n!==1?'s':'')+(hi>0?' <span style="color:#dc2626;">('+hi+' high)</span>':'')+'</span>';
+  }
+
+  var thS = 'padding:8px 14px;text-align:left;font-size:9px;font-weight:700;color:#5a6270;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;';
+  var tdS = 'padding:9px 14px;vertical-align:middle;';
+
+  function pmSection(pm) {
+    var projs = byPM[pm].slice().sort(function(a,b){
+      var ar = isAtRisk(a)?1:0, br = isAtRisk(b)?1:0;
+      if (ar !== br) return br - ar;
+      return (findingsByProj[b.projectId]||0) - (findingsByProj[a.projectId]||0);
+    });
+    var eligible = projs.filter(function(p){return !rlComplianceExcluded(p);});
+    var findingsSum = eligible.reduce(function(s,p){return s+(findingsByProj[p.projectId]||0);},0);
+    var progressVals = projs.filter(function(p){return p.isStandard && p.overallPct!=null;}).map(function(p){return p.overallPct;});
+    var avgPct = progressVals.length ? Math.round(progressVals.reduce(function(a,b){return a+b;},0)/progressVals.length) : null;
+    var initials = pm.split(/\s+/).map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase()||'?';
+
+    var rows = projs.map(function(p){
+      var risk = isAtRisk(p);
+      return '<tr onclick="rlSwitchTab(\'projects\');rlOpenProject('+p.projectId+')" style="cursor:pointer;border-top:1px solid rgba(255,255,255,.04);'+(risk?'background:rgba(220,38,38,.035);':'')+'" '+
+        'onmouseover="this.style.background=\''+(risk?'rgba(220,38,38,.07)':'rgba(255,255,255,.035)')+'\'" onmouseout="this.style.background=\''+(risk?'rgba(220,38,38,.035)':'transparent')+'\'">' +
+        '<td style="'+tdS+'"><div style="font-size:13px;font-weight:600;color:#f0f0f6;">'+escHtml(p.projectName)+'</div>'+(p.customer?'<div style="font-size:11px;color:#6b7280;margin-top:1px;">'+escHtml(p.customer)+'</div>':'')+'</td>'+
+        '<td style="'+tdS+'">'+rlStatus(p.status)+'</td>'+
+        '<td style="'+tdS+'">'+phaseChip(p)+'</td>'+
+        '<td style="'+tdS+';min-width:150px;">'+progressBar(p)+'</td>'+
+        '<td style="'+tdS+'">'+scheduleChip(p)+'</td>'+
+        '<td style="'+tdS+'">'+findingsChip(p)+'</td>'+
+      '</tr>';
+    }).join('');
+
+    return '<div style="margin-bottom:20px;">'+
+      '<div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);border-radius:10px 10px 0 0;">'+
+        '<div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1e3a5f,#2d5986);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#93c5fd;flex-shrink:0;">'+initials+'</div>'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-size:14px;font-weight:700;color:#f0f0f6;">'+escHtml(pm)+'</div>'+
+          '<div style="font-size:11px;color:#8a92a0;font-family:\'DM Mono\',monospace;">'+projs.length+' project'+(projs.length!==1?'s':'')+(avgPct!=null?' · '+avgPct+'% avg progress':'')+'</div>'+
+        '</div>'+
+        '<div style="text-align:right;">'+
+          '<div style="font-size:18px;font-weight:800;color:'+(findingsSum===0?'#22c55e':'#e8c97a')+';font-family:\'DM Mono\',monospace;">'+findingsSum+'</div>'+
+          '<div style="font-size:9px;color:#5a6270;text-transform:uppercase;letter-spacing:.06em;">maintenance findings</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="background:rgba(255,255,255,.012);border:1px solid rgba(255,255,255,.07);border-top:none;border-radius:0 0 10px 10px;overflow:hidden;">'+
+        '<table style="width:100%;border-collapse:collapse;">'+
+          '<thead><tr style="border-bottom:1px solid rgba(255,255,255,.07);">'+
+            '<th style="'+thS+'">Project / Client</th>'+
+            '<th style="'+thS+'">Status</th>'+
+            '<th style="'+thS+'">Phase</th>'+
+            '<th style="'+thS+'">Progress</th>'+
+            '<th style="'+thS+'">Schedule</th>'+
+            '<th style="'+thS+'">Maintenance</th>'+
+          '</tr></thead>'+
+          '<tbody>'+rows+'</tbody>'+
+        '</table>'+
+      '</div>'+
+    '</div>';
+  }
+
+  body.innerHTML = headerHtml + pmNames.map(pmSection).join('');
+}
 
 // ─── Project Detail Shell ────────────────────────────────────────────────────
 window.rlOpenProject = function(projectId) {
