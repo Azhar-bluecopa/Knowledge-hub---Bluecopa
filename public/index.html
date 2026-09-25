@@ -14132,13 +14132,20 @@ function rlTabReview(body) {
         '</button>'+
       '</div>' : '');
 
+  // A row's cells (phase label, health, update note) each have an optional
+  // top line that's only sometimes present — left conditional, that made the
+  // bar/dot/button below it land at a different height row to row, and
+  // out of line with its neighboring column in the same row. Every cell
+  // below reserves that top line's height unconditionally (empty when there's
+  // nothing to show) so all four columns sit on the same two-line grid.
+  var RV_LBL_H = 'height:15px;line-height:15px;margin-bottom:3px;';
   function phaseProgress(p) {
     var pct = Math.min(100, p.overallPct||0);
     var barCol = isDormant(p) ? '#5a6270' : '#c9a227';
-    var phaseLbl = (p.currentPhase && RL_PHASES[p.currentPhase]) ? RL_PHASES[p.currentPhase].label : null;
+    var phaseLbl = (p.currentPhase && RL_PHASES[p.currentPhase]) ? RL_PHASES[p.currentPhase].label : '';
     return '<div style="min-width:150px;">'+
-      (phaseLbl ? '<div style="font-size:10px;color:#8a92a0;margin-bottom:4px;">'+phaseLbl+'</div>' : '')+
-      '<div style="display:flex;align-items:center;gap:8px;">'+
+      '<div style="font-size:10px;color:#8a92a0;'+RV_LBL_H+'">'+escHtml(phaseLbl)+'</div>'+
+      '<div style="display:flex;align-items:center;gap:8px;height:16px;">'+
         '<div style="flex:1;height:5px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;">'+
           '<div style="height:100%;width:'+pct+'%;background:'+barCol+';border-radius:99px;"></div>'+
         '</div>'+
@@ -14147,18 +14154,22 @@ function rlTabReview(body) {
     '</div>';
   }
   function healthChip(h) {
-    return '<div style="display:flex;align-items:center;gap:7px;">'+
-      '<span style="width:8px;height:8px;border-radius:50%;background:'+HEALTH_COLOR[h.tier]+';flex-shrink:0;'+(h.tier==='red'?'box-shadow:0 0 8px rgba(220,38,38,.6);':'')+'"></span>'+
-      '<span style="font-size:11.5px;color:'+(h.tier==='muted'?HEALTH_COLOR.muted:'#c9d0da')+';">'+escHtml(h.label)+'</span>'+
-    '</div>';
+    return '<div style="'+RV_LBL_H+'"></div>'+
+      '<div style="display:flex;align-items:center;gap:7px;height:16px;">'+
+        '<span style="width:8px;height:8px;border-radius:50%;background:'+HEALTH_COLOR[h.tier]+';flex-shrink:0;'+(h.tier==='red'?'box-shadow:0 0 8px rgba(220,38,38,.6);':'')+'"></span>'+
+        '<span style="font-size:11.5px;color:'+(h.tier==='muted'?HEALTH_COLOR.muted:'#c9d0da')+';">'+escHtml(h.label)+'</span>'+
+      '</div>';
   }
   function updateCell(p) {
     var note = rlLastNoteFor(p.projectId);
     return '<div onclick="event.stopPropagation();" style="min-width:200px;">'+
       (note
-        ? '<div style="font-size:11.5px;color:#c9d0da;line-height:1.4;max-width:260px;">'+escHtml(note.text)+'</div>'+
-          '<div style="font-size:10px;color:#5a6270;margin-top:3px;">'+escHtml(note.author||'')+' · '+rlRelTime(note.createdAt)+' · <a onclick="rlOpenWeeklyNoteModal('+p.projectId+')" style="color:#93c5fd;cursor:pointer;text-decoration:none;">history</a></div>'
-        : '<button onclick="rlOpenWeeklyNoteModal('+p.projectId+')" style="background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.15);color:rgba(255,255,255,.4);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;">+ Add update</button>')+
+        ? '<div style="'+RV_LBL_H+'font-size:11.5px;color:#c9d0da;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escHtml(note.text)+'</div>'+
+          '<div style="font-size:10px;color:#5a6270;height:16px;line-height:16px;">'+escHtml(note.author||'')+' · '+rlRelTime(note.createdAt)+' · <a onclick="rlOpenWeeklyNoteModal('+p.projectId+')" style="color:#93c5fd;cursor:pointer;text-decoration:none;">history</a></div>'
+        : '<div style="'+RV_LBL_H+'"></div>'+
+          '<div style="height:16px;display:flex;align-items:center;">'+
+            '<button onclick="rlOpenWeeklyNoteModal('+p.projectId+')" style="background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.15);color:rgba(255,255,255,.4);border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;line-height:1.4;">+ Add update</button>'+
+          '</div>')+
     '</div>';
   }
 
