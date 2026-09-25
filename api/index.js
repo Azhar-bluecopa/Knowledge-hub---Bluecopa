@@ -4534,6 +4534,50 @@ async function _rlDoFullFetch(apiKey) {
   return result;
 }
 
+// ── Weekly Review notes ───────────────────────────────────────────────────────
+// An append-only per-project log written from the admin-only Weekly Review tab
+// during the PM review meeting, so "what we said last week" is there to check
+// against this week's actual progress. Same in-memory-push + mongo-$push
+// pattern as /api/feedback, for the same reason: several admins jotting notes
+// in the same meeting must never race each other on a full-document replace.
+function wrDB() {
+  if (!db.weeklyReview) db.weeklyReview = { notes: [] };
+  if (!db.weeklyReview.notes) db.weeklyReview.notes = [];
+  return db.weeklyReview;
+}
+app.get('/api/weekly-review/notes', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  res.json({ ok:true, notes: wrDB().notes });
+});
+app.post('/api/weekly-review/notes', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  const { projectId, projectName, text, authorName } = req.body;
+  if (!projectId || !text || !text.trim()) return res.status(400).json({ ok:false, error:'projectId and text required' });
+  const note = {
+    id: 'wrn_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    projectId: String(projectId),
+    projectName: projectName || '',
+    text: text.trim(),
+    author: authorName || req.headers['x-user-email'] || 'Admin',
+    createdAt: new Date().toISOString()
+  };
+  wrDB().notes.push(note);
+  if (mongoCol) {
+    try { await mongoCol.updateOne({ _id: 'main' }, { $push: { 'weeklyReview.notes': note } }, { upsert: true }); }
+    catch(e) { console.error('[POST weekly-review/notes/mongo]', e.message); try { await saveDB(db); } catch(_){} }
+  }
+  res.status(201).json({ ok:true, note });
+});
+app.delete('/api/weekly-review/notes/:id', async (req, res) => {
+  await _dbReady;
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  wrDB().notes = wrDB().notes.filter(n => n.id !== req.params.id);
+  await atomicUpdate({ $set: { 'weeklyReview.notes': wrDB().notes } });
+  res.json({ ok:true });
+});
+
 app.get('/api/rocketlane/projects-full', async (req, res) => {
   const apiKey = process.env.ROCKETLANE_API_KEY;
   if (!apiKey) return res.status(503).json({ error: 'not_configured', message: 'ROCKETLANE_API_KEY not set.' });
