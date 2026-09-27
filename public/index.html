@@ -11937,19 +11937,17 @@ var RL_COMP_CATEGORIES = [
   {key:'closure',    label:'Closure Pending',            color:'#c9a227', icon:'🔒',  desc:'Delivery complete but Project Closure task missing or not done'}
 ];
 
-// On Hold / Blocked projects are excluded from compliance findings — their
-// tasks are frozen for reasons outside the delivery team's control, so
-// findings like overdue/stale dates there are noise, not something to act on.
-// Purely status-driven (not a stored exclusion list), so a project reappears
-// on its own here the moment its status moves off On Hold / Blocked.
-function rlComplianceExcluded(p) {
+// On Hold / Blocked projects are "paused". They still count in Project
+// Compliance (every other tab already counts their findings, and hiding them
+// made the tab disagree with the rest of the dashboard); only the admin
+// Weekly Review folds them away by default.
+function rlIsPaused(p) {
   var st = (p.status||'').toLowerCase();
   return st==='on hold' || st==='blocked';
 }
 function rlBuildAllIssues() {
   var allIssues = [];
   (_rlData.projects||[]).forEach(function(p){
-    if (rlComplianceExcluded(p)) return;
     // Build a task-name→details lookup from methodology phases (standard projects only)
     var taskLookup = {};
     if (p.phases) {
@@ -12009,7 +12007,7 @@ function rlBuildAllIssues() {
 
 function rlTabCompliance(body) {
   var allIssues     = rlBuildAllIssues();
-  var totalProjects = (_rlData.projects||[]).filter(function(p){return !rlComplianceExcluded(p);}).length;
+  var totalProjects = (_rlData.projects||[]).length;
 
   var timeAgoStr = '';
   var fetchedAt  = _rlData&&(_rlData.fetchedAt||_rlData.cachedAt);
@@ -14067,7 +14065,7 @@ function rlTabReview(body) {
   if (!_wrNotesLoaded) rlLoadWeeklyNotes();
 
   var allProjects = (_rlData && _rlData.projects) || [];
-  var allIssues   = rlBuildAllIssues(); // already excludes On Hold / Blocked projects
+  var allIssues   = rlBuildAllIssues();
 
   var findingsByProj = {}, highByProj = {};
   allIssues.forEach(function(i){
@@ -14075,7 +14073,7 @@ function rlTabReview(body) {
     if (i.severity === 'high') highByProj[i.projectId] = (highByProj[i.projectId]||0) + 1;
   });
 
-  function isDormant(p) { return rlComplianceExcluded(p) || (p.status||'').toLowerCase().indexOf('complet') > -1; }
+  function isDormant(p) { return rlIsPaused(p) || (p.status||'').toLowerCase().indexOf('complet') > -1; }
 
   // Single health signal per project — one color, one short reason — instead
   // of separate schedule + findings columns fighting for attention.
