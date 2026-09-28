@@ -294,19 +294,20 @@ function isAdmin(req) {
 
 // ── Role-Based Access Control ─────────────────────────────────────────────────
 
-// Default for anyone not in the delivery team
+// Default for anyone not in the delivery team.
+// uat/ews are 'all' — opened to the whole org, not just the delivery team.
 const ORG_MEMBER_ACL = {
   skillMatrix: { type: 'none', selected: [] },
   kpis:        { type: 'none', selected: [] },
-  uat:         { type: 'none', selected: [] },
-  ews:         { type: 'none', selected: [] },
+  uat:         { type: 'all',  selected: [] },
+  ews:         { type: 'all',  selected: [] },
   rocketlane:  { type: 'none', selected: [] }
 };
 const ACL_DEFAULTS = {
   skillMatrix: { type: 'own',  selected: [] },
   kpis:        { type: 'own',  selected: [] },
-  uat:         { type: 'none', selected: [] },
-  ews:         { type: 'none', selected: [] },
+  uat:         { type: 'all',  selected: [] },
+  ews:         { type: 'all',  selected: [] },
   rocketlane:  { type: 'none', selected: [] }
 };
 
@@ -320,30 +321,32 @@ const ACL_ADMIN_FULL = {
   ews:         { type: 'all', selected: [] },
   rocketlane:  { type: 'all', selected: [] }
 };
-// Predefined role templates — applied when a role is assigned to a user
+// Predefined role templates — applied when a role is assigned to a user.
+// uat/ews are 'all' for every role — those two modules are open org-wide;
+// rocketlane stays admin-curated per person/team.
 const ROLE_TEMPLATES = {
   // No access to any restricted module
   org: {
     skillMatrix: { type: 'none',     selected: [] },
     kpis:        { type: 'none',     selected: [] },
-    uat:         { type: 'none',     selected: [] },
-    ews:         { type: 'none',     selected: [] },
+    uat:         { type: 'all',      selected: [] },
+    ews:         { type: 'all',      selected: [] },
     rocketlane:  { type: 'none',     selected: [] }
   },
-  // Own SM & KPI data; admin picks specific UAT/EWS/RL clients per person
+  // Own SM & KPI data; admin picks specific RL clients per person
   delivery: {
     skillMatrix: { type: 'own',      selected: [] },
     kpis:        { type: 'own',      selected: [] },
-    uat:         { type: 'selected', selected: [] },
-    ews:         { type: 'selected', selected: [] },
+    uat:         { type: 'all',      selected: [] },
+    ews:         { type: 'all',      selected: [] },
     rocketlane:  { type: 'selected', selected: [] }
   },
-  // Own + team SM & KPI; admin picks specific UAT/EWS/RL clients per manager
+  // Own + team SM & KPI; admin picks specific RL clients per manager
   'team-manager': {
     skillMatrix: { type: 'team',     selected: [] },
     kpis:        { type: 'team',     selected: [] },
-    uat:         { type: 'selected', selected: [] },
-    ews:         { type: 'selected', selected: [] },
+    uat:         { type: 'all',      selected: [] },
+    ews:         { type: 'all',      selected: [] },
     rocketlane:  { type: 'selected', selected: [] }
   },
   // Full access to all modules (no admin panel)
@@ -6647,7 +6650,6 @@ app.use('/api/ci', async (req, res, next) => {
 // GET all assessments (admin)
 app.get('/api/ci/assessments', async (req, res) => {
   await _dbReady;
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   const u = uatDB();
   const assessments = ciDB().assessments.map(a => {
     if (a.clientId) {
@@ -6662,7 +6664,6 @@ app.get('/api/ci/assessments', async (req, res) => {
 // POST create new assessment (admin)
 app.post('/api/ci/assessments', async (req, res) => {
   await _dbReady;
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   const { clientId='', clientName, projectName, entities=[], processAreaNames, inRocketlane=false, rlProjectId=null, rlClientName=null } = req.body;
   if (!clientName) return res.status(400).json({ ok:false, error:'clientName required' });
   const ci = ciDB();
@@ -6679,7 +6680,6 @@ app.post('/api/ci/assessments', async (req, res) => {
 // PUT update assessment metadata (admin)
 app.put('/api/ci/assessments/:id', async (req, res) => {
   await _dbReady;
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
   if (!a) return res.status(404).json({ ok:false, error:'Not found' });
   const { clientName, projectName, entities, status, inRocketlane, rlProjectId, rlClientName } = req.body;
@@ -6699,7 +6699,6 @@ app.put('/api/ci/assessments/:id', async (req, res) => {
 // DELETE assessment (admin)
 app.delete('/api/ci/assessments/:id', async (req, res) => {
   await _dbReady;
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   const ci = ciDB(); ci.assessments = ci.assessments.filter(x=>x.id!==req.params.id);
   await saveDB(db); res.json({ ok:true });
 });
@@ -6707,7 +6706,6 @@ app.delete('/api/ci/assessments/:id', async (req, res) => {
 // POST generate a standalone portal token for a CI assessment (admin)
 app.post('/api/ci/assessments/:id/generate-token', async (req, res) => {
   await _dbReady;
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
   if (!a) return res.status(404).json({ ok:false, error:'Not found' });
   if (!a.portalToken) {
@@ -6729,7 +6727,6 @@ app.get('/api/ci/assessments/:id/process-areas', async (req, res) => {
 // POST add process area (admin)
 app.post('/api/ci/assessments/:id/process-areas', async (req, res) => {
   await _dbReady;
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
   if (!a) return res.status(404).json({ ok:false, error:'Not found' });
   const { name, description='' } = req.body;
@@ -6742,7 +6739,6 @@ app.post('/api/ci/assessments/:id/process-areas', async (req, res) => {
 // PUT update process area (admin)
 app.put('/api/ci/assessments/:id/process-areas/:paId', async (req, res) => {
   await _dbReady;
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
   if (!a) return res.status(404).json({ ok:false, error:'Not found' });
   const pa = a.processAreas.find(x=>x.id===req.params.paId);
@@ -6756,7 +6752,6 @@ app.put('/api/ci/assessments/:id/process-areas/:paId', async (req, res) => {
 // DELETE process area (admin)
 app.delete('/api/ci/assessments/:id/process-areas/:paId', async (req, res) => {
   await _dbReady;
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
   if (!a) return res.status(404).json({ ok:false, error:'Not found' });
   a.processAreas = a.processAreas.filter(x=>x.id!==req.params.paId);
@@ -6767,7 +6762,6 @@ app.delete('/api/ci/assessments/:id/process-areas/:paId', async (req, res) => {
 // POST reorder process areas (admin)
 app.post('/api/ci/assessments/:id/process-areas/reorder', async (req, res) => {
   await _dbReady;
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
   if (!a) return res.status(404).json({ ok:false, error:'Not found' });
   const { ids=[] } = req.body;
@@ -6782,7 +6776,6 @@ app.get('/api/ci/assessments/:id/ratings', async (req, res) => {
   await _dbReady;
   const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
   if (!a) return res.status(404).json({ ok:false, error:'Not found' });
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   res.json({ ok:true, data: a.ratings });
 });
 
@@ -6791,7 +6784,6 @@ app.put('/api/ci/assessments/:id/ratings', async (req, res) => {
   await _dbReady;
   const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
   if (!a) return res.status(404).json({ ok:false, error:'Not found' });
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   const { entityKey, paId, score, comment } = req.body;
   if (!entityKey||!paId) return res.status(400).json({ ok:false, error:'entityKey and paId required' });
   if (!a.ratings[entityKey]) a.ratings[entityKey] = {};
@@ -6803,7 +6795,6 @@ app.put('/api/ci/assessments/:id/ratings', async (req, res) => {
 // GET actions (admin)
 app.get('/api/ci/assessments/:id/actions', async (req, res) => {
   await _dbReady;
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
   if (!a) return res.status(404).json({ ok:false, error:'Not found' });
   res.json({ ok:true, data: a.actions });
@@ -6812,7 +6803,6 @@ app.get('/api/ci/assessments/:id/actions', async (req, res) => {
 // POST add action (admin)
 app.post('/api/ci/assessments/:id/actions', async (req, res) => {
   await _dbReady;
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
   if (!a) return res.status(404).json({ ok:false, error:'Not found' });
   const now = new Date().toISOString();
@@ -6824,7 +6814,6 @@ app.post('/api/ci/assessments/:id/actions', async (req, res) => {
 // PUT update action (admin)
 app.put('/api/ci/assessments/:id/actions/:actId', async (req, res) => {
   await _dbReady;
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
   if (!a) return res.status(404).json({ ok:false, error:'Not found' });
   const action = a.actions.find(x=>x.id===req.params.actId);
@@ -6837,7 +6826,6 @@ app.put('/api/ci/assessments/:id/actions/:actId', async (req, res) => {
 // DELETE action (admin)
 app.delete('/api/ci/assessments/:id/actions/:actId', async (req, res) => {
   await _dbReady;
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   const ci = ciDB(); const a = ci.assessments.find(x=>x.id===req.params.id);
   if (!a) return res.status(404).json({ ok:false, error:'Not found' });
   a.actions = a.actions.filter(x=>x.id!==req.params.actId);
@@ -6848,7 +6836,6 @@ app.delete('/api/ci/assessments/:id/actions/:actId', async (req, res) => {
 // GET dashboard summary (admin)
 app.get('/api/ci/dashboard', async (req, res) => {
   await _dbReady;
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   const ci = ciDB();
   const assessments = ci.assessments.filter(a=>a.status==='active');
   let totalScores=[], openActions=0;
