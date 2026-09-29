@@ -2699,6 +2699,24 @@ app.put('/api/portal/:token/signoff', async (req, res) => {
   await saveDB(db); res.json({ ok:true, signoff });
 });
 
+// Atomic field-level update — a client rapidly clicking through many test
+// case dropdowns in one sitting is exactly the concurrent-write pattern that
+// a full-document saveDB() race-loses data on elsewhere in this file (see
+// persistAssignmentComplete/persistCIRating). Also, saveDB() swallows mongo
+// errors and returns normally either way, so a full-document save here could
+// silently no-op on a genuine write failure while still telling the client
+// "Status updated" — this reports the real outcome back to the caller.
+async function persistTestCaseUpdate(tcId, updateDoc) {
+  if (mongoCol) {
+    try {
+      await mongoCol.updateOne({ _id: 'main' }, updateDoc, { arrayFilters: [{ 'tc.id': tcId }] });
+      dbCacheTs = 0;
+      return true;
+    } catch (e) { console.error('[uat tc update/mongo]', e.message); }
+  }
+  return false;
+}
+
 app.put('/api/portal/:token/tc/:id', async (req, res) => {
   await _dbReady; const u=uatDB();
   const p=resolveUATProjectByToken(req.params.token);
@@ -2711,35 +2729,44 @@ app.put('/api/portal/:token/tc/:id', async (req, res) => {
   // matching what the internal admin table and dashboard read.
   const usesEntityMap = !!(entity && !tc.entity);
   const prevStatus = usesEntityMap ? (tc.entityStatuses?.[entity]?.clientStatus||'not_tested') : (tc.clientStatus||'not_tested');
+  const now = new Date().toISOString();
+  const setOps = { 'uat.testcases.$[tc].updatedAt': now };
   if (usesEntityMap) {
     if (!tc.entityStatuses) tc.entityStatuses={};
     if (!tc.entityStatuses[entity]) tc.entityStatuses[entity]={};
-    if (clientStatus!==undefined) tc.entityStatuses[entity].clientStatus=clientStatus;
-    if (clientComments!==undefined) tc.entityStatuses[entity].clientComments=clientComments;
+    if (clientStatus!==undefined) { tc.entityStatuses[entity].clientStatus=clientStatus; setOps[`uat.testcases.$[tc].entityStatuses.${entity}.clientStatus`]=clientStatus; }
+    if (clientComments!==undefined) { tc.entityStatuses[entity].clientComments=clientComments; setOps[`uat.testcases.$[tc].entityStatuses.${entity}.clientComments`]=clientComments; }
   } else {
-    if (clientStatus!==undefined) tc.clientStatus=clientStatus;
-    if (clientComments!==undefined) tc.clientComments=clientComments;
+    if (clientStatus!==undefined) { tc.clientStatus=clientStatus; setOps['uat.testcases.$[tc].clientStatus']=clientStatus; }
+    if (clientComments!==undefined) { tc.clientComments=clientComments; setOps['uat.testcases.$[tc].clientComments']=clientComments; }
   }
+  tc.updatedAt=now;
   // Auto-create UAT issue when client marks fail with a comment (first time only)
   const newStatus = clientStatus !== undefined ? clientStatus : prevStatus;
   const newComment = clientComments !== undefined ? clientComments : (usesEntityMap ? (tc.entityStatuses?.[entity]?.clientComments||'') : (tc.clientComments||''));
+  const updateDoc = { $set: setOps };
   if (newStatus === 'fail' && newComment && prevStatus !== 'fail') {
     if (!u.issues) u.issues = [];
     const alreadyExists = u.issues.find(i=>i.testCaseId===tc.id&&i.source==='client_portal'&&i.status==='open');
     if (!alreadyExists) {
       const cnt = u.issues.filter(i=>i.projectId===p.id).length + 1;
       const sevMap = { critical:'Critical', high:'High', medium:'Medium', low:'Low' };
-      u.issues.push({ id:uatId(), testCaseId:tc.id, projectId:p.id, clientId:p.clientId,
+      const newIssue = { id:uatId(), testCaseId:tc.id, projectId:p.id, clientId:p.clientId,
         ref:`ISS-${String(cnt).padStart(3,'0')}`, source:'client_portal',
         title:`TC-${tc.seq} Fail: ${(tc.testDescription||tc.testScenario||'').slice(0,60)}`,
         description:newComment, severity:sevMap[tc.priority||'medium']||'Medium',
         status:'open', assignedTo:'', resolution:'',
-        createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() });
-      uatLog('issue_opened', `Client flagged TC-${tc.seq} as failed`, {projectId:p.id, clientId:p.clientId});
+        createdAt:now, updatedAt:now };
+      u.issues.push(newIssue);
+      const activityEntry = { id:uatId(), type:'issue_opened', message:`Client flagged TC-${tc.seq} as failed`, projectId:p.id, clientId:p.clientId, createdAt:now };
+      u.activity.unshift(activityEntry);
+      if (u.activity.length > 500) u.activity = u.activity.slice(0, 500);
+      updateDoc.$push = { 'uat.issues': newIssue, 'uat.activity': { $each: [activityEntry], $position: 0 } };
     }
   }
-  tc.updatedAt=new Date().toISOString();
-  await saveDB(db); res.json({ ok:true });
+  const persisted = await persistTestCaseUpdate(tc.id, updateDoc);
+  if (!persisted) return res.status(500).json({ ok:false, error:'save failed' });
+  res.json({ ok:true });
 });
 
 // Client-attached screenshots for a test case. Stored as base64 in their own
