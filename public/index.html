@@ -11945,12 +11945,18 @@ function rlIsPaused(p) {
   var st = (p.status||'').toLowerCase();
   return st==='on hold' || st==='blocked';
 }
-// Project Compliance only reviews work that's actually in flight — a project
-// that's Completed, On Hold, Blocked, Proposed, or In Planning isn't something
-// the delivery team can act on this week, so its findings would just be noise.
+// Which project statuses Project Compliance currently reviews — 'all' by
+// default, narrowable via the status filter chips in the tab header.
+var _rlCompStatusFilter = 'all';
 function rlComplianceInScope(p) {
-  return (p.status||'').toLowerCase() === 'in progress';
+  if (_rlCompStatusFilter === 'all') return true;
+  return (p.status||'').toLowerCase() === _rlCompStatusFilter;
 }
+window.rlCompSetStatusFilter = function(v) {
+  _rlCompStatusFilter = v;
+  var body = document.getElementById('rlTabBody');
+  if (body) rlTabCompliance(body);
+};
 function rlBuildAllIssues() {
   var allIssues = [];
   (_rlData.projects||[]).forEach(function(p){
@@ -12040,12 +12046,36 @@ function rlTabCompliance(body) {
       '</div>'+
     '</div>';
 
+  // Status filter chips — driven by whatever statuses actually exist in the
+  // data, so a status like "In Planning" isn't missed if it shows up later.
+  var STATUS_ORDER = ['in progress','blocked','on hold','proposed','in planning','completed'];
+  var statusLabels = {};
+  (_rlData.projects||[]).forEach(function(p){
+    var s=(p.status||'').toLowerCase();
+    if (s) statusLabels[s] = p.status;
+  });
+  var statusKeys = Object.keys(statusLabels).sort(function(a,b){
+    var ai=STATUS_ORDER.indexOf(a), bi=STATUS_ORDER.indexOf(b);
+    if (ai<0) ai=999; if (bi<0) bi=999;
+    return ai-bi;
+  });
+  function compFilterChip(label, value){
+    var active = _rlCompStatusFilter===value;
+    return '<button onclick="rlCompSetStatusFilter(\''+value+'\')" style="background:'+(active?'rgba(201,162,39,.12)':'transparent')+';border:1px solid '+(active?'rgba(201,162,39,.35)':'rgba(255,255,255,.08)')+';color:'+(active?'#c9a227':'rgba(255,255,255,.4)')+';border-radius:6px;padding:5px 14px;font-size:11px;font-weight:'+(active?'700':'500')+';cursor:pointer;transition:all .12s;white-space:nowrap;">'+label+'</button>';
+  }
+  var filterBarHtml =
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:18px;">'+
+      '<span style="font-size:9px;color:#5a6270;letter-spacing:.1em;text-transform:uppercase;font-weight:700;font-family:\'DM Mono\',monospace;">Status</span>'+
+      compFilterChip('All', 'all')+
+      statusKeys.map(function(k){ return compFilterChip(statusLabels[k], k); }).join('')+
+    '</div>';
+
   if (!allIssues.length) {
-    body.innerHTML = headerHtml+
+    body.innerHTML = headerHtml+filterBarHtml+
       '<div style="background:#0f0f16;border:1px solid rgba(34,197,94,.2);border-radius:14px;padding:48px;text-align:center;">'+
         '<div style="font-size:32px;margin-bottom:12px;">✅</div>'+
         '<div style="font-size:16px;font-weight:700;color:#22c55e;margin-bottom:6px;">All Clear</div>'+
-        '<div style="font-size:13px;color:#5a6270;">No compliance issues found across all '+totalProjects+' projects</div>'+
+        '<div style="font-size:13px;color:#5a6270;">No compliance issues found across '+(totalProjects===1?'the 1 project':'all '+totalProjects+' projects')+' shown</div>'+
       '</div>';
     return;
   }
@@ -12080,7 +12110,7 @@ function rlTabCompliance(body) {
       }).join('')+
     '</div>';
 
-  body.innerHTML = headerHtml + gridHtml;
+  body.innerHTML = headerHtml + filterBarHtml + gridHtml;
 }
 
 function rlOpenCatDetail(catKey) {
