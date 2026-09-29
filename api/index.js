@@ -2709,12 +2709,12 @@ app.put('/api/portal/:token/signoff', async (req, res) => {
 async function persistTestCaseUpdate(tcId, updateDoc) {
   if (mongoCol) {
     try {
-      const r = await mongoCol.updateOne({ _id: 'main' }, updateDoc, { arrayFilters: [{ 'tc.id': tcId }] });
+      await mongoCol.updateOne({ _id: 'main' }, updateDoc, { arrayFilters: [{ 'tc.id': tcId }] });
       dbCacheTs = 0;
-      return { ok:true, matchedCount:r.matchedCount, modifiedCount:r.modifiedCount };
-    } catch (e) { console.error('[uat tc update/mongo]', e.message); return { ok:false, error:e.message }; }
+      return true;
+    } catch (e) { console.error('[uat tc update/mongo]', e.message); }
   }
-  return { ok:false, error:'no mongoCol' };
+  return false;
 }
 
 app.put('/api/portal/:token/tc/:id', async (req, res) => {
@@ -2765,8 +2765,8 @@ app.put('/api/portal/:token/tc/:id', async (req, res) => {
     }
   }
   const persisted = await persistTestCaseUpdate(tc.id, updateDoc);
-  if (!persisted.ok) return res.status(500).json({ ok:false, error:'save failed' });
-  res.json({ ok:true, _diag:persisted });
+  if (!persisted) return res.status(500).json({ ok:false, error:'save failed' });
+  res.json({ ok:true });
 });
 
 // Client-attached screenshots for a test case. Stored as base64 in their own
