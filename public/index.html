@@ -11945,9 +11945,16 @@ function rlIsPaused(p) {
   var st = (p.status||'').toLowerCase();
   return st==='on hold' || st==='blocked';
 }
+// Project Compliance only reviews work that's actually in flight — a project
+// that's Completed, On Hold, Blocked, Proposed, or In Planning isn't something
+// the delivery team can act on this week, so its findings would just be noise.
+function rlComplianceInScope(p) {
+  return (p.status||'').toLowerCase() === 'in progress';
+}
 function rlBuildAllIssues() {
   var allIssues = [];
   (_rlData.projects||[]).forEach(function(p){
+    if (!rlComplianceInScope(p)) return;
     // Build a task-name→details lookup from methodology phases (standard projects only)
     var taskLookup = {};
     if (p.phases) {
@@ -12007,7 +12014,7 @@ function rlBuildAllIssues() {
 
 function rlTabCompliance(body) {
   var allIssues     = rlBuildAllIssues();
-  var totalProjects = (_rlData.projects||[]).length;
+  var totalProjects = (_rlData.projects||[]).filter(rlComplianceInScope).length;
 
   var timeAgoStr = '';
   var fetchedAt  = _rlData&&(_rlData.fetchedAt||_rlData.cachedAt);
