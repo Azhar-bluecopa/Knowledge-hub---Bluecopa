@@ -14362,7 +14362,8 @@ function rlProjDetailShell(projectId, p, contentHTML) {
     {id:'plan',     label:'Project Plan'},
     {id:'list',     label:'List'},
     {id:'board',    label:'Board'},
-    {id:'owners',   label:'Task Owners'}
+    {id:'owners',   label:'Task Owners'},
+    {id:'client',   label:'Client Visibility'}
   ];
   var tabBar = PROJ_SUB_TABS.map(function(t) {
     var a = t.id === _rlProjectSubTab;
@@ -14408,8 +14409,96 @@ function rlProjTabContent(p, detail, tab) {
   if (tab==='list')     return rlProjList(p, detail);
   if (tab==='board')    return rlProjBoard(p, detail);
   if (tab==='owners')   return rlProjOwners(p, detail);
+  if (tab==='client')   return rlProjClientVisibility(p, detail);
   return '';
 }
+
+// ─── Client Visibility: pick which subtasks show on the customer portal ──────
+var _rlSubtaskPicker = {}; // projectId -> {loading, phases, checked, error}
+
+function rlProjClientVisibility(p, detail) {
+  var pid = p.projectId;
+  if (!_rlSubtaskPicker[pid]) {
+    _rlSubtaskPicker[pid] = { loading:true, phases:[], checked:{} };
+    fetch('/api/rocketlane/project/'+pid+'/subtasks', {headers: rlUserHeaders()})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var checked = {};
+        (d.phases||[]).forEach(function(ph){ (ph.tasks||[]).forEach(function(t){ (t.subtasks||[]).forEach(function(st){ if (st.visible) checked[st.taskId]=true; }); }); });
+        _rlSubtaskPicker[pid] = { loading:false, phases:d.phases||[], checked:checked };
+        rlRefreshClientVisibilityBody(pid);
+      }).catch(function(){
+        _rlSubtaskPicker[pid] = { loading:false, phases:[], checked:{}, error:true };
+        rlRefreshClientVisibilityBody(pid);
+      });
+  }
+  return rlProjClientVisibilityBody(pid);
+}
+function rlRefreshClientVisibilityBody(pid) {
+  if (_rlProjectSubTab!=='client' || String(_rlProjectDrillId)!==String(pid)) return;
+  var body = document.getElementById('rlProjTabBody');
+  if (body) body.innerHTML = rlProjClientVisibilityBody(pid);
+}
+function rlProjClientVisibilityBody(pid) {
+  var state = _rlSubtaskPicker[pid];
+  if (!state || state.loading) return '<div style="display:flex;justify-content:center;padding:60px;"><div class="rl-spin"></div></div>';
+  if (state.error) return '<div style="padding:40px;text-align:center;color:#dc2626;font-size:13px;">Could not load tasks for this project.</div>';
+  var phases = state.phases.filter(function(ph){ return (ph.tasks||[]).some(function(t){ return (t.subtasks||[]).length; }); });
+  if (!phases.length) {
+    return '<div style="padding:40px;text-align:center;color:#8a92a0;font-size:13px;">No subtasks found under this project\'s methodology milestones — subtask visibility only applies to standard projects with phase-mapped tasks.</div>';
+  }
+  var html = '<div style="font-size:12px;color:#8a92a0;margin-bottom:18px;max-width:640px;">Phases and their main milestones always show on the client\'s Project Status page. Check any subtask below to also surface it there, nested under its milestone.</div>';
+  phases.forEach(function(ph){
+    html += '<div style="margin-bottom:20px;">'+
+      '<div style="font-size:12px;font-weight:700;color:#f0f0f6;margin-bottom:10px;letter-spacing:.02em;">'+escHtml(ph.label)+'</div>';
+    (ph.tasks||[]).forEach(function(t){
+      if (!(t.subtasks||[]).length) return;
+      html += '<div style="margin-bottom:12px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 14px;">'+
+        '<div style="font-size:11.5px;font-weight:600;color:#c9d0da;margin-bottom:8px;">'+escHtml(t.taskName)+'</div>'+
+        t.subtasks.map(function(st){
+          var checked = !!state.checked[st.taskId];
+          return '<label style="display:flex;align-items:center;gap:9px;padding:5px 0 5px 10px;font-size:12px;color:rgba(255,255,255,.78);cursor:pointer;">'+
+            '<input type="checkbox" data-taskid="'+st.taskId+'" onchange="rlSubtaskToggle(\''+pid+'\', this)" '+(checked?'checked':'')+' style="accent-color:#6366f1;cursor:pointer;">'+
+            '<span style="flex:1;">'+escHtml(st.taskName)+'</span>'+
+            (st.owner?'<span style="color:#5a6270;font-size:11px;">'+escHtml(st.owner)+'</span>':'')+
+          '</label>';
+        }).join('') +
+      '</div>';
+    });
+    html += '</div>';
+  });
+  html += '<div style="display:flex;align-items:center;gap:12px;margin-top:4px;">'+
+    '<button onclick="rlSaveSubtaskVisibility(\''+pid+'\')" id="rlSubtaskSaveBtn" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:8px;padding:10px 22px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Save</button>'+
+    '<span id="rlSubtaskSaveMsg" style="font-size:12px;color:#22c55e;"></span>'+
+  '</div>';
+  return html;
+}
+window.rlSubtaskToggle = function(pid, el) {
+  var state = _rlSubtaskPicker[pid];
+  if (!state) return;
+  var id = el.getAttribute('data-taskid');
+  if (el.checked) state.checked[id] = true; else delete state.checked[id];
+};
+window.rlSaveSubtaskVisibility = function(pid) {
+  var state = _rlSubtaskPicker[pid];
+  if (!state) return;
+  var ids = Object.keys(state.checked);
+  var btn = document.getElementById('rlSubtaskSaveBtn');
+  var msg = document.getElementById('rlSubtaskSaveMsg');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  if (msg) msg.textContent = '';
+  fetch('/api/rocketlane/project/'+pid+'/visible-subtasks', {
+    method:'POST',
+    headers: Object.assign({'Content-Type':'application/json'}, rlUserHeaders()),
+    body: JSON.stringify({ taskIds: ids })
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+    if (msg) { msg.style.color = d.ok ? '#22c55e' : '#dc2626'; msg.textContent = d.ok ? 'Saved — the client will see this next time they open their Hub.' : 'Save failed, please try again.'; }
+  }).catch(function(){
+    if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+    if (msg) { msg.style.color = '#dc2626'; msg.textContent = 'Save failed, please try again.'; }
+  });
+};
 
 function rlProjOverview(p, detail) {
   var pct = Math.min(100, p.overallPct || 0);

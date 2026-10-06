@@ -426,6 +426,14 @@ body{
 .ms-due{margin-left:auto;font-size:11px;color:var(--text-4);flex-shrink:0}
 .ms-owner{margin-left:10px;font-size:11px;color:var(--text-4);flex-shrink:0}
 .ms-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-4);margin-top:14px;margin-bottom:2px}
+.ms-sub-list{display:flex;flex-direction:column;gap:0;margin-left:25px}
+.ms-sub-row{
+  display:flex;align-items:center;gap:8px;
+  padding:5px 0;
+  font-size:11px;color:var(--text-3);
+}
+.ms-sub-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;background:var(--border-solid)}
+.ms-sub-dot.ms-done-dot{background:var(--teal)}
 
 /* ── Gantt-style phase timeline ── */
 .gantt-card{background:var(--card);border:1px solid var(--border-solid);border-radius:var(--r);padding:24px 28px;margin-bottom:24px;box-shadow:var(--sh-sm);overflow-x:auto}
@@ -1548,7 +1556,14 @@ function _renderPhases(phases){
             <span style="color:${m.status==='completed'?'var(--text-3)':'var(--text-1)'};text-decoration:${m.status==='completed'?'line-through':'none'}">${esc(m.name)}</span>
             ${m.owner?`<span class="ms-owner">${esc(m.owner)}</span>`:''}
             ${m.dueDate?`<span class="ms-due">${fmtDate(m.dueDate)}</span>`:''}
-          </div>`).join('')}</div>`:''}
+          </div>
+          ${m.subtasks&&m.subtasks.length?`<div class="ms-sub-list">${m.subtasks.map(st=>`
+            <div class="ms-sub-row">
+              <span class="ms-sub-dot ${st.status==='completed'?'ms-done-dot':''}"></span>
+              <span style="text-decoration:${st.status==='completed'?'line-through':'none'}">${esc(st.name)}</span>
+              ${st.owner?`<span class="ms-owner">${esc(st.owner)}</span>`:''}
+              ${st.dueDate?`<span class="ms-due">${fmtDate(st.dueDate)}</span>`:''}
+            </div>`).join('')}</div>`:''}`).join('')}</div>`:''}
       </div>
     </div>`;
   });

@@ -2450,8 +2450,18 @@ function buildCIPortalData(assessmentId) {
 // methodology task here is itself a real Rocketlane parent task with its own
 // subtasks, so we surface it to clients as a milestone under its phase.
 const _RL_PHASE_LABEL = { engage:'Engage', drive:'Drive', enable:'Enable', convert:'Convert' };
-function _extractPhases(proj) {
+// Which subtask ids an admin has chosen to expose to the client, per Rocketlane
+// project — { [rlProjectId]: [taskId, ...] }. Everything else about a main
+// task's subtasks stays internal; this is the one allow-list the customer
+// portal consults.
+function rlVisibleSubtaskIds(rlProjectId) {
+  const rl = db.rocketlane || {};
+  const list = (rl.visibleSubtasks || {})[String(rlProjectId)] || [];
+  return new Set(list.map(String));
+}
+function _extractPhases(proj, visibleIds) {
   const phases=[];
+  const visible = visibleIds || new Set();
   if (proj.phases && typeof proj.phases === 'object' && !Array.isArray(proj.phases)) {
     ['engage','drive','enable','convert'].forEach(k=>{
       const ph=proj.phases[k];
@@ -2469,7 +2479,15 @@ function _extractPhases(proj) {
           name: t.taskName||'',
           status: t.completed?'completed':/progress/i.test(t.status||'')?'in_progress':'upcoming',
           dueDate: t.dueDate||'',
-          owner: t.owner||''
+          owner: t.owner||'',
+          subtasks: (t.subtasks||[])
+            .filter(st=>visible.has(String(st.taskId)))
+            .map(st=>({
+              name: st.taskName||'',
+              status: st.completed?'completed':/progress/i.test(st.status||'')?'in_progress':'upcoming',
+              dueDate: st.dueDate||'',
+              owner: st.owner||''
+            }))
         }))
       });
     });
@@ -2493,7 +2511,7 @@ async function buildRLPortalData(rlProjectId, clientName) {
     if (!fullProj && process.env.ROCKETLANE_API_KEY) {
       try { const fresh = await rlDoFullFetch(process.env.ROCKETLANE_API_KEY); fullProj = (fresh.projects||[]).find(p=>String(p.projectId)===String(rlProjectId)); } catch(e) { /* fall through to snapshot/rlCache below */ }
     }
-    const phasesFromFull = fullProj ? _extractPhases(fullProj) : [];
+    const phasesFromFull = fullProj ? _extractPhases(fullProj, rlVisibleSubtaskIds(rlProjectId)) : [];
 
     for (const snap of snaps) {
       const proj=(snap.projects||[]).find(p=>String(p.projectId)===String(rlProjectId));
@@ -2538,7 +2556,7 @@ async function buildRLPortalData(rlProjectId, clientName) {
         completion:proj.completionPct||proj.overallPct||0,
         currentPhase:proj.currentPhase||'',
         status:(proj.status&&(proj.status.label||proj.status))||'',
-        phases:_extractPhases(proj)
+        phases:_extractPhases(proj, rlVisibleSubtaskIds(proj.projectId))
       }))
     };
   }
@@ -3785,12 +3803,30 @@ function rlBuildProjectProgress(projectTasks) {
         overallCompleted += t._mt.weight;
       }
       const assigneeMembers = t.assignees?.members || [];
+      // Every subtask of this main task, in full — not just the ones an admin
+      // has chosen to expose to the client. Filtering down to the selected
+      // subset happens later, in _extractPhases, against the per-project
+      // visibleSubtasks list — keeping the full set cached here means that
+      // list can change without needing a fresh Rocketlane fetch.
+      const subtasks = projectTasks
+        .filter(st => st.parentTask?.taskId === t.taskId)
+        .map(st => {
+          const stAssignees = st.assignees?.members || [];
+          return {
+            taskId: st.taskId, taskName: st.taskName,
+            status: st.status?.label || 'Unknown',
+            dueDate: st.dueDate || null, startDate: st.startDate || null,
+            completed: st.status?.label === 'Completed',
+            owner: stAssignees.map(a => [a.firstName, a.lastName].filter(Boolean).join(' ') || a.emailId || '').filter(Boolean).join(', ') || null
+          };
+        });
       phases[phase].tasks.push({
         taskId: t.taskId, taskName: t.taskName, order: t._mt.order,
         status: t.status?.label || 'Unknown',
         dueDate: t.dueDate || null, startDate: t.startDate || null,
         completed: isDone,
-        owner: assigneeMembers.map(a => [a.firstName, a.lastName].filter(Boolean).join(' ') || a.emailId || '').filter(Boolean).join(', ') || null
+        owner: assigneeMembers.map(a => [a.firstName, a.lastName].filter(Boolean).join(' ') || a.emailId || '').filter(Boolean).join(', ') || null,
+        subtasks
       });
     });
     Object.keys(phases).forEach(ph => {
@@ -4310,6 +4346,7 @@ function ensureRL() {
   if (!db.rocketlane) db.rocketlane = { snapshots: [], nextSnapshotId: 1, findings: [], nextFindingId: 1 };
   if (!db.rocketlane.findings) db.rocketlane.findings = [];
   if (!db.rocketlane.nextFindingId) db.rocketlane.nextFindingId = 1;
+  if (!db.rocketlane.visibleSubtasks) db.rocketlane.visibleSubtasks = {};
   // Remove any previously stored fullData from MongoDB to reduce document size and data transfer costs
   if ('fullData' in db.rocketlane) { delete db.rocketlane.fullData; delete db.rocketlane.fullDataAt; }
 }
@@ -4733,6 +4770,48 @@ app.get('/api/rocketlane/project/:id', async (req, res) => {
   } catch (e) { /* silently ignore — timelogs are best-effort */ }
 
   res.json({ project, tasks, timelogs, taskCount: tasks.length });
+});
+
+// Every main methodology task's subtasks, with which ones an admin has
+// already chosen to show the client — lets the "Show to client" picker
+// render without the admin having to cross-reference two separate lists.
+app.get('/api/rocketlane/project/:id/subtasks', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  await getDbInitPromise(); ensureRL();
+  const rlProjectId = req.params.id;
+  let fullProj = rlFullCache && (rlFullCache.projects||[]).find(p=>String(p.projectId)===String(rlProjectId));
+  if (!fullProj && process.env.ROCKETLANE_API_KEY) {
+    try { const fresh = await rlDoFullFetch(process.env.ROCKETLANE_API_KEY); fullProj = (fresh.projects||[]).find(p=>String(p.projectId)===String(rlProjectId)); } catch(e) { /* fall through */ }
+  }
+  if (!fullProj || !fullProj.phases) return res.json({ ok:true, phases:[] });
+  const visible = rlVisibleSubtaskIds(rlProjectId);
+  const phases = ['engage','drive','enable','convert'].map(k=>{
+    const ph = fullProj.phases[k];
+    if (!ph) return null;
+    return {
+      key:k, label:_RL_PHASE_LABEL[k],
+      tasks:(ph.tasks||[]).map(t=>({
+        taskId:t.taskId, taskName:t.taskName,
+        subtasks:(t.subtasks||[]).map(st=>({
+          taskId:st.taskId, taskName:st.taskName, status:st.status, dueDate:st.dueDate, owner:st.owner,
+          visible: visible.has(String(st.taskId))
+        }))
+      }))
+    };
+  }).filter(Boolean);
+  res.json({ ok:true, phases });
+});
+
+app.post('/api/rocketlane/project/:id/visible-subtasks', async (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
+  await getDbInitPromise(); ensureRL();
+  const rlProjectId = String(req.params.id);
+  const { taskIds } = req.body;
+  if (!Array.isArray(taskIds)) return res.status(400).json({ ok:false, error:'taskIds[] required' });
+  const ids = taskIds.map(String);
+  db.rocketlane.visibleSubtasks[rlProjectId] = ids;
+  await atomicUpdate({ $set: { [`rocketlane.visibleSubtasks.${rlProjectId}`]: ids } });
+  res.json({ ok:true });
 });
 
 // ── Proxy Login ───────────────────────────────────────────────────────────────
