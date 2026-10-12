@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.1",
+    "@vercel/blob": "^2.8.1",
     "adm-zip": "^0.5.17",
     "compression": "^1.8.1",
     "dotenv": "^17.4.2",

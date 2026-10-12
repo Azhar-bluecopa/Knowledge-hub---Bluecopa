@@ -3174,9 +3174,28 @@ app.post('/api/ews/:id/schedule', async (req, res) => {
   }
 });
 
-// ── Upload (disabled on Vercel) ───────────────────────────────────────────────
-app.post('/api/upload', (req, res) => {
-  res.status(503).json({ error: 'File uploads are not supported on the Vercel deployment.' });
+// ── Upload — article images/videos go to Vercel Blob, not into the DB ────────
+// Previously disabled here, which pushed authors toward pasting images as
+// base64 straight into article HTML instead (see the 3 articles that did
+// exactly that — over 1MB of inline image data dragged along on every read
+// of the shared Mongo document). A real upload endpoint fixes both the
+// existing bloat (via a one-off migration) and stops new articles from
+// recreating it.
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } });
+app.post('/api/upload', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file provided' });
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return res.status(503).json({ error: 'File storage is not configured.' });
+  try {
+    const { put } = require('@vercel/blob');
+    const ext = (req.file.originalname.split('.').pop() || 'bin').toLowerCase();
+    const key = `articles/${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const blob = await put(key, req.file.buffer, { access: 'public', contentType: req.file.mimetype });
+    res.json({ url: blob.url, name: req.file.originalname });
+  } catch (e) {
+    console.error('[upload]', e.message);
+    res.status(500).json({ error: 'Upload failed: ' + e.message });
+  }
 });
 
 // ── Comments ──────────────────────────────────────────────────────────────────
