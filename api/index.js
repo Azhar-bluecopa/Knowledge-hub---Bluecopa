@@ -2447,21 +2447,21 @@ function buildCIPortalData(assessmentId) {
 // like { engage:{tasks:[{taskId,taskName,status,dueDate,startDate,completed,owner}],pct},
 // drive:{...}, enable:{...}, convert:{...} }. Weekly snapshots and the raw /projects
 // cache never carry this — only the enriched full-fetch (rlFullCache) does. Each
-// methodology task here is itself a real Rocketlane parent task with its own
-// subtasks, so we surface it to clients as a milestone under its phase.
+// methodology task here is a milestone surfaced to the client under its phase.
 const _RL_PHASE_LABEL = { engage:'Engage', drive:'Drive', enable:'Enable', convert:'Convert' };
-// Which subtask ids an admin has chosen to expose to the client, per Rocketlane
-// project — { [rlProjectId]: [taskId, ...] }. Everything else about a main
-// task's subtasks stays internal; this is the one allow-list the customer
+// Which of a project's non-milestone ("other") task ids an admin has chosen to
+// expose to the client — { [rlProjectId]: [taskId, ...] }. Real Rocketlane
+// usage here has no parent/child task nesting, so these aren't "subtasks of"
+// anything in particular; they're shown as their own flat section rather than
+// nested under a specific milestone. This is the one allow-list the customer
 // portal consults.
-function rlVisibleSubtaskIds(rlProjectId) {
+function rlVisibleOtherTaskIds(rlProjectId) {
   const rl = db.rocketlane || {};
   const list = (rl.visibleSubtasks || {})[String(rlProjectId)] || [];
   return new Set(list.map(String));
 }
-function _extractPhases(proj, visibleIds) {
+function _extractPhases(proj) {
   const phases=[];
-  const visible = visibleIds || new Set();
   if (proj.phases && typeof proj.phases === 'object' && !Array.isArray(proj.phases)) {
     ['engage','drive','enable','convert'].forEach(k=>{
       const ph=proj.phases[k];
@@ -2479,20 +2479,24 @@ function _extractPhases(proj, visibleIds) {
           name: t.taskName||'',
           status: t.completed?'completed':/progress/i.test(t.status||'')?'in_progress':'upcoming',
           dueDate: t.dueDate||'',
-          owner: t.owner||'',
-          subtasks: (t.subtasks||[])
-            .filter(st=>visible.has(String(st.taskId)))
-            .map(st=>({
-              name: st.taskName||'',
-              status: st.completed?'completed':/progress/i.test(st.status||'')?'in_progress':'upcoming',
-              dueDate: st.dueDate||'',
-              owner: st.owner||''
-            }))
+          owner: t.owner||''
         }))
       });
     });
   }
   return phases;
+}
+function _extractVisibleOtherTasks(proj, rlProjectId) {
+  const visible = rlVisibleOtherTaskIds(rlProjectId);
+  if (!visible.size) return [];
+  return (proj.otherTasks||[])
+    .filter(t=>visible.has(String(t.taskId)))
+    .map(t=>({
+      name: t.taskName||'',
+      status: t.completed?'completed':/progress/i.test(t.status||'')?'in_progress':'upcoming',
+      dueDate: t.dueDate||'',
+      owner: t.owner||''
+    }));
 }
 
 async function buildRLPortalData(rlProjectId, clientName) {
@@ -2511,16 +2515,17 @@ async function buildRLPortalData(rlProjectId, clientName) {
     if (!fullProj && process.env.ROCKETLANE_API_KEY) {
       try { const fresh = await rlDoFullFetch(process.env.ROCKETLANE_API_KEY); fullProj = (fresh.projects||[]).find(p=>String(p.projectId)===String(rlProjectId)); } catch(e) { /* fall through to snapshot/rlCache below */ }
     }
-    const phasesFromFull = fullProj ? _extractPhases(fullProj, rlVisibleSubtaskIds(rlProjectId)) : [];
+    const phasesFromFull = fullProj ? _extractPhases(fullProj) : [];
+    const otherTasksFromFull = fullProj ? _extractVisibleOtherTasks(fullProj, rlProjectId) : [];
 
     for (const snap of snaps) {
       const proj=(snap.projects||[]).find(p=>String(p.projectId)===String(rlProjectId));
       if (proj) {
-        return { linked:true, rlProjectId, projectName:proj.projectName||proj.name||'', completion:proj.completionPct||proj.overallPct||0, currentPhase:(fullProj&&fullProj.currentPhase)||proj.currentPhase||'', customer:proj.customer||'', phases:phasesFromFull, snappedAt:snap.capturedAt };
+        return { linked:true, rlProjectId, projectName:proj.projectName||proj.name||'', completion:proj.completionPct||proj.overallPct||0, currentPhase:(fullProj&&fullProj.currentPhase)||proj.currentPhase||'', customer:proj.customer||'', phases:phasesFromFull, otherTasks:otherTasksFromFull, snappedAt:snap.capturedAt };
       }
     }
     if (fullProj) {
-      return { linked:true, rlProjectId, projectName:fullProj.projectName||'', completion:fullProj.overallPct||0, currentPhase:fullProj.currentPhase||'', customer:fullProj.customer||'', phases:phasesFromFull };
+      return { linked:true, rlProjectId, projectName:fullProj.projectName||'', completion:fullProj.overallPct||0, currentPhase:fullProj.currentPhase||'', customer:fullProj.customer||'', phases:phasesFromFull, otherTasks:otherTasksFromFull };
     }
     // Last-resort fallback: found only in the bare /projects cache (no phase data at all)
     if (rlCache) {
@@ -2556,7 +2561,8 @@ async function buildRLPortalData(rlProjectId, clientName) {
         completion:proj.completionPct||proj.overallPct||0,
         currentPhase:proj.currentPhase||'',
         status:(proj.status&&(proj.status.label||proj.status))||'',
-        phases:_extractPhases(proj, rlVisibleSubtaskIds(proj.projectId))
+        phases:_extractPhases(proj),
+        otherTasks:_extractVisibleOtherTasks(proj, proj.projectId)
       }))
     };
   }
@@ -3803,30 +3809,12 @@ function rlBuildProjectProgress(projectTasks) {
         overallCompleted += t._mt.weight;
       }
       const assigneeMembers = t.assignees?.members || [];
-      // Every subtask of this main task, in full — not just the ones an admin
-      // has chosen to expose to the client. Filtering down to the selected
-      // subset happens later, in _extractPhases, against the per-project
-      // visibleSubtasks list — keeping the full set cached here means that
-      // list can change without needing a fresh Rocketlane fetch.
-      const subtasks = projectTasks
-        .filter(st => st.parentTask?.taskId === t.taskId)
-        .map(st => {
-          const stAssignees = st.assignees?.members || [];
-          return {
-            taskId: st.taskId, taskName: st.taskName,
-            status: st.status?.label || 'Unknown',
-            dueDate: st.dueDate || null, startDate: st.startDate || null,
-            completed: st.status?.label === 'Completed',
-            owner: stAssignees.map(a => [a.firstName, a.lastName].filter(Boolean).join(' ') || a.emailId || '').filter(Boolean).join(', ') || null
-          };
-        });
       phases[phase].tasks.push({
         taskId: t.taskId, taskName: t.taskName, order: t._mt.order,
         status: t.status?.label || 'Unknown',
         dueDate: t.dueDate || null, startDate: t.startDate || null,
         completed: isDone,
-        owner: assigneeMembers.map(a => [a.firstName, a.lastName].filter(Boolean).join(' ') || a.emailId || '').filter(Boolean).join(', ') || null,
-        subtasks
+        owner: assigneeMembers.map(a => [a.firstName, a.lastName].filter(Boolean).join(' ') || a.emailId || '').filter(Boolean).join(', ') || null
       });
     });
     Object.keys(phases).forEach(ph => {
@@ -3834,12 +3822,33 @@ function rlBuildProjectProgress(projectTasks) {
       if (pt.length) phases[ph].pct = Math.round(pt.filter(t => t.completed).length / pt.length * 100);
     });
   }
+  // Real Rocketlane usage here has no parent/child task nesting at all (every
+  // task is flat) — "extra" tasks beyond the 10 standard milestones are just
+  // other standalone tasks in the project (often many recurring, identically
+  // named operational items), not children of a specific milestone. Captured
+  // in full here; which ones an admin has chosen to expose to the client is
+  // filtered later, against the per-project visibleSubtasks list, so that
+  // list can change without needing a fresh Rocketlane fetch.
+  const mainIds = new Set(mainFound.map(t => t.taskId));
+  const otherTasks = isStandard ? projectTasks
+    .filter(t => !mainIds.has(t.taskId) && rlNorm(t.taskName) !== 'project closure')
+    .map(t => {
+      const assigneeMembers = t.assignees?.members || [];
+      return {
+        taskId: t.taskId, taskName: t.taskName,
+        status: t.status?.label || 'Unknown',
+        dueDate: t.dueDate || null, startDate: t.startDate || null,
+        completed: t.status?.label === 'Completed',
+        owner: assigneeMembers.map(a => [a.firstName, a.lastName].filter(Boolean).join(' ') || a.emailId || '').filter(Boolean).join(', ') || null
+      };
+    }) : [];
   return {
     isStandard,
     overallPct: isStandard ? Math.min(100, overallCompleted) : null,
     phases: isStandard ? phases : null,
     mainTaskCount: mainFound.length,
     totalTasks: projectTasks.length,
+    otherTasks,
     _mainFound: mainFound
   };
 }
@@ -4554,6 +4563,7 @@ async function _rlDoFullFetch(apiKey) {
       phases: progress.phases,
       mainTaskCount: progress.mainTaskCount,
       totalTasks: progress.totalTasks,
+      otherTasks: progress.otherTasks,
       compliance: { issues, issueCount: issues.length },
       overdueTaskCount: metrics.overdueTaskCount,
       blockedTaskCount: metrics.blockedTaskCount,
@@ -4772,9 +4782,9 @@ app.get('/api/rocketlane/project/:id', async (req, res) => {
   res.json({ project, tasks, timelogs, taskCount: tasks.length });
 });
 
-// Every main methodology task's subtasks, with which ones an admin has
-// already chosen to show the client — lets the "Show to client" picker
-// render without the admin having to cross-reference two separate lists.
+// Every task in the project beyond the 10 standard methodology milestones,
+// with which ones an admin has already chosen to show the client — lets the
+// "Client Visibility" picker render without cross-referencing two lists.
 app.get('/api/rocketlane/project/:id/subtasks', async (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ ok:false, error:'Admin required' });
   await getDbInitPromise(); ensureRL();
@@ -4783,23 +4793,13 @@ app.get('/api/rocketlane/project/:id/subtasks', async (req, res) => {
   if (!fullProj && process.env.ROCKETLANE_API_KEY) {
     try { const fresh = await rlDoFullFetch(process.env.ROCKETLANE_API_KEY); fullProj = (fresh.projects||[]).find(p=>String(p.projectId)===String(rlProjectId)); } catch(e) { /* fall through */ }
   }
-  if (!fullProj || !fullProj.phases) return res.json({ ok:true, phases:[] });
-  const visible = rlVisibleSubtaskIds(rlProjectId);
-  const phases = ['engage','drive','enable','convert'].map(k=>{
-    const ph = fullProj.phases[k];
-    if (!ph) return null;
-    return {
-      key:k, label:_RL_PHASE_LABEL[k],
-      tasks:(ph.tasks||[]).map(t=>({
-        taskId:t.taskId, taskName:t.taskName,
-        subtasks:(t.subtasks||[]).map(st=>({
-          taskId:st.taskId, taskName:st.taskName, status:st.status, dueDate:st.dueDate, owner:st.owner,
-          visible: visible.has(String(st.taskId))
-        }))
-      }))
-    };
-  }).filter(Boolean);
-  res.json({ ok:true, phases });
+  if (!fullProj || !fullProj.isStandard) return res.json({ ok:true, tasks:[] });
+  const visible = rlVisibleOtherTaskIds(rlProjectId);
+  const tasks = (fullProj.otherTasks||[]).map(t => ({
+    taskId:t.taskId, taskName:t.taskName, status:t.status, dueDate:t.dueDate, owner:t.owner,
+    visible: visible.has(String(t.taskId))
+  }));
+  res.json({ ok:true, tasks });
 });
 
 app.post('/api/rocketlane/project/:id/visible-subtasks', async (req, res) => {

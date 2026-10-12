@@ -14413,22 +14413,26 @@ function rlProjTabContent(p, detail, tab) {
   return '';
 }
 
-// ─── Client Visibility: pick which subtasks show on the customer portal ──────
-var _rlSubtaskPicker = {}; // projectId -> {loading, phases, checked, error}
+// ─── Client Visibility: pick which non-milestone tasks show on the customer
+// portal. Real Rocketlane usage here has no parent/child task nesting, so
+// these are a flat list of "other" tasks (often many recurring, identically-
+// named operational items) rather than subtasks of a specific milestone —
+// shown with a search box since a project can have hundreds of them.
+var _rlSubtaskPicker = {}; // projectId -> {loading, tasks, checked, error, search}
 
 function rlProjClientVisibility(p, detail) {
   var pid = p.projectId;
   if (!_rlSubtaskPicker[pid]) {
-    _rlSubtaskPicker[pid] = { loading:true, phases:[], checked:{} };
+    _rlSubtaskPicker[pid] = { loading:true, tasks:[], checked:{}, search:'' };
     fetch('/api/rocketlane/project/'+pid+'/subtasks', {headers: rlUserHeaders()})
       .then(function(r){ return r.json(); })
       .then(function(d){
         var checked = {};
-        (d.phases||[]).forEach(function(ph){ (ph.tasks||[]).forEach(function(t){ (t.subtasks||[]).forEach(function(st){ if (st.visible) checked[st.taskId]=true; }); }); });
-        _rlSubtaskPicker[pid] = { loading:false, phases:d.phases||[], checked:checked };
+        (d.tasks||[]).forEach(function(t){ if (t.visible) checked[t.taskId]=true; });
+        _rlSubtaskPicker[pid] = { loading:false, tasks:d.tasks||[], checked:checked, search:'' };
         rlRefreshClientVisibilityBody(pid);
       }).catch(function(){
-        _rlSubtaskPicker[pid] = { loading:false, phases:[], checked:{}, error:true };
+        _rlSubtaskPicker[pid] = { loading:false, tasks:[], checked:{}, search:'', error:true };
         rlRefreshClientVisibilityBody(pid);
       });
   }
@@ -14443,41 +14447,59 @@ function rlProjClientVisibilityBody(pid) {
   var state = _rlSubtaskPicker[pid];
   if (!state || state.loading) return '<div style="display:flex;justify-content:center;padding:60px;"><div class="rl-spin"></div></div>';
   if (state.error) return '<div style="padding:40px;text-align:center;color:#dc2626;font-size:13px;">Could not load tasks for this project.</div>';
-  var phases = state.phases.filter(function(ph){ return (ph.tasks||[]).some(function(t){ return (t.subtasks||[]).length; }); });
-  if (!phases.length) {
-    return '<div style="padding:40px;text-align:center;color:#8a92a0;font-size:13px;">No subtasks found under this project\'s methodology milestones — subtask visibility only applies to standard projects with phase-mapped tasks.</div>';
+  if (!state.tasks.length) {
+    return '<div style="padding:40px;text-align:center;color:#8a92a0;font-size:13px;">No tasks beyond the standard methodology milestones were found — there\'s nothing extra to selectively show here.</div>';
   }
-  var html = '<div style="font-size:12px;color:#8a92a0;margin-bottom:18px;max-width:640px;">Phases and their main milestones always show on the client\'s Project Status page. Check any subtask below to also surface it there, nested under its milestone.</div>';
-  phases.forEach(function(ph){
-    html += '<div style="margin-bottom:20px;">'+
-      '<div style="font-size:12px;font-weight:700;color:#f0f0f6;margin-bottom:10px;letter-spacing:.02em;">'+escHtml(ph.label)+'</div>';
-    (ph.tasks||[]).forEach(function(t){
-      if (!(t.subtasks||[]).length) return;
-      html += '<div style="margin-bottom:12px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 14px;">'+
-        '<div style="font-size:11.5px;font-weight:600;color:#c9d0da;margin-bottom:8px;">'+escHtml(t.taskName)+'</div>'+
-        t.subtasks.map(function(st){
-          var checked = !!state.checked[st.taskId];
-          return '<label style="display:flex;align-items:center;gap:9px;padding:5px 0 5px 10px;font-size:12px;color:rgba(255,255,255,.78);cursor:pointer;">'+
-            '<input type="checkbox" data-taskid="'+st.taskId+'" onchange="rlSubtaskToggle(\''+pid+'\', this)" '+(checked?'checked':'')+' style="accent-color:#6366f1;cursor:pointer;">'+
-            '<span style="flex:1;">'+escHtml(st.taskName)+'</span>'+
-            (st.owner?'<span style="color:#5a6270;font-size:11px;">'+escHtml(st.owner)+'</span>':'')+
-          '</label>';
-        }).join('') +
-      '</div>';
-    });
-    html += '</div>';
-  });
-  html += '<div style="display:flex;align-items:center;gap:12px;margin-top:4px;">'+
+  var q = (state.search||'').toLowerCase();
+  var filtered = q ? state.tasks.filter(function(t){ return (t.taskName||'').toLowerCase().indexOf(q)>-1; }) : state.tasks;
+  var checkedCount = Object.keys(state.checked).length;
+  var html = '<div style="font-size:12px;color:#8a92a0;margin-bottom:16px;max-width:640px;">'+
+    'Phases and their standard milestones always show on the client\'s Project Status page. Check any other task below to also surface it there, in its own "Additional Activities" section.'+
+  '</div>';
+  html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">'+
+    '<input id="rlSubtaskSearch" type="text" placeholder="Search '+state.tasks.length+' tasks…" value="'+escHtml(state.search||'')+'" oninput="rlSubtaskSearch(\''+pid+'\', this.value)" style="flex:1;max-width:320px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 12px;color:#f0f0f6;font-size:12px;font-family:\'DM Sans\',sans-serif;">'+
+    '<span id="rlSubtaskCount" style="font-size:11px;color:#5a6270;font-family:\'DM Mono\',monospace;">'+checkedCount+' of '+state.tasks.length+' selected</span>'+
+  '</div>';
+  html += '<div style="max-height:420px;overflow-y:auto;border:1px solid rgba(255,255,255,.06);border-radius:10px;background:rgba(255,255,255,.012);">';
+  if (!filtered.length) {
+    html += '<div style="padding:30px;text-align:center;color:#5a6270;font-size:12px;">No tasks match "'+escHtml(state.search)+'".</div>';
+  } else {
+    html += filtered.map(function(t, i){
+      var checked = !!state.checked[t.taskId];
+      var dueStr = t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) : '';
+      return '<label style="display:flex;align-items:center;gap:10px;padding:8px 14px;'+(i>0?'border-top:1px solid rgba(255,255,255,.04);':'')+'font-size:12px;color:rgba(255,255,255,.78);cursor:pointer;">'+
+        '<input type="checkbox" data-taskid="'+t.taskId+'" onchange="rlSubtaskToggle(\''+pid+'\', this)" '+(checked?'checked':'')+' style="accent-color:#6366f1;cursor:pointer;flex-shrink:0;">'+
+        '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escHtml(t.taskName)+'</span>'+
+        (t.owner?'<span style="color:#5a6270;font-size:11px;flex-shrink:0;">'+escHtml(t.owner)+'</span>':'')+
+        (dueStr?'<span style="color:#5a6270;font-size:11px;font-family:\'DM Mono\',monospace;flex-shrink:0;">'+dueStr+'</span>':'')+
+      '</label>';
+    }).join('');
+  }
+  html += '</div>';
+  html += '<div style="display:flex;align-items:center;gap:12px;margin-top:16px;">'+
     '<button onclick="rlSaveSubtaskVisibility(\''+pid+'\')" id="rlSubtaskSaveBtn" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:8px;padding:10px 22px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Save</button>'+
     '<span id="rlSubtaskSaveMsg" style="font-size:12px;color:#22c55e;"></span>'+
   '</div>';
   return html;
 }
+window.rlSubtaskSearch = function(pid, value) {
+  var state = _rlSubtaskPicker[pid];
+  if (!state) return;
+  state.search = value;
+  var container = document.getElementById('rlProjTabBody');
+  if (container) {
+    container.innerHTML = rlProjClientVisibilityBody(pid);
+    var input = document.getElementById('rlSubtaskSearch');
+    if (input) { input.focus(); input.selectionStart = input.selectionEnd = input.value.length; }
+  }
+};
 window.rlSubtaskToggle = function(pid, el) {
   var state = _rlSubtaskPicker[pid];
   if (!state) return;
   var id = el.getAttribute('data-taskid');
   if (el.checked) state.checked[id] = true; else delete state.checked[id];
+  var countEl = document.getElementById('rlSubtaskCount');
+  if (countEl) countEl.textContent = Object.keys(state.checked).length+' of '+state.tasks.length+' selected';
 };
 window.rlSaveSubtaskVisibility = function(pid) {
   var state = _rlSubtaskPicker[pid];
