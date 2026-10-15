@@ -5029,17 +5029,21 @@ async function rlFetchPhasesForProjects(apiKey, projectIds) {
   const now = Date.now();
   if (rlPhasesCacheAt && (now - rlPhasesCacheAt) < RL_PHASES_CACHE_TTL && projectIds.every(id => id in rlPhasesCache))
     return rlPhasesCache;
-  const results = {};
+  // Start from the previous good values — a project whose fetch fails this
+  // round (network blip, rate limit) keeps its last-known phases instead of
+  // being wiped to [], which would otherwise manufacture a fake "missing
+  // phase" violation for it.
+  const results = { ...rlPhasesCache };
   const queue = projectIds.slice();
   async function worker() {
     while (queue.length) {
       const pid = queue.shift();
       try {
         const r = await fetch(`https://api.rocketlane.com/api/1.0/phases?projectId=${pid}&pageSize=50`, { headers: { 'api-key': apiKey, 'Accept': 'application/json' } });
-        if (!r.ok) { results[pid] = []; continue; }
+        if (!r.ok) continue; // keep whatever was cached for this project, if anything
         const d = await r.json();
         results[pid] = Array.isArray(d.data) ? d.data : [];
-      } catch { results[pid] = []; }
+      } catch { /* keep previous value for this project */ }
     }
   }
   await Promise.all(Array.from({ length: Math.min(8, projectIds.length) }, worker));
@@ -5058,7 +5062,70 @@ function rlvrFilterForUser(data, allowedClients) {
 
 let rlVRegCache = null;
 let rlVRegCacheAt = 0;
+let rlVRegFetchInProgress = null;
 const RL_VREG_CACHE_TTL = 2 * 60 * 1000;
+
+async function rlDoVRegFetch(apiKey) {
+  // Dedupe concurrent callers (multiple open tabs, a manual refresh racing the
+  // dashboard's own poll) onto one shared in-flight computation — the same
+  // pattern rlDoFullFetch uses above, for the same reason: without it, two
+  // overlapping fetches can each see a half-populated shared task cache and
+  // produce a different, both-wrong violation count.
+  if (rlVRegFetchInProgress) return rlVRegFetchInProgress;
+  rlVRegFetchInProgress = _rlDoVRegFetch(apiKey).finally(() => { rlVRegFetchInProgress = null; });
+  return rlVRegFetchInProgress;
+}
+
+async function _rlDoVRegFetch(apiKey) {
+  const [projResp, allTasks] = await Promise.all([
+    fetch('https://api.rocketlane.com/api/1.0/projects?pageSize=100', { headers: { 'api-key': apiKey, 'Accept': 'application/json' } }),
+    rlFetchAllTasks(apiKey)
+  ]);
+  if (!projResp.ok) throw new Error('Rocketlane API ' + projResp.status);
+  const projData = await projResp.json();
+  const allProjects = (Array.isArray(projData.data) ? projData.data : Object.values(projData.data||{})).filter(p => !p.archived);
+
+  const tasksByProject = {};
+  allTasks.forEach(t => {
+    if (t.archived || (t.status||{}).label === 'Skipped') return;
+    const pid = t.project?.projectId;
+    if (!pid) return;
+    (tasksByProject[pid] = tasksByProject[pid]||[]).push(t);
+  });
+
+  const phasesByProject = await rlFetchPhasesForProjects(apiKey, allProjects.map(p=>p.projectId));
+
+  const today = new Date(); today.setUTCHours(0,0,0,0);
+  const allViolations = [];
+  const perProject = [];
+  allProjects.forEach(p => {
+    const tasks = tasksByProject[p.projectId] || [];
+    const phasesRaw = phasesByProject[p.projectId] || [];
+    const approved = (p.fields||[]).some(f => f.fieldLabel === RLVR_APPROVED_FIELD && f.fieldValue);
+    const { violations, projectType } = rlvrFindViolations(p, tasks, phasesRaw, today, approved);
+    allViolations.push(...violations);
+    const info = rlvrInfo(p);
+    perProject.push({
+      projectId: p.projectId, project: info.project, client: info.client, owner: info.owner,
+      projectType, count: violations.length,
+      counted: violations.filter(v => v.category !== 'Approved Exception').length
+    });
+  });
+
+  const result = { generated: new Date().toISOString().slice(0,10), violations: allViolations, projects: perProject };
+
+  // Same safety net rlDoFullFetch uses for rlFullCache: a transient/incomplete
+  // Rocketlane fetch (rate limit, dropped page) can silently shrink the task
+  // list this computation runs on. Reject a suspiciously smaller result
+  // rather than serving (and caching) a falsely "improved" violation count.
+  const prevCount = rlVRegCache?.violations?.length || 0;
+  if (prevCount >= 50 && result.violations.length < prevCount * 0.7) {
+    return rlVRegCache;
+  }
+  rlVRegCache = result;
+  rlVRegCacheAt = Date.now();
+  return result;
+}
 
 app.get('/api/rocketlane/violation-register', async (req, res) => {
   const apiKey = process.env.ROCKETLANE_API_KEY;
@@ -5069,50 +5136,24 @@ app.get('/api/rocketlane/violation-register', async (req, res) => {
 
   const now = Date.now();
   const isRefresh = !!req.query.refresh;
+
   if (!isRefresh && rlVRegCache && (now - rlVRegCacheAt) < RL_VREG_CACHE_TTL)
     return res.json(rlvrFilterForUser(rlVRegCache, allowedClients));
 
+  // Stale cache available — serve it immediately so the tab never sits on a
+  // 30-60s blocking load, and refresh in the background for next time.
+  if (rlVRegCache) {
+    res.json({ ...rlvrFilterForUser(rlVRegCache, allowedClients), stale: true, cacheAge: Math.round((now - rlVRegCacheAt) / 1000) });
+    rlDoVRegFetch(apiKey).catch(() => {});
+    return;
+  }
+
+  // True cold start — must wait, but share one in-flight fetch across any
+  // concurrent requests that land before it resolves.
   try {
-    const [projResp, allTasks] = await Promise.all([
-      fetch('https://api.rocketlane.com/api/1.0/projects?pageSize=100', { headers: { 'api-key': apiKey, 'Accept': 'application/json' } }),
-      rlFetchAllTasks(apiKey)
-    ]);
-    if (!projResp.ok) throw new Error('Rocketlane API ' + projResp.status);
-    const projData = await projResp.json();
-    const allProjects = (Array.isArray(projData.data) ? projData.data : Object.values(projData.data||{})).filter(p => !p.archived);
-
-    const tasksByProject = {};
-    allTasks.forEach(t => {
-      if (t.archived || (t.status||{}).label === 'Skipped') return;
-      const pid = t.project?.projectId;
-      if (!pid) return;
-      (tasksByProject[pid] = tasksByProject[pid]||[]).push(t);
-    });
-
-    const phasesByProject = await rlFetchPhasesForProjects(apiKey, allProjects.map(p=>p.projectId));
-
-    const today = new Date(); today.setUTCHours(0,0,0,0);
-    const allViolations = [];
-    const perProject = [];
-    allProjects.forEach(p => {
-      const tasks = tasksByProject[p.projectId] || [];
-      const phasesRaw = phasesByProject[p.projectId] || [];
-      const approved = (p.fields||[]).some(f => f.fieldLabel === RLVR_APPROVED_FIELD && f.fieldValue);
-      const { violations, projectType } = rlvrFindViolations(p, tasks, phasesRaw, today, approved);
-      allViolations.push(...violations);
-      const info = rlvrInfo(p);
-      perProject.push({
-        projectId: p.projectId, project: info.project, client: info.client, owner: info.owner,
-        projectType, count: violations.length,
-        counted: violations.filter(v => v.category !== 'Approved Exception').length
-      });
-    });
-
-    rlVRegCache = { generated: new Date().toISOString().slice(0,10), violations: allViolations, projects: perProject };
-    rlVRegCacheAt = now;
-    res.json(rlvrFilterForUser(rlVRegCache, allowedClients));
+    const result = await rlDoVRegFetch(apiKey);
+    res.json(rlvrFilterForUser(result, allowedClients));
   } catch (e) {
-    if (rlVRegCache) return res.json({ ...rlvrFilterForUser(rlVRegCache, allowedClients), stale:true, error:e.message });
     res.status(500).json({ ok:false, error:'fetch_failed', message:e.message });
   }
 });
