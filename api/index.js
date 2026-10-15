@@ -4844,6 +4844,279 @@ async function _rlDoFullFetch(apiKey) {
   return result;
 }
 
+// ── Compliance Violation Register ─────────────────────────────────────────────
+// A separate, more granular rule engine than rlBuildCompliance() above — ported
+// line-for-line from a standalone audit tool (compliance_core.py) that produces
+// one record per individual miss (not just a per-project issue count), so this
+// register's totals and rule names match that tool exactly rather than the
+// app's own existing (differently-categorized) compliance engine.
+const RLVR_STANDARD = {
+  Engage:  [['Personalization sessions', ['personalizationsessions','personalisationsessions','personalizationsession','personalisationsession']],
+            ['Data Management', ['datamanagement']]],
+  Drive:   [['Configurations', ['configurations','configuration']],
+            ['Process Walkthrough', ['processwalkthrough','processwalkthroughs']]],
+  Enable:  [['Teach Back', ['teachback']],
+            ['System Validation', ['systemvalidation']],
+            ['User Acceptance Testing', ['useracceptancetesting','uat']]],
+  Convert: [['Go-live', ['golive']],
+            ['Hypercare period', ['hypercareperiod','hypercare','hypercaseperiod','hypercase']],
+            ['Project closure', ['projectclosure']]]
+};
+const RLVR_PHASES = ['Engage','Drive','Enable','Convert'];
+const RLVR_APPROVED_FIELD = 'Approved Non-Standard Exception';
+
+function rlvrNorm(s) { return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+function rlvrDate(s) { return s ? new Date(s.slice(0,10)) : null; }
+
+function rlvrInfo(p) {
+  const owner = p.owner || {};
+  return {
+    client: (p.customer||{}).companyName || '',
+    owner: [owner.firstName, owner.lastName].filter(Boolean).join(' ').trim() || '(unassigned)',
+    project: p.projectName,
+    projectId: p.projectId,
+    project_link: `https://bluecopa.rocketlane.com/projects/${p.projectId}`
+  };
+}
+
+function rlvrMk(info, phase, category, rule, f) {
+  return { ...info, projectType: f.project_type||'', phase, category, rule,
+    expected: f.expected||'', actual: f.actual||'', explanation: f.explanation||'',
+    corrective_action: f.corrective_action||'', task_name: f.task_name||'',
+    task_owner: f.task_owner||'', due_date: f.due_date||'', task_status: f.task_status||'' };
+}
+
+function rlvrFindViolations(p, tasks, phasesRaw, today, approved) {
+  const info = rlvrInfo(p);
+  const v = [];
+
+  const phaseNames = {};
+  phasesRaw.forEach(ph => { phaseNames[rlvrNorm(ph.phaseName)] = ph; });
+  const byPhase = {};
+  tasks.forEach(t => {
+    const key = rlvrNorm((t.phase||{}).phaseName);
+    (byPhase[key] = byPhase[key]||[]).push(t);
+  });
+
+  const missingPhasesSet = new Set();
+  const missingPhases = RLVR_PHASES.filter(c => {
+    const has = rlvrNorm(c) in phaseNames;
+    if (!has) missingPhasesSet.add(rlvrNorm(c));
+    return !has;
+  });
+  const missingTasks = [];   // [phase,label]
+  const wrongPhase = [];     // [expectedPhase,label,actualPhaseName,task]
+
+  Object.keys(RLVR_STANDARD).forEach(phase => {
+    if (missingPhasesSet.has(rlvrNorm(phase))) return; // already reported as a missing phase
+    const presentNorms = new Set((byPhase[rlvrNorm(phase)]||[]).map(t => rlvrNorm(t.taskName)));
+    RLVR_STANDARD[phase].forEach(([label, aliases]) => {
+      if (aliases.some(a => presentNorms.has(a))) return;
+      let foundElsewhere = null;
+      for (const otherPhase of Object.keys(byPhase)) {
+        if (otherPhase === rlvrNorm(phase)) continue;
+        const t = byPhase[otherPhase].find(t => aliases.includes(rlvrNorm(t.taskName)));
+        if (t) { foundElsewhere = [otherPhase, t]; break; }
+      }
+      if (foundElsewhere) {
+        const actualPhaseName = (foundElsewhere[1].phase||{}).phaseName || foundElsewhere[0];
+        wrongPhase.push([phase, label, actualPhaseName, foundElsewhere[1]]);
+      } else {
+        missingTasks.push([phase, label]);
+      }
+    });
+  });
+
+  const structuralCount = missingPhases.length + missingTasks.length + wrongPhase.length;
+  const projectType = structuralCount === 0 ? 'Standard' : 'Non-standard';
+  const catStruct = (approved && structuralCount) ? 'Approved Exception' : 'Missing';
+  const catStructCfg = (approved && structuralCount) ? 'Approved Exception' : 'Misconfigured';
+
+  missingPhases.forEach(phase => {
+    v.push(rlvrMk(info, phase, catStruct, 'Missing mandatory phase', {
+      project_type: projectType,
+      expected: `Phase '${phase}' present`, actual: 'Phase not found in Rocketlane',
+      explanation: `The project has no '${phase}' phase at all, so none of its mandatory parent tasks exist either.`,
+      corrective_action: `Add the '${phase}' phase and its mandatory parent tasks.`
+    }));
+  });
+
+  missingTasks.forEach(([phase,label]) => {
+    v.push(rlvrMk(info, phase, catStruct, 'Missing mandatory parent task', {
+      project_type: projectType,
+      expected: `'${label}' under ${phase}`, actual: 'Not found under this phase',
+      explanation: `'${label}' is a mandatory parent task under ${phase} and was not found (checked common spelling variants).`,
+      corrective_action: `Add a '${label}' parent task under the ${phase} phase.`
+    }));
+  });
+
+  wrongPhase.forEach(([phase,label,actualPhase,task]) => {
+    v.push(rlvrMk(info, phase, catStructCfg, 'Parent task in wrong phase', {
+      project_type: projectType,
+      expected: `'${label}' under ${phase}`, actual: `Found under '${actualPhase}' instead`,
+      explanation: `A task matching '${label}' exists but is filed under '${actualPhase}', not the expected ${phase} phase.`,
+      corrective_action: `Move '${task.taskName}' to the ${phase} phase, or rename/relocate as appropriate.`,
+      task_name: task.taskName||'', task_status: (task.status||{}).label||''
+    }));
+  });
+
+  if (!missingPhases.length) {
+    const ordered = RLVR_PHASES.map(phase => [phase, rlvrDate((phaseNames[rlvrNorm(phase)]||{}).startDate)]);
+    const dated = ordered.filter(([,s]) => s);
+    let outOfSeq = false;
+    for (let i=0;i<dated.length-1;i++) if (dated[i][1] > dated[i+1][1]) { outOfSeq = true; break; }
+    if (dated.length >= 2 && outOfSeq) {
+      v.push(rlvrMk(info, '(all)', catStructCfg, 'Phases out of sequence', {
+        project_type: projectType,
+        expected: 'Engage → Drive → Enable → Convert, in that start-date order',
+        actual: dated.map(([ph,s]) => `${ph} ${s.toISOString().slice(0,10)}`).join('; '),
+        explanation: "The phases' planned start dates are not in the standard delivery order.",
+        corrective_action: 'Re-sequence the phase start dates to follow Engage → Drive → Enable → Convert.'
+      }));
+    }
+  }
+
+  if (!p.startDate || !p.dueDate) {
+    const missingBits = [];
+    if (!p.startDate) missingBits.push('start date');
+    if (!p.dueDate) missingBits.push('due date');
+    v.push(rlvrMk(info, '(project)', 'Misconfigured', 'Incomplete project timeline', {
+      project_type: projectType,
+      expected: 'Project start date and due date both set', actual: `Missing: ${missingBits.join(', ')}`,
+      explanation: "A project without a start or due date can't be scheduled or tracked against plan.",
+      corrective_action: `Set the project's ${missingBits.join(', ')}.`
+    }));
+  }
+
+  tasks.forEach(t => {
+    const ph = (t.phase||{}).phaseName || '(no phase)';
+    const status = (t.status||{}).label || '';
+    const ownerNames = ((t.assignees||{}).members||[]).map(m=>m.firstName||'').filter(Boolean).join(', ') || null;
+    const due = rlvrDate(t.dueDate);
+    const start = rlvrDate(t.startDate);
+    const doneActual = rlvrDate(t.dueDateActual);
+    const common = { project_type: projectType, task_name: t.taskName||'', task_owner: ownerNames||'(unassigned)', due_date: t.dueDate||'', task_status: status };
+
+    if (!ownerNames) v.push(rlvrMk(info, ph, 'Execution', 'Task has no owner', { ...common, expected:'An assignee', actual:'No assignee',
+      explanation:'This task has no one assigned, so nobody is accountable for it.', corrective_action:'Assign an owner.' }));
+    if (!t.dueDate) v.push(rlvrMk(info, ph, 'Execution', 'Task has no due date', { ...common, expected:'A due date', actual:'No due date',
+      explanation:"This task has no due date, so it can't be tracked as on-time or late.", corrective_action:'Set a due date.' }));
+    else if (due && (due.getUTCDay()===0 || due.getUTCDay()===6)) v.push(rlvrMk(info, ph, 'Execution', 'Task due on a weekend', { ...common,
+      expected:'A weekday due date', actual:`Due ${t.dueDate} (${due.toLocaleDateString('en-US',{weekday:'long',timeZone:'UTC'})})`,
+      explanation:'This task is due on a weekend; weekday scheduling is expected.', corrective_action:'Move the due date to the nearest weekday.' }));
+    if (due && status!=='Completed' && status!=='Skipped' && due < today) {
+      const daysLate = Math.floor((today-due)/86400000);
+      v.push(rlvrMk(info, ph, 'Execution', 'Overdue incomplete task', { ...common,
+        expected:`Completed by ${t.dueDate}`, actual:`Still '${status}', ${daysLate} day(s) late`,
+        explanation:'This task is past its due date and not yet completed.', corrective_action:'Complete it, or re-plan the due date.' }));
+    }
+    if (status==='Completed' && doneActual && start && doneActual < start) {
+      v.push(rlvrMk(info, ph, 'Execution', 'Completed before its own start date', { ...common,
+        expected:`Completed on/after start date ${t.startDate}`, actual:`Marked complete on ${t.dueDateActual}`,
+        explanation:'This task was marked complete before its planned start date — likely marked done prematurely or dates are wrong.',
+        corrective_action:'Check whether this was really finished, or correct the dates.' }));
+    }
+  });
+
+  return { violations: v, projectType };
+}
+
+let rlPhasesCache = {};
+let rlPhasesCacheAt = 0;
+const RL_PHASES_CACHE_TTL = 5 * 60 * 1000; // phase dates change rarely — cache a bit longer than tasks
+
+async function rlFetchPhasesForProjects(apiKey, projectIds) {
+  const now = Date.now();
+  if (rlPhasesCacheAt && (now - rlPhasesCacheAt) < RL_PHASES_CACHE_TTL && projectIds.every(id => id in rlPhasesCache))
+    return rlPhasesCache;
+  const results = {};
+  const queue = projectIds.slice();
+  async function worker() {
+    while (queue.length) {
+      const pid = queue.shift();
+      try {
+        const r = await fetch(`https://api.rocketlane.com/api/1.0/phases?projectId=${pid}&pageSize=50`, { headers: { 'api-key': apiKey, 'Accept': 'application/json' } });
+        if (!r.ok) { results[pid] = []; continue; }
+        const d = await r.json();
+        results[pid] = Array.isArray(d.data) ? d.data : [];
+      } catch { results[pid] = []; }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(8, projectIds.length) }, worker));
+  rlPhasesCache = results;
+  rlPhasesCacheAt = now;
+  return results;
+}
+
+function rlvrFilterForUser(data, allowedClients) {
+  if (allowedClients === null) return { ok:true, ...data };
+  const set = new Set(allowedClients);
+  return { ok:true, generated: data.generated,
+    violations: data.violations.filter(v => set.has(v.client)),
+    projects: data.projects.filter(p => set.has(p.client)) };
+}
+
+let rlVRegCache = null;
+let rlVRegCacheAt = 0;
+const RL_VREG_CACHE_TTL = 2 * 60 * 1000;
+
+app.get('/api/rocketlane/violation-register', async (req, res) => {
+  const apiKey = process.env.ROCKETLANE_API_KEY;
+  if (!apiKey) return res.status(503).json({ ok:false, error:'not_configured' });
+  await getDbInitPromise(); ensureACL();
+  const email = (req.headers['x-user-email'] || '').toLowerCase().trim();
+  const allowedClients = getAllowedRLClients(email);
+
+  const now = Date.now();
+  const isRefresh = !!req.query.refresh;
+  if (!isRefresh && rlVRegCache && (now - rlVRegCacheAt) < RL_VREG_CACHE_TTL)
+    return res.json(rlvrFilterForUser(rlVRegCache, allowedClients));
+
+  try {
+    const [projResp, allTasks] = await Promise.all([
+      fetch('https://api.rocketlane.com/api/1.0/projects?pageSize=100', { headers: { 'api-key': apiKey, 'Accept': 'application/json' } }),
+      rlFetchAllTasks(apiKey)
+    ]);
+    if (!projResp.ok) throw new Error('Rocketlane API ' + projResp.status);
+    const projData = await projResp.json();
+    const allProjects = (Array.isArray(projData.data) ? projData.data : Object.values(projData.data||{})).filter(p => !p.archived);
+
+    const tasksByProject = {};
+    allTasks.forEach(t => {
+      if (t.archived || (t.status||{}).label === 'Skipped') return;
+      const pid = t.project?.projectId;
+      if (!pid) return;
+      (tasksByProject[pid] = tasksByProject[pid]||[]).push(t);
+    });
+
+    const phasesByProject = await rlFetchPhasesForProjects(apiKey, allProjects.map(p=>p.projectId));
+
+    const today = new Date(); today.setUTCHours(0,0,0,0);
+    const allViolations = [];
+    const perProject = [];
+    allProjects.forEach(p => {
+      const tasks = tasksByProject[p.projectId] || [];
+      const phasesRaw = phasesByProject[p.projectId] || [];
+      const approved = (p.fields||[]).some(f => f.fieldLabel === RLVR_APPROVED_FIELD && f.fieldValue);
+      const { violations, projectType } = rlvrFindViolations(p, tasks, phasesRaw, today, approved);
+      allViolations.push(...violations);
+      const info = rlvrInfo(p);
+      perProject.push({
+        projectId: p.projectId, project: info.project, client: info.client, owner: info.owner,
+        projectType, count: violations.length,
+        counted: violations.filter(v => v.category !== 'Approved Exception').length
+      });
+    });
+
+    rlVRegCache = { generated: new Date().toISOString().slice(0,10), violations: allViolations, projects: perProject };
+    rlVRegCacheAt = now;
+    res.json(rlvrFilterForUser(rlVRegCache, allowedClients));
+  } catch (e) {
+    if (rlVRegCache) return res.json({ ...rlvrFilterForUser(rlVRegCache, allowedClients), stale:true, error:e.message });
+    res.status(500).json({ ok:false, error:'fetch_failed', message:e.message });
+  }
+});
+
 // ── Weekly Review notes ───────────────────────────────────────────────────────
 // An append-only per-project log written from the admin-only Weekly Review tab
 // during the PM review meeting, so "what we said last week" is there to check

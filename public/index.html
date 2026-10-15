@@ -11334,6 +11334,7 @@ var RL_TABS = [
   { id: 'executive',  label: 'Executive Overview' },
   { id: 'trends',     label: 'Historical Trends' },
   { id: 'compliance', label: 'Project Compliance' },
+  { id: 'register',   label: 'Violation Register' },
   { id: 'timeline',   label: 'Timeline Changes' },
   { id: 'health',     label: 'Health Dashboard' },
   { id: 'projects',   label: 'Projects' }
@@ -11457,7 +11458,7 @@ function rlRenderActiveTab() {
   var body = document.getElementById('rlTabBody');
   if (!body || !_rlData) return;
   try {
-    ({ overview: rlTabOverview, executive: rlTabExecutive, compliance: rlTabCompliance, timeline: rlTabTimeline, trends: rlTabTrends, health: rlTabHealth, projects: rlTabProjects, review: rlTabReview })[_rlTab](body);
+    ({ overview: rlTabOverview, executive: rlTabExecutive, compliance: rlTabCompliance, register: rlTabViolationRegister, timeline: rlTabTimeline, trends: rlTabTrends, health: rlTabHealth, projects: rlTabProjects, review: rlTabReview })[_rlTab](body);
   } catch(e) {
     body.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626;font-size:13px;">Tab render error: ' + (e && e.message || String(e)) + '</div>';
   }
@@ -12494,11 +12495,61 @@ function rlov360EnsureStyle() {
     '.rlov-chip.misconfig{background:var(--rlov-misconfig-soft);color:var(--rlov-misconfig);}' +
     '.rlov-chip.execution{background:var(--rlov-execution-soft);color:var(--rlov-execution);}' +
     '.rlov-chip.exception{background:var(--rlov-exception-soft);color:var(--rlov-exception);}' +
-    '.rlov-empty{padding:30px;text-align:center;color:var(--rlov-muted);font-size:13px;}';
+    '.rlov-empty{padding:30px;text-align:center;color:var(--rlov-muted);font-size:13px;}' +
+    // ── Violation Register extras ──
+    '.rlov-search{background:var(--rlov-bg);border:1px solid var(--rlov-border);color:var(--rlov-text);border-radius:8px;padding:7px 10px;font-family:var(--rlov-sans);font-size:13px;flex:1 1 220px;min-width:160px;}' +
+    '.rlov-clear-btn{background:none;border:1px solid var(--rlov-border);color:var(--rlov-muted);border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;font-family:var(--rlov-sans);}' +
+    '.rlov-clear-btn:hover{color:var(--rlov-text);border-color:var(--rlov-muted);}' +
+    '.rlov-count-line{color:var(--rlov-muted);font-size:12.5px;margin-top:8px;}' +
+    '.rlov-table thead th[data-k]{cursor:pointer;}' +
+    '.rlov-table thead th[data-k]:hover{color:var(--rlov-text);}' +
+    '.rlov-table thead th .arrow{opacity:.5;margin-left:3px;}' +
+    '.rlov-table-scroll{overflow-x:auto;border:1px solid var(--rlov-border);border-radius:10px;max-height:640px;overflow-y:auto;}' +
+    '.rlov-chip.approved{background:var(--rlov-accent-soft);color:var(--rlov-accent);}' +
+    '.rlov-detail-btn{background:none;border:1px solid var(--rlov-border);color:var(--rlov-muted);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:var(--rlov-sans);}' +
+    '.rlov-detail-btn:hover{border-color:var(--rlov-accent);color:var(--rlov-accent);}' +
+    '.rlov-detail-row td{background:var(--rlov-bg);padding:14px 16px;}' +
+    '.rlov-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}' +
+    '.rlov-detail-grid .k{color:var(--rlov-muted);font-size:11px;text-transform:uppercase;letter-spacing:.02em;margin-bottom:3px;}' +
+    '.rlov-detail-grid .v{font-size:13px;color:var(--rlov-text);}' +
+    '.rlov-detail-grid a{color:var(--rlov-accent);}' +
+    '.rlov-pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:10px;font-size:13px;color:var(--rlov-muted);}' +
+    '.rlov-pager button{background:var(--rlov-panel);border:1px solid var(--rlov-border);color:var(--rlov-text);border-radius:6px;padding:5px 12px;cursor:pointer;font-size:13px;font-family:var(--rlov-sans);}' +
+    '.rlov-pager button:disabled{opacity:.4;cursor:default;}' +
+    '.rlov-pager span.page-n{font-family:var(--rlov-mono);}';
   var styleEl = document.createElement('style');
   styleEl.id = 'rlov-style';
   styleEl.textContent = css;
   document.head.appendChild(styleEl);
+}
+
+// ── Shared rlov-* helpers (used by rlTabOverview and rlTabViolationRegister) ──
+function rlovCard(html, extraStyle) {
+  return '<div class="rlov-panel" style="' + (extraStyle||'') + '">' + html + '</div>';
+}
+function rlovBarRow(label, count, maxVal) {
+  var pct = maxVal ? Math.round(count/maxVal*100) : 0;
+  return '<div class="rlov-bar-row">' +
+    '<div class="lbl">' + label + '</div>' +
+    '<div class="rlov-bar-track"><div class="rlov-bar-fill" style="width:' + Math.max(pct,count?3:0) + '%;"></div></div>' +
+    '<div class="rlov-bar-n">' + count + '</div>' +
+  '</div>';
+}
+function rlovSh(title, sub) {
+  return '<div class="rlov-sec-hd"><h2>' + title + '</h2>' +
+    (sub ? '<div class="rlov-sub">' + sub + '</div>' : '') +
+  '</div>';
+}
+function rlovKpi(val, label, sub, tone) {
+  return '<div class="rlov-stat ' + (tone||'') + '">' +
+    '<div class="n">' + val + '</div>' +
+    '<div class="l">' + label + '</div>' +
+    (sub ? '<div class="s">' + sub + '</div>' : '') +
+  '</div>';
+}
+function rlovTogBtn(v, cur, fn, label) {
+  var a = v === cur;
+  return '<button class="rlov-toggle' + (a?' active':'') + '" onclick="' + fn + '(\'' + v + '\')">' + label + '</button>';
 }
 
 function rlTabOverview(body) {
@@ -12506,6 +12557,7 @@ function rlTabOverview(body) {
   // ── State ──
   var _clientF = '', _ownerF = '', _statusF = 'all', _stdF = 'all';
   var _ownerView = 'client'; // 'client' | 'owner'
+  var card = rlovCard, barRow = rlovBarRow, sh = rlovSh, kpi = rlovKpi, togBtn = rlovTogBtn;
 
   // ── Helper: median ──
   function median(arr) {
@@ -12513,19 +12565,6 @@ function rlTabOverview(body) {
     var s = arr.slice().sort(function(a,b){return a-b;});
     var m = Math.floor(s.length/2);
     return s.length%2 ? s[m] : Math.round((s[m-1]+s[m])/2);
-  }
-  // ── Helper: card panel ──
-  function card(html, extraStyle) {
-    return '<div class="rlov-panel" style="' + (extraStyle||'') + '">' + html + '</div>';
-  }
-  // ── Helper: a single bar row (percentage-of-max width, single accent color) ──
-  function barRow(label, count, maxVal) {
-    var pct = maxVal ? Math.round(count/maxVal*100) : 0;
-    return '<div class="rlov-bar-row">' +
-      '<div class="lbl">' + label + '</div>' +
-      '<div class="rlov-bar-track"><div class="rlov-bar-fill" style="width:' + Math.max(pct,count?3:0) + '%;"></div></div>' +
-      '<div class="rlov-bar-n">' + count + '</div>' +
-    '</div>';
   }
 
   // ── Filtered project set ──
@@ -12547,28 +12586,6 @@ function rlTabOverview(body) {
     if (_stdF === 'standard')    ps = ps.filter(function(p){ return p.isStandard; });
     if (_stdF === 'nonstandard') ps = ps.filter(function(p){ return !p.isStandard; });
     return ps;
-  }
-
-  // ── Section header ──
-  function sh(n, title, sub) {
-    return '<div class="rlov-sec-hd"><h2>' + title + '</h2>' +
-      (sub ? '<div class="rlov-sub">' + sub + '</div>' : '') +
-    '</div>';
-  }
-
-  // ── KPI mini-card ── (tone: '', 'missing', 'misconfig', 'execution', 'exception', 'accent')
-  function kpi(val, label, sub, tone) {
-    return '<div class="rlov-stat ' + (tone||'') + '">' +
-      '<div class="n">' + val + '</div>' +
-      '<div class="l">' + label + '</div>' +
-      (sub ? '<div class="s">' + sub + '</div>' : '') +
-    '</div>';
-  }
-
-  // ── Toggle button ──
-  function togBtn(v, cur, fn, label) {
-    var a = v === cur;
-    return '<button class="rlov-toggle' + (a?' active':'') + '" onclick="' + fn + '(\'' + v + '\')">' + label + '</button>';
   }
 
   // ── Filters ──
@@ -13001,6 +13018,286 @@ function rlTabOverview(body) {
   window.rlOVView = function(v){ _ownerView=v; render(); };
 
   render();
+}
+
+// ─── Tab: Violation Register ────────────────────────────────────────────────
+// Ported from a standalone audit tool (Compliance Violation Register) built on
+// the same Rocketlane data — one row per individual miss, with its own
+// filter/sort/paginate reactivity layered onto a shell rendered once (rather
+// than this file's usual "re-render the whole tab body on every state change"
+// pattern), matching how that tool's own page behaves.
+var _rlVRegCache = null, _rlVRegCacheAt = 0;
+var RL_VREG_CLIENT_TTL = 2 * 60 * 1000;
+
+function rlTabViolationRegister(body) {
+  rlov360EnsureStyle();
+  var now = Date.now();
+  if (_rlVRegCache && (now - _rlVRegCacheAt) < RL_VREG_CLIENT_TTL) {
+    renderRegister(_rlVRegCache);
+    return;
+  }
+  body.innerHTML = '<div class="rlov-root"><div class="rlov-empty">Loading violation register…</div></div>';
+  fetch('/api/rocketlane/violation-register', { headers: rlUserHeaders() })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (!data.ok) {
+        body.innerHTML = '<div class="rlov-root"><div class="rlov-empty">' + (data.message||data.error||'Failed to load.') + '</div></div>';
+        return;
+      }
+      _rlVRegCache = data; _rlVRegCacheAt = Date.now();
+      renderRegister(data);
+    })
+    .catch(function(e){
+      body.innerHTML = '<div class="rlov-root"><div class="rlov-empty">Failed to load: ' + (e.message||'Unknown error') + '</div></div>';
+    });
+
+  function renderRegister(data) {
+    var VIOLATIONS = data.violations || [];
+    var PROJECTS = data.projects || [];
+    var PAGE_SIZE = 50;
+    var state = { search:'', client:'', project:'', owner:'', phase:'', category:'', rule:'', type:'', sortKey:'client', sortDir:1, page:1 };
+    var FILTER_FIELD = { client:'client', project:'project', owner:'owner', phase:'phase', category:'category', rule:'rule', type:'projectType' };
+    var FIRST_OPTION = {};
+
+    function esc(s) { return (s==null?'':String(s)).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+    function catTone(cat) { return cat==='Missing'?'missing':cat==='Misconfigured'?'misconfig':cat==='Execution'?'execution':cat==='Approved Exception'?'approved':''; }
+
+    function projectMatches(p) {
+      if (state.client && p.client!==state.client) return false;
+      if (state.project && p.project!==state.project) return false;
+      if (state.owner && p.owner!==state.owner) return false;
+      if (state.type && p.projectType!==state.type) return false;
+      return true;
+    }
+
+    // Matches every active filter EXCEPT `exceptKey` — used to compute each
+    // select's own option list from what's still reachable if that one filter
+    // were cleared, so picking a client narrows projects/owners/phases/rules
+    // (and vice versa) without a filter ever hiding its own options.
+    function matchesAllExcept(v, exceptKey) {
+      var q = state.search.trim().toLowerCase();
+      if (exceptKey!=='client' && state.client && v.client!==state.client) return false;
+      if (exceptKey!=='project' && state.project && v.project!==state.project) return false;
+      if (exceptKey!=='owner' && state.owner && v.owner!==state.owner) return false;
+      if (exceptKey!=='phase' && state.phase && v.phase!==state.phase) return false;
+      if (exceptKey!=='category' && state.category && v.category!==state.category) return false;
+      if (exceptKey!=='rule' && state.rule && v.rule!==state.rule) return false;
+      if (exceptKey!=='type' && state.type && v.projectType!==state.type) return false;
+      if (q) {
+        var hay = [v.client,v.project,v.owner,v.rule,v.phase,v.explanation,v.corrective_action,v.task_name].join(' ').toLowerCase();
+        if (hay.indexOf(q)===-1) return false;
+      }
+      return true;
+    }
+
+    function filtered() {
+      // No key equals null, so every active filter applies — this is the full
+      // (not "all except one") match used for the table/charts/count-line.
+      return VIOLATIONS.filter(function(v){ return matchesAllExcept(v, null); }).sort(function(a,b){
+        var A = a[state.sortKey]==null?'':a[state.sortKey], B = b[state.sortKey]==null?'':b[state.sortKey];
+        return A<B ? -state.sortDir : A>B ? state.sortDir : 0;
+      });
+    }
+
+    function topN(rows, key, n) {
+      var m = {};
+      rows.forEach(function(v){ var k = v[key]||'(none)'; m[k] = (m[k]||0)+1; });
+      return Object.entries(m).sort(function(a,b){return b[1]-a[1];}).slice(0,n);
+    }
+
+    function shell() {
+      body.innerHTML = '<div class="rlov-root">' +
+        '<div class="rlov-sec-hd">' +
+          '<h2>Compliance Violation Register</h2>' +
+          '<div class="rlov-sub">Every individual delivery-methodology and task-hygiene miss, one row each · generated ' + esc(data.generated||'') + '</div>' +
+        '</div>' +
+        '<div class="rlov-stats" id="rlvr-stats"></div>' +
+        rlovCard(
+          '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;">' +
+            '<div><h2 style="font-size:13px;margin-bottom:10px;">Most-violated rules</h2><div id="rlvr-chart-rules"></div></div>' +
+            '<div><h2 style="font-size:13px;margin-bottom:10px;">Clients with the most violations</h2><div id="rlvr-chart-clients"></div></div>' +
+            '<div><h2 style="font-size:13px;margin-bottom:10px;">Owners with the most violations</h2><div id="rlvr-chart-owners"></div></div>' +
+          '</div>'
+        ) +
+        rlovCard(
+          '<h2 style="margin-bottom:12px;">Filter the register</h2>' +
+          '<div class="rlov-filters">' +
+            '<input type="search" class="rlov-search" id="rlvr-f-search" placeholder="Search project, owner, rule, explanation…">' +
+            '<select id="rlvr-f-client"><option value="">All clients</option></select>' +
+            '<select id="rlvr-f-project"><option value="">All projects</option></select>' +
+            '<select id="rlvr-f-owner"><option value="">All owners</option></select>' +
+            '<select id="rlvr-f-phase"><option value="">All phases</option></select>' +
+            '<select id="rlvr-f-category"><option value="">All categories</option></select>' +
+            '<select id="rlvr-f-rule"><option value="">All rules</option></select>' +
+            '<select id="rlvr-f-type"><option value="">All project types</option><option value="Standard">Standard</option><option value="Non-standard">Non-standard</option></select>' +
+            '<button class="rlov-clear-btn" id="rlvr-btn-clear">Clear filters</button>' +
+          '</div>' +
+          '<div class="rlov-count-line" id="rlvr-count-line"></div>'
+        ) +
+        '<div class="rlov-table-scroll">' +
+          '<table class="rlov-table" id="rlvr-table">' +
+            '<thead><tr>' +
+              '<th data-k="client">Client<span class="arrow"></span></th>' +
+              '<th data-k="project">Project<span class="arrow"></span></th>' +
+              '<th data-k="owner">Owner<span class="arrow"></span></th>' +
+              '<th data-k="projectType">Type<span class="arrow"></span></th>' +
+              '<th data-k="phase">Phase<span class="arrow"></span></th>' +
+              '<th data-k="category">Category<span class="arrow"></span></th>' +
+              '<th data-k="rule">Rule<span class="arrow"></span></th>' +
+              '<th></th>' +
+            '</tr></thead>' +
+            '<tbody id="rlvr-body"></tbody>' +
+          '</table>' +
+        '</div>' +
+        '<div class="rlov-pager">' +
+          '<span id="rlvr-page-info"></span>' +
+          '<button id="rlvr-btn-prev">← Prev</button>' +
+          '<span class="page-n" id="rlvr-page-n"></span>' +
+          '<button id="rlvr-btn-next">Next →</button>' +
+        '</div>' +
+        '<div class="rlov-sub" style="margin-top:16px;">Built from live Rocketlane project, phase and task data. &quot;Approved Exception&quot; rows are structural deviations on projects explicitly marked as an approved non-standard exception — listed, but excluded from the totals above.</div>' +
+      '</div>';
+    }
+
+    function captureFirstOptions() {
+      Object.keys(FILTER_FIELD).forEach(function(key){
+        var el = document.getElementById('rlvr-f-'+key);
+        if (el) FIRST_OPTION[key] = el.options[0].cloneNode(true);
+      });
+    }
+
+    function updateFilterOptions() {
+      Object.keys(FILTER_FIELD).forEach(function(key){
+        var field = FILTER_FIELD[key];
+        var rows = VIOLATIONS.filter(function(v){ return matchesAllExcept(v, key); });
+        var seen = {}, values = [];
+        rows.forEach(function(v){ var val = v[field]; if (val && !seen[val]) { seen[val]=true; values.push(val); } });
+        values.sort();
+        if (state[key] && values.indexOf(state[key])===-1) state[key] = '';
+        var el = document.getElementById('rlvr-f-'+key);
+        if (!el) return;
+        el.innerHTML = '';
+        el.appendChild(FIRST_OPTION[key].cloneNode(true));
+        values.forEach(function(v){ var o = document.createElement('option'); o.value=v; o.textContent=v; el.appendChild(o); });
+        el.value = state[key];
+      });
+    }
+
+    function renderSummary(rows) {
+      var counted = rows.filter(function(v){ return v.category!=='Approved Exception'; });
+      var approvedExceptions = rows.length - counted.length;
+      var byCat = {};
+      counted.forEach(function(v){ byCat[v.category] = (byCat[v.category]||0)+1; });
+
+      var projRows = PROJECTS.filter(projectMatches);
+      var reviewed = projRows.length;
+      var fullyCompliant = projRows.filter(function(p){ return p.counted===0; }).length;
+      var withViolations = reviewed - fullyCompliant;
+
+      document.getElementById('rlvr-stats').innerHTML =
+        rlovKpi(reviewed, 'Projects Reviewed', '', 'accent') +
+        rlovKpi(fullyCompliant, 'Fully Compliant', '', 'execution') +
+        rlovKpi(withViolations, 'With Violations', '', 'missing') +
+        rlovKpi(counted.length, 'Total Violations', '', 'missing') +
+        rlovKpi(byCat.Missing||0, 'Missing Items', '', 'missing') +
+        rlovKpi(byCat.Misconfigured||0, 'Misconfigured Items', '', 'misconfig') +
+        rlovKpi(byCat.Execution||0, 'Execution Violations', '', 'execution') +
+        rlovKpi(approvedExceptions, 'Approved Exceptions', '', 'accent');
+
+      function barChart(id, entries) {
+        var el = document.getElementById(id);
+        if (!entries.length) { el.innerHTML = '<div class="rlov-count-line">No matches.</div>'; return; }
+        var max = Math.max.apply(null, entries.map(function(x){return x[1];}));
+        el.innerHTML = entries.map(function(e){ return rlovBarRow(esc(e[0]), e[1], max); }).join('');
+      }
+      barChart('rlvr-chart-rules', topN(counted, 'rule', 8));
+      barChart('rlvr-chart-clients', topN(counted, 'client', 8));
+      barChart('rlvr-chart-owners', topN(counted, 'owner', 8));
+    }
+
+    function renderTable() {
+      updateFilterOptions();
+      var rows = filtered();
+      renderSummary(rows);
+      var totalPages = Math.max(1, Math.ceil(rows.length/PAGE_SIZE));
+      state.page = Math.min(state.page, totalPages);
+      var start = (state.page-1)*PAGE_SIZE;
+      var page = rows.slice(start, start+PAGE_SIZE);
+
+      document.getElementById('rlvr-count-line').textContent = rows.length + ' of ' + VIOLATIONS.length + ' violations match these filters.';
+      document.getElementById('rlvr-page-info').textContent = rows.length ? (start+1) + '–' + Math.min(start+PAGE_SIZE, rows.length) + ' of ' + rows.length : '0 of 0';
+      document.getElementById('rlvr-page-n').textContent = 'page ' + state.page + ' / ' + totalPages;
+      document.getElementById('rlvr-btn-prev').disabled = state.page<=1;
+      document.getElementById('rlvr-btn-next').disabled = state.page>=totalPages;
+
+      document.getElementById('rlvr-body').innerHTML = page.map(function(v, i){
+        var idx = start+i;
+        var tone = catTone(v.category);
+        var extras = [];
+        if (v.task_name)   extras.push('<div><div class="k">Task</div><div class="v">'+esc(v.task_name)+'</div></div>');
+        if (v.task_owner)  extras.push('<div><div class="k">Task owner</div><div class="v">'+esc(v.task_owner)+'</div></div>');
+        if (v.due_date)    extras.push('<div><div class="k">Due date</div><div class="v">'+esc(v.due_date)+'</div></div>');
+        if (v.task_status) extras.push('<div><div class="k">Task status</div><div class="v">'+esc(v.task_status)+'</div></div>');
+        return '<tr>' +
+          '<td>'+esc(v.client)+'</td>' +
+          '<td>'+esc(v.project)+'</td>' +
+          '<td>'+esc(v.owner)+'</td>' +
+          '<td>'+esc(v.projectType)+'</td>' +
+          '<td>'+esc(v.phase)+'</td>' +
+          '<td><span class="rlov-chip '+tone+'">'+esc(v.category)+'</span></td>' +
+          '<td>'+esc(v.rule)+'</td>' +
+          '<td><button class="rlov-detail-btn" data-idx="'+idx+'">Details</button></td>' +
+        '</tr>' +
+        '<tr class="rlov-detail-row" id="rlvr-detail-'+idx+'" hidden><td colspan="8">' +
+          '<div class="rlov-detail-grid">' +
+            '<div><div class="k">Expected</div><div class="v">'+esc(v.expected)+'</div></div>' +
+            '<div><div class="k">Actual found</div><div class="v">'+esc(v.actual)+'</div></div>' +
+            '<div><div class="k">Why this is a violation</div><div class="v">'+esc(v.explanation)+'</div></div>' +
+            '<div><div class="k">Recommended corrective action</div><div class="v">'+esc(v.corrective_action)+'</div></div>' +
+            extras.join('') +
+            '<div><div class="k">Project link</div><div class="v"><a href="'+esc(v.project_link)+'" target="_blank" rel="noopener">'+esc(v.project_link)+'</a></div></div>' +
+          '</div>' +
+        '</td></tr>';
+      }).join('');
+
+      Array.prototype.forEach.call(document.querySelectorAll('.rlov-detail-btn'), function(btn){
+        btn.addEventListener('click', function(){
+          var row = document.getElementById('rlvr-detail-'+btn.getAttribute('data-idx'));
+          row.hidden = !row.hidden;
+          btn.textContent = row.hidden ? 'Details' : 'Hide';
+        });
+      });
+    }
+
+    function wireEvents() {
+      Array.prototype.forEach.call(document.querySelectorAll('#rlvr-table thead th[data-k]'), function(th){
+        th.addEventListener('click', function(){
+          var k = th.getAttribute('data-k');
+          if (state.sortKey===k) state.sortDir *= -1; else { state.sortKey=k; state.sortDir=1; }
+          Array.prototype.forEach.call(document.querySelectorAll('#rlvr-table thead .arrow'), function(a){ a.textContent=''; });
+          th.querySelector('.arrow').textContent = state.sortDir>0 ? '↑' : '↓';
+          state.page = 1; renderTable();
+        });
+      });
+      ['client','project','owner','phase','category','rule','type'].forEach(function(k){
+        document.getElementById('rlvr-f-'+k).addEventListener('change', function(e){ state[k]=e.target.value; state.page=1; renderTable(); });
+      });
+      document.getElementById('rlvr-f-search').addEventListener('input', function(e){ state.search=e.target.value; state.page=1; renderTable(); });
+      document.getElementById('rlvr-btn-clear').addEventListener('click', function(){
+        state = { search:'', client:'', project:'', owner:'', phase:'', category:'', rule:'', type:'', sortKey:'client', sortDir:1, page:1 };
+        Array.prototype.forEach.call(document.querySelectorAll('.rlov-filters select'), function(s){ s.value=''; });
+        document.getElementById('rlvr-f-search').value='';
+        renderTable();
+      });
+      document.getElementById('rlvr-btn-prev').addEventListener('click', function(){ state.page--; renderTable(); });
+      document.getElementById('rlvr-btn-next').addEventListener('click', function(){ state.page++; renderTable(); });
+    }
+
+    shell();
+    captureFirstOptions();
+    wireEvents();
+    renderTable();
+  }
 }
 
 function rlTabHealth(body) {
