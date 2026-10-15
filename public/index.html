@@ -12432,7 +12432,77 @@ function rlTabTimeline(body) {
 
 // ─── Tab 6: Health Dashboard ──────────────────────────────────────────────────
 // ─── Tab 0: 360° Overall Dashboard ─────────────────────────────────────────
+// Visual design deliberately departs from the rest of the Rocketlane dashboard
+// (which uses the app's dark, rainbow-coded style) — ported from a standalone
+// "Compliance Violation Register" page built earlier: warm paper background,
+// IBM Plex Serif headings, IBM Plex Mono numbers, a single terracotta accent
+// plus four restrained semantic tones instead of a wide rainbow of colors.
+function rlov360EnsureStyle() {
+  if (document.getElementById('rlov-style')) return;
+  var link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@600&family=IBM+Plex+Mono:wght@400;600&display=swap';
+  document.head.appendChild(link);
+  var css =
+    '.rlov-root{' +
+      '--rlov-bg:#f7f5f1;--rlov-panel:#ffffff;--rlov-border:#e4ddd0;--rlov-text:#241f16;--rlov-muted:#6f6657;' +
+      '--rlov-accent:#8a3b1f;--rlov-accent-soft:#f2ddd0;' +
+      '--rlov-missing:#b23a2e;--rlov-missing-soft:#f6dcd8;' +
+      '--rlov-misconfig:#b4791a;--rlov-misconfig-soft:#f8e7cb;' +
+      '--rlov-execution:#2f5f8a;--rlov-execution-soft:#dde9f3;' +
+      '--rlov-exception:#3f7a4f;--rlov-exception-soft:#dcebe0;' +
+      '--rlov-mono:\'IBM Plex Mono\',ui-monospace,monospace;' +
+      '--rlov-sans:\'IBM Plex Sans\',system-ui,sans-serif;' +
+      '--rlov-serif:\'IBM Plex Serif\',Georgia,serif;' +
+      'font-family:var(--rlov-sans);color:var(--rlov-text);background:var(--rlov-bg);' +
+      'padding:16px;border-radius:14px;' +
+    '}' +
+    '.rlov-root *{box-sizing:border-box;}' +
+    '.rlov-root h2{font-family:var(--rlov-serif);font-weight:600;font-size:15px;margin:0;color:var(--rlov-text);text-wrap:balance;}' +
+    '.rlov-sub{font-family:var(--rlov-mono);font-size:11px;color:var(--rlov-muted);margin-top:3px;}' +
+    '.rlov-sec-hd{margin:22px 0 10px;}' +
+    '.rlov-sec-hd:first-child{margin-top:0;}' +
+    '.rlov-panel{background:var(--rlov-panel);border:1px solid var(--rlov-border);border-radius:12px;padding:16px;margin-bottom:16px;}' +
+    '.rlov-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px;}' +
+    '.rlov-stat{background:var(--rlov-panel);border:1px solid var(--rlov-border);border-radius:10px;padding:14px 16px;}' +
+    '.rlov-stat .n{font-family:var(--rlov-mono);font-variant-numeric:tabular-nums;font-size:26px;font-weight:600;line-height:1;color:var(--rlov-text);}' +
+    '.rlov-stat .l{color:var(--rlov-muted);font-size:11px;margin-top:6px;letter-spacing:.02em;text-transform:uppercase;font-weight:600;}' +
+    '.rlov-stat .s{color:var(--rlov-muted);font-size:10px;margin-top:2px;font-family:var(--rlov-mono);}' +
+    '.rlov-stat.missing .n{color:var(--rlov-missing);}' +
+    '.rlov-stat.misconfig .n{color:var(--rlov-misconfig);}' +
+    '.rlov-stat.execution .n{color:var(--rlov-execution);}' +
+    '.rlov-stat.exception .n{color:var(--rlov-exception);}' +
+    '.rlov-stat.accent .n{color:var(--rlov-accent);}' +
+    '.rlov-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12.5px;}' +
+    '.rlov-bar-row .lbl{width:140px;flex:0 0 140px;color:var(--rlov-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;}' +
+    '.rlov-bar-track{flex:1;background:var(--rlov-accent-soft);border-radius:4px;height:14px;position:relative;overflow:hidden;}' +
+    '.rlov-bar-fill{position:absolute;left:0;top:0;bottom:0;background:var(--rlov-accent);border-radius:4px;}' +
+    '.rlov-bar-n{width:40px;flex:0 0 40px;text-align:right;font-family:var(--rlov-mono);font-variant-numeric:tabular-nums;color:var(--rlov-text);}' +
+    '.rlov-filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}' +
+    '.rlov-filters select{background:var(--rlov-bg);border:1px solid var(--rlov-border);color:var(--rlov-text);border-radius:8px;padding:6px 10px;font-family:var(--rlov-sans);font-size:13px;cursor:pointer;}' +
+    '.rlov-toggle{background:none;border:1px solid var(--rlov-border);color:var(--rlov-muted);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:var(--rlov-sans);cursor:pointer;}' +
+    '.rlov-toggle.active{background:var(--rlov-accent-soft);border-color:var(--rlov-accent);color:var(--rlov-accent);font-weight:600;}' +
+    '.rlov-lbl{color:var(--rlov-muted);font-size:11px;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;}' +
+    '.rlov-table{width:100%;border-collapse:collapse;font-size:13px;}' +
+    '.rlov-table thead th{text-align:left;padding:7px 10px;border-bottom:2px solid var(--rlov-border);color:var(--rlov-muted);font-weight:600;font-size:11px;letter-spacing:.02em;text-transform:uppercase;}' +
+    '.rlov-table tbody tr{border-bottom:1px solid var(--rlov-border);}' +
+    '.rlov-table tbody tr:hover{background:var(--rlov-accent-soft);}' +
+    '.rlov-table td{padding:8px 10px;vertical-align:top;color:var(--rlov-text);}' +
+    '.rlov-row-card{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:8px 10px;background:var(--rlov-bg);border:1px solid var(--rlov-border);border-radius:8px;}' +
+    '.rlov-chip{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap;}' +
+    '.rlov-chip.missing{background:var(--rlov-missing-soft);color:var(--rlov-missing);}' +
+    '.rlov-chip.misconfig{background:var(--rlov-misconfig-soft);color:var(--rlov-misconfig);}' +
+    '.rlov-chip.execution{background:var(--rlov-execution-soft);color:var(--rlov-execution);}' +
+    '.rlov-chip.exception{background:var(--rlov-exception-soft);color:var(--rlov-exception);}' +
+    '.rlov-empty{padding:30px;text-align:center;color:var(--rlov-muted);font-size:13px;}';
+  var styleEl = document.createElement('style');
+  styleEl.id = 'rlov-style';
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+}
+
 function rlTabOverview(body) {
+  rlov360EnsureStyle();
   // ── State ──
   var _clientF = '', _ownerF = '', _statusF = 'all', _stdF = 'all';
   var _ownerView = 'client'; // 'client' | 'owner'
@@ -12443,6 +12513,19 @@ function rlTabOverview(body) {
     var s = arr.slice().sort(function(a,b){return a-b;});
     var m = Math.floor(s.length/2);
     return s.length%2 ? s[m] : Math.round((s[m-1]+s[m])/2);
+  }
+  // ── Helper: card panel ──
+  function card(html, extraStyle) {
+    return '<div class="rlov-panel" style="' + (extraStyle||'') + '">' + html + '</div>';
+  }
+  // ── Helper: a single bar row (percentage-of-max width, single accent color) ──
+  function barRow(label, count, maxVal) {
+    var pct = maxVal ? Math.round(count/maxVal*100) : 0;
+    return '<div class="rlov-bar-row">' +
+      '<div class="lbl">' + label + '</div>' +
+      '<div class="rlov-bar-track"><div class="rlov-bar-fill" style="width:' + Math.max(pct,count?3:0) + '%;"></div></div>' +
+      '<div class="rlov-bar-n">' + count + '</div>' +
+    '</div>';
   }
 
   // ── Filtered project set ──
@@ -12468,28 +12551,24 @@ function rlTabOverview(body) {
 
   // ── Section header ──
   function sh(n, title, sub) {
-    return '<div style="display:flex;align-items:baseline;gap:10px;margin:22px 0 10px;">' +
-      '<div style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#c9a227,#8b6914);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#000;flex-shrink:0;">' + n + '</div>' +
-      '<div>' +
-        '<div style="font-size:14px;font-weight:700;color:#f0f0f6;letter-spacing:-.2px;">' + title + '</div>' +
-        (sub ? '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;margin-top:1px;">' + sub + '</div>' : '') +
-      '</div>' +
+    return '<div class="rlov-sec-hd"><h2>' + title + '</h2>' +
+      (sub ? '<div class="rlov-sub">' + sub + '</div>' : '') +
     '</div>';
   }
 
-  // ── KPI mini-card ──
-  function kpi(val, label, sub, color) {
-    return '<div style="background:#0f0f16;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px 16px;flex:1;min-width:110px;">' +
-      '<div style="font-size:24px;font-weight:800;color:' + (color||'#f0f0f6') + ';font-family:\'DM Mono\',monospace;line-height:1;letter-spacing:-.5px;">' + val + '</div>' +
-      '<div style="font-size:11px;font-weight:600;color:#c9d0da;margin-top:5px;">' + label + '</div>' +
-      (sub ? '<div style="font-size:9px;color:#5a6270;margin-top:2px;font-family:\'DM Mono\',monospace;">' + sub + '</div>' : '') +
+  // ── KPI mini-card ── (tone: '', 'missing', 'misconfig', 'execution', 'exception', 'accent')
+  function kpi(val, label, sub, tone) {
+    return '<div class="rlov-stat ' + (tone||'') + '">' +
+      '<div class="n">' + val + '</div>' +
+      '<div class="l">' + label + '</div>' +
+      (sub ? '<div class="s">' + sub + '</div>' : '') +
     '</div>';
   }
 
   // ── Toggle button ──
   function togBtn(v, cur, fn, label) {
     var a = v === cur;
-    return '<button onclick="' + fn + '(\'' + v + '\')" style="background:' + (a?'rgba(255,255,255,.1)':'transparent') + ';border:1px solid ' + (a?'rgba(255,255,255,.2)':'rgba(255,255,255,.07)') + ';color:' + (a?'#f0f0f6':'rgba(255,255,255,.35)') + ';border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;transition:all .15s;">' + label + '</button>';
+    return '<button class="rlov-toggle' + (a?' active':'') + '" onclick="' + fn + '(\'' + v + '\')">' + label + '</button>';
   }
 
   // ── Filters ──
@@ -12501,52 +12580,35 @@ function rlTabOverview(body) {
       if (p.projectOwner && owners.indexOf(p.projectOwner)<0) owners.push(p.projectOwner);
     });
     clients.sort(); owners.sort();
-    var sel = 'background:#161620;border:1px solid rgba(255,255,255,.14);color:#f0f0f6;border-radius:7px;padding:5px 9px;font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer;outline:none;';
-    var lb  = 'font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;';
     var clientOpts = '<option value="">All Clients</option>' + clients.map(function(c){
       return '<option value="' + c.replace(/"/g,'&quot;') + '"' + (c===_clientF?' selected':'') + '>' + c + '</option>';
     }).join('');
     var ownerOpts = '<option value="">All Owners</option>' + owners.map(function(o){
       return '<option value="' + o.replace(/"/g,'&quot;') + '"' + (o===_ownerF?' selected':'') + '>' + o + '</option>';
     }).join('');
-    return rlCard(
-      '<div style="padding:12px 16px 10px;">' +
-        '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
-          '<div style="display:flex;align-items:center;gap:6px;">' +
-            '<span style="' + lb + '">Status</span>' +
-            '<div style="display:flex;gap:3px;">' +
-              togBtn('all',_statusF,'window.rlOVSt','All') +
-              togBtn('active',_statusF,'window.rlOVSt','Active') +
-              togBtn('complete',_statusF,'window.rlOVSt','Completed') +
-              togBtn('hold',_statusF,'window.rlOVSt','On Hold') +
-            '</div>' +
-          '</div>' +
-          '<div style="display:flex;align-items:center;gap:6px;">' +
-            '<span style="' + lb + '">Client</span>' +
-            '<select onchange="window.rlOVCl(this.value)" style="' + sel + '">' + clientOpts + '</select>' +
-          '</div>' +
-          '<div style="display:flex;align-items:center;gap:6px;">' +
-            '<span style="' + lb + '">Owner</span>' +
-            '<select onchange="window.rlOVOw(this.value)" style="' + sel + '">' + ownerOpts + '</select>' +
-          '</div>' +
-          '<div style="display:flex;align-items:center;gap:6px;">' +
-            '<span style="' + lb + '">Type</span>' +
-            '<div style="display:flex;gap:3px;">' +
-              togBtn('all',_stdF,'window.rlOVStd','All') +
-              togBtn('standard',_stdF,'window.rlOVStd','Standard') +
-              togBtn('nonstandard',_stdF,'window.rlOVStd','Non-standard') +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>',
-      'margin-bottom:14px;'
+    return card(
+      '<div class="rlov-filters">' +
+        '<span class="rlov-lbl">Status</span>' +
+        togBtn('all',_statusF,'window.rlOVSt','All') +
+        togBtn('active',_statusF,'window.rlOVSt','Active') +
+        togBtn('complete',_statusF,'window.rlOVSt','Completed') +
+        togBtn('hold',_statusF,'window.rlOVSt','On Hold') +
+        '<span class="rlov-lbl" style="margin-left:8px;">Client</span>' +
+        '<select onchange="window.rlOVCl(this.value)">' + clientOpts + '</select>' +
+        '<span class="rlov-lbl">Owner</span>' +
+        '<select onchange="window.rlOVOw(this.value)">' + ownerOpts + '</select>' +
+        '<span class="rlov-lbl" style="margin-left:8px;">Type</span>' +
+        togBtn('all',_stdF,'window.rlOVStd','All') +
+        togBtn('standard',_stdF,'window.rlOVStd','Standard') +
+        togBtn('nonstandard',_stdF,'window.rlOVStd','Non-standard') +
+      '</div>'
     );
   }
 
   // ─── SECTION 1: Portfolio Overview ────────────────────────────────────────
   function buildPortfolioOverview(ps) {
     var total = ps.length;
-    if (!total) return rlCard('<div style="padding:40px;text-align:center;color:#5a6270;">No projects match current filters.</div>', 'margin-bottom:14px;');
+    if (!total) return card('<div class="rlov-empty">No projects match current filters.</div>');
 
     function matchSt(p, key) {
       var s = (p.status||'').toLowerCase();
@@ -12559,12 +12621,12 @@ function rlTabOverview(body) {
       return false;
     }
     var STATUS_GROUPS = [
-      {key:'notstarted', label:'Yet to Start',  color:'#8a92a0'},
-      {key:'active',     label:'In Progress',   color:'#38bdf8'},
-      {key:'complete',   label:'Completed',     color:'#22c55e'},
-      {key:'hold',       label:'On Hold',       color:'#f59e0b'},
-      {key:'blocked',    label:'Blocked',       color:'#ef4444'},
-      {key:'cancelled',  label:'Cancelled',     color:'#6b7280'}
+      {key:'notstarted', label:'Yet to Start'},
+      {key:'active',     label:'In Progress'},
+      {key:'complete',   label:'Completed'},
+      {key:'hold',       label:'On Hold'},
+      {key:'blocked',    label:'Blocked'},
+      {key:'cancelled',  label:'Cancelled'}
     ];
     STATUS_GROUPS.forEach(function(g){ g.count = ps.filter(function(p){ return matchSt(p,g.key); }).length; });
 
@@ -12586,62 +12648,47 @@ function rlTabOverview(body) {
 
     var maxC = Math.max(1, Math.max.apply(null, STATUS_GROUPS.map(function(g){return g.count;})));
     var statusBars = STATUS_GROUPS.filter(function(g){return g.count>0;}).map(function(g){
-      var pct = Math.round(g.count/total*100);
-      var w   = Math.round(g.count/maxC*180);
-      return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">' +
-        '<div style="width:80px;font-size:11px;color:#8a92a0;text-align:right;flex-shrink:0;">' + g.label + '</div>' +
-        '<div style="display:flex;align-items:center;gap:8px;">' +
-          '<div style="height:18px;border-radius:3px;background:' + g.color + ';opacity:.8;width:' + w + 'px;min-width:3px;"></div>' +
-          '<span style="font-size:12px;font-weight:700;color:' + g.color + ';font-family:\'DM Mono\',monospace;">' + g.count + '</span>' +
-          '<span style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;">' + pct + '%</span>' +
-        '</div>' +
-      '</div>';
+      return barRow(g.label, g.count, maxC);
     }).join('');
 
-    function pill(label, n, col) {
-      if (!n) return '';
-      return '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;background:' + col + '18;border:1px solid ' + col + '33;flex:1;min-width:90px;">' +
-        '<div style="font-size:20px;font-weight:800;color:' + col + ';font-family:\'DM Mono\',monospace;">' + n + '</div>' +
-        '<div style="font-size:11px;color:' + col + ';font-weight:600;">' + label + '</div>' +
-      '</div>';
+    function pill(label, n, tone) {
+      if (!n) return '<div class="rlov-stat ' + tone + '" style="flex:1;min-width:90px;padding:8px 12px;"><div class="n" style="font-size:18px;">0</div><div class="l">' + label + '</div></div>';
+      return '<div class="rlov-stat ' + tone + '" style="flex:1;min-width:90px;padding:8px 12px;"><div class="n" style="font-size:18px;">' + n + '</div><div class="l">' + label + '</div></div>';
     }
 
-    return rlCard(
-      '<div style="padding:14px 18px 16px;">' +
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">' +
-          kpi(total, 'Total Projects', 'across all statuses', '#f0f0f6') +
-          kpi(activeC, 'In Progress', 'currently active', '#38bdf8') +
-          kpi(doneC, 'Completed', 'successfully delivered', '#22c55e') +
-          kpi(holdC, 'On Hold / Blocked', 'paused projects', '#f59e0b') +
-          kpi(compPct + '%', 'Portfolio Compliance', compliant + ' projects · 0 misses', compPct>=70?'#22c55e':compPct>=40?'#f59e0b':'#ef4444') +
-          (avgPct!=null ? kpi(avgPct + '%', 'Avg Delivery Progress', stdPs.length + ' standard projects', '#a78bfa') : '') +
+    return card(
+      '<div class="rlov-stats">' +
+        kpi(total, 'Total Projects', 'across all statuses') +
+        kpi(activeC, 'In Progress', 'currently active', 'execution') +
+        kpi(doneC, 'Completed', 'successfully delivered', 'exception') +
+        kpi(holdC, 'On Hold / Blocked', 'paused projects', holdC?'misconfig':'') +
+        kpi(compPct + '%', 'Portfolio Compliance', compliant + ' of ' + compPs.length + ' projects · ' + totalMisses + ' misses', compPct>=70?'exception':compPct>=40?'misconfig':'missing') +
+        (avgPct!=null ? kpi(avgPct + '%', 'Avg Delivery Progress', stdPs.length + ' standard projects', 'accent') : '') +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">' +
+        '<div>' +
+          '<h2 style="font-size:12px;margin-bottom:10px;">Status Distribution</h2>' +
+          statusBars +
         '</div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">' +
-          '<div>' +
-            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Status Distribution</div>' +
-            statusBars +
+        '<div>' +
+          '<h2 style="font-size:12px;margin-bottom:10px;">Schedule Health</h2>' +
+          '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">' +
+            pill('On Track', onTrack, 'exception') +
+            pill('At Risk', atRisk, 'misconfig') +
+            pill('Delayed', delayed, 'missing') +
+            (noDate ? pill('No Date', noDate, '') : '') +
           '</div>' +
-          '<div>' +
-            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Schedule Health</div>' +
-            '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">' +
-              pill('On Track', onTrack, '#22c55e') +
-              pill('At Risk', atRisk, '#f59e0b') +
-              pill('Delayed', delayed, '#ef4444') +
-              (noDate ? pill('No Date', noDate, '#5a6270') : '') +
-            '</div>' +
-            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Compliance</div>' +
-            '<div style="display:flex;gap:3px;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.06);">' +
-              (compliant ? '<div style="flex:' + compliant + ';background:#22c55e;"></div>' : '') +
-              (total-compliant ? '<div style="flex:' + (total-compliant) + ';background:#ef4444;opacity:.6;"></div>' : '') +
-            '</div>' +
-            '<div style="display:flex;justify-content:space-between;margin-top:5px;">' +
-              '<span style="font-size:10px;color:#22c55e;font-family:\'DM Mono\',monospace;">' + compliant + ' compliant</span>' +
-              '<span style="font-size:10px;color:#ef4444;font-family:\'DM Mono\',monospace;">' + totalMisses + ' total misses</span>' +
-            '</div>' +
+          '<h2 style="font-size:12px;margin-bottom:8px;">Compliance</h2>' +
+          '<div style="display:flex;gap:3px;height:8px;border-radius:4px;overflow:hidden;background:var(--rlov-border);">' +
+            (compliant ? '<div style="flex:' + compliant + ';background:var(--rlov-exception);"></div>' : '') +
+            (total-compliant ? '<div style="flex:' + (total-compliant) + ';background:var(--rlov-missing);"></div>' : '') +
+          '</div>' +
+          '<div style="display:flex;justify-content:space-between;margin-top:6px;font-family:var(--rlov-mono);font-size:11px;">' +
+            '<span style="color:var(--rlov-exception);">' + compliant + ' compliant</span>' +
+            '<span style="color:var(--rlov-missing);">' + totalMisses + ' total misses</span>' +
           '</div>' +
         '</div>' +
-      '</div>',
-      'margin-bottom:14px;'
+      '</div>'
     );
   }
 
@@ -12649,9 +12696,8 @@ function rlTabOverview(body) {
   function buildDeliveryProgress(ps) {
     var std    = ps.filter(function(p){ return p.isStandard; });
     var nonStd = ps.filter(function(p){ return !p.isStandard; });
-    if (!std.length) return rlCard(
-      '<div style="padding:24px 18px;"><div style="font-size:12px;color:#8a92a0;">No standard projects in current filter. Standard projects follow the Engage → Drive → Enable → Convert methodology.</div></div>',
-      'margin-bottom:14px;'
+    if (!std.length) return card(
+      '<div class="rlov-empty">No standard projects in current filter. Standard projects follow the Engage → Drive → Enable → Convert methodology.</div>'
     );
 
     var phaseCounts = {engage:0,drive:0,enable:0,convert:0,completed:0};
@@ -12664,85 +12710,62 @@ function rlTabOverview(body) {
       });
     });
 
-    var PH_COLOR = {engage:'#22c55e',drive:'#38bdf8',enable:'#a78bfa',convert:'#f97316',completed:'#c9a227'};
     var PH_LABEL = {engage:'Engage',drive:'Drive',enable:'Enable',convert:'Convert',completed:'Completed'};
     var PH_ORDER = ['engage','drive','enable','convert','completed'];
 
     var maxPC = Math.max(1, Math.max.apply(null, PH_ORDER.map(function(ph){return phaseCounts[ph]||0;})));
 
     var distBars = PH_ORDER.map(function(ph){
-      var cnt = phaseCounts[ph]||0;
-      var pct = Math.round(cnt/std.length*100);
-      var w   = Math.round(cnt/maxPC*160);
-      return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">' +
-        '<div style="width:65px;font-size:11px;color:#8a92a0;text-align:right;flex-shrink:0;">' + PH_LABEL[ph] + '</div>' +
-        '<div style="display:flex;align-items:center;gap:8px;">' +
-          '<div style="height:20px;border-radius:3px;background:' + PH_COLOR[ph] + ';opacity:.8;width:' + w + 'px;min-width:3px;"></div>' +
-          '<span style="font-size:13px;font-weight:700;color:' + PH_COLOR[ph] + ';font-family:\'DM Mono\',monospace;">' + cnt + '</span>' +
-          '<span style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;">' + pct + '%</span>' +
-        '</div>' +
-      '</div>';
+      return barRow(PH_LABEL[ph], phaseCounts[ph]||0, maxPC);
     }).join('');
 
     var avgBars = ['engage','drive','enable','convert'].map(function(ph){
       var arr = phaseAvgPct[ph];
       var avg = arr.length ? Math.round(arr.reduce(function(s,v){return s+v;},0)/arr.length) : 0;
-      var col = PH_COLOR[ph];
-      return '<div style="margin-bottom:9px;">' +
+      return '<div style="margin-bottom:10px;">' +
         '<div style="display:flex;justify-content:space-between;margin-bottom:3px;">' +
-          '<span style="font-size:11px;color:#8a92a0;">' + PH_LABEL[ph] + '</span>' +
-          '<span style="font-size:11px;font-weight:700;color:' + col + ';font-family:\'DM Mono\',monospace;">' + avg + '%</span>' +
+          '<span style="font-size:11px;color:var(--rlov-muted);">' + PH_LABEL[ph] + '</span>' +
+          '<span style="font-size:11px;font-weight:600;color:var(--rlov-text);font-family:var(--rlov-mono);">' + avg + '%</span>' +
         '</div>' +
-        '<div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px;">' +
-          '<div style="background:' + col + ';height:6px;border-radius:3px;width:' + avg + '%;opacity:.85;"></div>' +
-        '</div>' +
+        '<div class="rlov-bar-track" style="height:6px;"><div class="rlov-bar-fill" style="width:' + avg + '%;"></div></div>' +
       '</div>';
     }).join('');
 
     var durRows = ['engage','drive','enable','convert'].map(function(ph){
       var durs = std.filter(function(p){ return p.phaseDurations&&p.phaseDurations[ph]!=null; }).map(function(p){return p.phaseDurations[ph];});
-      var col = PH_COLOR[ph];
-      if (!durs.length) return '<tr><td style="padding:7px 10px;font-size:11px;color:' + col + ';">' + PH_LABEL[ph] + '</td><td style="padding:7px 10px;font-size:10px;color:#4b5460;font-family:\'DM Mono\',monospace;" colspan="3">Insufficient data</td></tr>';
+      if (!durs.length) return '<tr><td>' + PH_LABEL[ph] + '</td><td colspan="3" style="color:var(--rlov-muted);font-family:var(--rlov-mono);font-size:11px;">Insufficient data</td></tr>';
       var avg = Math.round(durs.reduce(function(s,v){return s+v;},0)/durs.length);
       var med = median(durs);
-      return '<tr style="border-bottom:1px solid rgba(255,255,255,.04);">' +
-        '<td style="padding:7px 10px;font-size:11px;color:' + col + ';">' + PH_LABEL[ph] + '</td>' +
-        '<td style="padding:7px 10px;font-size:12px;font-weight:700;color:#c9d0da;font-family:\'DM Mono\',monospace;text-align:right;">' + avg + 'd</td>' +
-        '<td style="padding:7px 10px;font-size:12px;color:#8a92a0;font-family:\'DM Mono\',monospace;text-align:right;">' + med + 'd</td>' +
-        '<td style="padding:7px 10px;font-size:11px;color:#5a6270;font-family:\'DM Mono\',monospace;text-align:right;">' + durs.length + '</td>' +
+      return '<tr>' +
+        '<td>' + PH_LABEL[ph] + '</td>' +
+        '<td style="font-family:var(--rlov-mono);font-weight:600;text-align:right;">' + avg + 'd</td>' +
+        '<td style="font-family:var(--rlov-mono);color:var(--rlov-muted);text-align:right;">' + med + 'd</td>' +
+        '<td style="font-family:var(--rlov-mono);color:var(--rlov-muted);text-align:right;">' + durs.length + '</td>' +
       '</tr>';
     }).join('');
 
-    return rlCard(
-      '<div style="padding:14px 18px 16px;">' +
-        '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;margin-bottom:14px;">' +
-          std.length + ' standard projects · ' + nonStd.length + ' non-standard excluded from phase analysis' +
+    return card(
+      '<div class="rlov-sub" style="margin-bottom:14px;">' +
+        std.length + ' standard projects · ' + nonStd.length + ' non-standard excluded from phase analysis' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:start;">' +
+        '<div>' +
+          '<h2 style="font-size:12px;margin-bottom:10px;">Current Phase Distribution</h2>' +
+          distBars +
         '</div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:start;">' +
-          '<div>' +
-            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Current Phase Distribution</div>' +
-            distBars +
-          '</div>' +
-          '<div>' +
-            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Avg Phase Completion %</div>' +
-            avgBars +
-          '</div>' +
-          '<div>' +
-            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Phase Duration · completed phases</div>' +
-            '<table style="width:100%;border-collapse:collapse;">' +
-              '<thead><tr>' +
-                '<th style="padding:5px 10px;font-size:9px;color:#4b5460;text-align:left;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Phase</th>' +
-                '<th style="padding:5px 10px;font-size:9px;color:#4b5460;text-align:right;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Avg</th>' +
-                '<th style="padding:5px 10px;font-size:9px;color:#4b5460;text-align:right;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Median</th>' +
-                '<th style="padding:5px 10px;font-size:9px;color:#4b5460;text-align:right;font-family:\'DM Mono\',monospace;text-transform:uppercase;">n</th>' +
-              '</tr></thead>' +
-              '<tbody>' + durRows + '</tbody>' +
-            '</table>' +
-            '<div style="font-size:9px;color:#3a4050;margin-top:6px;font-family:\'DM Mono\',monospace;">Derived from task planned dates · active phases excluded</div>' +
-          '</div>' +
+        '<div>' +
+          '<h2 style="font-size:12px;margin-bottom:10px;">Avg Phase Completion %</h2>' +
+          avgBars +
         '</div>' +
-      '</div>',
-      'margin-bottom:14px;'
+        '<div>' +
+          '<h2 style="font-size:12px;margin-bottom:10px;">Phase Duration · completed phases</h2>' +
+          '<table class="rlov-table">' +
+            '<thead><tr><th>Phase</th><th style="text-align:right;">Avg</th><th style="text-align:right;">Median</th><th style="text-align:right;">n</th></tr></thead>' +
+            '<tbody>' + durRows + '</tbody>' +
+          '</table>' +
+          '<div class="rlov-sub" style="margin-top:8px;">Derived from task planned dates · active phases excluded</div>' +
+        '</div>' +
+      '</div>'
     );
   }
 
@@ -12767,71 +12790,68 @@ function rlTabOverview(body) {
 
     var delayRows = mostDelayed.map(function(p){
       var v   = p.scheduleVarianceDays||0;
-      var col = v>=0?'#22c55e':v>=-14?'#f59e0b':'#ef4444';
+      var tone = v>=0?'exception':v>=-14?'misconfig':'missing';
       var w   = Math.round(Math.abs(v)/Math.max(1,maxDelay)*100);
-      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding:6px 10px;background:rgba(255,255,255,.03);border-radius:6px;">' +
+      return '<div class="rlov-row-card">' +
         '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:11px;color:#c9d0da;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.projectName + '</div>' +
-          '<div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;">' + (p.customer||'No client') + '</div>' +
+          '<div style="font-size:11px;color:var(--rlov-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.projectName + '</div>' +
+          '<div class="rlov-sub" style="margin-top:0;">' + (p.customer||'No client') + '</div>' +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
-          '<div style="width:100px;height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;">' +
-            '<div style="height:5px;background:' + col + ';width:' + w + 'px;opacity:.8;"></div>' +
+          '<div style="width:90px;height:5px;background:var(--rlov-border);border-radius:3px;overflow:hidden;">' +
+            '<div style="height:5px;background:var(--rlov-' + tone + ');width:' + w + '%;"></div>' +
           '</div>' +
-          '<span style="font-size:11px;font-weight:700;color:' + col + ';font-family:\'DM Mono\',monospace;width:48px;text-align:right;">' + (v>=0?'+':'') + v + 'd</span>' +
+          '<span class="rlov-chip ' + tone + '" style="width:44px;text-align:center;">' + (v>=0?'+':'') + v + 'd</span>' +
         '</div>' +
       '</div>';
     }).join('');
 
     var overdueRows = withOverdue.map(function(p){
-      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding:6px 10px;background:rgba(255,255,255,.03);border-radius:6px;">' +
+      return '<div class="rlov-row-card">' +
         '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:11px;color:#c9d0da;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.projectName + '</div>' +
-          '<div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;">' + (p.customer||'No client') + '</div>' +
+          '<div style="font-size:11px;color:var(--rlov-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.projectName + '</div>' +
+          '<div class="rlov-sub" style="margin-top:0;">' + (p.customer||'No client') + '</div>' +
         '</div>' +
-        '<div style="font-size:11px;font-weight:700;color:#ef4444;font-family:\'DM Mono\',monospace;flex-shrink:0;">' + p.overdueTaskCount + ' overdue</div>' +
+        '<span class="rlov-chip missing" style="flex-shrink:0;">' + p.overdueTaskCount + ' overdue</span>' +
       '</div>';
     }).join('');
 
-    return rlCard(
-      '<div style="padding:14px 18px 16px;">' +
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">' +
-          kpi(onTrack.length,'On Track','ahead or matching plan','#22c55e') +
-          kpi(atRisk.length,'At Risk','up to 2 weeks behind','#f59e0b') +
-          kpi(delayed.length,'Delayed','>2 weeks behind plan','#ef4444') +
-          kpi(ps.filter(function(p){return(p.overdueTaskCount||0)>0;}).length,'Have Overdue Tasks','require immediate action','#dc2626') +
-          (avgVar!=null ? kpi((avgVar>=0?'+':'') + avgVar+'d','Avg Schedule Variance',varArr.length+' dated projects',avgVar>=0?'#22c55e':'#f59e0b') : '') +
+    return card(
+      '<div class="rlov-stats">' +
+        kpi(onTrack.length,'On Track','ahead or matching plan','exception') +
+        kpi(atRisk.length,'At Risk','up to 2 weeks behind','misconfig') +
+        kpi(delayed.length,'Delayed','>2 weeks behind plan','missing') +
+        kpi(ps.filter(function(p){return(p.overdueTaskCount||0)>0;}).length,'Have Overdue Tasks','require immediate action','missing') +
+        (avgVar!=null ? kpi((avgVar>=0?'+':'') + avgVar+'d','Avg Schedule Variance',varArr.length+' dated projects',avgVar>=0?'exception':'misconfig') : '') +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">' +
+        '<div>' +
+          '<h2 style="font-size:12px;margin-bottom:10px;">Most Delayed Projects</h2>' +
+          (mostDelayed.length ? delayRows : '<div class="rlov-sub" style="color:var(--rlov-exception);padding:16px 0;">✓ No delayed or at-risk projects</div>') +
         '</div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">' +
-          '<div>' +
-            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Most Delayed Projects</div>' +
-            (mostDelayed.length ? delayRows : '<div style="font-size:12px;color:#22c55e;padding:20px 0;">✓ No delayed or at-risk projects</div>') +
-          '</div>' +
-          '<div>' +
-            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Projects with Overdue Tasks</div>' +
-            (withOverdue.length ? overdueRows : '<div style="font-size:12px;color:#22c55e;padding:20px 0;">✓ No overdue tasks found</div>') +
-          '</div>' +
+        '<div>' +
+          '<h2 style="font-size:12px;margin-bottom:10px;">Projects with Overdue Tasks</h2>' +
+          (withOverdue.length ? overdueRows : '<div class="rlov-sub" style="color:var(--rlov-exception);padding:16px 0;">✓ No overdue tasks found</div>') +
         '</div>' +
-      '</div>',
-      'margin-bottom:14px;'
+      '</div>'
     );
   }
 
   // ─── SECTION 4: Compliance, Risks & Issues ──────────────────────────────
   function buildComplianceRisks(ps) {
     var CATS = [
-      {key:'dates',     label:'Missing Dates',       color:'#8b5cf6'},
-      {key:'overdue',   label:'Overdue Tasks',        color:'#dc2626'},
-      {key:'structure', label:'Phase Structure',      color:'#f59e0b'},
-      {key:'ownership', label:'Unowned Tasks',        color:'#60a5fa'},
-      {key:'gaps',      label:'Date Gaps',            color:'#a78bfa'},
-      {key:'stale',     label:'Stale Progress',       color:'#fb923c'},
-      {key:'blocked',   label:'Blocked Tasks',        color:'#ef4444'},
-      {key:'premature', label:'Premature Completion', color:'#f97316'},
-      {key:'weekend',   label:'Weekend Dates',        color:'#94a3b8'},
-      {key:'completion',label:'Completion Issues',    color:'#e879f9'},
-      {key:'closure',   label:'Closure Pending',      color:'#c9a227'},
-      {key:'inactive',  label:'Inactive Projects',    color:'#6b7280'}
+      {key:'dates',     label:'Missing Dates'},
+      {key:'overdue',   label:'Overdue Tasks'},
+      {key:'structure', label:'Phase Structure'},
+      {key:'ownership', label:'Unowned Tasks'},
+      {key:'gaps',      label:'Date Gaps'},
+      {key:'stale',     label:'Stale Progress'},
+      {key:'blocked',   label:'Blocked Tasks'},
+      {key:'premature', label:'Premature Completion'},
+      {key:'weekend',   label:'Weekend Dates'},
+      {key:'completion',label:'Completion Issues'},
+      {key:'closure',   label:'Closure Pending'},
+      {key:'inactive',  label:'Inactive Projects'}
     ];
 
     var compPs       = ps.filter(function(p){ var st=(p.status||'').toLowerCase(); return !st.includes('proposed')&&!st.includes('cancel')&&!st.includes('closed'); });
@@ -12845,19 +12865,11 @@ function rlTabOverview(body) {
       var n = ps.reduce(function(s,p){
         return s+(p.compliance&&p.compliance.issues||[]).filter(function(i){return i.category===c.key;}).length;
       },0);
-      return {key:c.key,label:c.label,color:c.color,count:n};
+      return {key:c.key,label:c.label,count:n};
     }).filter(function(c){return c.count>0;}).sort(function(a,b){return b.count-a.count;});
 
     var maxCat = catData.length ? catData[0].count : 1;
-
-    var catBars = catData.map(function(c){
-      var w = Math.round(c.count/maxCat*140);
-      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">' +
-        '<div style="width:120px;font-size:10px;color:#8a92a0;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + c.label + '</div>' +
-        '<div style="height:14px;border-radius:2px;background:' + c.color + ';opacity:.85;width:' + w + 'px;min-width:3px;"></div>' +
-        '<span style="font-size:11px;font-weight:700;color:' + c.color + ';font-family:\'DM Mono\',monospace;">' + c.count + '</span>' +
-      '</div>';
-    }).join('');
+    var catBars = catData.map(function(c){ return barRow(c.label, c.count, maxCat); }).join('');
 
     var topRisk = ps.slice().sort(function(a,b){
       return (b.compliance&&b.compliance.issueCount||0)-(a.compliance&&a.compliance.issueCount||0);
@@ -12865,40 +12877,37 @@ function rlTabOverview(body) {
 
     var riskRows = topRisk.map(function(p){
       var n   = p.compliance&&p.compliance.issueCount||0;
-      var col = n>=6?'#ef4444':n>=3?'#f59e0b':'#8a92a0';
+      var tone = n>=6?'missing':n>=3?'misconfig':'';
       var lbl = n>=6?'Critical Attention':n>=3?'Needs Attention':'Monitored';
-      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding:7px 10px;background:rgba(255,255,255,.03);border-radius:6px;">' +
+      return '<div class="rlov-row-card">' +
         '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:11px;color:#c9d0da;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.projectName + '</div>' +
-          '<div style="font-size:9px;color:#5a6270;font-family:\'DM Mono\',monospace;">' + (p.customer||'No client') + ' · ' + (p.projectOwner||'No owner') + '</div>' +
+          '<div style="font-size:11px;color:var(--rlov-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.projectName + '</div>' +
+          '<div class="rlov-sub" style="margin-top:0;">' + (p.customer||'No client') + ' · ' + (p.projectOwner||'No owner') + '</div>' +
         '</div>' +
         '<div style="text-align:right;flex-shrink:0;">' +
-          '<div style="font-size:12px;font-weight:700;color:' + col + ';font-family:\'DM Mono\',monospace;">' + n + ' misses</div>' +
-          '<div style="font-size:9px;color:' + col + ';opacity:.7;">' + lbl + '</div>' +
+          (tone ? '<span class="rlov-chip ' + tone + '">' + n + ' misses</span>' : '<span style="font-family:var(--rlov-mono);font-size:11px;color:var(--rlov-muted);">' + n + ' misses</span>') +
+          '<div class="rlov-sub" style="margin-top:3px;">' + lbl + '</div>' +
         '</div>' +
       '</div>';
     }).join('');
 
-    return rlCard(
-      '<div style="padding:14px 18px 16px;">' +
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">' +
-          kpi(totalMisses,'Total Compliance Misses','across all categories','#e8c97a') +
-          kpi(compPct+'%','Portfolio Compliance',compliant+' of '+ps.length+' projects · 0 misses',compPct>=70?'#22c55e':compPct>=40?'#f59e0b':'#ef4444') +
-          kpi(highRisk,'High Risk Projects','≥ 6 misses each',highRisk>0?'#ef4444':'#22c55e') +
-          kpi(totalBlocked,'Blocked Tasks','across all projects',totalBlocked>0?'#ef4444':'#22c55e') +
+    return card(
+      '<div class="rlov-stats">' +
+        kpi(totalMisses,'Total Compliance Misses','across all categories','accent') +
+        kpi(compPct+'%','Portfolio Compliance',compliant+' of '+ps.length+' projects · '+totalMisses+' misses',compPct>=70?'exception':compPct>=40?'misconfig':'missing') +
+        kpi(highRisk,'High Risk Projects','≥ 6 misses each',highRisk>0?'missing':'exception') +
+        kpi(totalBlocked,'Blocked Tasks','across all projects',totalBlocked>0?'missing':'exception') +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">' +
+        '<div>' +
+          '<h2 style="font-size:12px;margin-bottom:10px;">Findings by Category</h2>' +
+          (catBars||'<div class="rlov-sub" style="color:var(--rlov-exception);padding:12px 0;">✓ No compliance misses</div>') +
         '</div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">' +
-          '<div>' +
-            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Findings by Category</div>' +
-            (catBars||'<div style="font-size:12px;color:#22c55e;padding:12px 0;">✓ No compliance misses</div>') +
-          '</div>' +
-          '<div>' +
-            '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Highest Risk Projects</div>' +
-            (riskRows||'<div style="font-size:12px;color:#22c55e;padding:12px 0;">✓ All projects compliant</div>') +
-          '</div>' +
+        '<div>' +
+          '<h2 style="font-size:12px;margin-bottom:10px;">Highest Risk Projects</h2>' +
+          (riskRows||'<div class="rlov-sub" style="color:var(--rlov-exception);padding:12px 0;">✓ All projects compliant</div>') +
         '</div>' +
-      '</div>',
-      'margin-bottom:14px;'
+      '</div>'
     );
   }
 
@@ -12922,69 +12931,66 @@ function rlTabOverview(body) {
     var groups = groupBy(_ownerView);
 
     function viewBtn(v, label) {
-      var a = v === _ownerView;
-      return '<button onclick="window.rlOVView(\'' + v + '\')" style="background:' + (a?'rgba(56,189,248,.18)':'transparent') + ';border:1px solid ' + (a?'#38bdf8':'rgba(255,255,255,.1)') + ';color:' + (a?'#38bdf8':'rgba(255,255,255,.4)') + ';border-radius:5px;padding:3px 10px;font-size:10px;font-weight:' + (a?'700':'400') + ';cursor:pointer;font-family:\'DM Sans\',sans-serif;">' + label + '</button>';
+      return togBtn(v, _ownerView, 'window.rlOVView', label);
     }
 
     var rows = groups.map(function(g){
       var avg = g.pctN ? Math.round(g.pctSum/g.pctN) : null;
       var cPct = Math.round(g.comp/g.n*100);
       var health = (g.miss===0&&g.delayed===0) ? 'Strong Health' : (g.miss>=6||g.delayed>=2) ? 'Critical Attention' : 'Needs Attention';
-      var hCol   = health==='Strong Health'?'#22c55e':health==='Critical Attention'?'#ef4444':'#f59e0b';
-      return '<tr style="border-bottom:1px solid rgba(255,255,255,.04);">' +
-        '<td style="padding:9px 10px;font-size:11px;color:#c9d0da;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + g.name + '</td>' +
-        '<td style="padding:9px 10px;font-size:12px;font-weight:700;color:#f0f0f6;font-family:\'DM Mono\',monospace;text-align:center;">' + g.n + '</td>' +
-        '<td style="padding:9px 10px;text-align:center;">' + (avg!=null?'<span style="font-size:11px;color:#a78bfa;font-family:\'DM Mono\',monospace;font-weight:700;">' + avg + '%</span>':'<span style="font-size:10px;color:#4b5460;">—</span>') + '</td>' +
-        '<td style="padding:9px 10px;text-align:center;font-size:11px;color:' + (cPct>=80?'#22c55e':cPct>=50?'#f59e0b':'#ef4444') + ';font-family:\'DM Mono\',monospace;font-weight:700;">' + cPct + '%</td>' +
-        '<td style="padding:9px 10px;text-align:center;font-size:11px;color:' + (g.delayed>0?'#ef4444':'#22c55e') + ';font-family:\'DM Mono\',monospace;font-weight:700;">' + (g.delayed||'0') + '</td>' +
-        '<td style="padding:9px 10px;text-align:center;font-size:11px;color:' + (g.overdue>0?'#f59e0b':'#22c55e') + ';font-family:\'DM Mono\',monospace;font-weight:700;">' + (g.overdue||'0') + '</td>' +
-        '<td style="padding:9px 10px;text-align:center;font-size:11px;color:#e8c97a;font-family:\'DM Mono\',monospace;font-weight:700;">' + (g.miss||'0') + '</td>' +
-        '<td style="padding:9px 10px;text-align:center;"><span style="font-size:10px;color:' + hCol + ';font-weight:600;white-space:nowrap;">' + health + '</span></td>' +
+      var hTone  = health==='Strong Health'?'exception':health==='Critical Attention'?'missing':'misconfig';
+      return '<tr>' +
+        '<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + g.name + '</td>' +
+        '<td style="font-family:var(--rlov-mono);font-weight:600;text-align:center;">' + g.n + '</td>' +
+        '<td style="text-align:center;font-family:var(--rlov-mono);">' + (avg!=null?avg+'%':'—') + '</td>' +
+        '<td style="text-align:center;font-family:var(--rlov-mono);color:' + (cPct>=80?'var(--rlov-exception)':cPct>=50?'var(--rlov-misconfig)':'var(--rlov-missing)') + ';font-weight:600;">' + cPct + '%</td>' +
+        '<td style="text-align:center;font-family:var(--rlov-mono);color:' + (g.delayed>0?'var(--rlov-missing)':'var(--rlov-exception)') + ';font-weight:600;">' + (g.delayed||'0') + '</td>' +
+        '<td style="text-align:center;font-family:var(--rlov-mono);color:' + (g.overdue>0?'var(--rlov-misconfig)':'var(--rlov-exception)') + ';font-weight:600;">' + (g.overdue||'0') + '</td>' +
+        '<td style="text-align:center;font-family:var(--rlov-mono);color:var(--rlov-accent);font-weight:600;">' + (g.miss||'0') + '</td>' +
+        '<td style="text-align:center;"><span class="rlov-chip ' + hTone + '">' + health + '</span></td>' +
       '</tr>';
     }).join('');
 
-    return rlCard(
-      '<div style="padding:14px 18px 16px;">' +
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">' +
-          '<div style="font-size:10px;color:#5a6270;font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.08em;">Group by</div>' +
-          '<div style="display:flex;gap:3px;">' + viewBtn('client','Client') + viewBtn('owner','Project Owner') + '</div>' +
-        '</div>' +
-        '<div style="overflow-x:auto;">' +
-          '<table style="width:100%;border-collapse:collapse;min-width:560px;">' +
-            '<thead><tr style="border-bottom:1px solid rgba(255,255,255,.08);">' +
-              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:left;font-family:\'DM Mono\',monospace;text-transform:uppercase;">' + (_ownerView==='client'?'Client':'Project Owner') + '</th>' +
-              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Projects</th>' +
-              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Avg Progress</th>' +
-              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Compliance</th>' +
-              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Delayed</th>' +
-              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Overdue Tasks</th>' +
-              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Misses</th>' +
-              '<th style="padding:7px 10px;font-size:9px;color:#4b5460;text-align:center;font-family:\'DM Mono\',monospace;text-transform:uppercase;">Health</th>' +
-            '</tr></thead>' +
-            '<tbody>' + rows + '</tbody>' +
-          '</table>' +
-        '</div>' +
-        '<div style="font-size:9px;color:#3a4050;margin-top:10px;font-family:\'DM Mono\',monospace;">Health labels reflect compliance misses and schedule delays only — not individual performance conclusions.</div>' +
-      '</div>',
-      'margin-bottom:14px;'
+    return card(
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">' +
+        '<span class="rlov-lbl">Group by</span>' +
+        viewBtn('client','Client') + viewBtn('owner','Project Owner') +
+      '</div>' +
+      '<div style="overflow-x:auto;">' +
+        '<table class="rlov-table" style="min-width:560px;">' +
+          '<thead><tr>' +
+            '<th>' + (_ownerView==='client'?'Client':'Project Owner') + '</th>' +
+            '<th style="text-align:center;">Projects</th>' +
+            '<th style="text-align:center;">Avg Progress</th>' +
+            '<th style="text-align:center;">Compliance</th>' +
+            '<th style="text-align:center;">Delayed</th>' +
+            '<th style="text-align:center;">Overdue Tasks</th>' +
+            '<th style="text-align:center;">Misses</th>' +
+            '<th style="text-align:center;">Health</th>' +
+          '</tr></thead>' +
+          '<tbody>' + rows + '</tbody>' +
+        '</table>' +
+      '</div>' +
+      '<div class="rlov-sub" style="margin-top:10px;">Health labels reflect compliance misses and schedule delays only — not individual performance conclusions.</div>'
     );
   }
 
   // ─── Main render ────────────────────────────────────────────────────────
   function render() {
     var ps = fps();
-    body.innerHTML =
+    body.innerHTML = '<div class="rlov-root">' +
       buildFilters() +
-      sh('1','Portfolio Overview','project count · status distribution · compliance · schedule') +
+      sh('Portfolio Overview','project count · status distribution · compliance · schedule') +
       buildPortfolioOverview(ps) +
-      sh('2','Delivery Progress & Phase Performance','standard projects · Engage → Drive → Enable → Convert') +
+      sh('Delivery Progress & Phase Performance','standard projects · Engage → Drive → Enable → Convert') +
       buildDeliveryProgress(ps) +
-      sh('3','Schedule Health','on-track vs delayed · schedule variance · overdue tasks') +
+      sh('Schedule Health','on-track vs delayed · schedule variance · overdue tasks') +
       buildScheduleHealth(ps) +
-      sh('4','Compliance, Risks & Issues','misses by category · high-risk projects · blocked tasks') +
+      sh('Compliance, Risks & Issues','misses by category · high-risk projects · blocked tasks') +
       buildComplianceRisks(ps) +
-      sh('5','Client & Project Owner Analysis','grouped metrics · health classification') +
-      buildOwnership(ps);
+      sh('Client & Project Owner Analysis','grouped metrics · health classification') +
+      buildOwnership(ps) +
+    '</div>';
   }
 
   // ─── Event handlers ──────────────────────────────────────────────────────
