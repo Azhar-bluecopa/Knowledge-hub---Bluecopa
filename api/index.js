@@ -71,11 +71,13 @@ async function saveDB(data) {
   // On Vercel file writes are no-ops, so we don't even try
 }
 
-// Atomic field-level update — avoids full-document replace race conditions
-async function atomicUpdate(update) {
+// Atomic field-level update — avoids full-document replace race conditions.
+// `options` lets a caller pass arrayFilters (e.g. { arrayFilters: [{ 'p.id': projectId }] })
+// to target one element of a nested array without touching the rest of it.
+async function atomicUpdate(update, options = {}) {
   if (mongoCol) {
     try {
-      await mongoCol.updateOne({ _id: 'main' }, update, { upsert: true });
+      await mongoCol.updateOne({ _id: 'main' }, update, { upsert: true, ...options });
       dbCacheTs = 0; // invalidate read cache so next GET fetches fresh
       return true;
     } catch(e) { console.error('[atomicUpdate]', e.message); }
@@ -1212,14 +1214,23 @@ app.post('/api/uat/clients', async (req, res) => {
   if (!name) return res.status(400).json({ ok:false, error:'name required' });
   const token = require('crypto').randomBytes(24).toString('hex');
   const client = { id:uatId(), name, shortCode:shortCode||name.replace(/\s+/g,'').slice(0,5).toUpperCase(), primaryContact, internalLead, entities, status:'active', portalToken:token, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
-  u.clients.push(client); uatLog('client_created',`Client "${name}" added`);
-  await saveDB(db); res.json({ ok:true, data:client });
+  u.clients.push(client);
+  const entry = { id:uatId(), type:'client_created', message:`Client "${name}" added`, createdAt:new Date().toISOString() };
+  u.activity.unshift(entry); if (u.activity.length>500) u.activity=u.activity.slice(0,500);
+  const ok = await atomicUpdate({ $push: { 'uat.clients': client, 'uat.activity': { $each:[entry], $position:0 } } });
+  if (!ok) await saveDB(db);
+  res.json({ ok:true, data:client });
 });
 app.put('/api/uat/clients/:id', async (req, res) => {
   await _dbReady; const u = uatDB(); const c = u.clients.find(x=>x.id===req.params.id);
   if (!c) return res.status(404).json({ ok:false, error:'not found' });
-  Object.assign(c, req.body, { id:c.id, portalToken:c.portalToken, updatedAt:new Date().toISOString() });
-  await saveDB(db); res.json({ ok:true, data:c });
+  const { id, portalToken, ...changes } = req.body;
+  Object.assign(c, changes, { updatedAt:new Date().toISOString() });
+  const setOps = { 'uat.clients.$[cl].updatedAt': c.updatedAt };
+  Object.keys(changes).forEach(k => { setOps[`uat.clients.$[cl].${k}`] = c[k]; });
+  const ok = await atomicUpdate({ $set: setOps }, { arrayFilters: [{ 'cl.id': c.id }] });
+  if (!ok) await saveDB(db);
+  res.json({ ok:true, data:c });
 });
 app.delete('/api/uat/clients/:id', async (req, res) => {
   await _dbReady; const u = uatDB(); const id=req.params.id;
@@ -1251,45 +1262,70 @@ app.post('/api/uat/projects', async (req, res) => {
   let clientId = rawClientId || '';
   let clientName = rawClientName.trim();
   const website = clientWebsite.trim();
+  let newClient = null, websiteUpdate = null;
   if (!clientId && clientName) {
     let c = u.clients.find(x => x.name.toLowerCase() === clientName.toLowerCase());
-    if (!c) { c = { id:uatId(), name:clientName, shortCode:clientName.slice(0,3).toUpperCase(), website, createdAt:new Date().toISOString() }; u.clients.push(c); }
-    else { clientName = c.name; if (website) c.website = website; }
+    if (!c) { c = { id:uatId(), name:clientName, shortCode:clientName.slice(0,3).toUpperCase(), website, createdAt:new Date().toISOString() }; u.clients.push(c); newClient = c; }
+    else { clientName = c.name; if (website) { c.website = website; websiteUpdate = c; } }
     clientId = c.id;
   } else if (clientId) {
     const c = u.clients.find(x => x.id === clientId);
-    if (c) { clientName = c.name; if (website) c.website = website; }
+    if (c) { clientName = c.name; if (website) { c.website = website; websiteUpdate = c; } }
   }
   const p = { id:uatId(), clientId, clientName, clientWebsite: website, name, entity, businessUnit, goLiveDate, description, phase:'uat', status:'active', uatRound:1, signoff:null,
     inRocketlane: !!inRocketlane, rlProjectId: inRocketlane ? (rlProjectId || null) : null, rlClientName: inRocketlane ? (rlClientName || null) : null,
     createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
   if (Array.isArray(entities) && entities.length) p.entities = entities.filter(Boolean);
   u.projects.push(p);
+  // Build a targeted $push (new project, optionally a new client and/or seeded test
+  // cases and an activity entry) instead of a full-document replaceOne — this is the
+  // "create project" path flagged as slow/unreliable; a full saveDB() here reads and
+  // rewrites the entire shared document on every single project creation.
+  const now = new Date().toISOString();
+  const pushOps = { 'uat.projects': p };
+  if (newClient) pushOps['uat.clients'] = newClient;
+  let activityEntry;
   if (seedDefaults) {
     const tcs = UAT_DEFAULTS.map((d,i) => uatNewTC({ ...d, id:uatId(), projectId:p.id, clientId, seq:i+1 }));
     u.testcases.push(...tcs);
-    uatLog('project_seeded', `"${name}" seeded with ${tcs.length} default test cases`, {projectId:p.id, clientId});
+    pushOps['uat.testcases'] = { $each: tcs };
+    activityEntry = { id:uatId(), type:'project_seeded', message:`"${name}" seeded with ${tcs.length} default test cases`, projectId:p.id, clientId, createdAt:now };
   } else {
-    uatLog('project_created', `Project "${name}" created`, {projectId:p.id, clientId});
+    activityEntry = { id:uatId(), type:'project_created', message:`Project "${name}" created`, projectId:p.id, clientId, createdAt:now };
   }
-  await saveDB(db); res.json({ ok:true, data:p });
+  u.activity.unshift(activityEntry); if (u.activity.length > 500) u.activity = u.activity.slice(0, 500);
+  pushOps['uat.activity'] = { $each: [activityEntry], $position: 0 };
+  const updateDoc = { $push: pushOps };
+  const options = {};
+  if (websiteUpdate) {
+    updateDoc.$set = { 'uat.clients.$[cl].website': websiteUpdate.website };
+    options.arrayFilters = [{ 'cl.id': websiteUpdate.id }];
+  }
+  const ok = await atomicUpdate(updateDoc, options);
+  if (!ok) await saveDB(db);
+  res.json({ ok:true, data:p });
 });
 app.put('/api/uat/projects/:id', async (req, res) => {
   await _dbReady; const u = uatDB(); const p=u.projects.find(x=>x.id===req.params.id);
   if (!p) return res.status(404).json({ ok:false, error:'not found' });
+  let newClient = null, websiteUpdate = null;
   if (req.body.clientName !== undefined) {
     const cn = req.body.clientName.trim();
     if (cn) {
       let c = u.clients.find(x => x.name.toLowerCase() === cn.toLowerCase());
-      if (!c) { c = { id:uatId(), name:cn, shortCode:cn.slice(0,3).toUpperCase(), createdAt:new Date().toISOString() }; u.clients.push(c); }
+      if (!c) { c = { id:uatId(), name:cn, shortCode:cn.slice(0,3).toUpperCase(), createdAt:new Date().toISOString() }; u.clients.push(c); newClient = c; }
       req.body.clientId = c.id; req.body.clientName = c.name;
     }
   }
   if (req.body.clientWebsite !== undefined) {
     const cid = req.body.clientId || p.clientId;
     const c = u.clients.find(x => x.id === cid);
-    if (c) c.website = req.body.clientWebsite.trim();
+    if (c) { c.website = req.body.clientWebsite.trim(); websiteUpdate = c; }
   }
+  const now = new Date().toISOString();
+  const arrayFilters = [{ 'p.id': p.id }];
+  const setOps = {};
+  const unsetOps = {};
   // If the entity list shrank, un-assign (not delete) test cases that pointed at a
   // removed entity so they stay visible under "All Entities" instead of vanishing.
   if (Array.isArray(req.body.entities)) {
@@ -1297,16 +1333,29 @@ app.put('/api/uat/projects/:id', async (req, res) => {
     if (removed.length) {
       const removedSet = new Set(removed);
       u.testcases.filter(t => t.projectId === p.id).forEach(tc => {
-        let touched = false;
-        if (removedSet.has(tc.entity)) { tc.entity = ''; touched = true; }
-        removed.forEach(en => { if (tc.entityStatuses && tc.entityStatuses[en]) { delete tc.entityStatuses[en]; touched = true; } });
-        if (touched) tc.updatedAt = new Date().toISOString();
+        if (removedSet.has(tc.entity)) tc.entity = '';
+        removed.forEach(en => { if (tc.entityStatuses && tc.entityStatuses[en]) delete tc.entityStatuses[en]; });
+      });
+      setOps['uat.testcases.$[tcEnt].entity'] = '';
+      setOps['uat.testcases.$[tcEnt].updatedAt'] = now;
+      arrayFilters.push({ 'tcEnt.projectId': p.id, 'tcEnt.entity': { $in: removed } });
+      removed.forEach((en, i) => {
+        unsetOps[`uat.testcases.$[tcU${i}].entityStatuses.${en}`] = '';
+        arrayFilters.push({ [`tcU${i}.projectId`]: p.id });
       });
       _uatTcCacheInvalidate(p.id); _uatDashCache.clear();
     }
   }
-  Object.assign(p, req.body, { id:p.id, updatedAt:new Date().toISOString() });
-  await saveDB(db); res.json({ ok:true, data:p });
+  Object.assign(p, req.body, { id:p.id, updatedAt:now });
+  Object.keys(req.body).forEach(k => { if (k!=='id') setOps[`uat.projects.$[p].${k}`] = p[k]; });
+  setOps['uat.projects.$[p].updatedAt'] = now;
+  const updateDoc = { $set: setOps };
+  if (Object.keys(unsetOps).length) updateDoc.$unset = unsetOps;
+  if (newClient) { updateDoc.$push = { 'uat.clients': newClient }; }
+  if (websiteUpdate) { setOps['uat.clients.$[cl].website'] = websiteUpdate.website; arrayFilters.push({ 'cl.id': websiteUpdate.id }); }
+  const ok = await atomicUpdate(updateDoc, { arrayFilters });
+  if (!ok) await saveDB(db);
+  res.json({ ok:true, data:p });
 });
 app.post('/api/uat/projects/:id/seed', async (req, res) => {
   await _dbReady; const u = uatDB(); const p=u.projects.find(x=>x.id===req.params.id);
@@ -1315,16 +1364,25 @@ app.post('/api/uat/projects/:id/seed', async (req, res) => {
   const start = existing + 1;
   const tcs = UAT_DEFAULTS.map((d,i) => uatNewTC({ ...d, id:uatId(), projectId:p.id, clientId:p.clientId, seq:start+i }));
   u.testcases.push(...tcs);
-  uatLog('project_seeded', `Seeded ${tcs.length} default test cases into "${p.name}"`, {projectId:p.id});
-  await saveDB(db); res.json({ ok:true, data:{ count:tcs.length } });
+  const now = new Date().toISOString();
+  const entry = { id:uatId(), type:'project_seeded', message:`Seeded ${tcs.length} default test cases into "${p.name}"`, projectId:p.id, createdAt:now };
+  u.activity.unshift(entry); if (u.activity.length>500) u.activity=u.activity.slice(0,500);
+  const ok = await atomicUpdate({ $push: { 'uat.testcases': { $each:tcs }, 'uat.activity': { $each:[entry], $position:0 } } });
+  if (!ok) await saveDB(db);
+  res.json({ ok:true, data:{ count:tcs.length } });
 });
 app.post('/api/uat/projects/:id/signoff', async (req, res) => {
   await _dbReady; const u = uatDB(); const p=u.projects.find(x=>x.id===req.params.id);
   if (!p) return res.status(404).json({ ok:false, error:'not found' });
-  p.signoff={ status:req.body.approve?'approved':'rejected', signedBy:req.body.signedBy||'Client', comment:req.body.comment||'', signedAt:new Date().toISOString() };
-  if (req.body.approve) p.phase='go_live';
-  uatLog('signoff', `UAT ${p.signoff.status} for "${p.name}"`, {projectId:p.id, clientId:p.clientId});
-  await saveDB(db); res.json({ ok:true, data:p });
+  const now = new Date().toISOString();
+  p.signoff={ status:req.body.approve?'approved':'rejected', signedBy:req.body.signedBy||'Client', comment:req.body.comment||'', signedAt:now };
+  const setOps = { 'uat.projects.$[p].signoff': p.signoff };
+  if (req.body.approve) { p.phase='go_live'; setOps['uat.projects.$[p].phase'] = 'go_live'; }
+  const entry = { id:uatId(), type:'signoff', message:`UAT ${p.signoff.status} for "${p.name}"`, projectId:p.id, clientId:p.clientId, createdAt:now };
+  u.activity.unshift(entry); if (u.activity.length>500) u.activity=u.activity.slice(0,500);
+  const ok = await atomicUpdate({ $set:setOps, $push:{ 'uat.activity':{ $each:[entry], $position:0 } } }, { arrayFilters:[{ 'p.id': p.id }] });
+  if (!ok) await saveDB(db);
+  res.json({ ok:true, data:p });
 });
 // ── Test Cases ────────────────────────────────────────────────────────────────
 app.get('/api/uat/testcases', async (req, res) => {
@@ -1355,7 +1413,10 @@ app.post('/api/uat/testcases', async (req, res) => {
   if (!req.body.projectId) return res.status(400).json({ ok:false, error:'projectId required' });
   const seq = u.testcases.filter(t=>t.projectId===req.body.projectId).length + 1;
   const tc = uatNewTC({ ...req.body, seq, id:uatId() });
-  u.testcases.push(tc); await saveDB(db); res.json({ ok:true, data:tc });
+  u.testcases.push(tc);
+  const ok = await atomicUpdate({ $push: { 'uat.testcases': tc } });
+  if (!ok) await saveDB(db);
+  res.json({ ok:true, data:tc });
 });
 // Bulk-create test cases parsed client-side from an uploaded Excel/CSV file.
 // The client already validated required fields and deduped against what it had
@@ -1411,10 +1472,18 @@ app.post('/api/uat/testcases/import', async (req, res) => {
 
   if (newEntities.length) p.entities = [...(p.entities || []), ...newEntities];
   if (created.length || newEntities.length) {
-    p.updatedAt = new Date().toISOString();
-    await saveDB(db);
+    const now = new Date().toISOString();
+    p.updatedAt = now;
+    const entry = { id:uatId(), type:'testcases_imported', message:`${created.length} test case(s) imported into "${p.name}"${newEntities.length ? ` (added ${newEntities.length} new entit${newEntities.length === 1 ? 'y' : 'ies'})` : ''}`, projectId, createdAt:now };
+    u.activity.unshift(entry); if (u.activity.length>500) u.activity=u.activity.slice(0,500);
+    const updateDoc = { $push: { 'uat.activity': { $each:[entry], $position:0 } } };
+    if (created.length) updateDoc.$push['uat.testcases'] = { $each: created };
+    const setOps = { 'uat.projects.$[p].updatedAt': now };
+    if (newEntities.length) setOps['uat.projects.$[p].entities'] = p.entities;
+    updateDoc.$set = setOps;
+    const ok = await atomicUpdate(updateDoc, { arrayFilters: [{ 'p.id': p.id }] });
+    if (!ok) await saveDB(db);
     _uatTcCacheInvalidate(projectId); _uatDashCache.clear();
-    uatLog('testcases_imported', `${created.length} test case(s) imported into "${p.name}"${newEntities.length ? ` (added ${newEntities.length} new entit${newEntities.length === 1 ? 'y' : 'ies'})` : ''}`, { projectId });
   }
 
   res.json({ ok:true, data:{ created: created.length, skippedDuplicates: skippedDuplicate, skippedInvalid, entitiesAdded: newEntities, project: { entities: p.entities } } });
@@ -1423,19 +1492,35 @@ app.put('/api/uat/testcases/:id', async (req, res) => {
   await _dbReady; const u = uatDB(); const tc=u.testcases.find(x=>x.id===req.params.id);
   if (!tc) return res.status(404).json({ ok:false, error:'not found' });
   const { bluecopaStatus, clientStatus, bluecopaComments, clientComments, attachments, ...rest } = req.body;
+  const now = new Date().toISOString();
+  // Target only this one test case by id (arrayFilters) instead of $set-ing the
+  // whole testcases array — the previous whole-array $set silently lost any other
+  // tester's concurrent update to a different test case (last writer wins on the
+  // entire array), which is exactly the "can't save Bluecopa test result" reports.
+  const setOps = { 'uat.testcases.$[tc].updatedAt': now };
+  const newActivity = [];
   if (bluecopaStatus !== undefined && tc.bluecopaStatus !== bluecopaStatus) {
-    tc.bluecopaStatus = bluecopaStatus;
-    uatLog('b_status', `Bluecopa: ${bluecopaStatus} on TC-${tc.seq}`, {projectId:tc.projectId});
+    tc.bluecopaStatus = bluecopaStatus; setOps['uat.testcases.$[tc].bluecopaStatus'] = bluecopaStatus;
+    const entry = { id:uatId(), type:'b_status', message:`Bluecopa: ${bluecopaStatus} on TC-${tc.seq}`, projectId:tc.projectId, createdAt:now };
+    u.activity.unshift(entry); if (u.activity.length>500) u.activity=u.activity.slice(0,500);
+    newActivity.push(entry);
   }
   if (clientStatus !== undefined && tc.clientStatus !== clientStatus) {
-    tc.clientStatus = clientStatus;
-    uatLog('c_status', `Client: ${clientStatus} on TC-${tc.seq}`, {projectId:tc.projectId});
+    tc.clientStatus = clientStatus; setOps['uat.testcases.$[tc].clientStatus'] = clientStatus;
+    const entry = { id:uatId(), type:'c_status', message:`Client: ${clientStatus} on TC-${tc.seq}`, projectId:tc.projectId, createdAt:now };
+    u.activity.unshift(entry); if (u.activity.length>500) u.activity=u.activity.slice(0,500);
+    newActivity.push(entry);
   }
-  if (bluecopaComments !== undefined) tc.bluecopaComments = bluecopaComments;
-  if (clientComments   !== undefined) tc.clientComments   = clientComments;
-  if (attachments      !== undefined) tc.attachments       = attachments;
-  Object.assign(tc, rest, { id:tc.id, bluecopaStatus:tc.bluecopaStatus, clientStatus:tc.clientStatus, bluecopaComments:tc.bluecopaComments, clientComments:tc.clientComments, attachments:tc.attachments, updatedAt:new Date().toISOString() });
-  const ok=await atomicUpdate({$set:{'uat.testcases':u.testcases,'uat.activity':u.activity}}); if(!ok) await saveDB(db);
+  if (bluecopaComments !== undefined) { tc.bluecopaComments = bluecopaComments; setOps['uat.testcases.$[tc].bluecopaComments'] = bluecopaComments; }
+  if (clientComments   !== undefined) { tc.clientComments   = clientComments;   setOps['uat.testcases.$[tc].clientComments']   = clientComments; }
+  if (attachments      !== undefined) { tc.attachments      = attachments;      setOps['uat.testcases.$[tc].attachments']      = attachments; }
+  Object.assign(tc, rest);
+  Object.keys(rest).forEach(k => { setOps[`uat.testcases.$[tc].${k}`] = tc[k]; });
+  tc.updatedAt = now;
+  const updateDoc = { $set: setOps };
+  if (newActivity.length) updateDoc.$push = { 'uat.activity': { $each: newActivity, $position: 0 } };
+  const ok = await persistTestCaseUpdate(tc.id, updateDoc);
+  if (!ok) await saveDB(db);
   _uatTcCacheInvalidate(tc.projectId); _uatDashCache.clear();
   res.json({ ok:true, data:tc });
 });
@@ -1444,20 +1529,30 @@ app.delete('/api/uat/testcases/:id', async (req, res) => {
   const _del=u.testcases.find(x=>x.id===req.params.id);
   u.testcases=u.testcases.filter(x=>x.id!==req.params.id);
   if (u.attachments) u.attachments = u.attachments.filter(x=>x.testCaseId!==req.params.id);
-  const ok=await atomicUpdate({$set:{'uat.testcases':u.testcases,'uat.attachments':u.attachments}}); if(!ok) await saveDB(db);
+  // $pull removes exactly this one test case (and its attachments) by id, without
+  // touching — or risking clobbering — any other concurrent edit to the array.
+  const ok=await atomicUpdate({$pull:{'uat.testcases':{id:req.params.id},'uat.attachments':{testCaseId:req.params.id}}});
+  if(!ok) await saveDB(db);
   if(_del) { _uatTcCacheInvalidate(_del.projectId); _uatDashCache.clear(); }
   res.json({ ok:true });
 });
 app.post('/api/uat/testcases/bulk', async (req, res) => {
   await _dbReady; const u=uatDB(); const { ids=[], bluecopaStatus, clientStatus } = req.body;
   const affectedProjects = new Set();
+  const now = new Date().toISOString();
+  const setOps = { 'uat.testcases.$[tc].updatedAt': now };
+  if (bluecopaStatus) setOps['uat.testcases.$[tc].bluecopaStatus'] = bluecopaStatus;
+  if (clientStatus)   setOps['uat.testcases.$[tc].clientStatus']   = clientStatus;
   ids.forEach(id=>{ const t=u.testcases.find(x=>x.id===id); if(!t) return;
     if (bluecopaStatus) t.bluecopaStatus=bluecopaStatus;
     if (clientStatus)   t.clientStatus=clientStatus;
-    t.updatedAt=new Date().toISOString();
+    t.updatedAt=now;
     if(t.projectId) affectedProjects.add(t.projectId);
   });
-  await saveDB(db);
+  // One atomic update matching every selected id at once (arrayFilters supports
+  // $in), instead of a full-document rewrite for a bulk-select action.
+  const ok = await atomicUpdate({ $set: setOps }, { arrayFilters: [{ 'tc.id': { $in: ids } }] });
+  if (!ok) await saveDB(db);
   affectedProjects.forEach(pid=>_uatTcCacheInvalidate(pid)); _uatDashCache.clear();
   res.json({ ok:true });
 });
@@ -1465,7 +1560,23 @@ app.post('/api/uat/testcases/bulk', async (req, res) => {
 app.post('/api/uat/testcases/reorder', async (req, res) => {
   await _dbReady; const u=uatDB(); const { ids=[] } = req.body;
   ids.forEach((id,i)=>{ const t=u.testcases.find(x=>x.id===id); if(t) t.seq=i+1; });
-  await saveDB(db); res.json({ ok:true });
+  // Each test case gets a different seq value, so one shared arrayFilter can't set
+  // them all in a single op — batch one targeted update per id instead of a
+  // full-document rewrite.
+  if (mongoCol) {
+    try {
+      const ops = ids.map((id,i) => ({ updateOne: {
+        filter: { _id:'main' },
+        update: { $set: { 'uat.testcases.$[tc].seq': i+1 } },
+        arrayFilters: [{ 'tc.id': id }]
+      }}));
+      if (ops.length) await mongoCol.bulkWrite(ops);
+      dbCacheTs = 0;
+    } catch(e) { console.error('[testcases/reorder]', e.message); await saveDB(db); }
+  } else {
+    await saveDB(db);
+  }
+  res.json({ ok:true });
 });
 
 // ── Issues ────────────────────────────────────────────────────────────────────
@@ -1484,26 +1595,45 @@ app.post('/api/uat/issues', async (req, res) => {
   await _dbReady; const u=uatDB();
   const { testCaseId, projectId, clientId, title, description='', severity='medium', assignedTo='', entity='' } = req.body;
   if (!title) return res.status(400).json({ ok:false, error:'title required' });
+  const now = new Date().toISOString();
   const cnt=u.issues.filter(i=>i.projectId===projectId).length+1;
-  const issue={ id:uatId(), testCaseId, projectId, clientId, ref:`ISS-${String(cnt).padStart(3,'0')}`, title, description, severity:(severity||'medium').toLowerCase(), status:'open', assignedTo, entity, resolution:'', createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
+  const issue={ id:uatId(), testCaseId, projectId, clientId, ref:`ISS-${String(cnt).padStart(3,'0')}`, title, description, severity:(severity||'medium').toLowerCase(), status:'open', assignedTo, entity, resolution:'', createdAt:now, updatedAt:now };
   u.issues.push(issue);
-  if (testCaseId) { const tc=u.testcases.find(x=>x.id===testCaseId); if(tc){tc.bluecopaStatus='blocked';tc.updatedAt=new Date().toISOString();} }
-  uatLog('issue_opened', `Issue "${title}" raised`, {projectId, clientId});
-  await saveDB(db); res.json({ ok:true, data:issue });
+  const entry = { id:uatId(), type:'issue_opened', message:`Issue "${title}" raised`, projectId, clientId, createdAt:now };
+  u.activity.unshift(entry); if (u.activity.length>500) u.activity=u.activity.slice(0,500);
+  const updateDoc = { $push: { 'uat.issues': issue, 'uat.activity': { $each:[entry], $position:0 } } };
+  if (testCaseId) {
+    const tc=u.testcases.find(x=>x.id===testCaseId);
+    if (tc) {
+      tc.bluecopaStatus='blocked'; tc.updatedAt=now;
+      updateDoc.$set = { 'uat.testcases.$[tc].bluecopaStatus':'blocked', 'uat.testcases.$[tc].updatedAt':now };
+    }
+  }
+  const options = updateDoc.$set ? { arrayFilters: [{ 'tc.id': testCaseId }] } : {};
+  const ok = await atomicUpdate(updateDoc, options);
+  if (!ok) await saveDB(db);
+  res.json({ ok:true, data:issue });
 });
 app.put('/api/uat/issues/:id', async (req, res) => {
   await _dbReady; const u=uatDB(); const issue=u.issues.find(x=>x.id===req.params.id);
   if (!issue) return res.status(404).json({ ok:false, error:'not found' });
   const now = new Date().toISOString();
   const { addUpdate, ...rest } = req.body;
+  const setOps = { 'uat.issues.$[iss].updatedAt': now };
   if (addUpdate && addUpdate.text) {
     if (!issue.updates) issue.updates = [];
     issue.updates.push({ text: addUpdate.text, author: addUpdate.author || 'Bluecopa', at: now });
+    setOps['uat.issues.$[iss].updates'] = issue.updates;
   }
   if ((rest.status === 'resolved' || rest.status === 'solved') && !issue.resolvedAt) rest.resolvedAt = now;
   if (rest.severity) rest.severity = rest.severity.toLowerCase();
-  Object.assign(issue, rest, { id:issue.id, updatedAt:now });
-  const _oi=await atomicUpdate({$set:{'uat.issues':u.issues,'uat.activity':u.activity}}); if(!_oi) await saveDB(db);
+  Object.assign(issue, rest);
+  Object.keys(rest).forEach(k => { setOps[`uat.issues.$[iss].${k}`] = issue[k]; });
+  issue.updatedAt = now;
+  // Target this one issue by id (arrayFilters) instead of $set-ing the whole issues
+  // array, which previously lost any other issue's concurrent update.
+  const _oi = await atomicUpdate({ $set: setOps }, { arrayFilters: [{ 'iss.id': issue.id }] });
+  if (!_oi) await saveDB(db);
   res.json({ ok:true, data:issue });
 });
 
@@ -1610,7 +1740,9 @@ app.post('/api/uat/portal/generate', async (req, res) => {
   await _dbReady; const u=uatDB(); const c=u.clients.find(x=>x.id===req.body.clientId);
   if (!c) return res.status(404).json({ ok:false, error:'not found' });
   c.portalToken=require('crypto').randomBytes(24).toString('hex');
-  await saveDB(db); res.json({ ok:true, token:c.portalToken });
+  const ok = await atomicUpdate({ $set: { 'uat.clients.$[cl].portalToken': c.portalToken } }, { arrayFilters: [{ 'cl.id': c.id }] });
+  if (!ok) await saveDB(db);
+  res.json({ ok:true, token:c.portalToken });
 });
 // JSON data for portal (used by AJAX)
 app.get('/api/uat/portal/:token', async (req, res) => {
@@ -1633,17 +1765,26 @@ app.put('/api/uat/portal/:token/issue/:id', async (req, res) => {
   const { clientVerdict } = req.body;
   const now=new Date().toISOString();
   if (!issue.updates) issue.updates=[];
+  const newActivity = [];
   if (clientVerdict==='solved') {
     issue.status='solved';
     issue.updates.push({ text:'Client confirmed: issue resolved and retested successfully.', author:'Client', at:now });
-    uatLog('issue_solved',`Issue ${issue.ref} confirmed resolved by client`,{projectId:issue.projectId,clientId:c.id});
+    const entry = { id:uatId(), type:'issue_solved', message:`Issue ${issue.ref} confirmed resolved by client`, projectId:issue.projectId, clientId:c.id, createdAt:now };
+    u.activity.unshift(entry); if (u.activity.length>500) u.activity=u.activity.slice(0,500);
+    newActivity.push(entry);
   } else if (clientVerdict==='reopen') {
     issue.status='open';
     issue.updates.push({ text:'Client retested and confirmed: issue is still present. Reopened.', author:'Client', at:now });
-    uatLog('issue_reopened',`Issue ${issue.ref} reopened by client`,{projectId:issue.projectId,clientId:c.id});
+    const entry = { id:uatId(), type:'issue_reopened', message:`Issue ${issue.ref} reopened by client`, projectId:issue.projectId, clientId:c.id, createdAt:now };
+    u.activity.unshift(entry); if (u.activity.length>500) u.activity=u.activity.slice(0,500);
+    newActivity.push(entry);
   }
   issue.updatedAt=now;
-  await saveDB(db); res.json({ ok:true, data:issue });
+  const updateDoc = { $set: { 'uat.issues.$[iss].status':issue.status, 'uat.issues.$[iss].updates':issue.updates, 'uat.issues.$[iss].updatedAt':now } };
+  if (newActivity.length) updateDoc.$push = { 'uat.activity': { $each:newActivity, $position:0 } };
+  const ok = await atomicUpdate(updateDoc, { arrayFilters: [{ 'iss.id': issue.id }] });
+  if (!ok) await saveDB(db);
+  res.json({ ok:true, data:issue });
 });
 // Client updates their own status/comments via portal
 app.put('/api/uat/portal/:token/tc/:id', async (req, res) => {
@@ -1652,18 +1793,42 @@ app.put('/api/uat/portal/:token/tc/:id', async (req, res) => {
   const tc=u.testcases.find(x=>x.id===req.params.id&&x.clientId===c.id);
   if (!tc) return res.status(404).json({ ok:false, error:'not found' });
   const { clientStatus, clientComments, attachments, entity } = req.body;
+  const now = new Date().toISOString();
+  // Same fix as the admin test-case endpoint above: target this one test case by id
+  // (arrayFilters) instead of $set-ing the whole testcases array. This portal link is
+  // often shared by multiple client reviewers working at the same time, which made the
+  // old whole-array write especially likely to silently drop someone's status update.
+  const setOps = { 'uat.testcases.$[tc].updatedAt': now };
+  const newActivity = [];
   if (entity) {
     if (!tc.entityStatuses) tc.entityStatuses = {};
     if (!tc.entityStatuses[entity]) tc.entityStatuses[entity] = {};
-    if (clientStatus   !== undefined) { tc.entityStatuses[entity].clientStatus=clientStatus; uatLog('c_status',`Client[${entity}]: ${clientStatus} on TC-${tc.seq}`,{projectId:tc.projectId,clientId:c.id}); }
-    if (clientComments !== undefined) tc.entityStatuses[entity].clientComments=clientComments;
+    if (clientStatus !== undefined) {
+      tc.entityStatuses[entity].clientStatus = clientStatus;
+      setOps[`uat.testcases.$[tc].entityStatuses.${entity}.clientStatus`] = clientStatus;
+      const entry = { id:uatId(), type:'c_status', message:`Client[${entity}]: ${clientStatus} on TC-${tc.seq}`, projectId:tc.projectId, clientId:c.id, createdAt:now };
+      u.activity.unshift(entry); if (u.activity.length>500) u.activity=u.activity.slice(0,500);
+      newActivity.push(entry);
+    }
+    if (clientComments !== undefined) {
+      tc.entityStatuses[entity].clientComments = clientComments;
+      setOps[`uat.testcases.$[tc].entityStatuses.${entity}.clientComments`] = clientComments;
+    }
   } else {
-    if (clientStatus   !== undefined) { tc.clientStatus=clientStatus; uatLog('c_status',`Client: ${clientStatus} on TC-${tc.seq}`,{projectId:tc.projectId,clientId:c.id}); }
-    if (clientComments !== undefined) tc.clientComments=clientComments;
+    if (clientStatus !== undefined) {
+      tc.clientStatus = clientStatus; setOps['uat.testcases.$[tc].clientStatus'] = clientStatus;
+      const entry = { id:uatId(), type:'c_status', message:`Client: ${clientStatus} on TC-${tc.seq}`, projectId:tc.projectId, clientId:c.id, createdAt:now };
+      u.activity.unshift(entry); if (u.activity.length>500) u.activity=u.activity.slice(0,500);
+      newActivity.push(entry);
+    }
+    if (clientComments !== undefined) { tc.clientComments = clientComments; setOps['uat.testcases.$[tc].clientComments'] = clientComments; }
   }
-  if (attachments !== undefined) tc.attachments=attachments;
-  tc.updatedAt=new Date().toISOString();
-  const _ok=await atomicUpdate({$set:{'uat.testcases':u.testcases,'uat.activity':u.activity}}); if(!_ok) await saveDB(db);
+  if (attachments !== undefined) { tc.attachments = attachments; setOps['uat.testcases.$[tc].attachments'] = attachments; }
+  tc.updatedAt = now;
+  const updateDoc = { $set: setOps };
+  if (newActivity.length) updateDoc.$push = { 'uat.activity': { $each: newActivity, $position: 0 } };
+  const _ok = await persistTestCaseUpdate(tc.id, updateDoc);
+  if (!_ok) await saveDB(db);
   res.json({ ok:true, data:tc });
 });
 
@@ -2360,20 +2525,36 @@ app.post('/api/uat/projects/:id/rename-entity', async (req, res) => {
   const idx=(p.entities||[]).indexOf(oldName);
   if (idx===-1) return res.status(404).json({ ok:false, error:'entity not found' });
   p.entities[idx]=newName;
+  const now = new Date().toISOString();
+  const arrayFilters = [{ 'p.id': p.id }];
+  const setOps = { 'uat.projects.$[p].entities': p.entities, 'uat.projects.$[p].updatedAt': now };
+  const renameOps = {};
+  let anyTouched = false, anyLegacy = false;
   u.testcases.filter(t=>t.projectId===p.id).forEach(tc=>{
     let touched=false;
     // Primary: each test case now carries its own entity directly
-    if (tc.entity===oldName) { tc.entity=newName; touched=true; }
+    if (tc.entity===oldName) { tc.entity=newName; touched=true; anyTouched=true; }
     // Legacy: some older test cases only recorded status per-entity in entityStatuses
     if (tc.entityStatuses&&tc.entityStatuses[oldName]) {
       tc.entityStatuses[newName]=tc.entityStatuses[oldName];
       delete tc.entityStatuses[oldName];
-      touched=true;
+      touched=true; anyLegacy=true;
     }
-    if (touched) tc.updatedAt=new Date().toISOString();
+    if (touched) tc.updatedAt=now;
   });
-  p.updatedAt=new Date().toISOString();
-  await saveDB(db);
+  if (anyTouched) {
+    setOps['uat.testcases.$[tcEnt].entity'] = newName;
+    setOps['uat.testcases.$[tcEnt].updatedAt'] = now;
+    arrayFilters.push({ 'tcEnt.projectId': p.id, 'tcEnt.entity': oldName });
+  }
+  if (anyLegacy) {
+    renameOps[`uat.testcases.$[tcLeg].entityStatuses.${oldName}`] = `uat.testcases.$[tcLeg].entityStatuses.${newName}`;
+    arrayFilters.push({ 'tcLeg.projectId': p.id, [`tcLeg.entityStatuses.${oldName}`]: { $exists: true } });
+  }
+  const updateDoc = { $set: setOps };
+  if (Object.keys(renameOps).length) updateDoc.$rename = renameOps;
+  const ok = await atomicUpdate(updateDoc, { arrayFilters });
+  if (!ok) await saveDB(db);
   _uatTcCacheInvalidate(p.id); _uatDashCache.clear();
   res.json({ ok:true, data:p });
 });
@@ -2385,7 +2566,11 @@ app.post('/api/uat/projects/:id/generate-portal', async (req, res) => {
   if (!p.portalToken) {
     p.portalToken=require('crypto').randomBytes(24).toString('hex');
     p.updatedAt=new Date().toISOString();
-    await saveDB(db);
+    const ok = await atomicUpdate(
+      { $set: { 'uat.projects.$[p].portalToken': p.portalToken, 'uat.projects.$[p].updatedAt': p.updatedAt } },
+      { arrayFilters: [{ 'p.id': p.id }] }
+    );
+    if (!ok) await saveDB(db);
   }
   res.json({ ok:true, token:p.portalToken });
 });
@@ -2395,7 +2580,12 @@ app.post('/api/uat/projects/:id/regenerate-portal', async (req, res) => {
   if (!p) return res.status(404).json({ ok:false, error:'not found' });
   p.portalToken=require('crypto').randomBytes(24).toString('hex');
   p.updatedAt=new Date().toISOString();
-  await saveDB(db); res.json({ ok:true, token:p.portalToken });
+  const ok = await atomicUpdate(
+    { $set: { 'uat.projects.$[p].portalToken': p.portalToken, 'uat.projects.$[p].updatedAt': p.updatedAt } },
+    { arrayFilters: [{ 'p.id': p.id }] }
+  );
+  if (!ok) await saveDB(db);
+  res.json({ ok:true, token:p.portalToken });
 });
 
 // ── CustomerLink helpers ──────────────────────────────────────────────────────
@@ -2685,17 +2875,26 @@ app.put('/api/portal/:token/issue/:id', async (req, res) => {
   const { clientVerdict }=req.body;
   const now=new Date().toISOString();
   if (!issue.updates) issue.updates=[];
+  const newActivity = [];
   if (clientVerdict==='solved') {
     issue.status='solved';
     issue.updates.push({ text:'Client confirmed: issue resolved and retested successfully.', author:'Client', at:now });
-    uatLog('issue_solved',`Issue ${issue.ref} confirmed resolved by client`,{projectId:p.id,clientId:p.clientId});
+    const entry = { id:uatId(), type:'issue_solved', message:`Issue ${issue.ref} confirmed resolved by client`, projectId:p.id, clientId:p.clientId, createdAt:now };
+    u.activity.unshift(entry); if (u.activity.length>500) u.activity=u.activity.slice(0,500);
+    newActivity.push(entry);
   } else if (clientVerdict==='reopen') {
     issue.status='open';
     issue.updates.push({ text:'Client retested and confirmed: issue is still present. Reopened.', author:'Client', at:now });
-    uatLog('issue_reopened',`Issue ${issue.ref} reopened by client`,{projectId:p.id,clientId:p.clientId});
+    const entry = { id:uatId(), type:'issue_reopened', message:`Issue ${issue.ref} reopened by client`, projectId:p.id, clientId:p.clientId, createdAt:now };
+    u.activity.unshift(entry); if (u.activity.length>500) u.activity=u.activity.slice(0,500);
+    newActivity.push(entry);
   }
   issue.updatedAt=now;
-  await saveDB(db); res.json({ ok:true, data:issue });
+  const updateDoc = { $set: { 'uat.issues.$[iss].status':issue.status, 'uat.issues.$[iss].updates':issue.updates, 'uat.issues.$[iss].updatedAt':now } };
+  if (newActivity.length) updateDoc.$push = { 'uat.activity': { $each:newActivity, $position:0 } };
+  const ok = await atomicUpdate(updateDoc, { arrayFilters: [{ 'iss.id': issue.id }] });
+  if (!ok) await saveDB(db);
+  res.json({ ok:true, data:issue });
 });
 
 app.put('/api/uat/projects/:id/entity-signoff', async (req, res) => {
@@ -2705,9 +2904,18 @@ app.put('/api/uat/projects/:id/entity-signoff', async (req, res) => {
   if (!name||!name.trim()) return res.status(400).json({ ok:false, error:'name required' });
   const signoff={ name:name.trim(), role:(role||'').trim(), date:date||new Date().toISOString().slice(0,10), signedAt:new Date().toISOString() };
   if (!p.bluecopaEntitySignoffs) p.bluecopaEntitySignoffs={};
-  p.bluecopaEntitySignoffs[entity||'']=signoff;
+  const entityKey = entity||'';
+  p.bluecopaEntitySignoffs[entityKey]=signoff;
   p.updatedAt=new Date().toISOString();
-  await saveDB(db); res.json({ ok:true, signoff });
+  // Target this one project's signoff map by id (arrayFilters) instead of a
+  // full-document saveDB() — two different entities being signed off around the same
+  // time (common right before go-live) previously raced and could drop one of them.
+  const ok = await atomicUpdate(
+    { $set: { [`uat.projects.$[p].bluecopaEntitySignoffs.${entityKey}`]: signoff, 'uat.projects.$[p].updatedAt': p.updatedAt } },
+    { arrayFilters: [{ 'p.id': p.id }] }
+  );
+  if (!ok) await saveDB(db);
+  res.json({ ok:true, signoff });
 });
 
 app.put('/api/portal/:token/signoff', async (req, res) => {
@@ -2718,9 +2926,15 @@ app.put('/api/portal/:token/signoff', async (req, res) => {
   if (!name||!name.trim()) return res.status(400).json({ ok:false, error:'name required' });
   const signoff={ name:name.trim(), role:(role||'').trim(), date:date||new Date().toISOString().slice(0,10), signedAt:new Date().toISOString() };
   if (!p.entitySignoffs) p.entitySignoffs={};
-  p.entitySignoffs[entity||'']=signoff;
+  const entityKey = entity||'';
+  p.entitySignoffs[entityKey]=signoff;
   p.updatedAt=new Date().toISOString();
-  await saveDB(db); res.json({ ok:true, signoff });
+  const ok = await atomicUpdate(
+    { $set: { [`uat.projects.$[p].entitySignoffs.${entityKey}`]: signoff, 'uat.projects.$[p].updatedAt': p.updatedAt } },
+    { arrayFilters: [{ 'p.id': p.id }] }
+  );
+  if (!ok) await saveDB(db);
+  res.json({ ok:true, signoff });
 });
 
 // Atomic field-level update — a client rapidly clicking through many test
