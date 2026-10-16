@@ -709,15 +709,33 @@ const _ADMIN_HEADERS = { 'Content-Type':'application/json', 'x-user-email':'azha
 // Hub link modal. One cascading Client→Project picker, one "is this in
 // Rocketlane" toggle, reused everywhere instead of rebuilt per screen.
 let _rlProjectListCache = null;
+// Rocketlane's full project list can still be cold-loading server-side
+// (/api/rocketlane/projects-full replies {loading:true} with no `projects`
+// key) the first time anyone hits it after a deploy or an idle period.
+// Whoever's browser happens to land on that moment used to get an empty
+// client list cached here *forever* — this module-level cache only ever gets
+// written once per page load, so nothing ever retried until they reloaded
+// the page. Retry through the cold start instead of caching a dead result.
 async function rlFetchClientProjectList(force) {
   if (_rlProjectListCache && !force) return _rlProjectListCache;
-  const r = await fetch('/api/rocketlane/projects-full', { headers: _ADMIN_HEADERS });
-  const j = await r.json();
-  const projects = j.projects || [];
-  const byClient = {};
-  projects.forEach(p => { if (p.customer) (byClient[p.customer] = byClient[p.customer] || []).push(p); });
-  const clients = Object.keys(byClient).sort((a,b)=>a.localeCompare(b));
-  return (_rlProjectListCache = { clients, byClient });
+  for (let attempt = 0; attempt < 8; attempt++) {
+    if (attempt > 0) await new Promise(res => setTimeout(res, 1500));
+    try {
+      const r = await fetch('/api/rocketlane/projects-full', { headers: _ADMIN_HEADERS });
+      const j = await r.json();
+      if (j.loading) continue; // still warming up server-side — retry shortly
+      const projects = j.projects || [];
+      const byClient = {};
+      projects.forEach(p => { if (p.customer) (byClient[p.customer] = byClient[p.customer] || []).push(p); });
+      const clients = Object.keys(byClient).sort((a,b)=>a.localeCompare(b));
+      if (!clients.length) continue; // suspiciously empty — retry rather than cache a dead end
+      return (_rlProjectListCache = { clients, byClient });
+    } catch (e) { /* network hiccup — retry */ }
+  }
+  // Gave up after ~12s of retries. Return an empty list WITHOUT caching it, so
+  // the next time this is called (e.g. the user reopens the modal) it tries
+  // again fresh instead of being stuck on this failure permanently.
+  return { clients: [], byClient: {}, _failed: true };
 }
 
 // idPrefix -> { onProject, manualSelector } — lets each instance's callbacks
@@ -791,6 +809,17 @@ function rlRenderLinkToggle(containerId, idPrefix, opts) {
   rlFetchClientProjectList().then(list => {
     const sel = document.getElementById(idPrefix + '_rlClient');
     if (!sel) return; // container was replaced/closed before the fetch resolved
+    if (list._failed) {
+      sel.innerHTML = '<option value="">Couldn\'t load clients — click to retry</option>';
+      sel.addEventListener('click', function retryOnce() {
+        sel.removeEventListener('click', retryOnce);
+        sel.innerHTML = '<option value="">Loading…</option>';
+        rlFetchClientProjectList(true).then(list2 => {
+          sel.innerHTML = '<option value="">— Select a client —</option>' + list2.clients.map(c => `<option value="${escHtml(c)}" ${c===pre.rlClientName?'selected':''}>${escHtml(c)}</option>`).join('');
+        });
+      });
+      return;
+    }
     sel.innerHTML = '<option value="">— Select a client —</option>' + list.clients.map(c => `<option value="${escHtml(c)}" ${c===pre.rlClientName?'selected':''}>${escHtml(c)}</option>`).join('');
     if (pre.rlClientName && list.byClient[pre.rlClientName]) rlLinkClientChange(idPrefix, pre.rlProjectId);
   }).catch(()=>{});
