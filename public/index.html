@@ -7780,7 +7780,7 @@ async function updateFeedbackStatus(id) {
         <button class="uat-btn uat-btn-sm uat-btn-secondary" onclick="UAT.bulkSetStatus('bluecopaStatus','pass')">✓ Bluecopa Pass</button>
         <button class="uat-btn uat-btn-sm uat-btn-secondary" id="uatBulkClientPassBtn" onclick="UAT.bulkSetStatus('clientStatus','pass')">✓ Client Pass</button>
         <button class="uat-btn uat-btn-sm uat-btn-danger" onclick="UAT.bulkSetStatus('bluecopaStatus','fail')">✗ Mark Fail</button>
-        <button class="uat-btn uat-btn-sm uat-btn-danger" onclick="UAT.bulkDelete()">🗑 Delete</button>
+        <button class="uat-btn uat-btn-sm uat-btn-danger" id="uatBulkDeleteBtn" onclick="UAT.bulkDelete()">🗑 Delete</button>
         <button class="uat-btn uat-btn-sm uat-btn-ghost" onclick="UAT.clearSelection()">✕ Clear</button>
       </div>
 
