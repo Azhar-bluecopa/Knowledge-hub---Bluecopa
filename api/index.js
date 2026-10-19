@@ -1536,6 +1536,21 @@ app.delete('/api/uat/testcases/:id', async (req, res) => {
   if(_del) { _uatTcCacheInvalidate(_del.projectId); _uatDashCache.clear(); }
   res.json({ ok:true });
 });
+app.post('/api/uat/testcases/bulk-delete', async (req, res) => {
+  await _dbReady; const u=uatDB(); const { ids=[] } = req.body;
+  if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ ok:false, error:'ids[] required' });
+  const idSet = new Set(ids.map(String));
+  const affectedProjects = new Set();
+  u.testcases.filter(t=>idSet.has(t.id)).forEach(t=>{ if (t.projectId) affectedProjects.add(t.projectId); });
+  u.testcases = u.testcases.filter(t=>!idSet.has(t.id));
+  if (u.attachments) u.attachments = u.attachments.filter(x=>!idSet.has(x.testCaseId));
+  // $pull with $in removes exactly these test cases (and their attachments) by
+  // id in one atomic op, same pattern as the single-delete endpoint above.
+  const ok = await atomicUpdate({ $pull: { 'uat.testcases': { id: { $in: ids } }, 'uat.attachments': { testCaseId: { $in: ids } } } });
+  if (!ok) await saveDB(db);
+  affectedProjects.forEach(pid=>_uatTcCacheInvalidate(pid)); _uatDashCache.clear();
+  res.json({ ok:true, deleted: ids.length });
+});
 app.post('/api/uat/testcases/bulk', async (req, res) => {
   await _dbReady; const u=uatDB(); const { ids=[], bluecopaStatus, clientStatus } = req.body;
   const affectedProjects = new Set();
